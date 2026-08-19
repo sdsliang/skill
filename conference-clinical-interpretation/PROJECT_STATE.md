@@ -34,6 +34,9 @@
 - `build-conference-stats.mjs`：确定性统计生成器 → `*-stats.json`（overview/distributions/evidence_scatter/entity_network）。
   - 阶段双维度：`trial_phase`（研发阶段）+ `disease_stage`（疾病阶段，归一化）。
   - 终点识别：10 类正则模式。
+- `render-report.mjs`：**本地预览渲染器**（不进 dist）——把 `report.md` 的 `::visualization[...]` 引用替换为真实图表，输出自包含 `report.html`（纯内联 SVG、离线可读、颜色走 `--viz-*` token）：
+  - 匹配逻辑：`conference-stats.json`→KPI 卡组；`watchlist.csv`→表格；`chart-data.json`→按标题关键词匹配 10 种白名单图表类型中的一种。
+  - 用途：在无法使用 Tool Smith 云端前端时，本地可视化迭代示例报告；不替代生产前端渲染。
 - fixtures：`asco-2026-np-clinical.json`（136MB，本地留档，不入 Git）、`asco-2026-stats.json`（1.7MB）。
 
 ### 数据验证（ASCO 2026）
