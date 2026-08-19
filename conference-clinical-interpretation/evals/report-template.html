@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ASCO 2026 | 临床解读仪表盘</title>
+<style>
+:root{--ink:#15232e;--muted:#687783;--line:#dfe6e9;--paper:#f4f7f8;--white:#fff;--teal:#087f8c;--coral:#d85b47;--gold:#c9922e;--green:#2f8f68;--navy:#18384a;--violet:#8a6fb1}
+*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",Inter,sans-serif}button,input{font:inherit}button{cursor:pointer}
+.topbar{background:linear-gradient(120deg,var(--navy),#0e2f3d);color:#fff;padding:24px max(24px,calc((100vw - 1440px)/2));display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.brand small{display:block;color:#9fc0c6;letter-spacing:1px;text-transform:uppercase;font-size:11px}.brand h1{margin:4px 0 0;font-size:28px;line-height:1.1;font-weight:700}.topmeta{display:flex;gap:22px;color:#c7d9dc;text-align:right;flex-wrap:wrap}.topmeta strong{display:block;color:#fff;font-size:17px}
+.shell{max-width:1440px;margin:0 auto;padding:22px 24px 56px}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);border:1px solid var(--line);margin-bottom:8px}
+.metric{background:#fff;padding:16px 20px}.metric .label{color:var(--muted);font-size:12px}.metric strong{display:block;font-size:27px;line-height:1.2;margin-top:4px}.metric span{color:var(--muted);font-size:12px}
+.drug-banner{background:#fff;border:1px solid var(--line);border-left:4px solid var(--teal);padding:14px 20px;margin-bottom:24px;font-size:13px;color:var(--muted)}
+.section-head{display:flex;align-items:flex-end;justify-content:space-between;margin:28px 0 12px}.section-head h2{font-size:18px;margin:0}.section-head p{margin:0;color:var(--muted);font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}.chart-panel{background:#fff;border:1px solid var(--line);min-width:0}.chart-panel.wide{grid-column:span 2}.chart-title{padding:14px 17px 0;font-weight:700}.chart-sub{padding:2px 17px 0;color:var(--muted);font-size:12px}.chart{height:400px;width:100%}
+.watchlist-card{background:#fff;border:1px solid var(--line)}.watch-head{padding:14px 17px 0}.watch-sub{padding:2px 17px 8px;color:var(--muted);font-size:12px}
+.watch-row{border-top:1px solid var(--line);padding:12px 16px;display:grid;grid-template-columns:7px 1fr auto;gap:10px}.watch-row .bar{background:var(--green);min-height:40px}.watch-row .bar.negative{background:var(--coral)}.watch-row .bar.operational{background:var(--gold)}
+.watch-row strong{display:block}.watch-row p{margin:2px 0;color:var(--muted);font-size:12px}.signal{font-size:11px;padding:2px 6px;border:1px solid var(--line);color:var(--muted);height:max-content;border-radius:3px}
+.signal-link{background:none;border:1px solid #cfe1df;color:var(--teal);padding:1px 6px;border-radius:3px;font-size:11px;margin-right:4px}
+.tag{display:inline-block;border:1px solid #cfe1df;color:var(--teal);background:#f3faf9;padding:1px 6px;margin:2px 3px 0 0;border-radius:3px;font-size:11px}
+.moa-tag{display:inline-block;border:1px solid #e4d9f0;color:var(--violet);background:#faf7fd;padding:1px 6px;margin:2px 3px 0 0;border-radius:3px;font-size:11px}
+.toolbar{display:flex;gap:10px;align-items:center;margin:16px 0}.toolbar input{flex:1;border:1px solid var(--line);background:#fff;padding:10px 12px;outline:none;border-radius:4px}.toolbar input:focus{border-color:var(--teal)}.toolbar span{color:var(--muted);font-size:12px}
+.evidence{background:#fff;border:1px solid var(--line);overflow:hidden}.evidence table{border-collapse:collapse;width:100%;font-size:12px}.evidence th,.evidence td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}.evidence th{background:#f1f5f4;color:var(--muted);font-weight:600}.evidence td.title{max-width:520px}
+.empty{padding:28px;color:var(--muted);text-align:center}.footer{color:var(--muted);font-size:11px;margin-top:22px}
+.drawer{position:fixed;inset:0 0 0 auto;width:min(560px,100vw);background:#fff;box-shadow:-12px 0 35px #18384a24;transform:translateX(105%);transition:transform .22s ease;z-index:4;padding:24px;overflow:auto}.drawer.open{transform:translateX(0)}.drawer .close{float:right;border:0;background:none;font-size:22px;color:var(--muted)}.drawer h3{padding-right:30px}.drawer pre{white-space:pre-wrap;background:#f4f7f6;padding:14px;font-size:12px;overflow:auto}
+.drug-card{border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin:10px 0;background:#fafcfc}.drug-card h4{margin:0 0 4px;font-size:14px}.drug-card .meta{font-size:12px;color:var(--muted)}
+.scrim{display:none;position:fixed;inset:0;background:#15232e55;z-index:3}.scrim.open{display:block}
+@media(max-width:900px){.topbar{display:block;padding:20px}.topmeta{text-align:left;margin-top:14px;gap:16px}.summary{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.chart-panel.wide{grid-column:span 1}.shell{padding:16px}.evidence{overflow-x:auto}.evidence table{min-width:760px}}
+</style></head>
+<body>
+<header class="topbar"><div class="brand"><small>Clinical Evidence Intelligence / Conference Desk</small><h1>ASCO 2026 临床解读仪表盘</h1></div><div class="topmeta"><div><strong id="k-matched">–</strong>匹配记录</div><div><strong id="k-eligible">–</strong>分析样本</div><div><strong id="k-drugs">–</strong>唯一药物</div><div><strong id="k-watch">–</strong>重点清单</div></div></header>
+<main class="shell">
+  <section class="summary" id="metrics"></section>
+  <div class="drug-banner">💊 <b>药物机制增强</b>：已接入药物字典（DrugBank 同源数据），为代表药物补充 <b>靶点</b> 与 <b>作用机制（MOA）</b>。靶点/机制以标签展示，点击证据可下钻查看完整药物画像。</div>
+
+  <section class="section-head"><div><h2>AI 会议简报</h2><p>结论来自结构化统计与代表性证据；点击证据可下钻原始记录</p></div></section>
+  <section class="grid"><article class="chart-panel"><div class="chart-title">重点观察清单</div><div class="chart-sub">价值加权排序，点击「查看证据」下钻</div><div class="watchlist-card" id="watchlist"></div></article>
+  <article class="chart-panel"><div class="chart-title">研发阶段 × 结果方向</div><div class="chart-sub">气泡大小=记录数，颜色=主要结果方向</div><div id="matrix" class="chart"></div></article></section>
+
+  <section class="section-head"><div><h2>可视化证据面板</h2><p>固定图表模板承载动态分析意图；颜色代表结果方向，面积代表披露密度</p></div></section>
+  <section class="grid">
+    <article class="chart-panel"><div class="chart-title">适应症 × 终点信号</div><div class="chart-sub">规则识别的终点，Other/unspecified 仍保留</div><div id="heatmap" class="chart"></div></article>
+    <article class="chart-panel"><div class="chart-title">药物证据成熟度四象限</div><div class="chart-sub">X=最大样本量，Y=阶段与结果方向组合分，气泡=披露数</div><div id="scatter" class="chart"></div></article>
+    <article class="chart-panel wide"><div class="chart-title">热点发布节奏</div><div class="chart-sub">按论文发布时间观察披露峰值与结果方向</div><div id="timeline" class="chart"></div></article>
+    <article class="chart-panel wide"><div class="chart-title">药物 × 适应症/标志物关系网络</div><div class="chart-sub">仅展示高频节点与强关系；悬停节点可查看靶点/MOA</div><div id="network" class="chart"></div></article>
+  </section>
+
+  <section class="section-head"><div><h2>证据明细</h2><p>搜索标题、药物、适应症、靶点、MOA 或结果方向；证据 ID 可溯源</p></div></section>
+  <div class="toolbar"><input id="search" placeholder="搜索试验、药物、适应症、靶点、MOA、结果方向"><span id="result-count"></span></div>
+  <section class="evidence"><table><thead><tr><th>试验 / 证据</th><th>药物</th><th>靶点 / MOA</th><th>适应症</th><th>阶段</th><th>样本量</th><th>结果</th><th>终点</th></tr></thead><tbody id="evidence-body"></tbody></table></section>
+  <div class="footer">数据来源：ES np_clinical；会议字段：base.journal=ASCO 2026；药物机制：drug_earth 药物字典（DrugBank 同源）。AI 结论仅用于信息整理，不替代医学、统计或监管判断。</div>
+</main>
+<div class="scrim" id="scrim"></div>
+<aside class="drawer" id="drawer"><button class="close" id="close-drawer" title="关闭">×</button><h3 id="drawer-title">证据详情</h3><div id="drawer-body"></div></aside>
+<script>__ECHARTS__</script>
+<script>__DATA__</script>
+<script>
+(function () {
+  "use strict";
+  const D = __BUNDLE__;
+  const EVAL_COLOR = { "积极": "#2f8f68", "不佳": "#d85b47", "终止": "#8a8f98" };
+  const PHASE_ORDER = ["I期临床", "I/II期临床", "II期临床", "II/III期临床", "III期临床", "申请上市", "批准上市"];
+
+  /* ---------- helpers ---------- */
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+  const drugInfo = D.drug_profiles || {};
+  function lookupDrug(name) {
+    if (!name) return null;
+    const k = String(name).toLowerCase().trim();
+    if (D.drug_lookup && D.drug_lookup[k]) return D.drug_lookup[k];
+    if (drugInfo[name]) return drugInfo[name];
+    // fuzzy: scan profiles by alias / query
+    for (const p of Object.values(drugInfo)) {
+      if (String(p.name || "").toLowerCase() === k) return p;
+      if ((p.aliases || []).some((a) => String(a).toLowerCase() === k)) return p;
+    }
+    return null;
+  }
+  function shortTarget(t) {
+    // reduce verbose target aliases to a readable short code
+    const m = t.match(/\(([^)]+)\)$/);
+    let base = (m ? m[1] : t).split(",")[0].trim();
+    // collapse camelCase concatenations like tumorassociatedcalciumsignaltransducer2TACSTD2
+    const known = /(TACSTD2|TROP2|TACSTD1|EpCAM|ERBB2|HER2|ERBB3|PDCD1|PD1|PDL1|B7H1|CTLA4|CD279|CD152|Nectin4|nectin4|BCMA|TNFRSF17|RRM1|VEGFR2|KIT|CSF1R|TOP1|DHFR|TYMS|CD20|CD38|RANKL|AR|GnRH)/;
+    if (base.length > 10) {
+      const k = base.match(known);
+      if (k) base = k[1];
+    }
+    return base;
+  }
+  function targetTags(drugs) {
+    const seen = new Set(); const tags = [];
+    for (const d of drugs || []) {
+      const p = lookupDrug(d);
+      if (!p) continue;
+      const t = (p.targets || [])[0];
+      if (t) {
+        const short = shortTarget(t).toUpperCase();
+        const display = shortTarget(t);
+        if (short && !seen.has("t:" + short)) { seen.add("t:" + short); tags.push({ t: display, moa: false }); }
+      }
+      const c = (p.moa_class || [])[0];
+      if (c && !seen.has("m:" + c.toLowerCase())) { seen.add("m:" + c.toLowerCase()); tags.push({ t: c, moa: true }); }
+    }
+    return tags.slice(0, 5).map((x) => `<span class="${x.moa ? "moa-tag" : "tag"}">${esc(x.t)}</span>`).join("");
+  }
+
+  /* ---------- metrics ---------- */
+  (function renderMetrics() {
+    const o = D.overview || {};
+    const sum = o.summary || o;
+    const total = sum.matched_records != null ? sum.matched_records : (D.evidence_scatter || []).length;
+    const eligible = sum.analysis_eligible_records != null ? sum.analysis_eligible_records : total;
+    const drugs = sum.unique_drugs != null ? sum.unique_drugs : (D.distributions.drug || []).length;
+    const watched = D.watchlist.length;
+    $("k-matched").textContent = total; $("k-eligible").textContent = eligible; $("k-drugs").textContent = drugs; $("k-watch").textContent = watched;
+    const evals = (D.distributions.evaluation || []);
+    const pos = evals.find((e) => e.label === "积极"); const neg = evals.find((e) => e.label === "不佳"); const stop = evals.find((e) => e.label === "终止");
+    const items = [
+      ["匹配记录", total, "np_clinical · base.journal = ASCO 2026"],
+      ["积极 / 不佳 / 终止", `${pos ? pos.count : "–"} / ${neg ? neg.count : "–"} / ${stop ? stop.count : "–"}`, "结果方向披露分布"],
+      ["覆盖药物 / 适应症", `${drugs} / ${sum.unique_indications != null ? sum.unique_indications : "–"}`, "实体归一化后去重"],
+      ["带样本量记录", `${sum.records_with_sample_size != null ? sum.records_with_sample_size : "–"}`, "用于四象限与气泡图"],
+    ];
+    $("metrics").innerHTML = items.map(([l, v, s]) => `<div class="metric"><div class="label">${l}</div><strong>${v}</strong><span>${s}</span></div>`).join("");
+  })();
+
+  /* ---------- watchlist ---------- */
+  (function renderWatchlist() {
+    const rows = D.watchlist.map((w) => {
+      const barClass = w.evaluation === "不佳" ? "negative" : (w.evaluation === "终止" ? "operational" : "");
+      const tags = targetTags([w.drug]);
+      return `<div class="watch-row"><div class="bar ${barClass}"></div><div>
+        <strong>#${w.rank} ${esc(w.title)}</strong>
+        <p>${esc(w.drug || "")} · ${esc(w.indication || "")} · ${esc(w.phase || "")} · n=${esc(w.sample_size || "–")} · 评分 ${esc(w.score || "–")}</p>
+        ${tags ? `<div class="target-tags">${tags}</div>` : ""}
+        <p style="color:#15232e">${esc(w.reason || "")}</p></div>
+        <div><span class="signal">${esc(w.evaluation || "")}</span>
+        <button class="signal-link" data-id="${esc(w.evidence_id)}">查看证据</button></div></div>`;
+    }).join("");
+    $("watchlist").innerHTML = rows;
+    $("watchlist").querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", () => openEvidence(b.getAttribute("data-id"))));
+  })();
+
+  /* ---------- stage x evaluation matrix ---------- */
+  (function renderMatrix() {
+    const evals = (D.distributions.evaluation || []).map((e) => e.label);
+    const stageDist = D.distributions.stage || [];
+    const rows = stageDist.map((s) => s.label);
+    const data = []; const cells = [];
+    for (const st of rows) {
+      const recs = D.evidence_scatter.filter((r) => (r.stage || "") === st);
+      for (const ev of evals) {
+        const cnt = recs.filter((r) => (r.evaluation || "") === ev).length;
+        data.push([st, ev, cnt]);
+        if (cnt > 0) cells.push([st, ev, cnt]);
+      }
+    }
+    const chart = echarts.init($("matrix"));
+    const maxV = Math.max(1, ...cells.map((c) => c[2]));
+    chart.setOption({
+      grid: { left: 90, right: 30, top: 30, bottom: 70 },
+      xAxis: { type: "category", data: rows, name: "研发阶段", axisLabel: { rotate: 30 } },
+      yAxis: { type: "category", data: evals, name: "结果方向" },
+      series: [{
+        type: "scatter", data: cells,
+        symbolSize: (v) => 12 + 60 * (v[2] / maxV),
+        itemStyle: { color: (p) => EVAL_COLOR[p.value[1]] || "#8a8f98", opacity: 0.75 },
+        label: { show: true, formatter: (p) => p.value[2], position: "inside" },
+        emphasis: { label: { fontWeight: "bold" } },
+      }],
+      tooltip: { trigger: "item", formatter: (p) => `${p.value[0]} · ${p.value[1]}<br>记录数：${p.value[2]}` },
+    });
+    chart.on("click", (p) => { if (p.value) { const st = p.value[0]; const ev = p.value[1]; const hits = D.evidence_scatter.filter((r) => r.stage === st && r.evaluation === ev); if (hits.length) openList(`${st} · ${ev}（${hits.length} 条）`, hits); } });
+  })();
+
+  /* ---------- indication x endpoint heatmap ---------- */
+  (function renderHeatmap() {
+    const topInd = (D.distributions.indication || []).slice(0, 12).map((i) => i.label);
+    const topEp = (D.distributions.endpoint || []).slice(0, 8).map((e) => e.label);
+    const mat = []; const max = { v: 0 };
+    for (const ind of topInd) {
+      for (const ep of topEp) {
+        const c = D.evidence_scatter.filter((r) => (r.indications || []).includes(ind) && (r.endpoints || []).includes(ep)).length;
+        if (c > max.v) max.v = c;
+        mat.push([ind, ep, c]);
+      }
+    }
+    const chart = echarts.init($("heatmap"));
+    chart.setOption({
+      grid: { left: 110, right: 26, top: 10, bottom: 120 },
+      xAxis: { type: "category", data: topEp, axisLabel: { rotate: 45, formatter: (v) => v.slice(0, 14) } },
+      yAxis: { type: "category", data: topInd, axisLabel: { formatter: (v) => v.slice(0, 10) } },
+      visualMap: { min: 0, max: Math.max(1, max.v), calculable: true, orient: "horizontal", left: "center", bottom: 0, inRange: { color: ["#eef4f3", "#a6d2cd", "#2f8f68", "#0f5a48"] }, textStyle: { fontSize: 10 } },
+      series: [{
+        type: "heatmap", data: mat,
+        label: { show: true, formatter: (p) => p.value[2] || "", fontSize: 10 },
+        emphasis: { itemStyle: { borderColor: "#15232e", borderWidth: 1 } },
+      }],
+      tooltip: { position: "top", formatter: (p) => `${p.value[1]} × ${p.value[0]}<br>记录数：${p.value[2]}` },
+    });
+  })();
+
+  /* ---------- drug maturity quadrant ---------- */
+  (function renderScatter() {
+    const phaseScore = { "批准上市": 7, "申请上市": 6, "III期临床": 5, "II/III期临床": 4, "II期临床": 3, "I/II期临床": 2, "I期临床": 1 };
+    const agg = {};
+    for (const r of D.evidence_scatter) {
+      for (const d of r.drugs || []) {
+        if (!agg[d]) agg[d] = { samples: [], evals: [], count: 0 };
+        agg[d].count++; if (r.sample_size) agg[d].samples.push(r.sample_size);
+        if (r.evaluation) agg[d].evals.push(r.evaluation);
+      }
+    }
+    const pts = [];
+    for (const [name, a] of Object.entries(agg)) {
+      const maxN = Math.max(0, ...a.samples);
+      const pos = a.evals.filter((e) => e === "积极").length / a.evals.length;
+      const stageScore = Math.max(...a.evals.map((e, i) => {
+        const r = D.evidence_scatter.find((x, j) => j === i); return 0;
+      }));
+      const phase = a.evals.length ? (phaseScore[D.evidence_scatter.find((r) => r.drugs && r.drugs.includes(name) && r.phase)?.phase] || 2) : 2;
+      pts.push({ name, x: Math.log10(maxN + 1), y: phase + (pos >= 0.6 ? 0.6 : pos <= 0.3 ? -0.6 : 0), maxN, count: a.count, pos });
+    }
+    pts.sort((a, b) => b.count - a.count);
+    const top = pts.slice(0, 30);
+    const chart = echarts.init($("scatter"));
+    chart.setOption({
+      grid: { left: 50, right: 30, top: 30, bottom: 55 },
+      xAxis: { type: "value", name: "样本量 (log10)", min: 0, splitLine: { lineStyle: { color: "#eee" } } },
+      yAxis: { type: "value", name: "阶段+方向", min: 0, max: 8, splitLine: { lineStyle: { color: "#eee" } } },
+      series: [{
+        type: "scatter", data: top.map((p) => ({ value: [+p.x.toFixed(2), +p.y.toFixed(2), p.count, p.maxN], name: p.name })),
+        symbolSize: (v) => 12 + 34 * Math.sqrt(v[2] / 20),
+        itemStyle: { color: (p) => (p.value[3] >= 400 ? "#0f5a48" : "#2f8f68"), opacity: 0.8 },
+        label: { show: true, formatter: (p) => p.data.name.slice(0, 8), position: "top", fontSize: 10 },
+        emphasis: { focus: "series", label: { fontWeight: "bold" } },
+      }],
+      tooltip: { formatter: (p) => `${p.data.name}<br>披露 ${p.value[2]} 条 · 最大样本 n=${p.value[3]}<br>阶段+方向分 ${p.value[1].toFixed(1)}` },
+    });
+    chart.on("click", (p) => { if (p.data && p.data.name) { const hits = D.evidence_scatter.filter((r) => (r.drugs || []).includes(p.data.name)); openList(`${p.data.name}（${hits.length} 条证据）`, hits); } });
+  })();
+
+  /* ---------- release timeline ---------- */
+  (function renderTimeline() {
+    const rd = (D.distributions.release_date || []).slice().sort((a, b) => a.label.localeCompare(b.label));
+    const dates = rd.map((d) => d.label);
+    const datesSet = new Set(dates);
+    const cats = ["积极", "不佳", "终止"];
+    const series = cats.map((ev) => ({
+      name: ev, type: "line", smooth: true, symbol: "circle", symbolSize: 5,
+      itemStyle: { color: EVAL_COLOR[ev] }, lineStyle: { width: 2.4 },
+      data: dates.map((dt) => D.evidence_scatter.filter((r) => (r.release_date || "").slice(0, 10) === dt && (r.evaluation || "") === ev).length),
+    }));
+    const chart = echarts.init($("timeline"));
+    chart.setOption({
+      grid: { left: 50, right: 20, top: 30, bottom: 55 },
+      xAxis: { type: "category", data: dates, axisLabel: { rotate: 35, formatter: (v) => v.slice(5) } },
+      yAxis: { type: "value", name: "记录数" },
+      series,
+      legend: { top: 0, textStyle: { fontSize: 12 } },
+      tooltip: { trigger: "axis" },
+    });
+  })();
+
+  /* ---------- drug x indication/ biomarker network ---------- */
+  (function renderNetwork() {
+    const rel = D.entity_network || [];
+    const topRel = rel.slice().sort((a, b) => b.weight - a.weight).slice(0, 120);
+    const nodes = new Map();
+    const edges = [];
+    for (const e of topRel) {
+      if (!nodes.has(e.source)) nodes.set(e.source, { name: e.source, cat: 0 });
+      if (!nodes.has(e.target)) nodes.set(e.target, { name: e.target, cat: 1 });
+      edges.push({ source: e.source, target: e.target, value: e.weight });
+    }
+    const nodeList = [...nodes.values()].map((n) => {
+      const p = lookupDrug(n.name);
+      const tags = p ? `${p.targets?.[0]?.split(",")[0]?.replace(/\s*\(.*\)/g, "") || ""}${p.moa_class?.[0] ? " · " + p.moa_class[0] : ""}` : "";
+      return { name: n.name, category: n.cat, symbolSize: 12 + Math.min(26, 3 * Math.log1p(edges.filter((e) => e.source === n.name || e.target === n.name).length)), tooltip: { formatter: n.cat === 0 ? `${n.name}<br>${esc(tags) || "（无机制数据）"}` : `${n.name}` } };
+    });
+    const chart = echarts.init($("network"));
+    chart.setOption({
+      legend: { data: ["药物", "适应症/标志物"], top: 0, textStyle: { fontSize: 12 } },
+      series: [{
+        type: "graph", layout: "force", roam: true, draggable: true,
+        data: nodeList, links: edges,
+        categories: [{ name: "药物", itemStyle: { color: "#2f8f68" } }, { name: "适应症/标志物", itemStyle: { color: "#c9922e" } }],
+        label: { show: true, position: "right", fontSize: 10, color: "#15232e", formatter: (p) => p.name.length > 10 ? p.name.slice(0, 10) + "…" : p.name },
+        force: { repulsion: 220, edgeLength: [40, 110], gravity: 0.08 },
+        lineStyle: { width: (e) => 0.6 + Math.min(5, e.data.value / 6), curveness: 0.1, opacity: 0.5, color: "#9bb8b4" },
+        emphasis: { focus: "adjacency", lineStyle: { width: 4 } },
+      }],
+      tooltip: {},
+    });
+    chart.on("click", (p) => { if (p.dataType === "node" && p.data && p.data.category === 0) { const hits = D.evidence_scatter.filter((r) => (r.drugs || []).includes(p.data.name)); openList(`${p.data.name}（${hits.length} 条证据）`, hits); } });
+  })();
+
+  /* ---------- evidence table + search ---------- */
+  function evRow(r) {
+    const prof = r.drugs.map(lookupDrug).filter(Boolean);
+    const tags = targetTags(r.drugs);
+    const evCol = r.evaluation || "";
+    return `<tr data-id="${esc(r.id)}">
+      <td class="title"><button class="signal-link" data-id="${esc(r.id)}">详情</button> <b>${esc(r.trial || "–")}</b><br><span>${esc(r.title || "")}</span></td>
+      <td>${esc((r.drugs || []).join(" / "))}</td>
+      <td>${tags || '<span style="color:#aaa">–</span>'}</td>
+      <td>${esc((r.indications || []).slice(0, 3).join(" / "))}</td>
+      <td>${esc(r.stage || "–")}</td>
+      <td>${r.sample_size ? esc(r.sample_size) : "–"}</td>
+      <td><span class="signal" style="border-color:${EVAL_COLOR[evCol] || "#dfe6e9"};color:${EVAL_COLOR[evCol] || "#687783"}">${esc(evCol)}</span></td>
+      <td>${esc((r.endpoints || []).slice(0, 3).join(" / "))}</td></tr>`;
+  }
+  function renderEvidence(filter) {
+    const q = (filter || "").trim().toLowerCase();
+    let list = D.evidence_scatter;
+    if (q) {
+      list = list.filter((r) => {
+        const drugProfiles = (r.drugs || []).map(lookupDrug).filter(Boolean);
+        const drugExtras = drugProfiles.map((p) => [p.name, ...(p.aliases || []), ...(p.targets || []), p.moa_cn, p.moa_en, ...(p.moa_class || [])].join(" ")).join(" ");
+        const hay = [r.title, r.trial, r.stage, r.evaluation, (r.indications || []).join(" "), (r.drugs || []).join(" "), (r.biomarkers || []).join(" "), (r.endpoints || []).join(" "), drugExtras].join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+    }
+    const slice = list.slice(0, 60);
+    $("evidence-body").innerHTML = slice.map(evRow).join("") || `<tr><td colspan="8" class="empty">无匹配记录</td></tr>`;
+    $("result-count").textContent = `${list.length} 条匹配，显示前 ${slice.length} 条`;
+    $("evidence-body").querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", () => openEvidence(b.getAttribute("data-id"))));
+  }
+  $("search").addEventListener("input", (e) => renderEvidence(e.target.value));
+  renderEvidence("");
+
+  /* ---------- drawer ---------- */
+  function openEvidence(id) {
+    const r = D.evidence_scatter.find((x) => x.id === id);
+    if (!r) return;
+    openList(r.trial || "证据详情", [r], { single: true });
+  }
+  function openList(title, hits, opts) {
+    $("drawer-title").textContent = title;
+    const single = opts && opts.single;
+    const html = hits.map((r) => {
+      const cards = (r.drugs || []).map((d) => {
+        const p = lookupDrug(d);
+        if (!p) return "";
+        const t = (p.targets || []).map((x) => esc(x)).join("<br>");
+        const moa = [p.moa_cn, p.moa_en].filter(Boolean).join(" · ");
+        const cls = (p.moa_class || []).map((x) => esc(x)).join(" / ");
+        return `<div class="drug-card"><h4>${esc(p.name)}</h4>
+          <div class="meta">${esc(p.drug_type_2 || "")}${p.modality && p.modality.length ? " · " + esc(p.modality.join(" / ")) : ""}${p.latest_phase ? " · 全球阶段 " + esc(p.latest_phase) : ""}${p.dar_value ? " · DAR " + esc(p.dar_value) : ""}</div>
+          <div class="meta">靶点：${t || "–"}</div>
+          <div class="meta">MOA：${esc(moa || "–")}${cls ? "（" + cls + "）" : ""}</div>
+          ${p.aliases && p.aliases.length ? `<div class="meta">别名：${esc(p.aliases.slice(0, 6).join(" / "))}</div>` : ""}
+          ${p.drugbank_id ? `<div class="meta">DrugBank ID：<code>${esc(p.drugbank_id)}</code></div>` : ""}
+          ${p.first_appr_date ? `<div class="meta">首次获批：${esc(p.first_appr_date)}</div>` : ""}
+          ${p.companies && p.companies.length ? `<div class="meta">研发机构：${esc(p.companies.slice(0, 4).join(" / "))}</div>` : ""}</div>`;
+      }).join("");
+      return `<div style="margin:14px 0;border-top:1px solid var(--line);padding-top:12px">
+        <h4>${esc(r.title || "")}</h4>
+        <div class="meta">试验：${esc(r.trial || "–")} · 阶段 ${esc(r.stage || "–")}${r.sample_size ? " · n=" + esc(r.sample_size) : ""} · <span class="signal" style="border-color:${EVAL_COLOR[r.evaluation] || "#dfe6e9"};color:${EVAL_COLOR[r.evaluation] || "#687783"}">${esc(r.evaluation)}</span></div>
+        <div class="meta">适应症：${esc((r.indications || []).join(" / "))}${r.biomarkers && r.biomarkers.length ? " · 标志物：" + esc(r.biomarkers.join(" / ")) : ""}${r.endpoints && r.endpoints.length ? " · 终点：" + esc(r.endpoints.join(" / ")) : ""}</div>
+        ${cards}
+        ${single ? `<div style="margin-top:10px"><div class="meta">证据 ID：<code>${esc(r.id)}</code></div></div><h4 style="margin-top:14px">关键结果</h4><pre>${esc(r.efficacy_text || "（无结果文本）")}</pre>` : `<div class="meta" style="margin-top:6px">证据 ID：<code>${esc(r.id)}</code></div>`}
+      </div>`;
+    }).join("");
+    $("drawer-body").innerHTML = html || '<div class="empty">无内容</div>';
+    $("drawer").classList.add("open"); $("scrim").classList.add("open");
+  }
+  $("close-drawer").addEventListener("click", closeDrawer);
+  $("scrim").addEventListener("click", closeDrawer);
+  function closeDrawer() { $("drawer").classList.remove("open"); $("scrim").classList.remove("open"); }
+
+  window.addEventListener("resize", () => {
+    ["matrix", "heatmap", "scatter", "timeline", "network"].forEach((id) => { const el = $(id); if (el && el._ec) { try { el._ec.resize(); } catch {} } });
+  });
+})();
+</script>
+</body>
+</html>

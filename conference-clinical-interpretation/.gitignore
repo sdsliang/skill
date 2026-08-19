@@ -4,3 +4,7 @@ evals/fixtures/*-np-clinical.json
 
 # Build staging dir
 dist/_staging/
+
+# Local preview screenshots (viewing aid only; regenerate with headless chrome)
+evals/**/shots/
+evals/**/shots2/

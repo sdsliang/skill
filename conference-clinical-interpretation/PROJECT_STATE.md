@@ -4,7 +4,7 @@
 
 ## 状态
 
-- **阶段**：v0.1 完成（Skill 资产 + 数据管线 + 首个示例运行 + dist 打包 + 契约校验）
+- **阶段**：v0.2 交互式渲染完成（ECharts 仪表盘 + 药物机制增强）；v0.1（Skill 资产 + 数据管线 + dist + 契约校验）保持完成
 - **仓库**：`git@github.com:sdsliang/skill.git`（子目录 `apps/skill/conference-clinical-interpretation/`）
 - **Git 分支**：main
 
@@ -34,10 +34,14 @@
 - `build-conference-stats.mjs`：确定性统计生成器 → `*-stats.json`（overview/distributions/evidence_scatter/entity_network）。
   - 阶段双维度：`trial_phase`（研发阶段）+ `disease_stage`（疾病阶段，归一化）。
   - 终点识别：10 类正则模式。
-- `render-report.mjs`：**本地预览渲染器**（不进 dist）——把 `report.md` 的 `::visualization[...]` 引用替换为真实图表，输出自包含 `report.html`（纯内联 SVG、离线可读、颜色走 `--viz-*` token）：
-  - 匹配逻辑：`conference-stats.json`→KPI 卡组；`watchlist.csv`→表格；`chart-data.json`→按标题关键词匹配 10 种白名单图表类型中的一种。
-  - 用途：在无法使用 Tool Smith 云端前端时，本地可视化迭代示例报告；不替代生产前端渲染。
+- `render-report.mjs`：**本地预览渲染器（v1，静态 SVG 版）**（不进 dist）——把 `report.md` 的 `::visualization[...]` 引用替换为真实图表，输出自包含 `report.html`（纯内联 SVG、离线可读、颜色走 `--viz-*` token）。
 - fixtures：`asco-2026-np-clinical.json`（136MB，本地留档，不入 Git）、`asco-2026-stats.json`（1.7MB）。
+
+### 药物机制增强（DrugBank 同源，v0.2 新增）
+- `evals/enrich-drug-profiles.mjs`：批量查询 Linking API `/linking/drug`（drug_earth 药物字典，含 `drugbank_id` 可关联 DrugBank），为代表药物/重点清单补充靶点、MOA、modality、阶段、别名、研发机构、获批信息 → `drug-profiles.json`（59 药，含 `lookup` 索引）。
+- `evals/report-template.html` + `evals/render-echarts.mjs`：**ECharts 交互式仪表盘渲染器（v2）**——内嵌 `runtime/echarts.min.js`（1.1MB）自包含离线可读，输出 `report.html`：KPI 卡组、重点清单（靶点/MOA 标签 + 下钻）、阶段×结果气泡矩阵、适应症×终点热力图、药物成熟度四象限、发布节奏时间线、药物×适应症/标志物关系网络、证据明细表 + 全字段搜索（含靶点/MOA/别名）+ 抽屉画像下钻。
+- `references/drug-enrichment.md`：药物画像增强规则、数据来源、短代码化、噪声过滤。
+- fixtures：`asco-2026-np-clinical.json`（136MB，本地留档，不入 Git）、`asco-2026-stats.json`（1.7MB）、`asco-2026-drug-profiles.json`（0.6MB）。
 
 ### 数据验证（ASCO 2026）
 - 匹配 1639 条，分析合格 1639 条。
@@ -53,6 +57,8 @@
 - [x] 写 `test/` 契约校验脚本（validate-contract.mjs：枚举白名单/watchlist 字段/::visualization 引用/证据 ID/SKILL↔sys prompt↔dist 同步）— 全部通过
 - [x] 打包 `dist/conference-clinical-interpretation-v0.1.zip`（8 文件，字节级一致）
 - [x] PROJECT_INDEX 注册新项目
+- [x] **渲染器升级 v2（ECharts 交互式仪表盘）**：5 图 + KPI + watchlist + 证据表 + 搜索 + 抽屉；CDP 交互验证通过（点击下钻、PD1 搜索命中 344 条）
+- [x] **药物机制增强**：59 个代表药物补充靶点/MOA（Linking API drug 字典），渲染层标签 + 画像下钻 + 搜索增强
 
 ## Git/Docker 状态
 
@@ -73,4 +79,6 @@
 - **模型不生成图表 options**：只输出枚举类型 + 白名单维度 + 数据，前端映射到维护好的模板。
 - **原始快照不进模型上下文**：消费 `*-stats.json`。
 - **推荐关注清单独立 CSV**：可下载复用，报告内以表格呈现。
+- **药物画像增强**：drug_earth 字典（Linking API `/linking/drug`）提供靶点/MOA/modality/阶段/DrugBank ID；`drug-profiles.json` 含 `lookup` 索引供 O(1) 检索。
+- **渲染器 v2 = ECharts 交互式仪表盘**：内嵌 echarts.min.js 保持自包含离线可读；与 v1 静态 SVG 版（`render-report.mjs`）并存，二者均为本地预览用途、不进 dist。
 - 与多临床结果对比 skill 明确分工：本 skill 统计解读，彼 skill 比较分析。

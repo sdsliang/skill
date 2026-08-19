@@ -39,6 +39,7 @@ description: >-
 6. **撰写报告**（Markdown）→ 严格遵循 `templates/conference-report.md`。
 7. **生成推荐关注清单** → 严格遵循 `references/watchlist.md` 与 `templates/watchlist.csv`，写入 `/workspace/visualizations/watchlist.csv`，报告中以表格呈现。
 8. **证据引用**：报告中每个关键论断必须引用证据 ID（`evidence_scatter[].id`）；不引用原始全文，只引用统计口径与代表性证据条目。
+9. **药物机制增强（可选）**：为代表性药物/重点清单中的药物补充靶点、MOA、modality、阶段等画像（来源：drug_earth 药物字典，DrugBank 同源），写入 `drug-profiles.json` 并随报告/清单/可视化展示；规则见 `references/drug-enrichment.md`。
 
 ## 输出与可视化交付（Visualizer 协作契约）
 
@@ -64,5 +65,6 @@ description: >-
 - `references/chart-contract.md` —— 图表类型枚举、维度白名单、数据文件命名与引用格式。
 - `references/report-structure.md` —— 报告章节结构。
 - `references/watchlist.md` —— 推荐关注清单评分与生成规则。
+- `references/drug-enrichment.md` —— 药物画像（靶点/MOA/modality）增强规则与数据来源。
 - `templates/conference-report.md` —— 报告模板。
 - `templates/watchlist.csv` —— 推荐关注清单 CSV 模板。
