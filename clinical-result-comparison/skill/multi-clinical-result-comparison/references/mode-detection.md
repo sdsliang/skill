@@ -2,7 +2,12 @@
 
 ## Primary routing principle
 
-The default visible unit is a complete trial synthesis. First identify whether the selected sources describe one trial, multiple trials, or an uncertain mixture. Then build a trial-level evidence chain for every identifiable trial.
+First identify whether the selected sources describe one trial, multiple trials, or an uncertain mixture.
+
+- One trial with multiple disclosures → **trial-level evidence-chain synthesis** (the default visible unit for a single trial).
+- Multiple independent trials → **cross-trial comparison, comparison-first and domain-aligned** (the primary deliverable), with compact per-trial context only as support.
+
+The routing question is not “one narrative per trial plus a small comparison”; when users select several trials, the decision-relevant output is the inter-trial alignment by outcome domain (efficacy, safety, PK/PD, PRO) that helps judge which is better or worse.
 
 ## One trial with multiple disclosures
 
@@ -10,7 +15,7 @@ Use trial-level synthesis when sources share a trial identity and the same under
 
 ## Multiple independent trials
 
-Build one complete trial synthesis per trial first. Only after that may the report add a bounded endpoint-alignment section for directly related clinical questions. Do not let that section replace the trial narratives or create a global ranking.
+Treat cross-trial comparison as the primary analysis object. Organize the report by outcome domain: efficacy, safety, PK/PD, PRO, and the design/baseline context that qualifies them. Provide one compact trial-context block per trial so each aligned value can be interpreted, but do not lead with a full trial-by-trial narrative. A per-cluster who-is-better judgment is expected when evidence supports it, with an explicit comparability and confidence label. See `cross-trial-comparison.md`.
 
 ## Uncertain identity
 

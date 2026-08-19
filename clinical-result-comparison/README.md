@@ -10,7 +10,7 @@ Tool Smith project assets for reconstructing complete trial interpretations from
 - Runtime identifiers and retrieval/storage details remain outside the Agent request and report.
 - The primary analysis object is the underlying trial. Multiple disclosures from one trial are source nodes that are deduplicated into a longitudinal evidence chain covering design, efficacy, safety, maturity, and information gaps.
 - Every material number and source-dependent conclusion carries an internal citation token for rendering; the user-facing report shows numeric superscripts. Citation metadata is emitted separately as strict JSON, with `title`, `link`, and `paper_release_time_str` per ref.
-- For mixed inputs containing different trials, `{{ref_n}}` numbering is global across the complete response and the separate citation JSON is shared; numbering resets only when the runtime explicitly requests separate independent reports.
+- For mixed inputs containing different trials, the deliverable is comparison-first and domain-aligned: efficacy, safety, PK/PD, and PRO are aligned across trials so the user can judge which treatment is better or worse, with explicit comparability/evidence-strength labels and compact per-trial context. The report does not pool results or fabricate head-to-head proof. `{{ref_n}}` numbering is global across the complete response and the separate citation JSON is shared; numbering resets only when the runtime explicitly requests separate independent reports.
 - Version 1 uses only selected results and performs no external retrieval.
 - The frontend may render each marker as a numeric superscript link using the final JSON. It must preserve exact supplied URLs and use safe external-link attributes.
 - The backend/frontend enforce a conservative real-time token budget.
@@ -19,7 +19,8 @@ Tool Smith project assets for reconstructing complete trial interpretations from
 
 - `system-prompts/multi-clinical-result-comparison-v0.5.md`: Tool Smith project system prompt for trial-level evidence synthesis.
 - `skill/multi-clinical-result-comparison/`: runtime Skill, evidence-chain references, citation contract, and report template.
-- `skill/multi-clinical-result-comparison/templates/unified-evidence-report.md`: trial-level consumer-facing report structure.
+- `skill/multi-clinical-result-comparison/templates/unified-evidence-report.md`: single-trial consumer-facing report structure.
+- `skill/multi-clinical-result-comparison/templates/cross-trial-report.md`: comparison-first, domain-aligned report structure for multiple independent trials (efficacy, safety, PK/PD, PRO).
 - `skill/multi-clinical-result-comparison/references/input-contract.md`: POC `np_clinical` lookup, normalized Agent payload, and frontend marker rendering contract.
 - `skill/multi-clinical-result-comparison/references/citation-and-ref.md`: inline marker, metadata, and separate JSON citation contract.
 - `evals/fetch-np-clinical-by-nct.mjs`: read-only `base.nct_id` adapter for producing normalized source objects.

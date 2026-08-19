@@ -1,19 +1,22 @@
-# Cross-Trial Comparison
+# Cross-Trial Comparison (comparison-first, domain-aligned)
 
 ## Goal
 
-Answer which selected result is stronger, weaker, or simply different without turning heterogeneous studies into a false league table.
+When the selected sources contain multiple independent trials, the primary deliverable is a **cross-trial comparison aligned by outcome domain** (efficacy, safety, PK/PD, PRO, and the design/baseline context that qualifies them). The purpose is to help the user judge which treatment is better or worse on each decision-relevant dimension, with an explicit evidence-strength label for every judgment.
+
+Trial narratives are supporting context, not the main structure. Provide one compact trial-context block per trial (design, population, endpoints, maturity) so every aligned value can be interpreted in its own trial, but do not make the report a sequence of full trial interpretations with a small comparison appendix.
 
 ## Citation scope across trials
 
-Assign `{{ref_n}}` markers globally in the original input order for the entire Agent response, before grouping sources into trials or clinical-question clusters. Do not restart numbering when a new trial narrative begins. A mixed report therefore uses one shared separate citation JSON artifact; markers in each trial section resolve to the source metadata for that section's trial.
+Assign `{{ref_n}}` markers globally in the original input order for the entire Agent response, before grouping sources into trials or clinical-question clusters. Do not restart numbering at each trial boundary. A mixed report uses one shared separate citation JSON artifact; markers in each row resolve to the source metadata for that trial.
 
-For example, sources for Trial A may use `{{ref_1}}` and `{{ref_3}}`, while Trial B uses `{{ref_2}}` and `{{ref_4}}`. The frontend can render all of them with the same marker renderer. If the product requests separate independent reports instead of one mixed report, each report gets a fresh local numbering scope and its own citation JSON artifact.
+For example, Trial A may use `{{ref_1}}` and `{{ref_3}}`, while Trial B uses `{{ref_2}}` and `{{ref_4}}`. If the product requests separate independent reports, each report gets its own local numbering scope and its own citation JSON artifact.
 
-Attach markers to every cross-trial table value and source-dependent comparison claim. A comparison sentence must cite the sources for both trials; the marker link identifies the source, while the prose must retain each trial's population, endpoint, time point, comparator, and design boundary.
+Attach markers to every cross-trial table value and every source-dependent comparison claim. A comparison sentence must cite the sources for the trials it compares; the marker link identifies the source, while the prose must retain each trial's population, endpoint, time point, comparator, and design boundary.
 
+## Step 1: Cluster by clinical question, not disease name
 
-Cluster records using the clinical question, not disease name alone. Consider:
+Group records using the clinical question. Consider:
 
 - intended condition or symptom;
 - population and treatment setting;
@@ -21,104 +24,70 @@ Cluster records using the clinical question, not disease name alone. Consider:
 - intervention role;
 - outcome domain.
 
-Examples within one disease may still require separate clusters for survival, symptom control, physical development, body composition, and long-term metabolic safety.
+One disease may contain several clusters (e.g., histology, survival, liver-fat/weight, symptom/PRO, long-term metabolic safety). Never merge clusters into one efficacy ranking. A cluster is the scope inside which a comparative direction may be discussed.
 
-If two results answer different clinical questions, compare their evidence scope and relevance but do not declare one treatment clinically superior. Do not create a shared “efficacy winner” across clusters based on positivity, p-values, endpoint hierarchy, or narrative strength; those quantities answer different questions.
+## Step 2: Build the outcome-domain alignment skeleton
 
-## Step 2: Add a core-endpoint snapshot and chart
+For each clinical-question cluster, organize the report by outcome domain. The domain set is driven by what the selected sources actually report; PK/PD and PRO become explicit information gaps when no source reports them:
 
-Before the full alignment tables and prose interpretation, identify the most decision-relevant endpoint for each clinical-question cluster represented in the selected set. Choose it from the supplied texts using the stated primary endpoint or the endpoint that best represents the shared therapeutic objective. Do not import an endpoint hierarchy from outside the supplied texts. If the selected set contains multiple distinct indications or clinical questions, create a separate snapshot per cluster rather than one overall chart.
+- **有效性 (efficacy)**: primary endpoint, key secondary endpoints, response/threshold, durability/time-course, subgroups;
+- **安全性 (safety)**: event type, grade, seriousness, relatedness, discontinuation, death, exposure;
+- **PK/PD**: exposure, pharmacokinetics, exposure–response (only when reported);
+- **PRO / 症状 / 生活质量**: patient-reported and symptom endpoints (only when reported);
+- **设计/人群可比性**: used as a qualifier for every aligned value, not as a domain with a winner.
 
-The snapshot is mandatory; a chart is not. Use this decision sequence:
+Each domain gets its own alignment table (see Step 4). This is the main body of the report.
 
-1. Select the endpoint and define its unit, direction, population, analysis set, and time frame.
-2. Build the exact-value evidence table.
-3. Test whether every intended plotted value is explicit, numeric, and materially compatible.
-4. Add a Mermaid chart only if it passes the chart contract below.
-5. Place the exact-value table and a one- or two-sentence comparability note immediately after the chart. If no chart is valid, show the table in the same location and state the specific reason.
+## Step 3: Trial-context block (compact, not narrative-first)
 
-### ORR-like bar chart
-
-Use a descriptive `xychart-beta` bar chart only when the response endpoint definition, population, analysis set, assessment method when material, and assessment time are sufficiently aligned. One bar represents one experimental arm in its own study. Quote every x-axis category label. Supply bare numeric values in the `bar` array; do not include `%` inside the array. Put the percentage unit on the y-axis and retain exact values in the adjacent table.
-
-### Weight-change line chart
-
-Use a time-versus-weight-change `xychart-beta` line chart only when all of the following hold:
-
-- each plotted experimental arm reports at least two explicit numeric time points;
-- all series use the same metric, unit, direction, population scope, and analysis set;
-- the compared series share the same plotted time-point grid;
-- every point on that shared grid is explicitly reported for every plotted series;
-- the line identity can be explained next to the chart and in the exact-value table.
-
-Do not use zero as an assumed baseline unless the source explicitly reports that plotted baseline value. Do not insert `null`, blank entries, carried-forward values, modeled values, or interpolated points. If time-point grids differ, use the table fallback or separate per-study views; do not force them into one combined line chart.
-
-### Mermaid output contract
-
-- Use only valid Mermaid `xychart-beta` syntax supported by Tool Smith Markdown rendering.
-- Quote category labels, especially Chinese labels or labels containing spaces or punctuation.
-- Mermaid data arrays must contain numbers only. Never place `未报告`, `NR`, `NE`, ranges, confidence intervals, percentages with `%`, or prose in an array.
-- Use one unit and one endpoint direction per chart.
-- Set the y-axis range to include all plotted values without clipping and without visually exaggerating a narrow difference. For percentage response rates, normally use 0 to 100. For percentage weight change, use a range that includes zero and all reported values.
-- Do not rely on line color alone. State series order/identity in adjacent text and show every point in the exact-value table.
-- Never emit a Mermaid fence containing template placeholders. If any chart requirement fails, remove the entire fence.
-
-Charts are descriptive evidence views, not head-to-head proof, rankings, or pooled analyses. They never replace the exact-value table or the complete alignment layer. Never put technical identifiers in chart labels, captions, or fallback tables.
-
-## Step 3: Build the research-key-information alignment
-
-For every cluster, create one vertically stacked row per selected result and align:
+Before the domain tables (or immediately after the snapshot), provide one row per trial so every aligned value can be interpreted:
 
 - trial and registration identity;
 - population and treatment setting;
-- experimental intervention and regimen;
-- within-study control or reference;
-- design;
+- phase/design, control, blinding;
+- experimental regimen (dose, schedule);
 - experimental-arm sample and analysis set;
-- endpoint hierarchy;
+- endpoint hierarchy and primary endpoint;
 - time point/follow-up;
-- efficacy and safety completeness.
+- evidence maturity and reporting completeness.
 
-The experimental regimen is the focal object. Keep the study's control visible because it affects internal validity, but do not treat controls from different studies as if they were a common comparator. Use `未报告` when absent. Do not replace a missing value with an inference.
+Keep this compact. Do not build a full evidence-chain narrative here; the domain tables are the primary output.
 
-## Step 4: Build the experimental-arm endpoint alignment
+## Step 4: Domain alignment tables
 
-Create the report's primary outcome table with one row per `result + endpoint + population/time point`. Vertically stack the experimental arms across studies. Use these distinct columns:
+For every domain, create one table with one row per **outcome/metric** and one column per **trial (experimental arm)**. Each cell holds the trial's reported value plus its marker. Use a dedicated last column for alignment level and a comparability note per row.
 
-- result label and clinical-question cluster;
+Use these distinct columns or equivalent:
+
+- outcome/metric and definition;
 - experimental regimen;
-- endpoint, hierarchy, and definition;
-- analysis population;
-- experimental-arm observed result;
-- within-study control and/or treatment-versus-control effect;
+- reported value for each trial;
 - time point/follow-up;
-- endpoint alignment level;
+- alignment level;
 - interpretation boundary.
 
-Do not collapse the two result columns. An experimental-arm rate, median, or change is not the same object as a hazard ratio, least-squares difference, p-value, or qualitative statement versus control. If the experimental-arm observed value is not given, write `未报告（仅报告研究内比较效应）`. If no comparator exists or is reported, write `无/未报告` in the within-study context column.
+Do not collapse the experimental-arm observed value with the within-study control effect. If the experimental-arm observed value is not given, write `未报告（仅报告研究内比较效应）`. Keep each study's control visible in the trial-context block or a control column, but never treat controls from different studies as a common comparator.
 
-This table is a non-head-to-head longitudinal view: it permits scanning of how selected experimental arms performed in their own studies, but does not by itself support a winner.
+### Classify endpoint/metric alignment
 
-## Step 5: Classify endpoint alignment
-
-Assign one level for each attempted endpoint comparison:
+Assign one level for each attempted comparison:
 
 - **Directly aligned**: same clinical construct, materially compatible definition, population, statistic, and time frame.
 - **Partially aligned**: same construct but one or more meaningful differences require caution.
 - **Context only**: related domain but different endpoint definition, statistic, population, or timing prevents numeric comparison.
 - **Not aligned**: different clinical question or no counterpart.
 
-- **Directly aligned** and **Partially aligned** endpoints may support a bounded comparative direction after considering design and uncertainty.
-- **Context only** and **Not aligned** endpoints must not produce a leader, directional winner, or raw-number ranking. Report the values only inside their own source contexts.
+- **Directly aligned** and **Partially aligned** rows may support a bounded comparative direction after considering design and uncertainty.
+- **Context only** and **Not aligned** rows must not produce a leader, directional winner, or raw-number ranking. Report the values only inside their own source contexts.
 
-## Step 6: Judge comparison confidence
+## Step 5: Judge comparison confidence
 
-Assess the comparison as a whole using observable properties rather than a fixed score:
+Assess the comparison of a row (or of the domain as a whole) using observable properties rather than a fixed score:
 
 - similarity of patient populations;
 - compatibility of interventions and controls;
 - study-design differences;
-- endpoint alignment;
+- endpoint/metric alignment;
 - timing/follow-up alignment;
 - analysis maturity and statistical completeness;
 - safety exposure and reporting completeness.
@@ -130,9 +99,9 @@ Use one label:
 - **Low comparability**: supports context-level observations only.
 - **Not meaningfully comparable**: do not rank outcomes.
 
-Cross-trial comparisons usually cannot establish treatment superiority even when comparability is moderate or high. State that distinction clearly.
+Cross-trial comparisons usually cannot establish treatment superiority even when comparability is moderate or high. State that distinction clearly: a directional judgment on evidence is not a head-to-head superiority proof.
 
-## Step 7: Make dimension-specific judgments
+## Step 6: Make dimension-specific judgments
 
 For each sufficiently aligned dimension **within the same clinical-question cluster**, use one of the labels below. “Favored” and “directionally favored” are available only when endpoint alignment is Directly aligned or Partially aligned:
 
@@ -141,42 +110,61 @@ For each sufficiently aligned dimension **within the same clinical-question clus
 - **No material difference demonstrated**: the supplied evidence does not establish a meaningful difference.
 - **Cannot determine**: missing or incompatible evidence blocks judgment.
 
-Always attach the reason and confidence. Do not rank a raw percentage or median without verifying endpoint direction and context. Default to a plain-language interpretation after the vertical table rather than an exhaustive pairwise matrix. Create pairwise `A vs B` rows only for a true head-to-head comparison reported by a selected source.
+Always attach the reason and evidence strength. Do not rank a raw percentage or median without verifying endpoint direction and context. Default to a plain-language interpretation after each domain table rather than an exhaustive pairwise matrix. Create pairwise `A vs B` rows only for a true head-to-head comparison reported by a selected source.
 
-## Step 8: Decide whether an overall winner exists
+## Step 7: Give the overall who-is-better judgment per cluster
 
-An overall winner requires all of the following:
+For each clinical-question cluster, state explicitly which experimental regimen is best supported by the supplied evidence, using the dimension-specific judgments. Provide:
+
+- the leading regimen (or `无法确定` when evidence is insufficient);
+- the dimensions that drive the leading position;
+- the evidence strength (high/moderate/low comparability);
+- the boundary (not a head-to-head superiority proof; missing safety/PK-PD/PRO may reverse the decision).
+
+An overall leader within a cluster requires:
 
 - the compared results address substantially the same clinical question;
 - key populations and regimens are sufficiently compatible;
 - at least one decision-relevant efficacy endpoint is directly or partially aligned;
 - safety evidence is not missing in a way that could reverse the decision;
-- findings are directionally coherent across the most important dimensions;
-- the wording does not imply head-to-head proof when none exists.
+- findings are directionally coherent across the most important dimensions.
 
-If any condition fails, report no overall winner and provide the most decision-relevant dimension-specific conclusion instead. When the input contains multiple clinical-question clusters, report leaders only inside each cluster and use `不适用` for any cross-cluster efficacy winner.
+If any condition fails, report `无法确定` for that cluster and give the most decision-relevant dimension-specific conclusion instead. Do not report a cross-cluster winner when the input contains multiple distinct clinical-question clusters.
 
 ## Required visible output
 
-Every cross-trial cluster must contain, before prose interpretation:
+The report must contain, in comparison-first order:
 
-1. a core-endpoint snapshot selected after clinical-question grouping;
-2. an exact-value snapshot table, whether or not a chart is used;
-3. a descriptive Mermaid chart only when the chart contract passes, otherwise a concise no-chart reason;
-4. a research-key-information alignment table with one row per result;
-5. an experimental-arm endpoint alignment table with one row per result-endpoint.
+1. a one-sentence overall verdict (who is favored on what, with strength and boundary);
+2. the scope and clinical-question clusters;
+3. a core-endpoint snapshot table per cluster (with a Mermaid chart only when the chart contract below passes, otherwise a concise no-chart reason);
+4. a compact trial-context table (one row per trial);
+5. outcome-domain alignment tables (efficacy, safety, PK/PD, PRO — one per reported domain, with explicit information gaps);
+6. dimension-specific judgments (who is favored on each dimension, with strength);
+7. per-cluster overall who-is-better judgment with boundaries;
+8. information gaps and next most decision-relevant data.
 
-The user-visible snapshot appears first, but it is produced only after the internal grouping, endpoint selection, and chartability checks. The chart never replaces the evidence tables and must never be interpreted as pooled or head-to-head evidence.
+## Chart contract (descriptive only)
 
+The snapshot may include a Mermaid `xychart-beta` chart only when all plotted values are explicitly reported numbers with a single unit, direction, population, analysis set, and time frame, and the Mermaid syntax is valid. Chart rules:
 
+- quote category labels; data arrays contain numbers only (never `未报告`, NR, NE, ranges, CIs, or `%` strings);
+- one unit and one endpoint direction per chart;
+- y-axis range includes all plotted values without clipping or exaggerating a narrow difference;
+- state series identity in adjacent text and show every point in the exact-value table;
+- do not assume zero as a baseline unless reported;
+- never emit a Mermaid fence with template placeholders; if any requirement fails, remove the entire fence and state the reason.
+
+Charts are descriptive evidence views, not head-to-head proof, rankings, or pooled analyses. They never replace the exact-value table or the domain alignment.
 
 ## Required deep-analysis topics
 
 - what can be compared and why;
 - what cannot be compared and why;
-- efficacy signal and its maturity;
+- efficacy signal per domain and its maturity;
 - safety signal and reporting completeness;
+- PK/PD and PRO coverage (or their absence as a gap);
 - study-design impact on confidence;
 - source rhetoric versus supported conclusion;
 - dimension-specific leader, if any;
-- whether an overall winner is justified.
+- per-cluster overall who-is-better judgment and its boundary.

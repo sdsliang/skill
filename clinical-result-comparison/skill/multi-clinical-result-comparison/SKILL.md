@@ -1,6 +1,6 @@
 ---
 name: multi-clinical-result-comparison
-description: Use when two or more selected clinical result texts need to be synthesized into a complete trial interpretation, especially multiple disclosures from the same study over time. Reconstructs a source-grounded evidence chain with inline citation-marker traceability, deduplication, endpoint evolution, safety maturity, and bounded interpretation. Also supports separate trial syntheses and limited cross-trial alignment when the selected texts come from different studies.
+description: Use when two or more selected clinical result texts need to be synthesized into a complete trial interpretation, especially multiple disclosures from the same study over time. Reconstructs a source-grounded evidence chain with inline citation-marker traceability, deduplication, endpoint evolution, safety maturity, and bounded interpretation. When the selected texts come from different studies, produces a comparison-first, domain-aligned cross-trial comparison (efficacy, safety, PK/PD, PRO) that helps judge which treatment is better or worse.
 ---
 
 # Multi-Clinical-Result Trial Synthesis
@@ -9,9 +9,10 @@ description: Use when two or more selected clinical result texts need to be synt
 
 Turn selected clinical result texts into a complete interpretation of each underlying trial. The trial is the primary analysis object; the individual disclosures are evidence sources that contribute observations to a longitudinal chain. When several sources describe the same trial, do not make the visible report a comparison of articles, abstracts, or press disclosures.
 
-Use the final template:
+Use the final template by routing:
 
-- `templates/unified-evidence-report.md`
+- single trial (one identity with multiple disclosures) → `templates/unified-evidence-report.md`
+- multiple independent trials → `templates/cross-trial-report.md` (comparison-first, domain-aligned)
 
 Read these support files for every run:
 
@@ -21,9 +22,7 @@ Read these support files for every run:
 4. `references/citation-and-ref.md`
 5. `references/conclusion-language.md`
 6. `references/same-trial-evolution.md` for every multi-disclosure trial
-7. `references/cross-trial-comparison.md` only when distinct trials require endpoint alignment
-
-The old comparison-oriented templates remain archives and are not final-output routes.
+7. `references/cross-trial-comparison.md` when the selected texts come from different studies
 
 ## Evidence boundary
 
@@ -111,7 +110,7 @@ For numeric tables, put the marker in the same cell as the number or in a dedica
 
 ### 6. Mixed inputs
 
-For multiple unrelated trials, produce one complete trial synthesis per trial before any comparison. A limited comparison may follow only for matching clinical questions and compatible definitions. Never rank different endpoints or replace trial-level narratives with a league table.
+For multiple unrelated trials, the primary deliverable is a **cross-trial comparison aligned by outcome domain** (efficacy, safety, PK/PD, PRO) that helps the user judge which treatment is better or worse. Build the comparison first: cluster by clinical question, then align each outcome domain across trials with one compact trial-context block per trial as support. Never fabricate a head-to-head proof or pool results; every per-cluster who-is-better judgment carries an explicit comparability/evidence-strength label. A comparison claim must cite the sources for the trials it compares. See `references/cross-trial-comparison.md`.
 
 ## Required distinctions
 

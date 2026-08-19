@@ -22,7 +22,7 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - The backend resolves selected records from the POC Elasticsearch environment and `np_clinical`, then sends `source_title`, `source_url`, `source_paper_release_time_str`, and `source_full_text` to the Agent. Runtime correlation IDs remain outside the Agent request and report.
 - The frontend/backend enforce a conservative real-time token budget.
 - The primary analysis object is the underlying trial. Multiple disclosures from one trial are source nodes that form a longitudinal evidence chain; repeated cutoffs and analyses are deduplicated.
-- Different trials receive separate complete trial syntheses first; limited endpoint alignment is secondary and never replaces trial-level interpretation.
+- Different trials receive a comparison-first, domain-aligned cross-trial report: efficacy, safety, PK/PD, and PRO are aligned across trials so the user can judge which treatment is better or worse, with explicit comparability/evidence-strength labels and compact per-trial context; no pooling or fabricated head-to-head proof. Trial narratives are supporting context, not the primary structure.
 - Every material number and source-dependent conclusion in the report carries an internal citation token for frontend rendering; user-facing output shows numeric superscripts. Citation metadata is a separate strict JSON artifact, not part of the report body, and each ref includes `title`, `link`, and `paper_release_time_str`.
 - Trial-level reports integrate design, population, regimen, primary and key secondary endpoints, response/durability when reported, subgroups, safety, evidence maturity, and information gaps.
 - The finished report must not expose technical correlation keys, database/index names, retrieval traces, internal field names, or implementation terms such as `result_id`, `doc_id`, ES/Elasticsearch, `np_result`, or `source_full_text`.
@@ -38,7 +38,7 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 ## Validation completed
 
 - Tool Smith `validate_skill_md` accepted the Skill name and description.
-- Ran the Skill locally against the condition-based fixture `np-clinical-indications-516-517-phase-featured-false.json`: generated `evals/iteration-14/condition-example/report.md` (4-trial mixed input: ESSENCE, MAESTRO-NASH, MAESTRO-NAFLD-1/OLE, SYNCHRONIZE-MASLD; each trial synthesized completely first, then bounded cross-trial alignment only) and `report.refs.json`. Marker/key parity 10/10, renderer emits 192 numeric superscript anchors, renderer tests 6/6, contract validation `v0.5_contract_ok`.
+- Ran the Skill locally against the condition-based fixture `np-clinical-indications-516-517-phase-featured-false.json`: generated `evals/iteration-14/condition-example/report.md` (4-trial mixed input: ESSENCE, MAESTRO-NASH, MAESTRO-NAFLD-1/OLE, SYNCHRONIZE-MASLD) and `report.refs.json`. Per user feedback the report was restructured to be comparison-first and domain-aligned (efficacy, safety, PK/PD, PRO) rather than trial-by-trial narratives; the Skill routing, `cross-trial-comparison.md`, `cross-trial-report.md`, and SKILL step 6 were updated accordingly. Marker/key parity 10/10, renderer tests 6/6, contract validation `v0.5_contract_ok`.
 - The upload archive contains the expected root directory and nine Skill files.
 - PWS heterogeneous cross-trial/mixed case: passed after removing cross-cluster rankings.
 - HARMONi-6 same-trial evolution case: passed chronology and duplicate-disclosure checks.
