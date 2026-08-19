@@ -31,15 +31,15 @@ description: >-
 1. **读取数据协议**（`references/data-contract.md`）——确认输入快照与统计文件结构、字段口径、排除规则。
 2. **读取统计方法**（`references/statistics.md`）——明确"热度≠记录数"的统计维度、代表性与归一化规则。
 3. **读取图表协议**（`references/chart-contract.md`）——确认允许的图表类型枚举、维度白名单、数据文件名与 `::visualization[...]` 引用格式。
-4. **读取报告结构**（`references/report-structure.md`）与**推荐清单规则**（`references/watchlist.md`）。
+4. **读取报告结构**（`references/report-structure.md`）、**推荐清单规则**（`references/watchlist.md`）与**分析维度参考**（`references/analysis-dimensions.md`）——媒体常用维度（癌种/技术路线/中国企业参与等）需与数据支持度对照，数据不支持的维度（如报告级别）在「信息缺口」中说明，不臆造。
 5. **生成统计产物**：
    - 确定性统计（若未提供）→ 写入 `/workspace/visualizations/conference-stats.json`。
    - 前端图表数据文件 `chart-data.json` → 按 `chart-contract.md` 的枚举类型与维度白名单生成（Skill-defined data file，**不需要**调用 `read_me`）。
    - 复杂/由脚本生成的图表 HTML/SVG → 写入 `/workspace/visualizations/`，正文**独占一行**输出 `::visualization[标题]{path="/workspace/visualizations/name.ext"}`。
-6. **撰写报告**（Markdown）→ 严格遵循 `templates/conference-report.md`。
-7. **生成推荐关注清单** → 严格遵循 `references/watchlist.md` 与 `templates/watchlist.csv`，写入 `/workspace/visualizations/watchlist.csv`，报告中以表格呈现。
+6. **撰写报告**（Markdown）→ 严格遵循 `templates/conference-report.md`；**推荐关注清单在正文只给概览（Top 3-5 摘要 + CSV 引用），完整明细只在 `watchlist.csv`**；可按需增加「中国企业/中国创新药参与」章节。
+7. **生成推荐关注清单** → 严格遵循 `references/watchlist.md` 与 `templates/watchlist.csv`，写入 `/workspace/visualizations/watchlist.csv`。
 8. **证据引用**：报告中每个关键论断必须引用证据 ID（`evidence_scatter[].id`）；不引用原始全文，只引用统计口径与代表性证据条目。
-9. **药物机制增强（可选）**：为代表性药物/重点清单中的药物补充靶点、MOA、modality、阶段等画像（来源：drug_earth 药物字典，DrugBank 同源），写入 `drug-profiles.json` 并随报告/清单/可视化展示；规则见 `references/drug-enrichment.md`。
+9. **药物机制增强（可选）**：为代表性药物/重点清单中的药物补充靶点、MOA、modality、阶段等画像（来源：drug_earth 药物字典，DrugBank 同源），写入 `drug-profiles.json` 并随报告/清单/可视化展示；中国企业判定（is_china_origin）与局限见 `references/drug-enrichment.md`。
 
 ## 输出与可视化交付（Visualizer 协作契约）
 
@@ -65,6 +65,7 @@ description: >-
 - `references/chart-contract.md` —— 图表类型枚举、维度白名单、数据文件命名与引用格式。
 - `references/report-structure.md` —— 报告章节结构。
 - `references/watchlist.md` —— 推荐关注清单评分与生成规则。
+- `references/analysis-dimensions.md` —— 媒体分析维度参考与数据支持度对照。
 - `references/drug-enrichment.md` —— 药物画像（靶点/MOA/modality）增强规则与数据来源。
 - `templates/conference-report.md` —— 报告模板。
 - `templates/watchlist.csv` —— 推荐关注清单 CSV 模板。

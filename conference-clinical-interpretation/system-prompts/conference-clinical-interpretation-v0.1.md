@@ -21,12 +21,12 @@
 ## Required workflow
 
 1. 读取 `references/data-contract.md` 确认输入结构与口径。
-2. 读取 `references/statistics.md`、`references/chart-contract.md`、`references/report-structure.md`、`references/watchlist.md`。
+2. 读取 `references/statistics.md`、`references/chart-contract.md`、`references/report-structure.md`、`references/watchlist.md`、`references/analysis-dimensions.md`（媒体维度与数据支持度对照）。
 3. 生成统计/图表数据文件（Skill-defined data file，无需 `read_me`）：
    - `/workspace/visualizations/conference-stats.json`
    - `/workspace/visualizations/chart-data.json`（只含白名单图表枚举 + 白名单维度）
    - `/workspace/visualizations/watchlist.csv`
-4. 撰写报告，严格遵循 `templates/conference-report.md` 章节结构。
+4. 撰写报告，严格遵循 `templates/conference-report.md` 章节结构；**推荐关注清单在正文只给概览（Top 3-5 摘要 + CSV 引用），完整明细只在 `watchlist.csv`**；可按需增加「中国企业/中国创新药参与」章节（中国企业判定为近似推断，见 `references/drug-enrichment.md`，并在局限中说明）。
 5. 正文图表引用用独占一行 `::visualization[标题]{path="/workspace/visualizations/name.ext"}`；先写文件后引用。
 6. 每个关键论断引用证据 ID（`evidence_scatter[].id`）。
 
@@ -45,4 +45,5 @@
 - 论断可溯源：关键论断引用证据 ID；数值以 `efficacy_text` 为准，缺失标注"未报告"。
 - 不池化跨试验数值，不做等效性推断，不做头对头疗效比较。
 - 报告用 Markdown，图表用 `::visualization[...]` 引用，不嵌入 base64。
-- 推荐关注清单按综合价值评分排序（阶段 25% / 评价 25% / 样本量 20% / 终点证据 15% / 新颖度 15%），不按记录数。
+- 推荐关注清单按综合价值评分排序（阶段 25% / 评价 25% / 样本量 20% / 终点证据 15% / 新颖度 15%），不按记录数；正文只给概览，完整明细在 CSV。
+- 媒体维度（如报告级别 Oral/LBA/壁报、申办方）若数据缺失，不臆造，在「信息缺口与局限」说明。

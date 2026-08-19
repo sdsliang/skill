@@ -50,7 +50,8 @@
         "阿拉贡制药有限公司"
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "维恩妥尤单抗": {
       "query": "维恩妥尤单抗",
@@ -94,7 +95,8 @@
         "agensys inc."
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "伊匹木单抗": {
       "query": "伊匹木单抗",
@@ -148,7 +150,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "度伐利尤单抗": {
       "query": "度伐利尤单抗",
@@ -198,7 +201,8 @@
         "celgene corp."
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "瑞维鲁胺": {
       "query": "瑞维鲁胺",
@@ -247,7 +251,11 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": true,
+      "china_company": "jiangsu hengrui medicine co., ltd",
+      "china_judge_manual": false,
+      "china_matched": "/恒瑞|hengr|sh\\.600276/i"
     },
     "德达博妥单抗": {
       "query": "德达博妥单抗",
@@ -303,7 +311,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "帕博利珠单抗": {
       "query": "帕博利珠单抗",
@@ -363,7 +372,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "地舒单抗": {
       "query": "地舒单抗",
@@ -418,7 +428,8 @@
         "其他",
         "欧洲"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "恩沃利单抗": {
       "query": "恩沃利单抗",
@@ -468,7 +479,10 @@
         "glenmark pharmaceuticals limited"
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": true,
+      "china_company": "康宁杰瑞",
+      "china_judge_manual": true
     },
     "氟尿嘧啶": {
       "query": "氟尿嘧啶",
@@ -519,7 +533,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "奥沙利铂": {
       "query": "奥沙利铂",
@@ -564,7 +579,8 @@
         "sanofi s.a."
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "伦康依隆妥单抗": {
       "query": "伦康依隆妥单抗",
@@ -615,7 +631,8 @@
         "其他",
         "美国"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "卡铂": {
       "query": "卡铂",
@@ -656,7 +673,8 @@
         "bms"
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "顺铂": {
       "query": "顺铂",
@@ -708,7 +726,8 @@
         "日本",
         "其他"
       ],
-      "status": "Inactive"
+      "status": "Inactive",
+      "is_china_origin": false
     },
     "卡培他滨": {
       "query": "卡培他滨",
@@ -755,7 +774,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "白蛋白紫杉醇": {
       "query": "白蛋白紫杉醇",
@@ -811,7 +831,8 @@
         "欧洲",
         "美国"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "紫杉醇": {
       "query": "紫杉醇",
@@ -854,7 +875,8 @@
         "bms"
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "亚叶酸": {
       "query": "亚叶酸",
@@ -902,7 +924,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "多西他赛": {
       "query": "多西他赛",
@@ -945,7 +968,8 @@
         "sanofi s.a."
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "吉西他滨": {
       "query": "吉西他滨",
@@ -992,7 +1016,8 @@
       "originator_regions": [
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "贝伐珠单抗": {
       "query": "贝伐珠单抗",
@@ -1048,7 +1073,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "利妥昔单抗": {
       "query": "利妥昔单抗",
@@ -1095,7 +1121,8 @@
         "全薬工業株式会社"
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "伊立替康": {
       "query": "伊立替康",
@@ -1141,7 +1168,8 @@
       "originator_regions": [
         "未知"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "替雷利珠单抗": {
       "query": "替雷利珠单抗",
@@ -1200,7 +1228,10 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": true,
+      "china_company": "百济神州",
+      "china_judge_manual": true
     },
     "环磷酰胺": {
       "query": "环磷酰胺",
@@ -1250,7 +1281,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "纳武利尤单抗": {
       "query": "纳武利尤单抗",
@@ -1303,7 +1335,8 @@
         "其他",
         "日本"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "阿替利珠单抗": {
       "query": "阿替利珠单抗",
@@ -1361,7 +1394,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "信迪利单抗": {
       "query": "信迪利单抗",
@@ -1421,7 +1455,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "曲妥珠单抗": {
       "query": "曲妥珠单抗",
@@ -1474,7 +1509,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "特瑞普利单抗": {
       "query": "特瑞普利单抗",
@@ -1532,7 +1568,11 @@
         "日本",
         "欧洲"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": true,
+      "china_company": "上海君▲実▼生物医▲薬▼科技股▲分▼有限公司",
+      "china_judge_manual": false,
+      "china_matched": "/君实|junshi|topalliance/i"
     },
     "埃万妥单抗": {
       "query": "埃万妥单抗",
@@ -1579,7 +1619,8 @@
         "j&j"
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "仑伐替尼": {
       "query": "仑伐替尼",
@@ -1623,7 +1664,8 @@
         "eisai co., ltd"
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "西妥昔单抗": {
       "query": "西妥昔单抗",
@@ -1672,7 +1714,8 @@
         "美国",
         "日本"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "托泊替康": {
       "query": "托泊替康",
@@ -1725,7 +1768,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "卡瑞利珠单抗": {
       "query": "卡瑞利珠单抗",
@@ -1781,7 +1825,11 @@
         "中国(港澳台)",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": true,
+      "china_company": "jiangsu hengrui medicine co., ltd",
+      "china_judge_manual": false,
+      "china_matched": "/恒瑞|hengr|sh\\.600276/i"
     },
     "替莫唑胺": {
       "query": "替莫唑胺",
@@ -1836,7 +1884,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "达妥昔单抗β": {
       "query": "达妥昔单抗β",
@@ -1884,7 +1933,11 @@
         "beijing beigene, ltd."
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": true,
+      "china_company": "beigene (beijing) co., ltd",
+      "china_judge_manual": false,
+      "china_matched": "/百济|beigene|beigene|beone/i"
     },
     "地加瑞克": {
       "query": "地加瑞克",
@@ -1932,7 +1985,8 @@
         "欧洲",
         "美国"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "阿伐曲泊帕": {
       "query": "阿伐曲泊帕",
@@ -1976,7 +2030,8 @@
         "shanghai fosun pharmaceutical (group) co ltd"
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "派安普利单抗": {
       "query": "派安普利单抗",
@@ -2028,7 +2083,11 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": true,
+      "china_company": "zhongshan kangfang biological medicine co.,ltd.",
+      "china_judge_manual": false,
+      "china_matched": "/康方|kangfang/i"
     },
     "甲氨蝶呤": {
       "query": "甲氨蝶呤",
@@ -2075,7 +2134,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "瑞卢戈利": {
       "query": "瑞卢戈利",
@@ -2120,7 +2180,8 @@
       "originator_regions": [
         "未知"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "西达尿苷+地西他滨": {
       "query": "西达尿苷+地西他滨",
@@ -2173,7 +2234,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "卡博替尼": {
       "query": "卡博替尼",
@@ -2220,7 +2282,8 @@
         "其他",
         "美国"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "阿得贝利单抗": {
       "query": "阿得贝利单抗",
@@ -2275,7 +2338,11 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": true,
+      "china_company": "jiangsu hengrui medicine co., ltd",
+      "china_judge_manual": false,
+      "china_matched": "/恒瑞|hengr|sh\\.600276/i"
     },
     "西米普利单抗": {
       "query": "西米普利单抗",
@@ -2323,7 +2390,8 @@
         "sanofi s.a."
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "重组人白介素-2": {
       "query": "重组人白介素-2",
@@ -2365,7 +2433,8 @@
         "不可用"
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "tolododekin alfa": {
       "query": "tolododekin alfa",
@@ -2409,7 +2478,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "艾沙妥昔单抗": {
       "query": "艾沙妥昔单抗",
@@ -2462,7 +2532,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "玛贝兰妥单抗": {
       "query": "玛贝兰妥单抗",
@@ -2511,7 +2582,8 @@
         "葛兰素史克公司"
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "泊马度胺": {
       "query": "泊马度胺",
@@ -2564,7 +2636,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "地塞米松": {
       "query": "地塞米松",
@@ -2614,7 +2687,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "olomorasib": {
       "query": "olomorasib",
@@ -2656,7 +2730,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "卡度尼利单抗": {
       "query": "卡度尼利单抗",
@@ -2709,7 +2784,11 @@
         "欧洲",
         "美国"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": true,
+      "china_company": "zhongshan kangfang biological medicine co.,ltd.",
+      "china_judge_manual": false,
+      "china_matched": "/康方|kangfang/i"
     },
     "培美曲塞": {
       "query": "培美曲塞",
@@ -2752,7 +2831,8 @@
         "美国礼来"
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "西奥罗尼": {
       "query": "西奥罗尼",
@@ -2802,7 +2882,11 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": true,
+      "china_company": "深圳微芯生物科技有限责任公司",
+      "china_judge_manual": false,
+      "china_matched": "/微芯|chipscreen/i"
     },
     "维奈克拉": {
       "query": "维奈克拉",
@@ -2849,7 +2933,8 @@
         "abbott"
       ],
       "originator_regions": [],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "多柔比星": {
       "query": "多柔比星",
@@ -2901,7 +2986,8 @@
         "日本",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": false
     },
     "呋喹替尼": {
       "query": "呋喹替尼",
@@ -2948,7 +3034,10 @@
         "中国(港澳台)",
         "其他"
       ],
-      "status": "Active"
+      "status": "Active",
+      "is_china_origin": true,
+      "china_company": "和黄医药",
+      "china_judge_manual": true
     }
   },
   "lookup": {
@@ -24845,5 +24934,125 @@
       ],
       "status": "Active"
     }
+  },
+  "china_drugs": {
+    "count": 21,
+    "drugs": [
+      {
+        "drug": "依沃西单抗",
+        "company": "康方生物",
+        "moa": "PD-1/VEGF双抗",
+        "profile_missing": true
+      },
+      {
+        "drug": "卡度尼利单抗",
+        "company": "zhongshan kangfang biological medicine co.,ltd.",
+        "moa": "双抗"
+      },
+      {
+        "drug": "卡瑞利珠单抗",
+        "company": "jiangsu hengrui medicine co., ltd",
+        "moa": "单克隆抗体"
+      },
+      {
+        "drug": "呋喹替尼",
+        "company": "和黄医药",
+        "moa": "小分子"
+      },
+      {
+        "drug": "多纳非尼",
+        "company": "泽璟制药",
+        "moa": "多靶点TKI/小分子",
+        "profile_missing": true
+      },
+      {
+        "drug": "奥雷巴替尼",
+        "company": "亚盛医药",
+        "moa": "BCR-ABL抑制剂/小分子",
+        "profile_missing": true
+      },
+      {
+        "drug": "安罗替尼",
+        "company": "正大天晴",
+        "moa": "多靶点TKI/小分子",
+        "profile_missing": true
+      },
+      {
+        "drug": "恩沃利单抗",
+        "company": "康宁杰瑞",
+        "moa": "VHH"
+      },
+      {
+        "drug": "斯鲁利单抗",
+        "company": "复宏汉霖",
+        "moa": "PD-1单抗",
+        "profile_missing": true
+      },
+      {
+        "drug": "替雷利珠单抗",
+        "company": "百济神州",
+        "moa": "单克隆抗体"
+      },
+      {
+        "drug": "泽布替尼",
+        "company": "百济神州",
+        "moa": "BTK抑制剂/小分子",
+        "profile_missing": true
+      },
+      {
+        "drug": "派安普利单抗",
+        "company": "zhongshan kangfang biological medicine co.,ltd.",
+        "moa": "单克隆抗体"
+      },
+      {
+        "drug": "特瑞普利单抗",
+        "company": "上海君▲実▼生物医▲薬▼科技股▲分▼有限公司",
+        "moa": "单克隆抗体"
+      },
+      {
+        "drug": "瑞维鲁胺",
+        "company": "jiangsu hengrui medicine co., ltd",
+        "moa": "小分子"
+      },
+      {
+        "drug": "维迪西妥单抗",
+        "company": "荣昌生物",
+        "moa": "ADC/HER2",
+        "profile_missing": true
+      },
+      {
+        "drug": "西奥罗尼",
+        "company": "深圳微芯生物科技有限责任公司",
+        "moa": "小分子"
+      },
+      {
+        "drug": "西达本胺",
+        "company": "深圳微芯",
+        "moa": "HDAC抑制剂/小分子",
+        "profile_missing": true
+      },
+      {
+        "drug": "赛沃替尼",
+        "company": "和黄医药",
+        "moa": "c-MET抑制剂/小分子",
+        "profile_missing": true
+      },
+      {
+        "drug": "达妥昔单抗β",
+        "company": "beigene (beijing) co., ltd",
+        "moa": "单克隆抗体"
+      },
+      {
+        "drug": "阿帕替尼",
+        "company": "恒瑞医药",
+        "moa": "VEGFR-2 TKI/小分子",
+        "profile_missing": true
+      },
+      {
+        "drug": "阿得贝利单抗",
+        "company": "jiangsu hengrui medicine co., ltd",
+        "moa": "单克隆抗体"
+      }
+    ]
   }
 }

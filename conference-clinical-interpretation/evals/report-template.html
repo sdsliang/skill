@@ -46,6 +46,9 @@
     <section class="summary" id="metrics"></section>
     <div class="drug-banner">💊 <b>药物机制增强</b>：已接入药物字典（DrugBank 同源数据），为代表药物补充 <b>靶点</b> 与 <b>作用机制（MOA）</b>。靶点/机制以标签展示，点击证据可下钻查看完整药物画像。</div>
 
+    <section class="section-head"><div><h2>中国企业/中国创新药参与</h2><p>按药物画像研发机构近似判定中国药企归属（含 license-out 药物白名单）；点击药物查看证据</p></div></section>
+    <section class="grid"><article class="chart-panel wide"><div id="china" class="chart"></div></article></section>
+
     <section class="section-head"><div><h2>研发阶段 × 结果方向</h2><p>气泡大小=记录数，颜色=主要结果方向；点击气泡可下钻对应证据</p></div></section>
     <section class="grid"><article class="chart-panel wide"><div id="matrix" class="chart"></div></article></section>
 
@@ -163,6 +166,55 @@
     }).join("");
     $("watchlist").innerHTML = rows;
     $("watchlist").querySelectorAll("[data-id]").forEach((b) => b.addEventListener("click", () => openEvidence(b.getAttribute("data-id"))));
+  })();
+
+  /* ---------- china-origin drugs ---------- */
+  (function renderChina() {
+    const el = $("china");
+    if (!el) return;
+    const cn = D.china_drugs;
+    if (!cn || !cn.drugs || !cn.drugs.length) {
+      el.innerHTML = '<div class="empty">暂无中国企业/中国创新药参与数据（或数据不足以判定）。</div>';
+      return;
+    }
+    // count evidence per china drug — rely on the china_drugs list (drug name), not profile is_china_origin
+    const cnDrugNames = new Set((cn.drugs || []).map((c) => c.drug));
+    const byDrug = {};
+    for (const r of D.evidence_scatter || []) {
+      for (const d of r.drugs || []) {
+        const matched = [...cnDrugNames].find((n) => d === n);
+        if (matched) {
+          if (!byDrug[matched]) byDrug[matched] = { count: 0, evals: {}, evidence: [] };
+          byDrug[matched].count++;
+          byDrug[matched].evals[r.evaluation || "未知"] = (byDrug[matched].evals[r.evaluation || "未知"] || 0) + 1;
+          if (r.id) byDrug[matched].evidence.push(r);
+        }
+      }
+    }
+    // merge china_drugs list order by count
+    const list = (cn.drugs || []).map((c) => ({
+      ...c,
+      count: (byDrug[c.drug] && byDrug[c.drug].count) || 0,
+      evals: (byDrug[c.drug] && byDrug[c.drug].evals) || {},
+      evidence: (byDrug[c.drug] && byDrug[c.drug].evidence) || [],
+    })).filter((x) => x.count > 0).sort((a, b) => b.count - a.count);
+    if (!list.length) { el.innerHTML = '<div class="empty">暂无中国企业/中国创新药参与数据。</div>'; return; }
+    const max = Math.max(1, ...list.map((x) => x.count));
+    const rows = list.map((x) => {
+      const evalTxt = Object.entries(x.evals).map(([k, v]) => `${k} ${v}`).join(" · ") || "–";
+      const moa = x.moa ? `<span class="signal">${esc(x.moa)}</span>` : "";
+      return `<div class="watch-row"><div class="bar" style="background:var(--teal);height:${Math.max(14, (x.count / max) * 40)}px"></div><div>
+        <strong>${esc(x.drug)}</strong>
+        <p>${esc(x.company || "")} · 记录 ${x.count} 条 · ${esc(evalTxt)}</p>
+        ${moa}
+        </div><div><button class="signal-link" data-name="${esc(x.drug)}">查看证据</button></div></div>`;
+    }).join("");
+    el.innerHTML = rows;
+    el.querySelectorAll("[data-name]").forEach((b) => b.addEventListener("click", () => {
+      const name = b.getAttribute("data-name");
+      const item = list.find((x) => x.drug === name);
+      openList(`${name}（${item ? item.count : 0} 条中国药企证据）`, item ? item.evidence : []);
+    }));
   })();
 
   /* ---------- stage x evaluation matrix ---------- */

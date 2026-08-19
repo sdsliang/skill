@@ -96,6 +96,7 @@ const DATA = {
   watchlist,
   drug_profiles: drugProfiles.profiles || {},
   drug_lookup: lookup,
+  china_drugs: drugProfiles.china_drugs || null,
 };
 
 const safeJson = (v) => JSON.stringify(v).replace(/</g, "\\u003c");

@@ -41,7 +41,7 @@ rank,evidence_id,title,trial,indication,drug,phase,sample_size,evaluation,score,
 1. 从 `evidence_scatter` 按评价 = 积极 + 阶段优先（III 期 > II 期）粗筛候选。
 2. 综合评分维度排序，取 Top 10-20。
 3. 写入 `/workspace/visualizations/watchlist.csv`（UTF-8，含表头）。
-4. 报告第 8 章以 Markdown 表格呈现同数据，并用 `::visualization[推荐关注清单]{path="/workspace/visualizations/watchlist.csv"}` 引用 CSV 供下载。
+4. 报告第 8 章呈现**概览**（Top 3-5 条的一句话摘要），并用 `::visualization[推荐关注清单]{path="/workspace/visualizations/watchlist.csv"}` 引用 CSV 供下载；**完整明细只在 CSV**，不在正文展开。
 
 ## 5. 平衡与警示
 

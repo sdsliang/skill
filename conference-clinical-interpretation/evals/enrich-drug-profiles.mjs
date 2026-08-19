@@ -167,6 +167,38 @@ const out = {
   lookup: index,
 };
 
+/* --- China-origin drug annotation (approximate, company-based) --- */
+const CN_PATTERNS = [
+  /恒瑞|hengr|sh\.600276/i, /百济|beigene|beigene|beone/i, /君实|junshi|topalliance/i,
+  /信达|innovent/i, /康方|kangfang/i, /科伦|kelun/i, /正大天晴|chiatai/i, /石药|cspc/i,
+  /先声|simcere/i, /荣昌|remegen/i, /三生|sanyou/i, /基石|cstone/i, /和黄|hutchmed/i,
+  /再鼎|zailab|zai lab/i, /复宏汉霖|henlius/i, /迪哲|dizal/i, /泽璟|zetal|zeta bio/i,
+  /歌礼|ascletis/i, /亚盛|ascentage/i, /迈威|mabwell/i, /豪森|hansoh/i, /艾力斯|allist/i,
+  /海和|haihe/i, /加科思|jacobio/i, /德琪|antengene/i, /诺诚健华|innocare/i, /贝达|betta/i,
+  /绿叶|luye/i, /百奥赛图|biocytogen/i, /传奇生物|legend biotech|legend\b/i, /亘喜|gracell/i,
+  /斯丹赛|stemedica/i, /奥赛康|aosaikang/i, /微芯|chipscreen/i, /康宁杰瑞|alphamab/i,
+];
+// Manual whitelist for CN-origin drugs whose profile companies show foreign (license-out) or missing
+const MANUAL_CN = {
+  "替雷利珠单抗": "百济神州", "泽布替尼": "百济神州", "呋喹替尼": "和黄医药", "维迪西妥单抗": "荣昌生物",
+  "恩沃利单抗": "康宁杰瑞", "舒格利单抗": "基石药业", "斯鲁利单抗": "复宏汉霖", "依沃西单抗": "康方生物",
+  "赛沃替尼": "和黄医药", "西达本胺": "深圳微芯", "安罗替尼": "正大天晴", "多纳非尼": "泽璟制药",
+  "阿帕替尼": "恒瑞医药", "奥雷巴替尼": "亚盛医药", "法米替尼": "恒瑞医药",
+};
+for (const prof of Object.values(results)) {
+  const q = prof.query || prof.name || "";
+  if (MANUAL_CN[q]) { prof.is_china_origin = true; prof.china_company = MANUAL_CN[q]; prof.china_judge_manual = true; continue; }
+  const c = (prof.companies || []).join(" ");
+  const m = CN_PATTERNS.find((p) => p.test(c + " " + q));
+  if (m) { prof.is_china_origin = true; prof.china_company = (prof.companies || [])[0] || q; prof.china_judge_manual = false; prof.china_matched = m.toString(); }
+  else { prof.is_china_origin = false; }
+}
+const cnList = Object.values(results)
+  .filter((p) => p.is_china_origin)
+  .map((p) => ({ drug: p.query, company: p.china_company, moa: (p.moa_class && p.moa_class[0]) || (p.modality || [])[0] || null }))
+  .sort((a, b) => a.drug.localeCompare(b.drug));
+out.china_drugs = { count: cnList.length, drugs: cnList, note: "approximate: company/alias-based; license-out drugs via manual whitelist; see references/drug-enrichment.md" };
+
 for (const p of [path.join(ITER_DIR, "drug-profiles.json"), path.join(HERE, "fixtures/asco-2026-drug-profiles.json")]) {
   fs.writeFileSync(p, JSON.stringify(out, null, 2), "utf8");
   console.log(`[enrich] wrote ${p} (${(fs.statSync(p).size / 1024).toFixed(1)} KB, ${Object.keys(results).length} drugs)`);
