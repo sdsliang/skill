@@ -5,7 +5,7 @@
 - Git repository: `git@github.com:sdsliang/skill.git`
 - Project subdirectory: `clinical-result-comparison/`
 - Branch: `main`
-- Initial migration from `/home/xupeipeioo1/apps/clinical-result-comparison` is pending commit and push.
+- Migrated from `/home/xupeipeioo1/apps/clinical-result-comparison` and pushed as root commit `08440ad`.
 
 
 Build the first Tool Smith Agent for reconstructing complete trial interpretations from multiple user-selected clinical result records, using only their original `source_full_text` and preserving source-level linked citation traceability.
@@ -38,6 +38,7 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 ## Validation completed
 
 - Tool Smith `validate_skill_md` accepted the Skill name and description.
+- Ran the Skill locally against the condition-based fixture `np-clinical-indications-516-517-phase-featured-false.json`: generated `evals/iteration-14/condition-example/report.md` (4-trial mixed input: ESSENCE, MAESTRO-NASH, MAESTRO-NAFLD-1/OLE, SYNCHRONIZE-MASLD; each trial synthesized completely first, then bounded cross-trial alignment only) and `report.refs.json`. Marker/key parity 10/10, renderer emits 192 numeric superscript anchors, renderer tests 6/6, contract validation `v0.5_contract_ok`.
 - The upload archive contains the expected root directory and nine Skill files.
 - PWS heterogeneous cross-trial/mixed case: passed after removing cross-cluster rankings.
 - HARMONi-6 same-trial evolution case: passed chronology and duplicate-disclosure checks.
