@@ -1,0 +1,1944 @@
+{
+  "schema_version": "1.0.0",
+  "conference": "ASCO 2026",
+  "generated_at": "2026-08-19T10:10:06.741Z",
+  "charts": [
+    {
+      "type": "kpi_summary",
+      "title": "会议关键指标",
+      "dimension": "overview",
+      "data": [
+        {
+          "label": "匹配记录数",
+          "value": 1639
+        },
+        {
+          "label": "分析合格记录数",
+          "value": 1639
+        },
+        {
+          "label": "唯一药物数",
+          "value": 750
+        },
+        {
+          "label": "唯一适应症数",
+          "value": 338
+        },
+        {
+          "label": "唯一生物标志物数",
+          "value": 185
+        },
+        {
+          "label": "有样本量记录数",
+          "value": 1603
+        }
+      ]
+    },
+    {
+      "type": "bar_distribution",
+      "title": "记录按evaluation分布",
+      "dimension": "evaluation",
+      "data": [
+        {
+          "label": "积极",
+          "count": 1201
+        },
+        {
+          "label": "不佳",
+          "count": 153
+        },
+        {
+          "label": "终止",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "type": "bar_distribution",
+      "title": "记录按trial_phase分布",
+      "dimension": "trial_phase",
+      "data": [
+        {
+          "label": "II期",
+          "count": 445
+        },
+        {
+          "label": "I期",
+          "count": 227
+        },
+        {
+          "label": "III期",
+          "count": 170
+        },
+        {
+          "label": "I/II期",
+          "count": 147
+        },
+        {
+          "label": "II/III期",
+          "count": 7
+        },
+        {
+          "label": "IV期",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "type": "bar_distribution",
+      "title": "记录按disease_stage分布",
+      "dimension": "disease_stage",
+      "data": [
+        {
+          "label": "晚期/转移",
+          "count": 799
+        },
+        {
+          "label": "III期",
+          "count": 125
+        },
+        {
+          "label": "II期",
+          "count": 75
+        },
+        {
+          "label": "IV期",
+          "count": 61
+        },
+        {
+          "label": "早期",
+          "count": 61
+        },
+        {
+          "label": "其他/未明确",
+          "count": 40
+        },
+        {
+          "label": "I期",
+          "count": 23
+        }
+      ]
+    },
+    {
+      "type": "bar_distribution",
+      "title": "记录按therapy_line分布",
+      "dimension": "therapy_line",
+      "data": [
+        {
+          "label": "二线治疗",
+          "count": 418
+        },
+        {
+          "label": "一线治疗",
+          "count": 389
+        },
+        {
+          "label": "新辅助治疗",
+          "count": 187
+        },
+        {
+          "label": "三线及以上治疗",
+          "count": 165
+        },
+        {
+          "label": "辅助治疗",
+          "count": 140
+        },
+        {
+          "label": "维持治疗",
+          "count": 120
+        },
+        {
+          "label": "预防治疗",
+          "count": 70
+        },
+        {
+          "label": "诱导治疗",
+          "count": 61
+        },
+        {
+          "label": "巩固治疗",
+          "count": 16
+        },
+        {
+          "label": "三线治疗",
+          "count": 4
+        },
+        {
+          "label": "四线治疗",
+          "count": 4
+        },
+        {
+          "label": "转化治疗",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "type": "horizontal_bar_topN",
+      "title": "Top 15 适应症曝光",
+      "dimension": "indication",
+      "top_n": 15,
+      "data": [
+        {
+          "label": "实体瘤",
+          "count": 162
+        },
+        {
+          "label": "非小细胞肺癌",
+          "count": 146
+        },
+        {
+          "label": "乳腺癌",
+          "count": 138
+        },
+        {
+          "label": "结直肠癌",
+          "count": 98
+        },
+        {
+          "label": "胃癌",
+          "count": 75
+        },
+        {
+          "label": "黑色素瘤",
+          "count": 68
+        },
+        {
+          "label": "前列腺癌",
+          "count": 67
+        },
+        {
+          "label": "HER2阳性乳腺癌",
+          "count": 61
+        },
+        {
+          "label": "HR阳性乳腺癌",
+          "count": 60
+        },
+        {
+          "label": "癌症",
+          "count": 59
+        },
+        {
+          "label": "肝细胞癌",
+          "count": 57
+        },
+        {
+          "label": "卵巢癌",
+          "count": 55
+        },
+        {
+          "label": "头颈部鳞状细胞癌",
+          "count": 52
+        },
+        {
+          "label": "小细胞肺癌",
+          "count": 47
+        },
+        {
+          "label": "胃食管交界处癌",
+          "count": 43
+        }
+      ]
+    },
+    {
+      "type": "horizontal_bar_topN",
+      "title": "Top 15 药物曝光",
+      "dimension": "drug",
+      "top_n": 15,
+      "data": [
+        {
+          "label": "帕博利珠单抗",
+          "count": 134
+        },
+        {
+          "label": "奥沙利铂",
+          "count": 109
+        },
+        {
+          "label": "氟尿嘧啶",
+          "count": 84
+        },
+        {
+          "label": "卡铂",
+          "count": 71
+        },
+        {
+          "label": "纳武利尤单抗",
+          "count": 69
+        },
+        {
+          "label": "亚叶酸",
+          "count": 68
+        },
+        {
+          "label": "顺铂",
+          "count": 64
+        },
+        {
+          "label": "卡培他滨",
+          "count": 59
+        },
+        {
+          "label": "白蛋白紫杉醇",
+          "count": 56
+        },
+        {
+          "label": "紫杉醇",
+          "count": 52
+        },
+        {
+          "label": "吉西他滨",
+          "count": 50
+        },
+        {
+          "label": "贝伐珠单抗",
+          "count": 48
+        },
+        {
+          "label": "多西他赛",
+          "count": 46
+        },
+        {
+          "label": "替雷利珠单抗",
+          "count": 46
+        },
+        {
+          "label": "度伐利尤单抗",
+          "count": 40
+        }
+      ]
+    },
+    {
+      "type": "horizontal_bar_topN",
+      "title": "Top 10 生物标志物曝光",
+      "dimension": "biomarker",
+      "top_n": 10,
+      "data": [
+        {
+          "label": "HER2阴性",
+          "count": 79
+        },
+        {
+          "label": "HER2阳性",
+          "count": 65
+        },
+        {
+          "label": "激素受体阳性",
+          "count": 44
+        },
+        {
+          "label": "EGFR突变",
+          "count": 31
+        },
+        {
+          "label": "微卫星稳定",
+          "count": 28
+        },
+        {
+          "label": "ER阳性",
+          "count": 21
+        },
+        {
+          "label": "无错配修复缺陷",
+          "count": 19
+        },
+        {
+          "label": "PD-L1阳性",
+          "count": 15
+        },
+        {
+          "label": "EGFR野生型",
+          "count": 13
+        },
+        {
+          "label": "微卫星高度不稳定",
+          "count": 13
+        }
+      ]
+    },
+    {
+      "type": "horizontal_bar_topN",
+      "title": "Top 10 终点类型",
+      "dimension": "endpoint",
+      "top_n": 10,
+      "data": [
+        {
+          "label": "Other/unspecified",
+          "count": 792
+        },
+        {
+          "label": "ORR",
+          "count": 333
+        },
+        {
+          "label": "PFS",
+          "count": 199
+        },
+        {
+          "label": "OS",
+          "count": 143
+        },
+        {
+          "label": "CR",
+          "count": 92
+        },
+        {
+          "label": "Safety",
+          "count": 27
+        },
+        {
+          "label": "DCR",
+          "count": 23
+        },
+        {
+          "label": "DFS",
+          "count": 19
+        },
+        {
+          "label": "EFS",
+          "count": 18
+        },
+        {
+          "label": "RFS",
+          "count": 18
+        }
+      ]
+    },
+    {
+      "type": "pie_donut_share",
+      "title": "evaluation占比",
+      "dimension": "evaluation",
+      "data": [
+        {
+          "label": "积极",
+          "count": 1201
+        },
+        {
+          "label": "不佳",
+          "count": 153
+        },
+        {
+          "label": "终止",
+          "count": 12
+        }
+      ]
+    },
+    {
+      "type": "pie_donut_share",
+      "title": "trial_phase占比",
+      "dimension": "trial_phase",
+      "data": [
+        {
+          "label": "II期",
+          "count": 445
+        },
+        {
+          "label": "I期",
+          "count": 227
+        },
+        {
+          "label": "III期",
+          "count": 170
+        },
+        {
+          "label": "I/II期",
+          "count": 147
+        },
+        {
+          "label": "II/III期",
+          "count": 7
+        },
+        {
+          "label": "IV期",
+          "count": 4
+        }
+      ]
+    },
+    {
+      "type": "stacked_bar_phase_eval",
+      "title": "研发阶段 × 评价",
+      "dimension": [
+        "trial_phase",
+        "evaluation"
+      ],
+      "data": [
+        {
+          "phase": "II期",
+          "evaluation": "积极",
+          "count": 374
+        },
+        {
+          "phase": "I/II期",
+          "evaluation": "积极",
+          "count": 131
+        },
+        {
+          "phase": "Unknown",
+          "evaluation": "不佳",
+          "count": 74
+        },
+        {
+          "phase": "Unknown",
+          "evaluation": "积极",
+          "count": 358
+        },
+        {
+          "phase": "I期",
+          "evaluation": "积极",
+          "count": 207
+        },
+        {
+          "phase": "Unknown",
+          "evaluation": "Unknown",
+          "count": 207
+        },
+        {
+          "phase": "III期",
+          "evaluation": "积极",
+          "count": 122
+        },
+        {
+          "phase": "II期",
+          "evaluation": "Unknown",
+          "count": 24
+        },
+        {
+          "phase": "II期",
+          "evaluation": "不佳",
+          "count": 41
+        },
+        {
+          "phase": "I期",
+          "evaluation": "Unknown",
+          "count": 20
+        },
+        {
+          "phase": "II期",
+          "evaluation": "终止",
+          "count": 6
+        },
+        {
+          "phase": "III期",
+          "evaluation": "不佳",
+          "count": 32
+        },
+        {
+          "phase": "II/III期",
+          "evaluation": "不佳",
+          "count": 1
+        },
+        {
+          "phase": "I/II期",
+          "evaluation": "Unknown",
+          "count": 12
+        },
+        {
+          "phase": "IV期",
+          "evaluation": "积极",
+          "count": 3
+        },
+        {
+          "phase": "II/III期",
+          "evaluation": "积极",
+          "count": 6
+        },
+        {
+          "phase": "I/II期",
+          "evaluation": "不佳",
+          "count": 4
+        },
+        {
+          "phase": "III期",
+          "evaluation": "Unknown",
+          "count": 10
+        },
+        {
+          "phase": "III期",
+          "evaluation": "终止",
+          "count": 6
+        },
+        {
+          "phase": "IV期",
+          "evaluation": "不佳",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "type": "stacked_bar_indication_eval",
+      "title": "Top 10 适应症 × 评价",
+      "dimension": [
+        "indication",
+        "evaluation"
+      ],
+      "data": [
+        {
+          "indication": "结直肠癌",
+          "evaluation": "积极",
+          "count": 59
+        },
+        {
+          "indication": "黑色素瘤",
+          "evaluation": "积极",
+          "count": 45
+        },
+        {
+          "indication": "乳腺癌",
+          "evaluation": "不佳",
+          "count": 18
+        },
+        {
+          "indication": "实体瘤",
+          "evaluation": "积极",
+          "count": 119
+        },
+        {
+          "indication": "非小细胞肺癌",
+          "evaluation": "Unknown",
+          "count": 23
+        },
+        {
+          "indication": "结直肠癌",
+          "evaluation": "Unknown",
+          "count": 9
+        },
+        {
+          "indication": "前列腺癌",
+          "evaluation": "积极",
+          "count": 39
+        },
+        {
+          "indication": "非小细胞肺癌",
+          "evaluation": "不佳",
+          "count": 13
+        },
+        {
+          "indication": "HR阳性乳腺癌",
+          "evaluation": "Unknown",
+          "count": 1
+        },
+        {
+          "indication": "实体瘤",
+          "evaluation": "Unknown",
+          "count": 17
+        },
+        {
+          "indication": "非小细胞肺癌",
+          "evaluation": "积极",
+          "count": 85
+        },
+        {
+          "indication": "胃癌",
+          "evaluation": "积极",
+          "count": 45
+        },
+        {
+          "indication": "癌症",
+          "evaluation": "积极",
+          "count": 19
+        },
+        {
+          "indication": "乳腺癌",
+          "evaluation": "积极",
+          "count": 76
+        },
+        {
+          "indication": "乳腺癌",
+          "evaluation": "终止",
+          "count": 1
+        },
+        {
+          "indication": "结直肠癌",
+          "evaluation": "不佳",
+          "count": 9
+        },
+        {
+          "indication": "黑色素瘤",
+          "evaluation": "Unknown",
+          "count": 8
+        },
+        {
+          "indication": "乳腺癌",
+          "evaluation": "Unknown",
+          "count": 29
+        },
+        {
+          "indication": "癌症",
+          "evaluation": "Unknown",
+          "count": 11
+        },
+        {
+          "indication": "前列腺癌",
+          "evaluation": "不佳",
+          "count": 7
+        },
+        {
+          "indication": "前列腺癌",
+          "evaluation": "Unknown",
+          "count": 16
+        },
+        {
+          "indication": "癌症",
+          "evaluation": "不佳",
+          "count": 6
+        },
+        {
+          "indication": "胃癌",
+          "evaluation": "不佳",
+          "count": 6
+        },
+        {
+          "indication": "HER2阳性乳腺癌",
+          "evaluation": "不佳",
+          "count": 1
+        },
+        {
+          "indication": "实体瘤",
+          "evaluation": "不佳",
+          "count": 7
+        },
+        {
+          "indication": "黑色素瘤",
+          "evaluation": "不佳",
+          "count": 3
+        },
+        {
+          "indication": "胃癌",
+          "evaluation": "Unknown",
+          "count": 5
+        },
+        {
+          "indication": "HR阳性乳腺癌",
+          "evaluation": "不佳",
+          "count": 1
+        },
+        {
+          "indication": "黑色素瘤",
+          "evaluation": "终止",
+          "count": 1
+        },
+        {
+          "indication": "HR阳性乳腺癌",
+          "evaluation": "积极",
+          "count": 5
+        },
+        {
+          "indication": "HER2阳性乳腺癌",
+          "evaluation": "积极",
+          "count": 4
+        },
+        {
+          "indication": "前列腺癌",
+          "evaluation": "终止",
+          "count": 1
+        },
+        {
+          "indication": "非小细胞肺癌",
+          "evaluation": "终止",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "type": "scatter_evidence",
+      "title": "代表性证据（样本量 × 评价）",
+      "dimension": [
+        "sample_size",
+        "evaluation"
+      ],
+      "data": [
+        {
+          "id": "24_37_f172a62919b5fc42e451b6ba5443184a_1",
+          "title": "Efficacy and safety of giredestrant (GIRE) in patients (pts) with estrogen receptor–positive, HER2-negative early breast cancer (ER+, HER2– eBC) in the phase III lidERA BC clinical trial: Results by menopausal status.",
+          "trial": "lidERA BC",
+          "phase": "III期",
+          "sample_size": 4170,
+          "evaluation": "积极",
+          "indication": "乳腺癌"
+        },
+        {
+          "id": "24_37_b828897f4cd53e12f2097eeb7039f1b6_1",
+          "title": "Perioperative (neoadjuvant and adjuvant) apalutamide (APA) + androgen deprivation therapy (ADT) vs placebo (PBO) + ADT with radical prostatectomy (RP) in high-risk localized or locally advanced prostate cancer (HR LPC/LAPC): Final analysis of the PROTEUS phase 3 study.",
+          "trial": "PROTEUS",
+          "phase": "III期",
+          "sample_size": 2109,
+          "evaluation": "积极",
+          "indication": "前列腺癌"
+        },
+        {
+          "id": "24_37_5b8bfe4161d4a03573850d4d775d560e_1",
+          "title": "Prevalence of symptomatic skeletal events (SSE) with reduced denosumab (Dmab) dose density (every 12 weeks versus every 4 weeks): A randomized phase III non-inferiority trial SAKK 96/12 REDUSE.",
+          "trial": "SAKK 96/12 REDUSE",
+          "phase": "III期",
+          "sample_size": 1380,
+          "evaluation": "积极",
+          "indication": "乳腺癌"
+        },
+        {
+          "id": "24_37_306b3e5202d2f3abb30dbf32a96463c3_1",
+          "title": "Neoadjuvant pembrolizumab or placebo plus chemotherapy followed by adjuvant pembrolizumab or placebo for high-risk early-stage TNBC: Final analysis results from the phase 3 KEYNOTE-522 study.",
+          "trial": "KEYNOTE-522",
+          "phase": "III期",
+          "sample_size": 1174,
+          "evaluation": "积极",
+          "indication": "三阴性乳腺癌"
+        },
+        {
+          "id": "24_37_a6412122a267b09c38508432d162052a_1",
+          "title": "Efficacy of durvalumab and safety by treatment period in MATTERHORN: A randomized, phase 3 study of durvalumab plus 5-fluorouracil, leucovorin, oxaliplatin, and docetaxel (FLOT) chemotherapy in resectable gastric/gastroesophageal junction (G/GEJ) cancer.",
+          "trial": "MATTERHORN",
+          "phase": "III期",
+          "sample_size": 944,
+          "evaluation": "积极",
+          "indication": "胃癌"
+        },
+        {
+          "id": "24_37_7fdc10ebe182fa0bcbbdc8a3fd46fee7_1",
+          "title": "Contribution of atezolizumab (atezo) to the efficacy of the zanzalintinib (zanza) + atezo combination in patients (pts) with previously treated metastatic colorectal cancer (mCRC): Evidence from the phase 3 STELLAR-303 trial.",
+          "trial": "STELLAR-303",
+          "phase": "III期",
+          "sample_size": 901,
+          "evaluation": "积极",
+          "indication": "结直肠癌"
+        },
+        {
+          "id": "24_37_f49a60345132193b46e7859690ca6013_1",
+          "title": "frontMIND: Phase 3 study of tafasitamab (Tafa) plus lenalidomide (Len) and R-CHOP for patients (pts) with newly diagnosed diffuse large B-cell lymphoma (DLBCL).",
+          "trial": "frontMIND",
+          "phase": "III期",
+          "sample_size": 899,
+          "evaluation": "积极",
+          "indication": "弥漫性大B细胞淋巴瘤"
+        },
+        {
+          "id": "24_37_7b336311458434041249ca606edfe0df_1",
+          "title": "Enfortumab vedotin plus pembrolizumab (EV+P) vs chemotherapy for previously untreated locally advanced or metastatic urothelial carcinoma (la/mUC): 3.5-year follow-up and response analyses from the phase 3 EV-302 study.",
+          "trial": "EV-302/KEYNOTE-A39",
+          "phase": "III期",
+          "sample_size": 886,
+          "evaluation": "积极",
+          "indication": "尿路上皮癌"
+        },
+        {
+          "id": "24_37_3563958100d7033363615739fae07b50_1",
+          "title": "Updated overall survival analysis and examination of subsequent therapy in endometrial cancer (EC) patients (pts) treated with pembrolizumab plus carboplatin/paclitaxel (CP) as compared to CP plus placebo (PBO) in the NRG-GY018 trial.",
+          "trial": "NRG-GY018",
+          "phase": "III期",
+          "sample_size": 810,
+          "evaluation": "积极",
+          "indication": "子宫内膜癌"
+        },
+        {
+          "id": "24_37_4ed9dbca8b23149ee019965c1a2c7afd_1",
+          "title": "Neoadjuvant and adjuvant enfortumab vedotin plus pembrolizumab for participants with muscle-invasive bladder cancer who are eligible for cisplatin: Randomized, open-label, phase 3 KEYNOTE-B15 study.",
+          "trial": "KEYNOTE-B15/EV-304",
+          "phase": "III期",
+          "sample_size": 808,
+          "evaluation": "积极",
+          "indication": "膀胱癌"
+        },
+        {
+          "id": "24_37_1cbd8a0e078c83f1e0a13ab1445a1ea5_1",
+          "title": "PD-L1 CPS ≥10 population subgroup analysis of KEYNOTE-412: Pembrolizumab plus chemoradiotherapy versus placebo plus chemoradiotherapy for unresected locally advanced head and neck squamous cell carcinoma.",
+          "trial": "KEYNOTE-412",
+          "phase": "III期",
+          "sample_size": 804,
+          "evaluation": "积极",
+          "indication": "头颈部鳞状细胞癌"
+        },
+        {
+          "id": "24_37_1a5f04b37f0564b5701e3c0c25243bbd_1",
+          "title": "Durvalumab monotherapy versus active monitoring for resected primary renal cell carcinoma in RAMPART: An international, phase 3, randomized controlled trial.",
+          "trial": "RAMPART",
+          "phase": "III期",
+          "sample_size": 790,
+          "evaluation": "积极",
+          "indication": "肾细胞癌"
+        },
+        {
+          "id": "24_37_bde33af768be25fbbfd2e38958204179_1",
+          "title": "Efficacy and safety results from EMERALD-3: A phase 3, randomized study of tremelimumab plus durvalumab with or without lenvatinib combined with transarterial chemoembolization (TACE) in participants (pts) with unresectable embolization-eligible hepatocellular carcinoma (eeHCC).",
+          "trial": "EMERALD-3",
+          "phase": "III期",
+          "sample_size": 760,
+          "evaluation": "积极",
+          "indication": "肝细胞癌"
+        },
+        {
+          "id": "24_37_43673dd1d24fd4435d718e1ebf955c8e_1",
+          "title": "DART (NCI/SWOG S1609): Comprehensive results from dual checkpoint inhibition with CTLA-4 and PD-1 blockade in rare cancers.",
+          "trial": "NCT02834013",
+          "phase": "II期",
+          "sample_size": 727,
+          "evaluation": "积极",
+          "indication": "罕见癌症"
+        },
+        {
+          "id": "24_37_5c2493877b5c9caf9910fe0f46f99f6f_1",
+          "title": "Nivolumab + relatlimab (NIVO + RELA) in advanced melanoma: 5-year update of RELATIVITY-047.",
+          "trial": "RELATIVITY-047",
+          "phase": "III期",
+          "sample_size": 714,
+          "evaluation": "积极",
+          "indication": "黑色素瘤"
+        },
+        {
+          "id": "24_37_0128314243ecb21e2bf2c33d21d20043_1",
+          "title": "Health-related quality of life (HRQOL) in the phase 3 trial of standard chemotherapy alone or combined with atezolizumab as adjuvant therapy for patients with stage III deficient DNA mismatch repair (dMMR) colon cancer (Alliance A021502, ATOMIC).",
+          "trial": "ATOMIC",
+          "phase": "III期",
+          "sample_size": 712,
+          "evaluation": "积极",
+          "indication": "结肠癌"
+        },
+        {
+          "id": "24_37_983c4997d276b049f33a40bba759217b_1",
+          "title": "Nivolumab + ipilimumab (NIVO + IPI) vs NIVO in microsatellite instability high/mismatch repair-deficient metastatic colorectal cancer (MSI-H/dMMR mCRC): CheckMate 8HW subgroup analyses including treatment-free status and outcomes in long-term survivors.",
+          "trial": "CheckMate 8HW",
+          "phase": "III期",
+          "sample_size": 707,
+          "evaluation": "积极",
+          "indication": "结直肠癌"
+        },
+        {
+          "id": "24_37_98c49422679cf1bda2313c946d913b04_1",
+          "title": "Randomized, double-blind phase 3 trial of the fixed-dose combination fosrolapitant/palonosetron (HR20013) plus dexamethasone for prevention of nausea and vomiting in patients receiving moderately emetogenic chemotherapy.",
+          "trial": "NCT06554184",
+          "phase": "III期",
+          "sample_size": 706,
+          "evaluation": "积极",
+          "indication": "实体瘤"
+        },
+        {
+          "id": "24_37_18d729393fd7c38f0a285ca665cba9d5_1",
+          "title": "KEYNOTE-811: 6-year median follow-up of pembrolizumab plus trastuzumab and chemotherapy for previously untreated advanced HER2-positive gastric or gastroesophageal junction adenocarcinoma.",
+          "trial": "KEYNOTE-811",
+          "phase": "III期",
+          "sample_size": 698,
+          "evaluation": "积极",
+          "indication": "胃癌"
+        },
+        {
+          "id": "24_37_f437c4e29c17b146dac05262a78f2116_1",
+          "title": "Prostate-specific antigen outcomes of darolutamide and androgen deprivation therapy in patient subgroups by age, comorbidities, and concomitant medications: ARANOTE post hoc analyses.",
+          "trial": "ARANOTE",
+          "phase": "III期",
+          "sample_size": 669,
+          "evaluation": "积极",
+          "indication": "前列腺癌"
+        },
+        {
+          "id": "24_37_df8030ab861b7f37966007f1a0cc3e50_1",
+          "title": "CheckMate-9DW 4-year follow-up: Overall survival by depth of response and outcomes in long-term survivors.",
+          "trial": "CheckMate-9DW",
+          "phase": "III期",
+          "sample_size": 668,
+          "evaluation": "积极",
+          "indication": "肝细胞癌"
+        },
+        {
+          "id": "24_37_62f1c578fc3e32549b3d882feb06d36f_1",
+          "title": "Efficacy and safety of mixed formulation aprepitant and palonosetron (QLM2010) for prevention of cisplatin-based highly emetogenic chemotherapy-induced nausea and vomiting: A multicenter, randomized, double-blind, double-dummy, positive-controlled phase III study.",
+          "trial": "QLM2010",
+          "phase": "III期",
+          "sample_size": 660,
+          "evaluation": "积极",
+          "indication": "化疗引起的恶心呕吐"
+        },
+        {
+          "id": "24_37_b31346314e00905067cc5087c93b6822_1",
+          "title": "Rezvilutamide (Rez) versus bicalutamide (Bic) plus androgen-deprivation therapy (ADT) in high-volume, metastatic, hormone-sensitive prostate cancer (mHSPC): 5-year outcomes of the phase 3 CHART trial.",
+          "trial": "CHART",
+          "phase": "III期",
+          "sample_size": 654,
+          "evaluation": "积极",
+          "indication": "前列腺癌"
+        },
+        {
+          "id": "24_37_c40b4c93b5a98052c00c8e5715706337_1",
+          "title": "Tucatinib (TUC) combined with trastuzumab and pertuzumab (HP) as first-line (1L) maintenance therapy for HER2+ metastatic breast cancer (MBC): An in-depth safety analysis of HER2CLIMB-05.",
+          "trial": "HER2CLIMB-05",
+          "phase": "III期",
+          "sample_size": 650,
+          "evaluation": "积极",
+          "indication": "乳腺癌"
+        },
+        {
+          "id": "24_37_64df3dfaf5539633e21959ab5c26f80b_1",
+          "title": "Dexamethasone reduction or omission with NEPA and olanzapine for HEC: A phase III trial.",
+          "trial": "NCT06331520",
+          "phase": "III期",
+          "sample_size": 644,
+          "evaluation": "积极",
+          "indication": "化疗引起的恶心呕吐"
+        },
+        {
+          "id": "24_37_87ed457cc6a2361869f9c95a9721e762_1",
+          "title": "First-line datopotamab deruxtecan (Dato-DXd) vs chemotherapy in patients with locally recurrent inoperable or metastatic triple-negative breast cancer (TNBC) for whom immunotherapy was not an option: Additional efficacy endpoints from the TROPION-Breast02 study.",
+          "trial": "TROPION-Breast02",
+          "phase": "III期",
+          "sample_size": 644,
+          "evaluation": "积极",
+          "indication": "三阴性乳腺癌"
+        },
+        {
+          "id": "24_37_58499dc8b2158fa6abb4292a943f5851_1",
+          "title": "Neoadjuvant chemoradiotherapy versus neoadjuvant chemotherapy followed by D2 gastrectomy and adjuvant chemotherapy for locally advanced gastric cancer (Neo-CRAG): A randomized, multicenter, phase 3 trial.",
+          "trial": "Neo-CRAG",
+          "phase": "III期",
+          "sample_size": 620,
+          "evaluation": "积极",
+          "indication": "胃癌"
+        },
+        {
+          "id": "24_37_3c1d5e31269e676487fb21b685e21fb4_1",
+          "title": "Neoadjuvant pyrotinib vs pertuzumab therapy for HER2-positive early breast cancer: The HELEN HER-013 randomized clinical trial.",
+          "trial": "HELEN HER-013",
+          "phase": "III期",
+          "sample_size": 610,
+          "evaluation": "积极",
+          "indication": "乳腺癌"
+        },
+        {
+          "id": "24_37_2deb76b7685cd004a97ca41b40b4f09c_1",
+          "title": "TALAPRO-3: Talazoparib (TALA) + enzalutamide (ENZA) compared with placebo (PBO) + ENZA for the treatment of patients (pts) with metastatic castration-sensitive prostate cancer (mCSPC) harboring homologous recombination repair (HRR) gene alterations.",
+          "trial": "TALAPRO-3",
+          "phase": "III期",
+          "sample_size": 599,
+          "evaluation": "积极",
+          "indication": "前列腺癌"
+        },
+        {
+          "id": "24_37_c13bf8d247b0c82402981857a2e9242b_1",
+          "title": "A randomized, open-label, parallel-controlled phase 3 trial of benmelstobart plus chemotherapy and anlotinib for first-line treatment of advanced non-squamous non–small cell lung cancer.",
+          "trial": "TQB2450-III-11",
+          "phase": "III期",
+          "sample_size": 596,
+          "evaluation": "积极",
+          "indication": "非鳞状非小细胞肺癌"
+        },
+        {
+          "id": "24_37_fc06e8d330f0bc00dac1b74cd7f2c289_1",
+          "title": "MajesTEC-9: A phase 3 randomized study of teclistamab monotherapy vs investigator’s choice of pomalidomide, bortezomib, and dexamethasone or carfilzomib and dexamethasone (PVd/Kd) in patients (pts) with relapsed refractory multiple myeloma (RRMM).",
+          "trial": "MajesTEC-9",
+          "phase": "III期",
+          "sample_size": 593,
+          "evaluation": "积极",
+          "indication": "多发性骨髓瘤"
+        },
+        {
+          "id": "24_37_baff591bcab3a70a49fe8347edff6367_1",
+          "title": "Neoadjuvant/adjuvant serplulimab vs. placebo combined with chemotherapy for PD-L1–positive gastric cancer: A randomized, double-blind, multicenter phase 3 study.",
+          "trial": "NCT04139135",
+          "phase": "III期",
+          "sample_size": 588,
+          "evaluation": "积极",
+          "indication": "胃癌"
+        },
+        {
+          "id": "24_37_737ed6d94013925202b66582dcb29d22_1",
+          "title": "Long-term responders to trifluridine/tipiracil plus bevacizumab in previously treated metastatic colorectal cancer: Results from the BeTAS real-world study.",
+          "trial": "BeTAS",
+          "phase": "III期",
+          "sample_size": 576,
+          "evaluation": "积极",
+          "indication": "结直肠癌"
+        },
+        {
+          "id": "24_37_f94041bd70f0dd0e565de5e9f8f6feeb_1",
+          "title": "Efficacy prediction for progression-free survival (PFS) and overall survival (OS) by genomic instability score (GIS) cutoffs in patients (pts) with advanced ovarian cancer (aOC): Post hoc results from the phase 3 PRIMA/ENGOT-OV26/GOG-3012 trial.",
+          "trial": "PRIMA/ENGOT-OV26/GOG-3012",
+          "phase": "III期",
+          "sample_size": 568,
+          "evaluation": "积极",
+          "indication": "卵巢癌"
+        },
+        {
+          "id": "24_37_b8b87e428c0fe94ee235da0c31bd04e4_1",
+          "title": "Anbenitamab plus albumin-bound docetaxel (nab-docetaxel) ± carboplatin (Cb) versus trastuzumab and pertuzumab plus docetaxel (THP) ± Cb as neoadjuvant therapy for HER2-positive early or locally advanced breast cancer: A randomized, open-label, multicenter, phase 3 trial.",
+          "trial": "NCT06747338",
+          "phase": "III期",
+          "sample_size": 521,
+          "evaluation": "积极",
+          "indication": "乳腺癌"
+        },
+        {
+          "id": "24_37_8b57361dabc900d04a2fbe491f75b5dd_1",
+          "title": "Induction chemotherapy with nab-paclitaxel and cisplatin versus docetaxel, cisplatin, and fluorouracil followed by chemoradiotherapy in patients with stage III–IVA nasopharyngeal carcinoma: An open-label, noninferiority, randomized, controlled, phase 3 trial.",
+          "trial": "ChiCTR1800019922",
+          "phase": "III期",
+          "sample_size": 515,
+          "evaluation": "积极",
+          "indication": "鼻咽癌"
+        },
+        {
+          "id": "24_37_78fd9ba85b33c39473ac938aaf1c8b31_1",
+          "title": "Intracranial efficacy of tarlatamab versus chemotherapy (CTx) as second-line (2L) treatment for small cell lung cancer (SCLC): DeLLphi-304 phase 3 post hoc analysis.",
+          "trial": "DeLLphi-304",
+          "phase": "III期",
+          "sample_size": 509,
+          "evaluation": "积极",
+          "indication": "小细胞肺癌"
+        },
+        {
+          "id": "24_37_6bfc6b956e4bcbc24afa7084f57893c4_1",
+          "title": "Daraxonrasib, a RAS(ON) multi-selective inhibitor vs chemotherapy in previously treated metastatic pancreatic adenocarcinoma (mPDAC): Primary and final analysis from the phase 3 RASolute 302 study.",
+          "trial": "RASolute 302",
+          "phase": "III期",
+          "sample_size": 500,
+          "evaluation": "积极",
+          "indication": "胰腺癌"
+        },
+        {
+          "id": "24_37_1b7a075c62125e6f85f753b84014c467_1",
+          "title": "Izalontamab brengitecan (iza-bren) versus chemotherapy in patients with recurrent or metastatic esophageal squamous cell carcinoma (ESCC): A multicenter, randomized, open-label, phase III study.",
+          "trial": "NCT06304974",
+          "phase": "III期",
+          "sample_size": 497,
+          "evaluation": "积极",
+          "indication": "食管鳞状细胞癌"
+        },
+        {
+          "id": "24_37_4d2d484fd34ca44d196b1a772204759b_1",
+          "title": "Nimotuzumab combined with paclitaxel and cisplatin as first-line treatment for metastatic esophageal squamous cell carcinoma: A prospective, multicenter, double-blind, randomized controlled clinical study.",
+          "trial": "NCT02611700",
+          "phase": "III期",
+          "sample_size": 497,
+          "evaluation": "积极",
+          "indication": "食管鳞状细胞癌"
+        },
+        {
+          "id": "24_37_a6007bebeaa12edb6f9a0ff5d87e20b8_1",
+          "title": "Fuzuloparib combined with abiraterone acetate and prednisone (AA-P) as first-line (1L) treatment for metastatic castration-resistant prostate cancer (mCRPC): Interim results from the FUZUPRO trial.",
+          "trial": "FUZUPRO",
+          "phase": "III期",
+          "sample_size": 496,
+          "evaluation": "积极",
+          "indication": "去势抵抗前列腺癌"
+        },
+        {
+          "id": "24_37_097b5f1a7fc2ee1bb73248e0756f9fc1_1",
+          "title": "Additional health-related quality of life (HRQoL) analysis from DESTINY-Gastric04 (DG-04), a randomized phase 3 study of trastuzumab deruxtecan (T-DXd) vs ramucirumab (RAM) + paclitaxel (PTX) in patients (pts) with human epidermal growth factor receptor 2–positive (HER2+) unresectable/metastatic gastric cancer (GC)/gastroesophageal junction adenocarcinoma (GEJA).",
+          "trial": "DESTINY-Gastric04",
+          "phase": "III期",
+          "sample_size": 494,
+          "evaluation": "积极",
+          "indication": "胃癌"
+        },
+        {
+          "id": "24_37_f2f5244b720dc951458290d06a57bae0_1",
+          "title": "IMforte: Quality-adjusted time without symptoms or toxicity (Q-TWiST) analysis of first-line maintenance (1Lm) treatment (Tx) with lurbinectedin (lurbi) + atezolizumab (atezo) vs atezo in extensive-stage small cell lung cancer (ES-SCLC).",
+          "trial": "IMforte",
+          "phase": "III期",
+          "sample_size": 483,
+          "evaluation": "积极",
+          "indication": "小细胞肺癌"
+        },
+        {
+          "id": "24_37_2e408fd1e583600f4f91cb29f51d7d03_1",
+          "title": "Carboplatin-based versus cisplatin-based induction-concurrent chemoradiotherapy with locoregionally advanced nasopharyngeal carcinoma: A multicenter, parallel-group, non-inferiority, randomized, phase 3 trial.",
+          "trial": "NCT03919552",
+          "phase": "III期",
+          "sample_size": 482,
+          "evaluation": "积极",
+          "indication": "鼻咽癌"
+        },
+        {
+          "id": "24_37_44c9b3a16cef1380f99f05bc20cf0132_1",
+          "title": "А phase III randomized study comparing BCD-201, a pembrolizumab biosimilar candidate, and reference pembrolizumab in patients with advanced melanoma.",
+          "trial": "NCT05986331",
+          "phase": "III期",
+          "sample_size": 479,
+          "evaluation": "积极",
+          "indication": "黑色素瘤"
+        },
+        {
+          "id": "24_37_b45687eb7dac5546a1f1c3e157ad0b7c_1",
+          "title": "Mezigdomide, carfilzomib, and dexamethasone (MeziKd) vs carfilzomib and dexamethasone (Kd) in relapsed/refractory multiple myeloma (RRMM): Results from the phase 3 SUCCESSOR-2 trial.",
+          "trial": "SUCCESSOR-2",
+          "phase": "III期",
+          "sample_size": 479,
+          "evaluation": "积极",
+          "indication": "多发性骨髓瘤"
+        },
+        {
+          "id": "24_37_bb3915b43485a04a7162e5295cf730e1_1",
+          "title": "Subsequent therapies and time to second progression-free survival events (PFS2) in treatment-naive chronic lymphocytic leukemia/small lymphocytic lymphoma (TN CLL/SLL) previously treated with zanubrutinib (zanu) or bendamustine-rituximab (BR) in SEQUOIA.",
+          "trial": "SEQUOIA",
+          "phase": "III期",
+          "sample_size": 479,
+          "evaluation": "积极",
+          "indication": "慢性淋巴细胞白血病"
+        },
+        {
+          "id": "24_37_7eb5c1d8a5eb8a3cc4764599034bc701_1",
+          "title": "Envafolimab (KN035) plus gemcitabine and oxaliplatin (GEMOX) compared with GEMOX as first-line treatment for Chinese patients with advanced biliary tract cancer: A randomized, open-label, multi-center, phase III pivotal trial.",
+          "trial": "KN035-CN-005",
+          "phase": "III期",
+          "sample_size": 472,
+          "evaluation": "积极",
+          "indication": "胆道癌"
+        },
+        {
+          "id": "24_37_09105d5de80b7d9e847ab9275bcd38b9_1",
+          "title": "A phase III CHIPRO study of chiauranib plus weekly paclitaxel for platinum-resistant or refractory ovarian cancer.",
+          "trial": "CHIPRO",
+          "phase": "III期",
+          "sample_size": 459,
+          "evaluation": "积极",
+          "indication": "卵巢癌"
+        },
+        {
+          "id": "24_37_fc9a1d7a7fe59bd48431c453544ad64d_1",
+          "title": "Progression-free survival after next line of treatment (PFS2) and subsequent therapies (subs tx) in the ASCENT-04 study of participants (pts) with previously untreated PD-L1+ metastatic triple-negative breast cancer (mTNBC) treated with sacituzumab govitecan (SG) plus pembrolizumab (pembro) vs chemotherapy (chemo) plus pembro.",
+          "trial": "ASCENT-04",
+          "phase": "III期",
+          "sample_size": 443,
+          "evaluation": "积极",
+          "indication": "三阴性乳腺癌"
+        },
+        {
+          "id": "24_37_450e86b830f9b9bb7adabab2ea5f69da_1",
+          "title": "Patient reported outcomes (PRO) during and after multimodal treatment for resectable esophageal adenocarcinoma in the prospective, randomized, controlled, multicenter phase III ESOPEC trial.",
+          "trial": "ESOPEC",
+          "phase": "III期",
+          "sample_size": 438,
+          "evaluation": "积极",
+          "indication": "食管腺癌"
+        },
+        {
+          "id": "24_37_82bd415b827a68435dd32d581a7d811f_1",
+          "title": "Nationwide randomized, phase III, placebo-controlled trial of bupropion for cancer-related fatigue: Primary outcome results.",
+          "trial": "NCT03996265",
+          "phase": "III期",
+          "sample_size": 428,
+          "evaluation": "积极",
+          "indication": "癌因性疲乏"
+        },
+        {
+          "id": "24_37_e8c32e9476cc8b4c4f70bd3d796f4b09_1",
+          "title": "Camrelizumab (C) plus rivoceranib (R) with transarterial chemoembolization (TACE) vs TACE alone in unresectable hepatocellular carcinoma (uHCC): A randomized, phase 3 trial.",
+          "trial": "NCT05320692",
+          "phase": "III期",
+          "sample_size": 423,
+          "evaluation": "积极",
+          "indication": "肝细胞癌"
+        },
+        {
+          "id": "24_37_bdbe4ec70860c4cc75a3ea958c0598fb_1",
+          "title": "Ultra-low-dose immunotherapy plus oral metronomic chemotherapy versus paclitaxel-carboplatin in platinum-sensitive recurrent or metastatic head and neck squamous cell carcinoma: A randomized phase III trial.",
+          "trial": "CTRI/2024/01/061661",
+          "phase": "III期",
+          "sample_size": 422,
+          "evaluation": "积极",
+          "indication": "头颈部鳞状细胞癌"
+        },
+        {
+          "id": "24_37_e90fec6648660a8c535db11139dbd234_1",
+          "title": "Izalontamab brengitecan (iza-bren) versus physician’s choice of chemotherapy in patients with unresectable locally advanced or metastatic triple-negative breast cancer (TNBC): A randomized phase III study.",
+          "trial": "NCT06382142",
+          "phase": "III期",
+          "sample_size": 418,
+          "evaluation": "积极",
+          "indication": "三阴性乳腺癌"
+        },
+        {
+          "id": "24_37_e233d648da82d98643db341e027cc282_1",
+          "title": "First-line fovinaciclib versus placebo combined with aromatase inhibitor for advanced breast cancer: A randomized, double-blind phase 3 study.",
+          "trial": "NCT05439499",
+          "phase": "III期",
+          "sample_size": 417,
+          "evaluation": "积极",
+          "indication": "乳腺癌"
+        },
+        {
+          "id": "24_37_4e17666182a6ceedc3a503b989b18d38_1",
+          "title": "C-POST study of adjuvant cemiplimab for high-risk cutaneous squamous cell carcinoma (CSCC): Disease-free survival (DFS) analyses per high-risk criteria and per start time after radiotherapy.",
+          "trial": "C-POST",
+          "phase": "III期",
+          "sample_size": 415,
+          "evaluation": "积极",
+          "indication": "皮肤鳞状细胞癌"
+        },
+        {
+          "id": "24_37_6b17b391d016e072f615783c336216a8_1",
+          "title": "Primary results of the phase 3 peak study of bezuclastinib + sunitinib vs sunitinib monotherapy in advanced gastrointestinal stromal tumors (GIST).",
+          "trial": "Peak",
+          "phase": "III期",
+          "sample_size": 413,
+          "evaluation": "积极",
+          "indication": "胃肠道间质瘤"
+        },
+        {
+          "id": "24_37_a2b034369f8532a8c02fb8f929c0af90_1",
+          "title": "Sacituzumab tirumotecan (sac-TMT) plus pembrolizumab (P) versus pembrolizumab (P) as first-line treatment for PD-L1–positive advanced non-small cell lung cancer (NSCLC): Results from the randomized phase 3 OptiTROP-Lung05 study.",
+          "trial": "OptiTROP-Lung05",
+          "phase": "III期",
+          "sample_size": 413,
+          "evaluation": "积极",
+          "indication": "非小细胞肺癌"
+        },
+        {
+          "id": "24_37_fa0abfe4213785bace5c5f7dc1e023a5_1",
+          "title": "ASC4FIRST wk 144 analysis: Efficacy and safety and tolerability with asciminib (ASC) vs investigator-selected tyrosine kinase inhibitors (IS TKIs) in newly diagnosed (ND) chronic myeloid leukemia in chronic phase (CML-CP).",
+          "trial": "ASC4FIRST",
+          "phase": "III期",
+          "sample_size": 405,
+          "evaluation": "积极",
+          "indication": "慢性髓系白血病"
+        }
+      ]
+    },
+    {
+      "type": "line_release_cumulative",
+      "title": "发布日期累计曲线",
+      "dimension": [
+        "release_date"
+      ],
+      "data": [
+        {
+          "date": "2026-05-21",
+          "count": 510,
+          "cumulative": 510
+        },
+        {
+          "date": "2026-05-29",
+          "count": 37,
+          "cumulative": 547
+        },
+        {
+          "date": "2026-05-30",
+          "count": 464,
+          "cumulative": 1011
+        },
+        {
+          "date": "2026-05-31",
+          "count": 273,
+          "cumulative": 1284
+        },
+        {
+          "date": "2026-06-01",
+          "count": 327,
+          "cumulative": 1611
+        },
+        {
+          "date": "2026-06-02",
+          "count": 28,
+          "cumulative": 1639
+        }
+      ]
+    },
+    {
+      "type": "network_entity",
+      "title": "药物–适应症/标志物关系网络（Top 120 边）",
+      "dimension": [
+        "drug",
+        "indication|biomarker"
+      ],
+      "data": [
+        {
+          "source": "奥沙利铂",
+          "target": "胃癌",
+          "weight": 28
+        },
+        {
+          "source": "曲妥珠单抗",
+          "target": "HER2阳性",
+          "weight": 27
+        },
+        {
+          "source": "氟尿嘧啶",
+          "target": "结直肠癌",
+          "weight": 26
+        },
+        {
+          "source": "帕博利珠单抗",
+          "target": "非小细胞肺癌",
+          "weight": 24
+        },
+        {
+          "source": "曲妥珠单抗",
+          "target": "HER2阳性乳腺癌",
+          "weight": 24
+        },
+        {
+          "source": "贝伐珠单抗",
+          "target": "结直肠癌",
+          "weight": 24
+        },
+        {
+          "source": "亚叶酸",
+          "target": "结直肠癌",
+          "weight": 23
+        },
+        {
+          "source": "曲妥珠单抗",
+          "target": "乳腺癌",
+          "weight": 22
+        },
+        {
+          "source": "伊立替康",
+          "target": "结直肠癌",
+          "weight": 21
+        },
+        {
+          "source": "奥沙利铂",
+          "target": "结直肠癌",
+          "weight": 20
+        },
+        {
+          "source": "奥沙利铂",
+          "target": "胃食管交界处癌",
+          "weight": 20
+        },
+        {
+          "source": "卡培他滨",
+          "target": "胃癌",
+          "weight": 18
+        },
+        {
+          "source": "帕博利珠单抗",
+          "target": "三阴性乳腺癌",
+          "weight": 18
+        },
+        {
+          "source": "帕妥珠单抗",
+          "target": "HER2阳性乳腺癌",
+          "weight": 18
+        },
+        {
+          "source": "帕妥珠单抗",
+          "target": "HER2阳性",
+          "weight": 18
+        },
+        {
+          "source": "帕妥珠单抗",
+          "target": "乳腺癌",
+          "weight": 17
+        },
+        {
+          "source": "纳武利尤单抗",
+          "target": "黑色素瘤",
+          "weight": 17
+        },
+        {
+          "source": "奥沙利铂",
+          "target": "直肠癌",
+          "weight": 16
+        },
+        {
+          "source": "帕博利珠单抗",
+          "target": "黑色素瘤",
+          "weight": 16
+        },
+        {
+          "source": "替吉奥",
+          "target": "胃癌",
+          "weight": 16
+        },
+        {
+          "source": "维奈克拉",
+          "target": "急性髓系白血病",
+          "weight": 16
+        },
+        {
+          "source": "卡培他滨",
+          "target": "直肠癌",
+          "weight": 14
+        },
+        {
+          "source": "卡培他滨",
+          "target": "胃食管交界处癌",
+          "weight": 14
+        },
+        {
+          "source": "奥沙利铂",
+          "target": "微卫星稳定",
+          "weight": 14
+        },
+        {
+          "source": "西妥昔单抗",
+          "target": "结直肠癌",
+          "weight": 14
+        },
+        {
+          "source": "塔拉妥单抗",
+          "target": "小细胞肺癌",
+          "weight": 13
+        },
+        {
+          "source": "替吉奥",
+          "target": "胃食管交界处癌",
+          "weight": 13
+        },
+        {
+          "source": "地塞米松",
+          "target": "多发性骨髓瘤",
+          "weight": 12
+        },
+        {
+          "source": "多纳非尼",
+          "target": "肝细胞癌",
+          "weight": 12
+        },
+        {
+          "source": "帕博利珠单抗",
+          "target": "实体瘤",
+          "weight": 12
+        },
+        {
+          "source": "德曲妥珠单抗",
+          "target": "HER2阳性",
+          "weight": 12
+        },
+        {
+          "source": "氟维司群",
+          "target": "乳腺癌",
+          "weight": 12
+        },
+        {
+          "source": "顺铂",
+          "target": "头颈部鳞状细胞癌",
+          "weight": 12
+        },
+        {
+          "source": "伊匹木单抗",
+          "target": "黑色素瘤",
+          "weight": 11
+        },
+        {
+          "source": "卡铂",
+          "target": "食管鳞状细胞癌",
+          "weight": 11
+        },
+        {
+          "source": "奥希替尼",
+          "target": "非小细胞肺癌",
+          "weight": 11
+        },
+        {
+          "source": "奥沙利铂",
+          "target": "实体瘤",
+          "weight": 11
+        },
+        {
+          "source": "度伐利尤单抗",
+          "target": "小细胞肺癌",
+          "weight": 11
+        },
+        {
+          "source": "氟尿嘧啶",
+          "target": "胃癌",
+          "weight": 11
+        },
+        {
+          "source": "氟维司群",
+          "target": "HR阳性乳腺癌",
+          "weight": 11
+        },
+        {
+          "source": "白蛋白紫杉醇",
+          "target": "乳腺癌",
+          "weight": 11
+        },
+        {
+          "source": "紫杉醇",
+          "target": "乳腺癌",
+          "weight": 11
+        },
+        {
+          "source": "顺铂",
+          "target": "鼻咽癌",
+          "weight": 11
+        },
+        {
+          "source": "仑伐替尼",
+          "target": "肝细胞癌",
+          "weight": 10
+        },
+        {
+          "source": "呋喹替尼",
+          "target": "结直肠癌",
+          "weight": 10
+        },
+        {
+          "source": "多西他赛",
+          "target": "乳腺癌",
+          "weight": 10
+        },
+        {
+          "source": "多西他赛",
+          "target": "HER2阳性乳腺癌",
+          "weight": 10
+        },
+        {
+          "source": "多西他赛",
+          "target": "HER2阳性",
+          "weight": 10
+        },
+        {
+          "source": "奥沙利铂",
+          "target": "HER2阴性",
+          "weight": 10
+        },
+        {
+          "source": "帕博利珠单抗",
+          "target": "尿路上皮癌",
+          "weight": 10
+        },
+        {
+          "source": "德曲妥珠单抗",
+          "target": "乳腺癌",
+          "weight": 10
+        },
+        {
+          "source": "替莫唑胺",
+          "target": "胶质母细胞瘤",
+          "weight": 10
+        },
+        {
+          "source": "氟维司群",
+          "target": "HER2阴性",
+          "weight": 10
+        },
+        {
+          "source": "白蛋白紫杉醇",
+          "target": "HER2阳性",
+          "weight": 10
+        },
+        {
+          "source": "紫杉醇",
+          "target": "HER2阴性",
+          "weight": 10
+        },
+        {
+          "source": "阿替利珠单抗",
+          "target": "小细胞肺癌",
+          "weight": 10
+        },
+        {
+          "source": "卡培他滨",
+          "target": "HER2阴性",
+          "weight": 9
+        },
+        {
+          "source": "卡铂",
+          "target": "乳腺癌",
+          "weight": 9
+        },
+        {
+          "source": "卡铂",
+          "target": "HER2阳性",
+          "weight": 9
+        },
+        {
+          "source": "吉西他滨",
+          "target": "胰腺癌",
+          "weight": 9
+        },
+        {
+          "source": "吉西他滨",
+          "target": "胆道癌",
+          "weight": 9
+        },
+        {
+          "source": "奥希替尼",
+          "target": "EGFR突变",
+          "weight": 9
+        },
+        {
+          "source": "奥沙利铂",
+          "target": "无错配修复缺陷",
+          "weight": 9
+        },
+        {
+          "source": "帕博利珠单抗",
+          "target": "头颈部鳞状细胞癌",
+          "weight": 9
+        },
+        {
+          "source": "替雷利珠单抗",
+          "target": "微卫星稳定",
+          "weight": 9
+        },
+        {
+          "source": "氟维司群",
+          "target": "激素受体阳性",
+          "weight": 9
+        },
+        {
+          "source": "白蛋白紫杉醇",
+          "target": "HER2阳性乳腺癌",
+          "weight": 9
+        },
+        {
+          "source": "紫杉醇",
+          "target": "食管鳞状细胞癌",
+          "weight": 9
+        },
+        {
+          "source": "贝伐珠单抗",
+          "target": "肝细胞癌",
+          "weight": 9
+        },
+        {
+          "source": "亚叶酸",
+          "target": "胰腺导管癌",
+          "weight": 8
+        },
+        {
+          "source": "亚叶酸",
+          "target": "胰腺癌",
+          "weight": 8
+        },
+        {
+          "source": "亚叶酸",
+          "target": "胃癌",
+          "weight": 8
+        },
+        {
+          "source": "依托泊苷",
+          "target": "小细胞肺癌",
+          "weight": 8
+        },
+        {
+          "source": "卡培他滨",
+          "target": "微卫星稳定",
+          "weight": 8
+        },
+        {
+          "source": "卡培他滨",
+          "target": "结直肠癌",
+          "weight": 8
+        },
+        {
+          "source": "卡铂",
+          "target": "HER2阳性乳腺癌",
+          "weight": 8
+        },
+        {
+          "source": "吉西他滨",
+          "target": "胰腺导管癌",
+          "weight": 8
+        },
+        {
+          "source": "吡咯替尼",
+          "target": "乳腺癌",
+          "weight": 8
+        },
+        {
+          "source": "吡咯替尼",
+          "target": "HER2阳性乳腺癌",
+          "weight": 8
+        },
+        {
+          "source": "吡咯替尼",
+          "target": "HER2阳性",
+          "weight": 8
+        },
+        {
+          "source": "奥沙利铂",
+          "target": "胰腺癌",
+          "weight": 8
+        },
+        {
+          "source": "帕博利珠单抗",
+          "target": "癌症",
+          "weight": 8
+        },
+        {
+          "source": "恩考芬尼",
+          "target": "BRAF (V600E)突变",
+          "weight": 8
+        },
+        {
+          "source": "氟尿嘧啶",
+          "target": "胰腺导管癌",
+          "weight": 8
+        },
+        {
+          "source": "氟尿嘧啶",
+          "target": "胰腺癌",
+          "weight": 8
+        },
+        {
+          "source": "氟维司群",
+          "target": "HER2阳性乳腺癌",
+          "weight": 8
+        },
+        {
+          "source": "维恩妥尤单抗",
+          "target": "尿路上皮癌",
+          "weight": 8
+        },
+        {
+          "source": "亚叶酸",
+          "target": "微卫星稳定",
+          "weight": 7
+        },
+        {
+          "source": "亚叶酸",
+          "target": "直肠癌",
+          "weight": 7
+        },
+        {
+          "source": "伊立替康",
+          "target": "胰腺导管癌",
+          "weight": 7
+        },
+        {
+          "source": "伊立替康",
+          "target": "RAS野生型",
+          "weight": 7
+        },
+        {
+          "source": "信迪利单抗",
+          "target": "肝细胞癌",
+          "weight": 7
+        },
+        {
+          "source": "卡培他滨",
+          "target": "HER2阳性",
+          "weight": 7
+        },
+        {
+          "source": "卡培他滨",
+          "target": "无错配修复缺陷",
+          "weight": 7
+        },
+        {
+          "source": "卡铂",
+          "target": "卵巢癌",
+          "weight": 7
+        },
+        {
+          "source": "卡铂",
+          "target": "小细胞肺癌",
+          "weight": 7
+        },
+        {
+          "source": "卡铂",
+          "target": "三阴性乳腺癌",
+          "weight": 7
+        },
+        {
+          "source": "吉西他滨",
+          "target": "鼻咽癌",
+          "weight": 7
+        },
+        {
+          "source": "塔奎妥单抗",
+          "target": "多发性骨髓瘤",
+          "weight": 7
+        },
+        {
+          "source": "奥沙利铂",
+          "target": "胰腺导管癌",
+          "weight": 7
+        },
+        {
+          "source": "恩扎卢胺",
+          "target": "前列腺癌",
+          "weight": 7
+        },
+        {
+          "source": "曲氟尿苷嘧啶",
+          "target": "结直肠癌",
+          "weight": 7
+        },
+        {
+          "source": "氟尿嘧啶",
+          "target": "微卫星稳定",
+          "weight": 7
+        },
+        {
+          "source": "氟尿嘧啶",
+          "target": "直肠癌",
+          "weight": 7
+        },
+        {
+          "source": "泽布替尼",
+          "target": "慢性淋巴细胞白血病",
+          "weight": 7
+        },
+        {
+          "source": "特立妥单抗",
+          "target": "多发性骨髓瘤",
+          "weight": 7
+        },
+        {
+          "source": "环磷酰胺",
+          "target": "弥漫性大B细胞淋巴瘤",
+          "weight": 7
+        },
+        {
+          "source": "瑞波西利",
+          "target": "乳腺癌",
+          "weight": 7
+        },
+        {
+          "source": "白蛋白紫杉醇",
+          "target": "食管鳞状细胞癌",
+          "weight": 7
+        },
+        {
+          "source": "白蛋白紫杉醇",
+          "target": "胰腺导管癌",
+          "weight": 7
+        },
+        {
+          "source": "纳武利尤单抗",
+          "target": "非小细胞肺癌",
+          "weight": 7
+        },
+        {
+          "source": "紫杉醇",
+          "target": "卵巢癌",
+          "weight": 7
+        },
+        {
+          "source": "西妥昔单抗",
+          "target": "头颈部鳞状细胞癌",
+          "weight": 7
+        },
+        {
+          "source": "西妥昔单抗",
+          "target": "微卫星稳定",
+          "weight": 7
+        },
+        {
+          "source": "阿贝西利",
+          "target": "乳腺癌",
+          "weight": 7
+        },
+        {
+          "source": "卡培他滨",
+          "target": "实体瘤",
+          "weight": 6
+        },
+        {
+          "source": "卡度尼利单抗",
+          "target": "结直肠癌",
+          "weight": 6
+        },
+        {
+          "source": "卡瑞利珠单抗",
+          "target": "肝细胞癌",
+          "weight": 6
+        },
+        {
+          "source": "哌柏西利",
+          "target": "乳腺癌",
+          "weight": 6
+        },
+        {
+          "source": "埃纳妥单抗",
+          "target": "多发性骨髓瘤",
+          "weight": 6
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+# Raw np_clinical snapshot contains full article texts (huge); local-only.
+# Regenerate with: node --env-file=<POC .env> evals/fetch-conference-np-clinical.mjs
+evals/fixtures/*-np-clinical.json
+
+# Build staging dir
+dist/_staging/
