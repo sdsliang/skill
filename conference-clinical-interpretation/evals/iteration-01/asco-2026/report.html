@@ -27,29 +27,47 @@
 .drawer{position:fixed;inset:0 0 0 auto;width:min(560px,100vw);background:#fff;box-shadow:-12px 0 35px #18384a24;transform:translateX(105%);transition:transform .22s ease;z-index:4;padding:24px;overflow:auto}.drawer.open{transform:translateX(0)}.drawer .close{float:right;border:0;background:none;font-size:22px;color:var(--muted)}.drawer h3{padding-right:30px}.drawer pre{white-space:pre-wrap;background:#f4f7f6;padding:14px;font-size:12px;overflow:auto}
 .drug-card{border:1px solid var(--line);border-radius:6px;padding:10px 12px;margin:10px 0;background:#fafcfc}.drug-card h4{margin:0 0 4px;font-size:14px}.drug-card .meta{font-size:12px;color:var(--muted)}
 .scrim{display:none;position:fixed;inset:0;background:#15232e55;z-index:3}.scrim.open{display:block}
+.tabs{display:flex;gap:8px;background:#fff;border:1px solid var(--line);padding:6px;margin-bottom:16px;border-radius:8px;max-width:max-content;flex-wrap:wrap}
+.tab-btn{border:0;background:none;padding:9px 20px;border-radius:6px;font-weight:600;color:var(--muted);font-size:14px}
+.tab-btn:hover{background:#f1f5f4}.tab-btn.active{background:var(--navy);color:#fff}
+.tab-panel{display:none}.tab-panel.active{display:block}
 @media(max-width:900px){.topbar{display:block;padding:20px}.topmeta{text-align:left;margin-top:14px;gap:16px}.summary{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}.chart-panel.wide{grid-column:span 1}.shell{padding:16px}.evidence{overflow-x:auto}.evidence table{min-width:760px}}
 </style></head>
 <body>
 <header class="topbar"><div class="brand"><small>Clinical Evidence Intelligence / Conference Desk</small><h1>ASCO 2026 临床解读仪表盘</h1></div><div class="topmeta"><div><strong id="k-matched">–</strong>匹配记录</div><div><strong id="k-eligible">–</strong>分析样本</div><div><strong id="k-drugs">–</strong>唯一药物</div><div><strong id="k-watch">–</strong>重点清单</div></div></header>
 <main class="shell">
-  <section class="summary" id="metrics"></section>
-  <div class="drug-banner">💊 <b>药物机制增强</b>：已接入药物字典（DrugBank 同源数据），为代表药物补充 <b>靶点</b> 与 <b>作用机制（MOA）</b>。靶点/机制以标签展示，点击证据可下钻查看完整药物画像。</div>
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="charts">📊 报告图表</button>
+    <button class="tab-btn" data-tab="watchlist">⭐ 重点观察清单</button>
+  </nav>
 
-  <section class="section-head"><div><h2>AI 会议简报</h2><p>结论来自结构化统计与代表性证据；点击证据可下钻原始记录</p></div></section>
-  <section class="grid"><article class="chart-panel"><div class="chart-title">重点观察清单</div><div class="chart-sub">价值加权排序，点击「查看证据」下钻</div><div class="watchlist-card" id="watchlist"></div></article>
-  <article class="chart-panel"><div class="chart-title">研发阶段 × 结果方向</div><div class="chart-sub">气泡大小=记录数，颜色=主要结果方向</div><div id="matrix" class="chart"></div></article></section>
+  <!-- Tab 1: 渲染报告（图表） -->
+  <div class="tab-panel active" id="tab-charts">
+    <section class="summary" id="metrics"></section>
+    <div class="drug-banner">💊 <b>药物机制增强</b>：已接入药物字典（DrugBank 同源数据），为代表药物补充 <b>靶点</b> 与 <b>作用机制（MOA）</b>。靶点/机制以标签展示，点击证据可下钻查看完整药物画像。</div>
 
-  <section class="section-head"><div><h2>可视化证据面板</h2><p>固定图表模板承载动态分析意图；颜色代表结果方向，面积代表披露密度</p></div></section>
-  <section class="grid">
-    <article class="chart-panel"><div class="chart-title">适应症 × 终点信号</div><div class="chart-sub">规则识别的终点，Other/unspecified 仍保留</div><div id="heatmap" class="chart"></div></article>
-    <article class="chart-panel"><div class="chart-title">药物证据成熟度四象限</div><div class="chart-sub">X=最大样本量，Y=阶段与结果方向组合分，气泡=披露数</div><div id="scatter" class="chart"></div></article>
-    <article class="chart-panel wide"><div class="chart-title">热点发布节奏</div><div class="chart-sub">按论文发布时间观察披露峰值与结果方向</div><div id="timeline" class="chart"></div></article>
-    <article class="chart-panel wide"><div class="chart-title">药物 × 适应症/标志物关系网络</div><div class="chart-sub">仅展示高频节点与强关系；悬停节点可查看靶点/MOA</div><div id="network" class="chart"></div></article>
-  </section>
+    <section class="section-head"><div><h2>研发阶段 × 结果方向</h2><p>气泡大小=记录数，颜色=主要结果方向；点击气泡可下钻对应证据</p></div></section>
+    <section class="grid"><article class="chart-panel wide"><div id="matrix" class="chart"></div></article></section>
 
-  <section class="section-head"><div><h2>证据明细</h2><p>搜索标题、药物、适应症、靶点、MOA 或结果方向；证据 ID 可溯源</p></div></section>
-  <div class="toolbar"><input id="search" placeholder="搜索试验、药物、适应症、靶点、MOA、结果方向"><span id="result-count"></span></div>
-  <section class="evidence"><table><thead><tr><th>试验 / 证据</th><th>药物</th><th>靶点 / MOA</th><th>适应症</th><th>阶段</th><th>样本量</th><th>结果</th><th>终点</th></tr></thead><tbody id="evidence-body"></tbody></table></section>
+    <section class="section-head"><div><h2>可视化证据面板</h2><p>固定图表模板承载动态分析意图；颜色代表结果方向，面积代表披露密度</p></div></section>
+    <section class="grid">
+      <article class="chart-panel"><div class="chart-title">适应症 × 终点信号</div><div class="chart-sub">规则识别的终点，Other/unspecified 仍保留</div><div id="heatmap" class="chart"></div></article>
+      <article class="chart-panel"><div class="chart-title">药物证据成熟度四象限</div><div class="chart-sub">X=最大样本量，Y=阶段与结果方向组合分，气泡=披露数</div><div id="scatter" class="chart"></div></article>
+      <article class="chart-panel wide"><div class="chart-title">热点发布节奏</div><div class="chart-sub">按论文发布时间观察披露峰值与结果方向</div><div id="timeline" class="chart"></div></article>
+      <article class="chart-panel wide"><div class="chart-title">药物 × 适应症/标志物关系网络</div><div class="chart-sub">仅展示高频节点与强关系；悬停节点可查看靶点/MOA</div><div id="network" class="chart"></div></article>
+    </section>
+
+    <section class="section-head"><div><h2>证据明细</h2><p>搜索标题、药物、适应症、靶点、MOA 或结果方向；证据 ID 可溯源</p></div></section>
+    <div class="toolbar"><input id="search" placeholder="搜索试验、药物、适应症、靶点、MOA、结果方向"><span id="result-count"></span></div>
+    <section class="evidence"><table><thead><tr><th>试验 / 证据</th><th>药物</th><th>靶点 / MOA</th><th>适应症</th><th>阶段</th><th>样本量</th><th>结果</th><th>终点</th></tr></thead><tbody id="evidence-body"></tbody></table></section>
+  </div>
+
+  <!-- Tab 2: 重点观察清单 -->
+  <div class="tab-panel" id="tab-watchlist">
+    <section class="section-head"><div><h2>重点观察清单</h2><p>价值加权排序（阶段 25 / 评价 25 / 样本 20 / 终点 15 / 新颖 15），点击「查看证据」下钻原始记录</p></div></section>
+    <div class="watchlist-card" id="watchlist"></div>
+  </div>
+
   <div class="footer">数据来源：ES np_clinical；会议字段：base.journal=ASCO 2026；药物机制：drug_earth 药物字典（DrugBank 同源）。AI 结论仅用于信息整理，不替代医学、统计或监管判断。</div>
 </main>
 <div class="scrim" id="scrim"></div>
@@ -379,6 +397,15 @@ var yo={},mo={};var xo,_o=function(){function t(t,e,n){var i=this;this._sleepAft
   }
   $("search").addEventListener("input", (e) => renderEvidence(e.target.value));
   renderEvidence("");
+
+  /* ---------- tabs: report charts / watchlist ---------- */
+  document.querySelectorAll(".tab-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b === btn));
+      document.querySelectorAll(".tab-panel").forEach((p) => p.classList.toggle("active", p.id === "tab-" + btn.dataset.tab));
+      window.dispatchEvent(new Event("resize"));
+    });
+  });
 
   /* ---------- drawer ---------- */
   function openEvidence(id) {
