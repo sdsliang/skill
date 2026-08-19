@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { getConfig } from "../../POC/src/config.js";
+import { getConfig } from "../../../POC/src/config.js";
 
 const nctId = String(process.argv[2] || "").trim().toUpperCase();
 const outputPath = process.argv[3] || "";

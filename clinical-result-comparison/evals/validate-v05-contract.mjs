@@ -7,7 +7,8 @@ const fixturePaths = [
   "evals/fixtures/pws-phase3-selected-results.json",
   "evals/fixtures/harmoni6-selected-results.json",
   "evals/fixtures/adversarial-and-incomplete-results.json",
-  "evals/fixtures/nct05840016-selected-results.json"
+  "evals/fixtures/nct05840016-selected-results.json",
+  "evals/fixtures/np-clinical-indications-516-517-phase-featured-false.json"
 ];
 
 for (const relativePath of fixturePaths) {

@@ -23,6 +23,8 @@ Tool Smith project assets for reconstructing complete trial interpretations from
 - `skill/multi-clinical-result-comparison/references/input-contract.md`: POC `np_clinical` lookup, normalized Agent payload, and frontend marker rendering contract.
 - `skill/multi-clinical-result-comparison/references/citation-and-ref.md`: inline marker, metadata, and separate JSON citation contract.
 - `evals/fetch-np-clinical-by-nct.mjs`: read-only `base.nct_id` adapter for producing normalized source objects.
+- `evals/fetch-np-clinical-by-condition.mjs`: reproducible condition-query adapter for the supplied indication/phase/evaluation/NCT/deletion/featured filter.
+- `evals/fixtures/np-clinical-indications-516-517-phase-featured-false.json`: 10-source normalized example generated from the requested query; the query matched 12 records and returned 10 usable full-text sources.
 - `evals/fetch-np-clinical-sources.mjs`: read-only selected-ID reference adapter using the POC environment configuration.
 - `runtime/citation-renderer.mjs` and `test/citation-renderer.test.mjs`: accept the Markdown report and separate citation JSON, validate marker/key parity, and render only numeric superscripts from valid source links.
 - `evals/validate-v05-contract.mjs`: local contract check for normalized fixtures and linked citation output.

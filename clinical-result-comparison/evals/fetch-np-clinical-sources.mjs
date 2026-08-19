@@ -1,4 +1,4 @@
-import { getConfig } from "../../POC/src/config.js";
+import { getConfig } from "../../../POC/src/config.js";
 
 const selectedIds = process.argv.slice(2).map((value) => String(value || "").trim()).filter(Boolean);
 if (selectedIds.length === 0) {
