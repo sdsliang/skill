@@ -1,0 +1,6 @@
+# NP Clinical 拉取的示例数据（生成物，不入库；可用 fetch-np-clinical-attachments.mjs 重新拉取）
+evals/**/np-clinical-*/
+
+# 临时文件
+*.tmp
+.DS_Store
