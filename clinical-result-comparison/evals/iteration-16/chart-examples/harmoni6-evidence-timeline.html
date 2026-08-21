@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>证据链时间轴</title>
+<style>
+/* ===== 蓝紫色系色板（复制自 chart-tokens.css；接入 --viz-* 时整体替换 :root） ===== */
+:root{
+  --c-bg:#ffffff; --c-wash:#f6f5fd; --c-wash-2:#efedfb;
+  --c-ink:#211b4d; --c-ink-2:#5a5684; --c-ink-3:#8b87ad; --c-line:#e6e3f4;
+  --c-indigo-700:#3730a3; --c-indigo-600:#4f46e5; --c-indigo-500:#6366f1; --c-indigo-400:#818cf8;
+  --c-violet-600:#7c3aed; --c-violet-500:#8b5cf6; --c-purple-500:#a855f7; --c-purple-400:#c084fc;
+  --c-grad:linear-gradient(135deg,#4f46e5 0%,#7c3aed 55%,#a855f7 100%);
+  --c-s1:#4f46e5; --c-s2:#7c3aed; --c-s3:#a855f7; --c-s4:#6366f1; --c-s5:#c084fc; --c-s6:#8b5cf6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--c-wash)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--c-ink);-webkit-font-smoothing:antialiased;padding:18px}
+.chart{background:var(--c-bg);border:1px solid var(--c-line);border-radius:18px;box-shadow:0 1px 2px rgba(79,70,229,.06),0 16px 40px -20px rgba(49,46,129,.18);padding:22px 26px 16px;max-width:940px;margin:0 auto}
+header{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px}
+.accent{flex:none;width:5px;height:36px;border-radius:4px;background:var(--c-grad);margin-top:2px}
+h1{font-size:18px;font-weight:700;letter-spacing:.2px;line-height:1.4}
+.sub{font-size:12.5px;color:var(--c-ink-2);margin-top:3px}
+.stage{position:relative;width:100%;margin:8px 0 2px}
+.stage svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:6px 0 4px;font-size:12px;color:var(--c-ink-2)}
+.legend .lg{display:inline-flex;align-items:center;gap:6px}
+.legend .dot{width:10px;height:10px;border-radius:3px;flex:none}
+footer{margin-top:4px;padding-top:9px;border-top:1px dashed var(--c-line);font-size:11.5px;color:var(--c-ink-3);display:flex;flex-wrap:wrap;gap:3px 16px;line-height:1.5}
+footer b{color:var(--c-ink-2);font-weight:600}
+.tip{position:fixed;pointer-events:none;background:rgba(33,27,77,.96);color:#fff;font-size:12px;padding:9px 12px;border-radius:10px;max-width:280px;line-height:1.55;opacity:0;transition:opacity .12s;z-index:99;box-shadow:0 10px 26px -10px rgba(33,27,77,.45)}
+.tip.on{opacity:1}
+.tip .tt{font-weight:700;margin-bottom:2px;color:#c7c3ff}
+</style>
+</head>
+<body>
+<div class="chart">
+  <header>
+    <span class="accent"></span>
+    <div>
+      <h1 id="title">证据链时间轴</h1>
+      <div class="sub" id="subtitle"></div>
+    </div>
+  </header>
+  <div class="stage" id="stage"></div>
+  <div class="legend" id="legend"></div>
+  <footer>
+    <span id="note"></span>
+    <span id="source"></span>
+  </footer>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+/* ===================== 数据区（Agent 填写；仅来自临床证据原文） =====================
+   events[]：按证据披露时间先后排列，模板按数组顺序从左到右排布，不自行推断阶段/形式。
+   kind   ：图例键，见下方 legend；未命中图例时取主色。
+   phase  ：证据链成熟度（0=里程碑/无，1..n 依次递增表示证据逐步成熟）；缺省不参与链带。
+   value  ：该披露的关键数值（可空）；note：悬停提示的补充说明。
+*/
+const CHART = {
+  title: "HARMONi-6 证据链时间轴",
+  subtitle: "ivonescimab 联合化疗 vs tislelizumab 联合化疗 · 一线晚期鳞状 NSCLC（NCT05840016）",
+  note: "4 份来源合并为 2 个核心证据状态：PFS 核心分析、OS 核心分析；时间线仅按证据披露顺序排列",
+  source: "数据来源：HARMONi-6 公开披露材料（source_full_text 提取）",
+  legend: [
+    { key:"milestone",  label:"研究里程碑",     color:"#8b87ad" },
+    { key:"pfs",        label:"主要终点 PFS",   color:"#4f46e5" },
+    { key:"os",         label:"关键次要终点 OS", color:"#a855f7" }
+  ],
+  events: [
+    { date:"2023-08", label:"研究启动",     kind:"milestone", phase:0, value:"",           note:"2023-08-17 起筛选、2025-01-21 完成入组；532 例按 1:1 随机（背景）" },
+    { date:"2025-10", label:"PFS 核心分析", kind:"pfs",       phase:1, value:"11.1 vs 6.9 月", note:"截至 2025-02-28，中位随访 10.3 个月；HR 0.60（95%CI 0.46–0.78），单侧 p<0.0001（来源 1、4 重复披露合并）" },
+    { date:"2026-05", label:"OS 核心分析",  kind:"os",        phase:2, value:"27.9 vs 23.7 月", note:"截至 2026-02-27，中位随访 21.4 个月；死亡 HR 0.66（95%CI 0.50–0.87），单侧 p=0.0017；首次计划 OS 分析，尚非最终（来源 2、3 合并）" }
+  ],
+  chain: { show:true, label:"证据链成熟度" }
+};
+
+
+/* ===================== 渲染区（模板逻辑，勿改） ===================== */
+(function(){
+  var ev = CHART.events || [], n = ev.length;
+  var W = 900, H = 292, padL = 46, padR = 46, padT = 72, padB = 72;
+  var plotW = W - padL - padR;
+  var baseY = H - padB;
+  var bandY = baseY + 36, bandH = 14;
+  function x(i){ return padL + plotW * (n === 1 ? 0.5 : i / (n - 1)); }
+  function esc(s){ return String(s == null ? "" : s).replace(/[<>&]/g, function(c){ return {"<":"&lt;",">":"&gt;","&":"&amp;"}[c]; }); }
+  function kindColor(kind){
+    if (CHART.legend){ var m = CHART.legend.find(function(l){ return l.key === kind; }); if (m && m.color) return m.color; }
+    return "#4f46e5";
+  }
+  function chainLabel(){ return (CHART.chain && CHART.chain.label) || "证据链成熟度"; }
+
+  document.getElementById("title").textContent = CHART.title;
+  document.getElementById("subtitle").textContent = CHART.subtitle || "";
+  document.getElementById("note").innerHTML = CHART.note ? "<b>说明：</b>" + esc(CHART.note) : "";
+  document.getElementById("source").textContent = CHART.source || "";
+
+  var legend = document.getElementById("legend");
+  (CHART.legend || []).forEach(function(l){
+    var el = document.createElement("span"); el.className = "lg";
+    el.innerHTML = '<span class="dot" style="background:' + l.color + '"></span>' + esc(l.label);
+    legend.appendChild(el);
+  });
+
+  var NS = "http://www.w3.org/2000/svg";
+  var svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  svg.setAttribute("role", "img");
+
+  // 渐变定义（先挂载）
+  var gf = document.createElementNS(NS, "linearGradient"); gf.id = "gradFlag"; gf.setAttribute("x1","0"); gf.setAttribute("y1","0"); gf.setAttribute("x2","0"); gf.setAttribute("y2","1");
+  gf.innerHTML = '<stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#7c3aed"/>'; svg.appendChild(gf);
+  var gc = document.createElementNS(NS, "linearGradient"); gc.id = "gradChain"; gc.setAttribute("x1","0"); gc.setAttribute("y1","0"); gc.setAttribute("x2","1"); gc.setAttribute("y2","0");
+  gc.innerHTML = '<stop offset="0" stop-color="#818cf8"/><stop offset=".55" stop-color="#7c3aed"/><stop offset="1" stop-color="#a855f7"/>'; svg.appendChild(gc);
+
+  // 时间轴基线
+  var g = document.createElementNS(NS, "g");
+  g.innerHTML = '<line x1="' + padL + '" y1="' + baseY + '" x2="' + (W-padR) + '" y2="' + baseY + '" stroke="#c7c2e8" stroke-width="1.6"/>' +
+    '<circle cx="' + padL + '" cy="' + baseY + '" r="3.5" fill="#c7c2e8"/><circle cx="' + (W-padR) + '" cy="' + baseY + '" r="3.5" fill="#c7c2e8"/>';
+  svg.appendChild(g);
+
+  // 事件旗帜 + 标签 + 数值 + 日期
+  ev.forEach(function(e, i){
+    var cx = x(i), color = kindColor(e.kind);
+    var node = document.createElementNS(NS, "g");
+    node.style.cursor = "pointer";
+    node.innerHTML =
+      // 旗标
+      '<rect x="' + (cx-10) + '" y="' + (padT+6) + '" width="20" height="30" rx="5" fill="url(#gradFlag)" opacity=".95"/>' +
+      '<rect x="' + (cx-10) + '" y="' + (padT+6) + '" width="20" height="7" rx="3.5" fill="#fff" opacity=".35"/>' +
+      '<path d="M' + cx + ' ' + (padT+36) + ' L' + (cx-7) + ' ' + baseY + ' L' + (cx+7) + ' ' + baseY + ' Z" fill="' + color + '" opacity=".92"/>' +
+      '<line x1="' + cx + '" y1="' + (padT+36) + '" x2="' + cx + '" y2="' + baseY + '" stroke="' + color + '" stroke-width="1.1" opacity=".3"/>' +
+      // 标签（旗帜上方）
+      '<text x="' + cx + '" y="' + (padT-5) + '" text-anchor="middle" font-size="13" font-weight="600" fill="#211b4d">' + esc(e.label) + '</text>' +
+      // 数值（旗帜下方，有则显示）
+      (e.value ? '<text x="' + cx + '" y="' + (padT+58) + '" text-anchor="middle" font-size="12.5" font-weight="700" fill="' + color + '">' + esc(e.value) + '</text>' : "") +
+      // 日期（轴下方）
+      '<text x="' + cx + '" y="' + (baseY+20) + '" text-anchor="middle" font-size="11.5" fill="#5a5684">' + esc(e.date) + '</text>';
+    node.addEventListener("mouseenter", function(){ showTip(e); });
+    node.addEventListener("mousemove", moveTip);
+    node.addEventListener("mouseleave", hideTip);
+    svg.appendChild(node);
+  });
+
+  // 证据链成熟度带
+  if (CHART.chain && CHART.chain.show){
+    var g2 = document.createElementNS(NS, "g");
+    g2.innerHTML =
+      '<text x="' + padL + '" y="' + (bandY-9) + '" font-size="11.5" font-weight="600" fill="#5a5684">' + esc(chainLabel()) + '</text>' +
+      '<rect x="' + padL + '" y="' + bandY + '" width="' + plotW + '" height="' + bandH + '" rx="' + (bandH/2) + '" fill="url(#gradChain)" opacity=".9"/>';
+    ev.forEach(function(e, i){
+      if (e.phase == null) return;
+      g2.innerHTML += '<circle cx="' + x(i) + '" cy="' + (bandY + bandH/2) + '" r="5" fill="#fff" stroke="#7c3aed" stroke-width="2.5"/>';
+    });
+    svg.appendChild(g2);
+  }
+
+  document.getElementById("stage").appendChild(svg);
+
+  function showTip(e){
+    var t = document.getElementById("tip");
+    t.innerHTML = '<div class="tt">' + esc(e.label) + '</div>' + esc(e.date) +
+      (e.value ? '<div style="color:#c7c3ff;font-weight:600">' + esc(e.value) + '</div>' : "") +
+      (e.note ? '<div>' + esc(e.note) + '</div>' : "");
+    t.classList.add("on");
+  }
+  function moveTip(evt){
+    var t = document.getElementById("tip"), r = t.getBoundingClientRect();
+    var x = evt.clientX + 14, y = evt.clientY - 10;
+    if (x + r.width > window.innerWidth - 8) x = evt.clientX - r.width - 14;
+    t.style.left = x + "px"; t.style.top = y + "px";
+  }
+  function hideTip(){ document.getElementById("tip").classList.remove("on"); }
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+# 临床结果来源 40
+
+source_title: Efficacy and safety of pemetrexed maintenance therapy versus best supportive care in patients from East Asia with advanced, nonsquamous non-small cell lung cancer: an exploratory subgroup analysis of a global, randomized, phase 3 clinical trial.
+source_url: https://pubmed.ncbi.nlm.nih.gov/22157370
+source_paper_release_time_str: 2011-12-14T06:00:00Z
+
+## source_full_text
+
+INTRODUCTION: In a recent global phase 3 trial, patients with advanced non-small cell lung cancer (NSCLC), who had not progressed after four cycles of platinum-based induction chemotherapy, were randomized to maintenance therapy with pemetrexed or placebo. The objective of this retrospective, exploratory, post hoc subgroup analysis was to compare outcomes of East Asian patients with non-East Asian patients treated with pemetrexed or placebo.
+METHODS: Only patients with nonsquamous histology were analyzed. Patients were grouped by enrollment location (East Asian = China, Korea, or Taiwan; non-East Asian = all other countries). The Kaplan-Meier method was used to calculate median progression-free survival (PFS) and overall survival (OS) times. Hazard ratios (HRs) were calculated using unadjusted Cox proportional hazard models.
+RESULTS: Of the 663 patients enrolled in the study, 481 patients had nonsquamous NSCLC: East Asian = 27% and non-East Asian = 73%. In the East Asian subgroup, there were more women, never smokers, and patients with adenocarcinoma. PFS was similar between the subgroups and significantly prolonged in patients treated with pemetrexed than placebo (median PFS: East Asian, 4.4 versus 1.6 months, HR = 0.42, p < 0.001; non-East Asian, 4.5 versus 2.8 months, HR = 0.45, p < 0.001). OS was numerically prolonged in East Asians (median OS: pemetrexed, 19.7 months; placebo, 16.4 months) compared with non-East Asians (pemetrexed, 13.2 months; placebo, 8.5 months). Pemetrexed was reasonably well tolerated with few severe adverse events reported.
+CONCLUSION: The results of this subgroup analysis support pemetrexed as maintenance therapy for East Asian patients with advanced, nonsquamous NSCLC.

@@ -2,21 +2,23 @@
 
 ## Purpose
 
-The backend resolves selected records from the POC Elasticsearch environment before invoking the Agent. The frontend does not append or construct article links.
+Each selected clinical result is delivered to the Agent as **one attached file** (`.md`), not as inline JSON in a message. The frontend sends all selected files as attachments in the user turn; the backend resolves the four consumer fields from the POC Elasticsearch environment before writing the files. The Agent reads the attached files from the workspace uploads directory and assigns `{{ref_n}}` markers in file order.
+
+Rationale: a user may select many results (for example 20–50). Inline JSON in a single message can exceed the context budget; per-source files keep each result addressable, make the context bounded by what the Agent actually reads, and keep the citation mapping stable (`source-003.md` → `{{ref_3}}`).
 
 ## Elasticsearch lookup
 
 - Use the POC project configuration loader at `/home/xupeipeioo1/apps/POC/src/config.js` for `ES_HOST`, `ES_USERNAME`/`ES_PASSWORD`, or `ES_API_KEY`.
 - Query the `np_clinical` index. An optional `NP_CLINICAL_INDEX` environment variable may override the default for a deployment, but the default is `np_clinical`.
-- Request only the source fields required for this Agent: `base.title`, `base.full_article_link`, and `source_full_text`. For the current index data, also request `base.paper_title` as a title compatibility fallback.
+- Request only the source fields required for this Agent: `base.title`, `base.full_article_link`, and `source_full_text`. For the current index data, also request `base.paper_title` as a title compatibility fallback and `base.paper_release_time_str` for the citation timestamp.
 - Resolve either the Elasticsearch document ID or the selected record's composite key by extracting the portion after `::` for an ID query and retaining the original selection order only in backend memory.
 - Exclude deleted records according to the backend's existing selection policy. Do not pass technical record IDs into the Agent.
 
 The current `np_clinical` index was checked read-only against four HARMONi-6 records. `base.full_article_link` and `source_full_text` are `{meta, text}` objects. `base.title` is mapped but empty for these records; `base.paper_title.text` contains the source title. This fallback is a data-shape compatibility rule, not a generated title.
 
-## Agent payload
+## Per-source attachment file
 
-Normalize each selected record to exactly this consumer-facing shape:
+Normalize each selected record to this consumer-facing shape:
 
 ```json
 {
@@ -27,9 +29,37 @@ Normalize each selected record to exactly this consumer-facing shape:
 }
 ```
 
-Do not include `result_id`, `doc_id`, Elasticsearch `_id`, index names, storage paths, structured clinical fields, or retrieval diagnostics. Keep the backend record-to-source mapping outside the model request for operational logging only.
+Write one `.md` file per selected result, named by input order. The file has exactly this layout (metadata between the `#` heading and the `## source_full_text` heading; the entire body after the heading is the full text):
 
-`source_url` must be copied byte-for-byte from `base.full_article_link.text`. The backend may reject a non-empty URL that is not absolute `http`/`https`, but it must never repair or guess one. A missing title or link is represented by an empty string and remains visible as missing citation metadata; the Agent must not invent a replacement.
+```markdown
+# 临床结果来源 {n}
+
+source_title: {title}
+source_url: {url}
+source_paper_release_time_str: {time}
+
+## source_full_text
+
+{source_full_text}
+```
+
+Filename convention: `source-{n}.md`, where `{n}` is the 1-based input-order index left-padded to three digits (`source-001.md`, `source-002.md`, …). The file order defines the `{{ref_n}}` marker scope for the whole response. Do not include `result_id`, `doc_id`, Elasticsearch `_id`, index names, storage paths, structured clinical fields, or retrieval diagnostics in the file or filename.
+
+`source_url` must be copied byte-for-byte from `base.full_article_link.text`. The backend may reject a non-empty URL that is not absolute `http`/`https`, but it must never repair or guess one. A missing title, URL, or release time is represented by an empty value after its colon and remains visible as missing citation metadata; the Agent must not invent a replacement.
+
+## Attachment delivery and limits
+
+- The frontend sends the files as `file` parts in the user message (`.md` with `text/markdown` media type). Base64-encode each file as `data:text/markdown;base64,...`. The backend accepts only the documented attachment formats and media types.
+- Attachment limits (Tool Smith): up to **10 files per message**, up to **100 files per thread**, up to **20 MiB per file**, extracted text ≤ 50 MiB per request, thread raw files ≤ 50 MiB. If the user selects more than 10 results at once, split the delivery into multiple user turns or threads; the Agent simply processes whatever attached files it receives and must not assume a fixed count.
+- Uploaded originals live under `/workspace/uploads/` and the Agent reads them from there. The Agent must read every attached file and must not silently skip an accepted source; an unreadable or empty source is recorded in the source inventory as a limitation, not dropped.
+- Do not append inline JSON summaries or re-send full text in the message body. The files are the source of record; the text part of the message only states the task.
+
+## Agent reading protocol
+
+1. List the attached source files in the workspace uploads directory.
+2. Order them by filename (`source-001.md`, `source-002.md`, …); that is the input order and the `{{ref_n}}` assignment order. Filename order is a presentation label, not clinical chronology.
+3. For each file, read the `source_title`, `source_url`, and `source_paper_release_time_str` values from the metadata lines and the full text from the body after `## source_full_text`.
+4. Build the internal worksheet exactly as described in `references/input-and-extraction.md`, using the same rules that previously applied to inline source objects.
 
 ## Citation rendering
 
@@ -43,10 +73,12 @@ Render only validated `http`/`https` links. Escape the title and URL for HTML at
 
 ## Reproducible local check
 
-From the Agent project, provide selected Elasticsearch IDs to the adapter and load the POC environment explicitly:
+From the Agent project, pull a batch by condition and write one attachment file per source:
 
 ```bash
-node --env-file=/home/xupeipeioo1/apps/POC/.env evals/fetch-np-clinical-sources.mjs 24_1_41125109
+node --env-file=/home/xupeipeioo1/apps/POC/.env \
+  evals/fetch-np-clinical-attachments.mjs \
+  evals/iteration-16/np-clinical-nsclc-50 50
 ```
 
-The command writes normalized JSON to stdout and never prints credentials. The adapter is a validation/reference implementation; production request orchestration remains owned by the backend.
+The command queries the default condition (non-small-cell lung cancer, phase 3, positive evaluation), writes `source-*.md` files plus a `manifest.json` (input order → normalized object) to the output directory, and never prints credentials. The manifest is for backend logging/verification only and must not be shown to the Agent or included in the report. Production request orchestration remains owned by the backend; this adapter is a validation/reference implementation.

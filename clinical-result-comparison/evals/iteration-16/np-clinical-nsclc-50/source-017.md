@@ -1,0 +1,12 @@
+# 临床结果来源 17
+
+source_title: Global Lung Oncology Branch trial 3 (GLOB3): final results of a randomised multinational phase III study alternating oral and i.v. vinorelbine plus cisplatin versus docetaxel plus cisplatin as first-line treatment of advanced non-small-cell lung cancer.
+source_url: https://pubmed.ncbi.nlm.nih.gov/19276396
+source_paper_release_time_str: 2009-03-12T09:00:00Z
+
+## source_full_text
+
+BACKGROUND: The study compared the efficacy of a first-line treatment with day 1 i.v. vinorelbine (NVBiv) and day 8 oral vinorelbine (NVBo) versus docetaxel (DCT) in a cisplatin-based combination in advanced non-small-cell lung cancer, in terms of time to treatment failure (TTF), overall response, progression-free survival (PFS), overall survival (OS), tolerance and quality of life (QoL).
+METHODS: Patients were randomly assigned to receive cisplatin 80 mg/m2 with NVBiv 30 mg/m2 on day 1 and NVBo 80 mg/m2 on day 8 every 3 weeks, after a first cycle of NVBiv 25 mg/m2 on day 1 and NVBo 60 mg/m2 on day 8 (arm A) or cisplatin 75 mg/m2 and DCT 75 mg/m2 on day 1 every 3 weeks (arm B), for a maximum of six cycles in both arms.
+RESULTS: From 2 February 2004 to 1 January 2006, 390 patients were entered in a randomised study and 381 were treated. The patient characteristics are as follows (arms A/B): metastatic (%) 80.5/84.8; patients with three or more organs involved (%) 45.3/40.8; median age 59.4/62.1 years; male 139/146; squamous (%) 34.2/33.5; adenocarcinoma (%) 41.6/39.3; median TTF (arms A/B in months) [95% confidence interval (CI)]: 3.2 (3.0-4.2), 4.1 (3.4-4.5) (P = 0.19); overall response (arms A/B) (95% CI): 27.4% (21.2% to 34.2%), 27.2% (21.0% to 34.2%); median PFS (arms A/B in months) (95% CI): 4.9 (4.4-5.9), 5.1 (4.3-6.1) (P = 0.99) and median OS (arms A/B in months) (95% CI): 9.9 (8.4-11.6), 9.8 (8.8-11.5) (P = 0.58). The median survival for squamous histology was 8.87/9.82 months and for adenocarcinoma 11.73/11.60 months for arms A and B, respectively. Main haematological toxicity was grade 3-4 neutropenia: 24.4% (arm A) and 28.8% (arm B). QoL as measured by the Lung Cancer Symptom Scale was similar in both arms.
+CONCLUSIONS: Both arms provided similar efficacy in terms of response, time-related parameters and QoL, with an acceptable tolerance profile. In the current Global Lung Oncology Branch trial 3, NVBo was shown to be effective as a substitute for the i.v. formulation. This can relieve the burden of the i.v. injection on day 8 and can optimise the hospital's resources and improve patient convenience.

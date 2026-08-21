@@ -2,7 +2,7 @@
 
 ## Source authority
 
-`source_full_text` is the sole clinical evidence for an item. Each item may also contain backend-supplied `source_title` and `source_url`, which are citation metadata only and must not add clinical facts. The backend should resolve these values from `np_clinical` before invoking the Agent. Never retrieve or guess a missing URL in the Agent.
+Each selected clinical result arrives as one attached file (`source-{n}.md`). The file carries backend-supplied `source_title`, `source_url`, and `source_paper_release_time_str` metadata lines plus the full text under `## source_full_text`; the full text is the sole clinical evidence for the item. Read the metadata and the full text from the attached file per `references/input-contract.md`; do not retrieve facts from the title, URL, or release-time fields, and never retrieve or guess a missing URL.
 
 Preserve drug names, trial names, biomarkers, companies, and other proper nouns exactly as supplied. Use a Chinese equivalent only when a selected source explicitly provides it. Do not translate, transliterate, normalize, or map a proper name from memory; retain the English name in a Chinese report when it is the only source-supported form.
 

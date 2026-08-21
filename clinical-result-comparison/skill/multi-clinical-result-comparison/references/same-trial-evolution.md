@@ -127,7 +127,17 @@ Determine whether the whole-trial interpretation:
 
 State which evidence states and markers caused the classification. Do not name a “winning disclosure”.
 
-## Step 8: Required report content
+## Step 8: Generate the timeline diagram
+
+For every same-trial input with two or more distinct evidence states, build the evidence-chain timeline diagram per `timeline-diagram.md` and place it directly above the timeline table in the evidence-chain overview section.
+
+- One node per evidence state (not per source); merged sources share a node with their markers listed together.
+- Node label: state name + analysis stage/disclosure form, this state's key new content, and inline `{{ref_n}}` markers.
+- Chronology on the axis comes only from source-supported data cutoff, follow-up, analysis milestone, then disclosure date; never input order. Missing timing is labeled 时间未明, never guessed.
+- Relationship and maturity direction go on the edge between consecutive states (更新/新增终点/确认/补充/取代/冲突/不确定 + 加强/基本不变/限定/削弱/无法确定).
+- The diagram is descriptive only: no interpolation, pooling, ranking, or inferred dates. It never replaces the exact-value timeline table.
+
+## Step 9: Required report content
 
 - one common trial description;
 - one evidence-state timeline, with supporting markers;

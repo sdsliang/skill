@@ -22,11 +22,16 @@ Read these support files for every run:
 4. `references/citation-and-ref.md`
 5. `references/conclusion-language.md`
 6. `references/same-trial-evolution.md` for every multi-disclosure trial
-7. `references/cross-trial-comparison.md` when the selected texts come from different studies
+7. `references/timeline-diagram.md` for every same-trial input with two or more distinct evidence states
+8. `references/cross-trial-comparison.md` when the selected texts come from different studies
+
+## Input
+
+Each selected clinical result arrives as **one attached file** (`source-001.md`, `source-002.md`, …), one file per result, sent together as attachments in the user turn. Read every attached file from the workspace uploads directory. Each file contains backend-supplied citation metadata lines (`source_title`, `source_url`, `source_paper_release_time_str`) and the full text under the `## source_full_text` heading. File order defines the `{{ref_n}}` marker assignment order; it is a presentation label, not clinical chronology. Follow `references/input-contract.md` for the exact file layout, limits, and reading protocol. Never print, quote, or transmit the files' raw metadata fields or filenames into the report body.
 
 ## Evidence boundary
 
-The supplied result text is the sole clinical evidence. Each selected source also carries backend-supplied citation metadata: `source_title`, `source_url`, and `source_paper_release_time_str`. Do not retrieve external facts or URLs, fill gaps from memory, or use technical correlation keys as evidence. Require at least two usable result texts. Preserve unusable or incomplete items in the source inventory and explain their limitation if they affect the report.
+The supplied full text (the body of each attached source file) is the sole clinical evidence. Each file also carries backend-supplied citation metadata: `source_title`, `source_url`, and `source_paper_release_time_str`. Do not retrieve external facts or URLs, fill gaps from memory, or use technical correlation keys as evidence. Require at least two usable result files. Preserve unusable or incomplete items in the source inventory and explain their limitation if they affect the report.
 
 Preserve the exact source spelling of drug names, trial names, biomarkers, companies, and other proper nouns unless a selected source explicitly provides the equivalent Chinese name. Do not transliterate, translate, normalize, or map proper names from memory. A Chinese report should retain an English drug name when that is the only source-supported name.
 
@@ -105,6 +110,8 @@ The main narrative should explain the incremental information in each state. Do 
 ### 5. Draft the report
 
 Use only `templates/unified-evidence-report.md`. The report must read as one trial-level evidence synthesis. Use a timeline table with one row per evidence state. Use endpoint tables that show the earliest and latest distinct values, analysis status, maturity, and inline markers. The separate citation JSON is the only source listing.
+
+For a same-trial input with two or more distinct evidence states, also generate the evidence-chain timeline diagram per `references/timeline-diagram.md` and place it directly above the timeline table in the evidence-chain overview section. The diagram is a descriptive Mermaid timeline (chronology, per-state key labels, relationship edges, maturity direction) and never replaces the exact-value timeline table.
 
 For numeric tables, put the marker in the same cell as the number or in a dedicated source-marker column immediately adjacent to the numeric result. For prose, put the marker immediately after the number or claim. Do not cite an entire paragraph only at its end when it contains multiple independently sourced numbers.
 

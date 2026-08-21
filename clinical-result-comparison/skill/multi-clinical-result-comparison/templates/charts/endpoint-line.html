@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>终点趋势 · 折线图</title>
+<style>
+/* ===== 蓝紫色系色板（复制自 chart-tokens.css；接入 --viz-* 时整体替换 :root） ===== */
+:root{
+  --c-bg:#ffffff; --c-wash:#f6f5fd; --c-wash-2:#efedfb;
+  --c-ink:#211b4d; --c-ink-2:#5a5684; --c-ink-3:#8b87ad; --c-line:#e6e3f4;
+  --c-indigo-700:#3730a3; --c-indigo-600:#4f46e5; --c-indigo-500:#6366f1; --c-indigo-400:#818cf8;
+  --c-violet-600:#7c3aed; --c-violet-500:#8b5cf6; --c-purple-500:#a855f7; --c-purple-400:#c084fc;
+  --c-grad:linear-gradient(135deg,#4f46e5 0%,#7c3aed 55%,#a855f7 100%);
+  --c-s1:#4f46e5; --c-s2:#7c3aed; --c-s3:#a855f7; --c-s4:#6366f1; --c-s5:#c084fc; --c-s6:#8b5cf6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--c-wash)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--c-ink);-webkit-font-smoothing:antialiased;padding:18px}
+.chart{background:var(--c-bg);border:1px solid var(--c-line);border-radius:18px;box-shadow:0 1px 2px rgba(79,70,229,.06),0 16px 40px -20px rgba(49,46,129,.18);padding:22px 26px 16px;max-width:940px;margin:0 auto}
+header{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px}
+.accent{flex:none;width:5px;height:36px;border-radius:4px;background:var(--c-grad);margin-top:2px}
+h1{font-size:18px;font-weight:700;letter-spacing:.2px;line-height:1.4}
+.sub{font-size:12.5px;color:var(--c-ink-2);margin-top:3px}
+.stage{position:relative;width:100%;margin:8px 0 2px}
+.stage svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:6px 0 4px;font-size:12px;color:var(--c-ink-2)}
+.legend .lg{display:inline-flex;align-items:center;gap:6px}
+.legend .sw{width:18px;height:3px;border-radius:2px;flex:none;margin-top:1px}
+footer{margin-top:4px;padding-top:9px;border-top:1px dashed var(--c-line);font-size:11.5px;color:var(--c-ink-3);display:flex;flex-wrap:wrap;gap:3px 16px;line-height:1.5}
+footer b{color:var(--c-ink-2);font-weight:600}
+.tip{position:fixed;pointer-events:none;background:rgba(33,27,77,.96);color:#fff;font-size:12px;padding:9px 12px;border-radius:10px;max-width:300px;line-height:1.55;opacity:0;transition:opacity .12s;z-index:99;box-shadow:0 10px 26px -10px rgba(33,27,77,.45)}
+.tip.on{opacity:1}
+.tip .tt{font-weight:700;margin-bottom:2px;color:#c7c3ff}
+</style>
+</head>
+<body>
+<div class="chart">
+  <header>
+    <span class="accent"></span>
+    <div>
+      <h1 id="title">终点趋势 · 折线图</h1>
+      <div class="sub" id="subtitle"></div>
+    </div>
+  </header>
+  <div class="stage" id="stage"></div>
+  <div class="legend" id="legend"></div>
+  <footer>
+    <span id="note"></span>
+    <span id="source"></span>
+  </footer>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+/* ===================== 数据区（Agent 填写；仅来自临床证据原文） =====================
+   适用：混合/不同试验、终点有时间维度（如体重较基线变化、PFS/OS 等按时间点取值）。
+   series[]：
+     name   系列名（试验+治疗组）；color 系列色（缺省自动取 --c-s1..s6）；
+     points 时间点数组 [{t:时间标签, v:数值}]。若全部系列都只有 1 个点，
+     自动进入「单点模式」：只画点 + 数值标签，不强行连线。
+   unit：数值单位；xLabel：时间轴标题（可空）。
+*/
+const CHART = {
+  title: "体重较基线的变化",
+  subtitle: "时间维主要终点 · 不同治疗组随时间的趋势",
+  unit: "kg",
+  xLabel: "治疗周数",
+  note: "折线仅连接已披露的时间点，不作外推；单点终点以点展示",
+  source: "数据来源：各研究公开披露材料（source_full_text 提取）",
+  series: [
+    { name:"试验A · 研究组", points:[ {t:"W4",v:-1.2}, {t:"W12",v:-2.8}, {t:"W24",v:-3.1} ] },
+    { name:"试验A · 对照组", points:[ {t:"W4",v:-0.4}, {t:"W12",v:-0.9}, {t:"W24",v:-1.2} ] }
+  ]
+};
+
+/* ===================== 渲染区（模板逻辑，勿改） ===================== */
+(function(){
+  var SERIES = ["#4f46e5","#7c3aed","#a855f7","#6366f1","#c084fc","#8b5cf6"];
+  var series = CHART.series || [], nS = series.length;
+  var allPts = []; series.forEach(function(s){ allPts = allPts.concat(s.points || []); });
+  var singleMode = allPts.length > 0 && series.every(function(s){ return (s.points||[]).length === 1; });
+
+  var W = 900, H = 360, padL = 60, padR = 40, padT = 30, padB = 52;
+  var plotW = W - padL - padR, plotH = H - padT - padB;
+  // X 轴：以第一个系列的时间点为准（时间点顺序即轴序）
+  var timeLabels = (series[0] && series[0].points ? series[0].points : []).map(function(p){ return p.t; });
+  var m = timeLabels.length;
+  var allV = allPts.map(function(p){ return p.v; });
+  var minV = Math.min.apply(null, allV), maxV = Math.max.apply(null, allV);
+  var span = (maxV - minV) || 1; minV -= span * 0.18; maxV += span * 0.18;
+  function X(i){ return m === 1 ? padL + plotW/2 : padL + plotW * i / (m - 1); }
+  function Y(v){ return padT + plotH * (maxV - v) / (maxV - minV); }
+  function esc(s){ return String(s == null ? "" : s).replace(/[<>&]/g, function(c){ return {"<":"&lt;",">":"&gt;","&":"&amp;"}[c]; }); }
+
+  document.getElementById("title").textContent = CHART.title;
+  document.getElementById("subtitle").textContent = (CHART.subtitle||"") + (singleMode ? " · 单点模式" : "");
+  document.getElementById("note").innerHTML = CHART.note ? "<b>说明：</b>" + esc(CHART.note) : "";
+  document.getElementById("source").textContent = CHART.source || "";
+
+  var NS = "http://www.w3.org/2000/svg";
+  var svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  svg.setAttribute("role", "img");
+
+  // 网格 + Y 刻度
+  var g = document.createElementNS(NS, "g");
+  for (var k = 0; k <= 4; k++){
+    var v = minV + (maxV - minV) * k / 4, y = Y(v);
+    g.innerHTML += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W-padR) + '" y2="' + y + '" stroke="#e6e3f4" stroke-width="1"/>' +
+      '<text x="' + (padL-8) + '" y="' + (y+4) + '" text-anchor="end" font-size="11" fill="#8b87ad">' + (+v.toFixed(1)) + '</text>';
+  }
+  // X 时间标签
+  timeLabels.forEach(function(t, i){
+    g.innerHTML += '<text x="' + X(i) + '" y="' + (padT + plotH + 20) + '" text-anchor="middle" font-size="11.5" fill="#5a5684">' + esc(t) + '</text>';
+  });
+  if (CHART.xLabel) g.innerHTML += '<text x="' + (padL + plotW/2) + '" y="' + (H - 10) + '" text-anchor="middle" font-size="11" fill="#8b87ad">' + esc(CHART.xLabel) + '</text>';
+  svg.appendChild(g);
+
+  // 图例
+  var legend = document.getElementById("legend");
+  series.forEach(function(s, i){
+    var color = s.color || SERIES[i % SERIES.length];
+    var el = document.createElement("span"); el.className = "lg";
+    el.innerHTML = '<span class="sw" style="background:' + color + '"></span>' + esc(s.name);
+    legend.appendChild(el);
+  });
+
+  // 系列线/点
+  series.forEach(function(s, i){
+    var color = s.color || SERIES[i % SERIES.length];
+    var pts = s.points || [];
+    if (pts.length === 0) return;
+    var node = document.createElementNS(NS, "g");
+    if (!singleMode && pts.length > 1){
+      var d = pts.map(function(p, j){ return (j === 0 ? "M" : "L") + X(j) + " " + Y(p.v); }).join(" ");
+      node.innerHTML += '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" opacity=".9"/>';
+    }
+    pts.forEach(function(p, j){
+      var cx = X(j), cy = Y(p.v);
+      node.innerHTML +=
+        '<circle cx="' + cx + '" cy="' + cy + '" r="5.5" fill="#fff" stroke="' + color + '" stroke-width="2.6"/>' +
+        '<text x="' + cx + '" y="' + (cy-11) + '" text-anchor="middle" font-size="12" font-weight="700" fill="' + color + '">' + esc(p.v) + esc(CHART.unit||"") + '</text>';
+      var pt = { name:s.name, t:p.t, v:p.v };
+      var circ = document.createElementNS(NS, "circle");
+      circ.setAttribute("cx", cx); circ.setAttribute("cy", cy); circ.setAttribute("r", 12); circ.setAttribute("fill", "transparent"); circ.style.cursor = "pointer";
+      circ.addEventListener("mouseenter", function(){ showTip(pt); });
+      circ.addEventListener("mousemove", moveTip);
+      circ.addEventListener("mouseleave", hideTip);
+      node.appendChild(circ);
+    });
+    svg.appendChild(node);
+  });
+
+  document.getElementById("stage").appendChild(svg);
+
+  function showTip(p){
+    var t = document.getElementById("tip");
+    t.innerHTML = '<div class="tt">' + esc(p.name) + '</div>' +
+      (p.t ? '<div>' + esc(p.t) + '</div>' : "") +
+      '<div style="color:#c7c3ff;font-weight:600">' + esc(p.v) + esc(CHART.unit||"") + '</div>';
+    t.classList.add("on");
+  }
+  function moveTip(evt){
+    var t = document.getElementById("tip"), r = t.getBoundingClientRect();
+    var x = evt.clientX + 14, y = evt.clientY - 10;
+    if (x + r.width > window.innerWidth - 8) x = evt.clientX - r.width - 14;
+    t.style.left = x + "px"; t.style.top = y + "px";
+  }
+  function hideTip(){ document.getElementById("tip").classList.remove("on"); }
+})();
+</script>
+</body>
+</html>

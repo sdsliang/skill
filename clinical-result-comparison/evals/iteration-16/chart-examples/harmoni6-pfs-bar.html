@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>终点对比 · 柱状图</title>
+<style>
+/* ===== 蓝紫色系色板（复制自 chart-tokens.css；接入 --viz-* 时整体替换 :root） ===== */
+:root{
+  --c-bg:#ffffff; --c-wash:#f6f5fd; --c-wash-2:#efedfb;
+  --c-ink:#211b4d; --c-ink-2:#5a5684; --c-ink-3:#8b87ad; --c-line:#e6e3f4;
+  --c-indigo-700:#3730a3; --c-indigo-600:#4f46e5; --c-indigo-500:#6366f1; --c-indigo-400:#818cf8;
+  --c-violet-600:#7c3aed; --c-violet-500:#8b5cf6; --c-purple-500:#a855f7; --c-purple-400:#c084fc;
+  --c-grad:linear-gradient(135deg,#4f46e5 0%,#7c3aed 55%,#a855f7 100%);
+  --c-s1:#4f46e5; --c-s2:#7c3aed; --c-s3:#a855f7; --c-s4:#6366f1; --c-s5:#c084fc; --c-s6:#8b5cf6;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--c-wash)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--c-ink);-webkit-font-smoothing:antialiased;padding:18px}
+.chart{background:var(--c-bg);border:1px solid var(--c-line);border-radius:18px;box-shadow:0 1px 2px rgba(79,70,229,.06),0 16px 40px -20px rgba(49,46,129,.18);padding:22px 26px 16px;max-width:940px;margin:0 auto}
+header{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px}
+.accent{flex:none;width:5px;height:36px;border-radius:4px;background:var(--c-grad);margin-top:2px}
+h1{font-size:18px;font-weight:700;letter-spacing:.2px;line-height:1.4}
+.sub{font-size:12.5px;color:var(--c-ink-2);margin-top:3px}
+.stage{position:relative;width:100%;margin:8px 0 2px}
+.stage svg{display:block;width:100%;height:auto}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:6px 0 4px;font-size:12px;color:var(--c-ink-2)}
+.legend .lg{display:inline-flex;align-items:center;gap:6px}
+.legend .dot{width:10px;height:10px;border-radius:3px;flex:none}
+footer{margin-top:4px;padding-top:9px;border-top:1px dashed var(--c-line);font-size:11.5px;color:var(--c-ink-3);display:flex;flex-wrap:wrap;gap:3px 16px;line-height:1.5}
+footer b{color:var(--c-ink-2);font-weight:600}
+.tip{position:fixed;pointer-events:none;background:rgba(33,27,77,.96);color:#fff;font-size:12px;padding:9px 12px;border-radius:10px;max-width:300px;line-height:1.55;opacity:0;transition:opacity .12s;z-index:99;box-shadow:0 10px 26px -10px rgba(33,27,77,.45)}
+.tip.on{opacity:1}
+.tip .tt{font-weight:700;margin-bottom:2px;color:#c7c3ff}
+</style>
+</head>
+<body>
+<div class="chart">
+  <header>
+    <span class="accent"></span>
+    <div>
+      <h1 id="title">终点对比 · 柱状图</h1>
+      <div class="sub" id="subtitle"></div>
+    </div>
+  </header>
+  <div class="stage" id="stage"></div>
+  <div class="legend" id="legend"></div>
+  <footer>
+    <span id="note"></span>
+    <span id="source"></span>
+  </footer>
+</div>
+<div class="tip" id="tip"></div>
+
+<script>
+/* ===================== 数据区（Agent 填写；仅来自临床证据原文） =====================
+   适用：混合/不同试验、且终点没有时间维度（如 ORR、缓解率等单值终点）。
+   bars[]：
+     label  显示名（试验+治疗组）；value 终点数值；ci 置信区间文本（可空）；
+     series 取色索引（0..5，对应 --c-s1..s6，缺省 0）；note 悬停补充说明。
+*/
+const CHART = {
+  title: "中位 PFS（月）· HARMONi-6",
+  subtitle: "主要终点按治疗组对比 · 单值对比（HARMONi-6 未报告客观缓解率，此处以中位 PFS 单值演示柱状模板）",
+  unit: " 月",
+  note: "柱高按中位 PFS 点估计；95%CI 与显著性来自 source_full_text",
+  source: "数据来源：HARMONi-6 公开披露材料（source_full_text 提取）",
+  bars: [
+    { label:"ivonescimab 联合化疗",   value:11.1, ci:"95%CI [9.9, NE]",  series:0, note:"532 例随机患者；单侧 p<0.0001" },
+    { label:"tislelizumab 联合化疗",  value:6.9,  ci:"95%CI [5.8, 8.6]",  series:1, note:"对照组；HR 0.60（95%CI 0.46–0.78）" }
+  ]
+};
+
+
+/* ===================== 渲染区（模板逻辑，勿改） ===================== */
+(function(){
+  var SERIES = ["#4f46e5","#7c3aed","#a855f7","#6366f1","#c084fc","#8b5cf6"];
+  var bars = CHART.bars || [], n = bars.length;
+  var W = 900, H = 60 + n * 62, padL = 210, padR = 150, padT = 40, padB = 16;
+  var plotW = W - padL - padR, plotH = H - padT - padB;
+  var maxV = Math.max.apply(null, bars.map(function(b){ return b.value; })) * 1.12 || 1;
+  function esc(s){ return String(s == null ? "" : s).replace(/[<>&]/g, function(c){ return {"<":"&lt;",">":"&gt;","&":"&amp;"}[c]; }); }
+
+  document.getElementById("title").textContent = CHART.title;
+  document.getElementById("subtitle").textContent = CHART.subtitle || "";
+  document.getElementById("note").innerHTML = CHART.note ? "<b>说明：</b>" + esc(CHART.note) : "";
+  document.getElementById("source").textContent = CHART.source || "";
+
+  var NS = "http://www.w3.org/2000/svg";
+  var svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", "0 0 " + W + " " + H);
+  svg.setAttribute("role", "img");
+
+  // 网格 + 数值刻度
+  var g = document.createElementNS(NS, "g");
+  var ticks = [0, 0.25, 0.5, 0.75, 1];
+  ticks.forEach(function(t){
+    var y = padT + plotH - t * plotH, v = (maxV * t).toFixed(1);
+    g.innerHTML += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W-padR) + '" y2="' + y + '" stroke="#e6e3f4" stroke-width="1"/>' +
+      '<text x="' + (padL-10) + '" y="' + (y+4) + '" text-anchor="end" font-size="11" fill="#8b87ad">' + v + '</text>';
+  });
+  svg.appendChild(g);
+
+  // 柱子（横向）
+  var rowH = plotH / n, barH = Math.min(30, rowH * 0.62);
+  var gf = document.createElementNS(NS, "linearGradient"); gf.id = "gradBar"; gf.setAttribute("x1","0"); gf.setAttribute("y1","0"); gf.setAttribute("x2","1"); gf.setAttribute("y2","0");
+  gf.innerHTML = '<stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#7c3aed"/>'; svg.appendChild(gf);
+
+  bars.forEach(function(b, i){
+    var y = padT + i * rowH + (rowH - barH) / 2;
+    var bw = Math.max(plotW * (b.value / maxV), 3);
+    var color = SERIES[(b.series != null ? b.series : 0) % SERIES.length];
+    var node = document.createElementNS(NS, "g");
+    node.style.cursor = "pointer";
+    node.innerHTML =
+      '<rect x="' + padL + '" y="' + y + '" width="' + plotW + '" height="' + barH + '" rx="' + (barH/2) + '" fill="' + color + '" opacity=".10"/>' +
+      '<rect x="' + padL + '" y="' + y + '" width="' + bw + '" height="' + barH + '" rx="' + (barH/2) + '" fill="' + color + '" opacity=".92"/>' +
+      '<rect x="' + padL + '" y="' + y + '" width="' + bw + '" height="' + (barH/2) + '" rx="' + (barH/2) + '" fill="#fff" opacity=".22"/>' +
+      '<text x="' + (padL-12) + '" y="' + (y + barH/2 + 4) + '" text-anchor="end" font-size="12.5" fill="#211b4d" font-weight="600">' + esc(b.label) + '</text>' +
+      '<text x="' + (padL + bw + 10) + '" y="' + (y + barH/2 + 5) + '" font-size="14" font-weight="700" fill="' + color + '">' + esc(b.value) + esc(CHART.unit||"") + '</text>' +
+      (b.ci ? '<text x="' + (padL + bw + 10) + '" y="' + (y + barH/2 + 20) + '" font-size="10.5" fill="#8b87ad">' + esc(b.ci) + '</text>' : "");
+    node.addEventListener("mouseenter", function(){ showTip(b, b.value); });
+    node.addEventListener("mousemove", moveTip);
+    node.addEventListener("mouseleave", hideTip);
+    svg.appendChild(node);
+  });
+
+  document.getElementById("stage").appendChild(svg);
+
+  function showTip(b, v){
+    var t = document.getElementById("tip");
+    t.innerHTML = '<div class="tt">' + esc(b.label) + '</div>' +
+      '<div style="color:#c7c3ff;font-weight:600">' + esc(v) + esc(CHART.unit||"") + '</div>' +
+      (b.ci ? '<div>' + esc(b.ci) + '</div>' : "") +
+      (b.note ? '<div>' + esc(b.note) + '</div>' : "");
+    t.classList.add("on");
+  }
+  function moveTip(evt){
+    var t = document.getElementById("tip"), r = t.getBoundingClientRect();
+    var x = evt.clientX + 14, y = evt.clientY - 10;
+    if (x + r.width > window.innerWidth - 8) x = evt.clientX - r.width - 14;
+    t.style.left = x + "px"; t.style.top = y + "px";
+  }
+  function hideTip(){ document.getElementById("tip").classList.remove("on"); }
+})();
+</script>
+</body>
+</html>
