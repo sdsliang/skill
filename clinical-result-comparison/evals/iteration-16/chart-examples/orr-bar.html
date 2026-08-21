@@ -60,19 +60,370 @@ footer b{color:var(--c-ink-2);font-weight:600}
      series 取色索引（0..5，对应 --c-s1..s6，缺省 0）；note 悬停补充说明。
 */
 const CHART = {
-  title: "一线晚期 NSCLC 客观缓解率（ORR）对比",
-  subtitle: "三个随机 III 期研究 · 试验组 vs 对照组（不同试验/不同时代，仅供模板演示；跨试验比较不构成头对头证明）",
-  unit: "%",
-  note: "缓解率按各研究原文定义（肿瘤应答评估）；各研究对照组与人群不同，柱间高度差异不代表疗效优劣，跨试验解读需带可比性标签",
-  source: "数据来源：NP Clinical『非小细胞肺癌·三期·积极』拉取的 50 条记录（source_full_text 提取）",
-  bars: [
-    { label:"CATAPULT I · 替拉帕明+顺铂",      value:27.5, ci:"P<0.001 · 对照 13.7%", series:0, note:"一线晚期 NSCLC；n=218；source-001" },
-    { label:"CATAPULT I · 顺铂单药",           value:13.7, ci:"对照组",                 series:1, note:"n=219；source-001" },
-    { label:"E4599 · 紫杉醇+卡铂+贝伐珠单抗",    value:35,   ci:"P<0.001 · 对照 15%",    series:0, note:"一线非鳞晚期 NSCLC；source-013" },
-    { label:"E4599 · 紫杉醇+卡铂+安慰剂",       value:15,   ci:"对照组",                 series:1, note:"source-013" },
-    { label:"nab-紫杉醇+卡铂（研究组）",         value:33,   ci:"P=0.005 · 对照 25%",    series:0, note:"一线 NSCLC 全组织学；source-044" },
-    { label:"溶剂型紫杉醇+卡铂（对照组）",        value:25,   ci:"对照组",                 series:1, note:"source-044" }
-  ]
+ "title": "非小细胞肺癌客观缓解率（ORR）实测 · 50 条记录全量提取",
+ "subtitle": "24 个试验全部含数值 ORR 的臂（共 51 行，来自 source_full_text 提取）；跨试验/跨时代比较不构成头对头证明",
+ "unit": "%",
+ "note": "所有数值均来自 50 条拉取记录的 source_full_text；不同试验的评估标准、人群、线数与时代不同，柱高差异不代表疗效优劣；行内 series 颜色仅区分同试验内的组别，不跨试验取色",
+ "source": "数据来源：NP Clinical『非小细胞肺癌·三期·积极』50 条（evals/iteration-16/np-clinical-nsclc-50）",
+ "bars": [
+  {
+   "label": "CATAPULT I · 替拉帕明+顺铂",
+   "value": 27.5,
+   "series": 0,
+   "ci": "P<0.001",
+   "note": "一线晚期 NSCLC；n=218（source-001）"
+  },
+  {
+   "label": "CATAPULT I · 顺铂单药",
+   "value": 13.7,
+   "series": 1,
+   "ci": "",
+   "note": "n=219（source-001）"
+  },
+  {
+   "label": "TAX 320 · 多西他赛 100mg/m²",
+   "value": 10.8,
+   "series": 0,
+   "ci": "P=.001",
+   "note": "三线；对照 V/I（source-002）"
+  },
+  {
+   "label": "TAX 320 · 多西他赛 75mg/m²",
+   "value": 6.7,
+   "series": 1,
+   "ci": "P=.036",
+   "note": "（source-002）"
+  },
+  {
+   "label": "TAX 320 · 长春瑞滨/异环磷酰胺(V/I)",
+   "value": 0.8,
+   "series": 2,
+   "ci": "",
+   "note": "对照（source-002）"
+  },
+  {
+   "label": "Pac+Carbo vs Vin+Cis · 紫杉醇+卡铂",
+   "value": 28,
+   "series": 0,
+   "ci": "",
+   "note": "一线晚期；VC 28%（source-003）"
+  },
+  {
+   "label": "Pac+Carbo vs Vin+Cis · 长春瑞滨+顺铂",
+   "value": 25,
+   "series": 1,
+   "ci": "",
+   "note": "一线晚期（source-003）"
+  },
+  {
+   "label": "TAX 326 · 多西他赛+顺铂(DC)",
+   "value": 31.6,
+   "series": 0,
+   "ci": "P=.029",
+   "note": "一线晚期；对照 VC（source-004）"
+  },
+  {
+   "label": "TAX 326 · 长春瑞滨+顺铂(VC)",
+   "value": 24.5,
+   "series": 1,
+   "ci": "",
+   "note": "对照（source-004）"
+  },
+  {
+   "label": "Gem-Cis vs Gem-Carbo · 吉西他滨+顺铂(GP)",
+   "value": 41,
+   "series": 0,
+   "ci": "",
+   "note": "一线 IIIB/IV；缓解率 41/29（source-005）"
+  },
+  {
+   "label": "Gem-Cis vs Gem-Carbo · 吉西他滨+卡铂(GC)",
+   "value": 29,
+   "series": 1,
+   "ci": "",
+   "note": "一线 IIIB/IV（source-005）"
+  },
+  {
+   "label": "CG/CGV/GV-VI · 顺铂+吉西他滨(CG)",
+   "value": 42,
+   "series": 0,
+   "ci": "",
+   "note": "一线晚期（source-006）"
+  },
+  {
+   "label": "CG/CGV/GV-VI · 顺铂+吉西他滨+长春瑞滨(CGV)",
+   "value": 41,
+   "series": 1,
+   "ci": "",
+   "note": "三药联合（source-006）"
+  },
+  {
+   "label": "CG/CGV/GV-VI · 吉西他滨+长春瑞滨(GV-VI)",
+   "value": 27,
+   "series": 2,
+   "ci": "P=.003",
+   "note": "非铂序贯对照（source-006）"
+  },
+  {
+   "label": "Pem vs Doc 二线 · 培美曲塞",
+   "value": 9.1,
+   "series": 0,
+   "ci": "P=.105",
+   "note": "二线；ORR 9.1 vs 8.8（source-008）"
+  },
+  {
+   "label": "Pem vs Doc 二线 · 多西他赛",
+   "value": 8.8,
+   "series": 1,
+   "ci": "",
+   "note": "二线（source-008）"
+  },
+  {
+   "label": "E4599 · 紫杉醇+卡铂+贝伐珠单抗",
+   "value": 35,
+   "series": 0,
+   "ci": "P<0.001",
+   "note": "一线非鳞晚期；对照 15%（source-013）"
+  },
+  {
+   "label": "E4599 · 紫杉醇+卡铂+安慰剂",
+   "value": 15,
+   "series": 1,
+   "ci": "",
+   "note": "对照（source-013）"
+  },
+  {
+   "label": "AVAiL · 顺铂+吉西他滨+安慰剂",
+   "value": 20.1,
+   "series": 0,
+   "ci": "",
+   "note": "一线非鳞（source-016）"
+  },
+  {
+   "label": "AVAiL · 顺铂+吉西他滨+贝伐珠单抗 7.5",
+   "value": 34.1,
+   "series": 1,
+   "ci": "P=.03",
+   "note": "低剂量（source-016）"
+  },
+  {
+   "label": "AVAiL · 顺铂+吉西他滨+贝伐珠单抗 15",
+   "value": 30.4,
+   "series": 2,
+   "ci": "",
+   "note": "高剂量（source-016）"
+  },
+  {
+   "label": "GLOB3 · 口服+静注长春瑞滨+顺铂(A)",
+   "value": 27.4,
+   "series": 0,
+   "ci": "CI 21.2–34.2",
+   "note": "一线晚期（source-017）"
+  },
+  {
+   "label": "GLOB3 · 多西他赛+顺铂(B)",
+   "value": 27.2,
+   "series": 1,
+   "ci": "CI 21.0–34.2",
+   "note": "一线晚期（source-017）"
+  },
+  {
+   "label": "Gem 三药 · 吉西他滨+卡铂(GC)",
+   "value": 25.3,
+   "series": 0,
+   "ci": "",
+   "note": "一线晚期（source-021）"
+  },
+  {
+   "label": "Gem 三药 · 吉西他滨+顺铂(GP)",
+   "value": 32.1,
+   "series": 1,
+   "ci": "",
+   "note": "一线晚期（source-021）"
+  },
+  {
+   "label": "Gem 三药 · 紫杉醇+卡铂(PC)",
+   "value": 29.8,
+   "series": 2,
+   "ci": "",
+   "note": "一线晚期（source-021）"
+  },
+  {
+   "label": "Gef vs Doc 二线 · 吉非替尼",
+   "value": 28.1,
+   "series": 0,
+   "ci": "P=0.0007",
+   "note": "二线；对照多西他赛 7.6%（source-023）"
+  },
+  {
+   "label": "Gef vs Doc 二线 · 多西他赛",
+   "value": 7.6,
+   "series": 1,
+   "ci": "",
+   "note": "对照（source-023）"
+  },
+  {
+   "label": "Vinflunine 二线 · 长春氟宁",
+   "value": 4.4,
+   "series": 0,
+   "ci": "",
+   "note": "二线；ORR 4.4 vs 5.5（source-024）"
+  },
+  {
+   "label": "Vinflunine 二线 · 多西他赛",
+   "value": 5.5,
+   "series": 1,
+   "ci": "",
+   "note": "对照（source-024）"
+  },
+  {
+   "label": "nab-Pac 剂量探索 · 白蛋白紫杉醇 周疗",
+   "value": 47,
+   "series": 0,
+   "ci": "",
+   "note": "剂量探索研究（source-026）"
+  },
+  {
+   "label": "nab-Pac 剂量探索 · 白蛋白紫杉醇 每3周",
+   "value": 30,
+   "series": 1,
+   "ci": "",
+   "note": "q3w（source-026）"
+  },
+  {
+   "label": "EGFR 突变一线 · 吉非替尼",
+   "value": 73.7,
+   "series": 0,
+   "ci": "P<0.001",
+   "note": "EGFR 突变富集人群（source-028）"
+  },
+  {
+   "label": "EGFR 突变一线 · 化疗(卡铂/紫杉醇类)",
+   "value": 30.7,
+   "series": 1,
+   "ci": "",
+   "note": "对照（source-028）"
+  },
+  {
+   "label": "YH-16 恩度+NP · 重组人血管内皮抑素+化疗(试验组)",
+   "value": 35.4,
+   "series": 0,
+   "ci": "P=0.0003",
+   "note": "一线晚期；n=486 可评估（source-030）"
+  },
+  {
+   "label": "YH-16 恩度+NP · 安慰剂+化疗(对照组)",
+   "value": 19.5,
+   "series": 1,
+   "ci": "",
+   "note": "对照（source-030）"
+  },
+  {
+   "label": "CDDP vs CBDCA · 顺铂+依托泊苷",
+   "value": 27,
+   "series": 0,
+   "ci": "P=.07",
+   "note": "27/100 例客观缓解（source-031）"
+  },
+  {
+   "label": "CDDP vs CBDCA · 卡铂+依托泊苷",
+   "value": 16,
+   "series": 1,
+   "ci": "",
+   "note": "16/102 例客观缓解（source-031）"
+  },
+  {
+   "label": "IPASS 生物标志 · 吉非替尼(cfDNA EGFR+亚组)",
+   "value": 75.0,
+   "series": 0,
+   "ci": "OR 1.71；p=0.40",
+   "note": "cfDNA EGFR 突变阳性亚组（source-034）"
+  },
+  {
+   "label": "IPASS 生物标志 · 卡铂/紫杉醇(cfDNA EGFR+亚组)",
+   "value": 63.6,
+   "series": 1,
+   "ci": "",
+   "note": "对照（source-034）"
+  },
+  {
+   "label": "围手术期新辅助 · 术前化疗后缓解率(单值)",
+   "value": 35.4,
+   "series": 0,
+   "ci": "",
+   "note": "IB/IIA 期可切除（source-039）"
+  },
+  {
+   "label": "nab-PC vs sb-PC · 白蛋白紫杉醇+卡铂",
+   "value": 33,
+   "series": 0,
+   "ci": "P=.005",
+   "note": "一线全组织学；RR比 1.313（source-044）"
+  },
+  {
+   "label": "nab-PC vs sb-PC · 溶剂型紫杉醇+卡铂",
+   "value": 25,
+   "series": 1,
+   "ci": "",
+   "note": "对照（source-044）"
+  },
+  {
+   "label": "Gef vs Pem 二线 · 吉非替尼",
+   "value": 58.8,
+   "series": 0,
+   "ci": "",
+   "note": "二线；对照培美曲塞（source-045）"
+  },
+  {
+   "label": "Gef vs Pem 二线 · 培美曲塞",
+   "value": 22.4,
+   "series": 1,
+   "ci": "",
+   "note": "对照（source-045）"
+  },
+  {
+   "label": "CAPPA-2 · 吉西他滨+顺铂",
+   "value": 18,
+   "series": 0,
+   "ci": "p=0.19",
+   "note": "PS=2 晚期；对照单药（source-048）"
+  },
+  {
+   "label": "CAPPA-2 · 吉西他滨单药",
+   "value": 4,
+   "series": 1,
+   "ci": "",
+   "note": "对照（source-048）"
+  },
+  {
+   "label": "PROFILE 1007 · 克唑替尼",
+   "value": 65,
+   "series": 0,
+   "ci": "P<0.001",
+   "note": "ALK 阳性晚期；对照化疗（source-049）"
+  },
+  {
+   "label": "PROFILE 1007 · 化疗",
+   "value": 20,
+   "series": 1,
+   "ci": "",
+   "note": "对照；CI 14–26（source-049）"
+  },
+  {
+   "label": "Pem vs CP · 卡铂+培美曲塞(CP)",
+   "value": 23.8,
+   "series": 0,
+   "ci": "P=.032",
+   "note": "一线；n=205（source-050）"
+  },
+  {
+   "label": "Pem vs CP · 培美曲塞单药(P)",
+   "value": 10.3,
+   "series": 1,
+   "ci": "",
+   "note": "对照（source-050）"
+  }
+ ]
 };
 
 
@@ -80,7 +431,10 @@ const CHART = {
 (function(){
   var SERIES = ["#4f46e5","#7c3aed","#a855f7","#6366f1","#c084fc","#8b5cf6"];
   var bars = CHART.bars || [], n = bars.length;
-  var W = 900, H = 60 + n * 62, padL = 210, padR = 150, padT = 40, padB = 16;
+  var W = 900;
+  var rowH = Math.max(30, Math.min(62, 980 / n));
+  var H = 56 + n * rowH + 30;
+  var padL = 224, padR = 150, padT = 42, padB = 34;
   var plotW = W - padL - padR, plotH = H - padT - padB;
   var maxV = Math.max.apply(null, bars.map(function(b){ return b.value; })) * 1.12 || 1;
   function esc(s){ return String(s == null ? "" : s).replace(/[<>&]/g, function(c){ return {"<":"&lt;",">":"&gt;","&":"&amp;"}[c]; }); }
@@ -95,18 +449,20 @@ const CHART = {
   svg.setAttribute("viewBox", "0 0 " + W + " " + H);
   svg.setAttribute("role", "img");
 
-  // 网格 + 数值刻度
+  // 网格（竖线）+ 数值刻度（底部横轴，不与左侧组别标签重叠）
   var g = document.createElementNS(NS, "g");
   var ticks = [0, 0.25, 0.5, 0.75, 1];
   ticks.forEach(function(t){
-    var y = padT + plotH - t * plotH, v = (maxV * t).toFixed(1);
-    g.innerHTML += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W-padR) + '" y2="' + y + '" stroke="#e6e3f4" stroke-width="1"/>' +
-      '<text x="' + (padL-10) + '" y="' + (y+4) + '" text-anchor="end" font-size="11" fill="#8b87ad">' + v + '</text>';
+    var x = padL + plotW * t, v = (maxV * t).toFixed(1);
+    g.innerHTML += '<line x1="' + x + '" y1="' + padT + '" x2="' + x + '" y2="' + (padT + plotH) + '" stroke="#e6e3f4" stroke-width="1"/>' +
+      '<text x="' + x + '" y="' + (padT + plotH + 16) + '" text-anchor="middle" font-size="11" fill="#8b87ad">' + v + '</text>';
   });
   svg.appendChild(g);
 
   // 柱子（横向）
-  var rowH = plotH / n, barH = Math.min(30, rowH * 0.62);
+  var barH = Math.max(14, Math.min(30, rowH * 0.6));
+  var showCi = rowH >= 46;
+  var labelFs = rowH < 42 ? 11 : 12.5;
   var gf = document.createElementNS(NS, "linearGradient"); gf.id = "gradBar"; gf.setAttribute("x1","0"); gf.setAttribute("y1","0"); gf.setAttribute("x2","1"); gf.setAttribute("y2","0");
   gf.innerHTML = '<stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#7c3aed"/>'; svg.appendChild(gf);
 
@@ -120,9 +476,9 @@ const CHART = {
       '<rect x="' + padL + '" y="' + y + '" width="' + plotW + '" height="' + barH + '" rx="' + (barH/2) + '" fill="' + color + '" opacity=".10"/>' +
       '<rect x="' + padL + '" y="' + y + '" width="' + bw + '" height="' + barH + '" rx="' + (barH/2) + '" fill="' + color + '" opacity=".92"/>' +
       '<rect x="' + padL + '" y="' + y + '" width="' + bw + '" height="' + (barH/2) + '" rx="' + (barH/2) + '" fill="#fff" opacity=".22"/>' +
-      '<text x="' + (padL-12) + '" y="' + (y + barH/2 + 4) + '" text-anchor="end" font-size="12.5" fill="#211b4d" font-weight="600">' + esc(b.label) + '</text>' +
+      '<text x="' + (padL-12) + '" y="' + (y + barH/2 + 4) + '" text-anchor="end" font-size="' + labelFs + '" fill="#211b4d" font-weight="600">' + esc(b.label) + '</text>' +
       '<text x="' + (padL + bw + 10) + '" y="' + (y + barH/2 + 5) + '" font-size="14" font-weight="700" fill="' + color + '">' + esc(b.value) + esc(CHART.unit||"") + '</text>' +
-      (b.ci ? '<text x="' + (padL + bw + 10) + '" y="' + (y + barH/2 + 20) + '" font-size="10.5" fill="#8b87ad">' + esc(b.ci) + '</text>' : "");
+      (b.ci && showCi ? '<text x="' + (padL + bw + 10) + '" y="' + (y + barH/2 + 20) + '" font-size="10.5" fill="#8b87ad">' + esc(b.ci) + '</text>' : "");
     node.addEventListener("mouseenter", function(){ showTip(b, b.value); });
     node.addEventListener("mousemove", moveTip);
     node.addEventListener("mouseleave", hideTip);

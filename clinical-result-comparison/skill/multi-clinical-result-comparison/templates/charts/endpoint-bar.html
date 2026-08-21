@@ -77,7 +77,10 @@ const CHART = {
 (function(){
   var SERIES = ["#4f46e5","#7c3aed","#a855f7","#6366f1","#c084fc","#8b5cf6"];
   var bars = CHART.bars || [], n = bars.length;
-  var W = 900, H = 60 + n * 62, padL = 210, padR = 150, padT = 40, padB = 16;
+  var W = 900;
+  var rowH = Math.max(30, Math.min(62, 980 / n));
+  var H = 56 + n * rowH + 30;
+  var padL = 224, padR = 150, padT = 42, padB = 34;
   var plotW = W - padL - padR, plotH = H - padT - padB;
   var maxV = Math.max.apply(null, bars.map(function(b){ return b.value; })) * 1.12 || 1;
   function esc(s){ return String(s == null ? "" : s).replace(/[<>&]/g, function(c){ return {"<":"&lt;",">":"&gt;","&":"&amp;"}[c]; }); }
@@ -92,18 +95,20 @@ const CHART = {
   svg.setAttribute("viewBox", "0 0 " + W + " " + H);
   svg.setAttribute("role", "img");
 
-  // 网格 + 数值刻度
+  // 网格（竖线）+ 数值刻度（底部横轴，不与左侧组别标签重叠）
   var g = document.createElementNS(NS, "g");
   var ticks = [0, 0.25, 0.5, 0.75, 1];
   ticks.forEach(function(t){
-    var y = padT + plotH - t * plotH, v = (maxV * t).toFixed(1);
-    g.innerHTML += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W-padR) + '" y2="' + y + '" stroke="#e6e3f4" stroke-width="1"/>' +
-      '<text x="' + (padL-10) + '" y="' + (y+4) + '" text-anchor="end" font-size="11" fill="#8b87ad">' + v + '</text>';
+    var x = padL + plotW * t, v = (maxV * t).toFixed(1);
+    g.innerHTML += '<line x1="' + x + '" y1="' + padT + '" x2="' + x + '" y2="' + (padT + plotH) + '" stroke="#e6e3f4" stroke-width="1"/>' +
+      '<text x="' + x + '" y="' + (padT + plotH + 16) + '" text-anchor="middle" font-size="11" fill="#8b87ad">' + v + '</text>';
   });
   svg.appendChild(g);
 
   // 柱子（横向）
-  var rowH = plotH / n, barH = Math.min(30, rowH * 0.62);
+  var barH = Math.max(14, Math.min(30, rowH * 0.6));
+  var showCi = rowH >= 46;
+  var labelFs = rowH < 42 ? 11 : 12.5;
   var gf = document.createElementNS(NS, "linearGradient"); gf.id = "gradBar"; gf.setAttribute("x1","0"); gf.setAttribute("y1","0"); gf.setAttribute("x2","1"); gf.setAttribute("y2","0");
   gf.innerHTML = '<stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#7c3aed"/>'; svg.appendChild(gf);
 
@@ -117,9 +122,9 @@ const CHART = {
       '<rect x="' + padL + '" y="' + y + '" width="' + plotW + '" height="' + barH + '" rx="' + (barH/2) + '" fill="' + color + '" opacity=".10"/>' +
       '<rect x="' + padL + '" y="' + y + '" width="' + bw + '" height="' + barH + '" rx="' + (barH/2) + '" fill="' + color + '" opacity=".92"/>' +
       '<rect x="' + padL + '" y="' + y + '" width="' + bw + '" height="' + (barH/2) + '" rx="' + (barH/2) + '" fill="#fff" opacity=".22"/>' +
-      '<text x="' + (padL-12) + '" y="' + (y + barH/2 + 4) + '" text-anchor="end" font-size="12.5" fill="#211b4d" font-weight="600">' + esc(b.label) + '</text>' +
+      '<text x="' + (padL-12) + '" y="' + (y + barH/2 + 4) + '" text-anchor="end" font-size="' + labelFs + '" fill="#211b4d" font-weight="600">' + esc(b.label) + '</text>' +
       '<text x="' + (padL + bw + 10) + '" y="' + (y + barH/2 + 5) + '" font-size="14" font-weight="700" fill="' + color + '">' + esc(b.value) + esc(CHART.unit||"") + '</text>' +
-      (b.ci ? '<text x="' + (padL + bw + 10) + '" y="' + (y + barH/2 + 20) + '" font-size="10.5" fill="#8b87ad">' + esc(b.ci) + '</text>' : "");
+      (b.ci && showCi ? '<text x="' + (padL + bw + 10) + '" y="' + (y + barH/2 + 20) + '" font-size="10.5" fill="#8b87ad">' + esc(b.ci) + '</text>' : "");
     node.addEventListener("mouseenter", function(){ showTip(b, b.value); });
     node.addEventListener("mousemove", moveTip);
     node.addEventListener("mouseleave", hideTip);
