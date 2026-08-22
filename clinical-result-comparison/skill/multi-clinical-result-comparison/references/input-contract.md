@@ -61,6 +61,25 @@ Filename convention: `source-{n}.md`, where `{n}` is the 1-based input-order ind
 3. For each file, read the `source_title`, `source_url`, and `source_paper_release_time_str` values from the metadata lines and the full text from the body after `## source_full_text`.
 4. Build the internal worksheet exactly as described in `references/input-and-extraction.md`, using the same rules that previously applied to inline source objects.
 
+## Large-batch delegation via subagents (OPTIONAL, pending verification)
+
+> ⚠️ Status: **not yet validated in a real Tool Smith deployment.** Keep this as an opt-in strategy; the default path remains "Agent reads every attached file directly" per the protocol above.
+
+When the deployment exposes the `task` tool (backend `SubAgentCapability` registered and `capabilities_config.subagents` enabled) and the number of attached files is large (recommendation: ≥ 20), the Agent MAY delegate extraction to subagents to keep the main-thread context bounded. This is a performance strategy, **not a change to the evidence boundary**: only `source_full_text` read from the files is evidence, and every extracted value must still carry its source file number.
+
+- **Chunking**: split the attached files by filename order into chunks of at most 10 files each (e.g. 50 files → 5 chunks: `source-001..010`, …, `source-041..050`). Chunk boundaries must never reorder filenames.
+- **One `task` call per chunk**: `subagent_type: "general-purpose"`, with a fully self-contained `description` stating exactly which files to read (e.g. `source-001.md` … `source-010.md` in `/workspace/uploads/`), the exact per-trial fields to extract (same as the evidence worksheet in `references/input-and-extraction.md`), and the exact compact output format including the source file number on every extracted value.
+- **Output discipline**: the subagent returns only a compact structured summary (short trial name, arm/label, endpoint values, p-values/CIs, source file number). Keep the returned text small (a few hundred characters per trial) so 5–10 summaries do not re-bloat the main thread.
+- **Citation correctness**: `{{ref_n}}` assignment stays global by filename order (`source-003.md` → `{{ref_3}}`) regardless of which chunk processed it. Subagents must echo the source file number; the main Agent maps those to ref markers and deduplicates.
+- **Constraints**: subagents are stateless (single `description`, no follow-ups — put everything needed in it); recursive depth is limited (do not nest delegation deeper than one level); multiple `task` calls in one message are allowed but concurrency is not guaranteed — treat serial execution as acceptable.
+- **Fallback**: if the `task` tool is not visible/available, ignore this section and read every attached file directly (default protocol). Never skip a source because delegation is unavailable.
+
+**Verification checklist before enabling as default** (see pending questions with the Tool Smith developer):
+1. `capabilities_config.subagents` is enabled on the deployment and `task` is visible to the Agent.
+2. 20–50 attachments actually land in `/workspace/uploads/` across split messages and are all readable in one run.
+3. Concurrent `task` calls are either truly concurrent or acceptably fast serially.
+4. Measured token cost: 5–10 compact summaries + aggregation stay well under the run budget.
+
 ## Citation rendering
 
 The Agent emits machine-readable `{{ref_n}}` tokens in the Markdown report. The citation metadata is a separate JSON artifact and must not be appended to the report or passed through a generic Markdown autolinker. The frontend receives the report and citation JSON separately, validates marker/key parity, then renders only the report body.

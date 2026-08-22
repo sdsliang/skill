@@ -29,6 +29,8 @@ Read these support files for every run:
 
 Each selected clinical result arrives as **one attached file** (`source-001.md`, `source-002.md`, …), one file per result, sent together as attachments in the user turn. Read every attached file from the workspace uploads directory. Each file contains backend-supplied citation metadata lines (`source_title`, `source_url`, `source_paper_release_time_str`) and the full text under the `## source_full_text` heading. File order defines the `{{ref_n}}` marker assignment order; it is a presentation label, not clinical chronology. Follow `references/input-contract.md` for the exact file layout, limits, and reading protocol. Never print, quote, or transmit the files' raw metadata fields or filenames into the report body.
 
+**Optional for large batches**: if the deployment exposes the `task` tool (subagents capability enabled) and there are roughly 20+ attached files, you MAY delegate extraction to subagents in chunks of ≤ 10 files per `references/input-contract.md` (Large-batch delegation) to keep context bounded. This is a performance strategy pending real-environment verification — never treat it as mandatory, never skip a source, and keep the default direct-read protocol otherwise.
+
 ## Evidence boundary
 
 The supplied full text (the body of each attached source file) is the sole clinical evidence. Each file also carries backend-supplied citation metadata: `source_title`, `source_url`, and `source_paper_release_time_str`. Do not retrieve external facts or URLs, fill gaps from memory, or use technical correlation keys as evidence. Require at least two usable result files. Preserve unusable or incomplete items in the source inventory and explain their limitation if they affect the report.
