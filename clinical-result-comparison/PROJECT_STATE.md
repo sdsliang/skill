@@ -81,6 +81,11 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - Cross-trial reports use one global marker namespace in input order and one shared separate citation JSON artifact for the complete response. Markers do not restart at each trial boundary. Separate independently requested reports may use separate local namespaces.
 - The citation renderer supports multiple trial sections, accepts a separate citation JSON object, validates marker/key parity, and makes only the numeric superscript clickable. Generic Markdown autolinking must not receive the citation JSON.
 
+## Pending verification (next week, with Tool Smith developer)
+
+- **Input delivery (batch-2 待问 ④⑤)**: 20–50 附件跨消息投递——前端是否自动拆成 10/条？跨消息附件是否全部进 `/workspace/uploads/` 且主 Agent 一次 run 都能读到？50 个全文真实读取的 token 实测（读全是否顶爆上下文；缓解：按需读 / 只读元数据 / 子代理分包）。
+- **Subagent 机制（调研结论，batch-2 待问 ⑥）**: Tool Smith 后端**已支持**——`SubAgentCapability` 默认注册，主 Agent 有 `task` 工具（参数仅 `subagent_type`+`description`，自包含、无状态、只返回最终结果）；子代理共享同一文件系统（可直接读 `/workspace/uploads/source-0XX.md`，写出的文件主线程可见）；递归深度 `max_recursive_depth=2`；前端 project-dialog 有 `capabilities_config.subagents` 开关。用户提议的「5 个子代理 × 10 个文件 → 汇总」架构上可行（把主 Agent 从读 50 全文降为收 5 份摘要，缓解 token）。待确认：开关是否默认开、多 `task` 并发是否真实生效（pydantic-ai 默认串行，Tool Smith 代码未见 `allow_concurrent_tool_calls`）、是否在 SKILL 输入契约里指示主 Agent 分包。
+
 ## Validation completed
 
 - Tool Smith `validate_skill_md` accepted the Skill name and description.
