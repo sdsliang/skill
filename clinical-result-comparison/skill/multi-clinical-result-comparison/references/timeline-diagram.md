@@ -4,7 +4,7 @@
 
 - 仅用于**同一试验的多篇披露**（合并后 ≥2 个真正不同的证据状态）的输入。
 - 不用于跨试验或混合输入：不同试验没有共享时间线，不生成该图。
-- 交付方式：复制 `templates/charts/evidence-timeline.html` 为成品文件（例如 `train2-evidence-timeline.html`），**只改 `<script>` 里的 `CHART` 数据对象**（渲染区代码一律不动），正文"证据链总览与时间线"一节中在时间线表格上方用 `::visualization[标题]{path="..."}` 独占一行引用（workspace 文件 + 引用通道），图前后保留解释文字与 `{{ref_n}}` 标记。**不再输出 Mermaid 代码块。** 接入方不支持可视化文件时，正文保留时间线表格 + 文字结论，并提供图的下载链接。
+- 交付方式：复制 `templates/charts/evidence-timeline.html` 为成品文件（例如 `train2-evidence-timeline.html`），**只改 `<script>` 里的 `CHART` 数据对象**（渲染区代码一律不动），正文“证据链总览与时间线”一节中在时间线表格上方用 `::visualization[标题]{path="/workspace/visualizations/xxx-evidence-timeline.html"}` 绝对路径独占一行引用（写入 `/workspace/visualizations/` 后再引用；禁止目录穿越/反斜杠/前缀外路径，文件名 ASCII），图前后保留解释文字与 `{{ref_n}}` 标记。**不再输出 Mermaid 代码块。** 接入方不支持可视化文件时，正文保留时间线表格 + 文字结论，并提供图的下载链接。
 
 ## 图要回答的问题
 
@@ -56,4 +56,4 @@ const CHART = {
 };
 ```
 
-按此填写后保存为 `xxx-evidence-timeline.html`，正文用 `::visualization[标题]{path="xxx-evidence-timeline.html"}` 引用，并始终保留精确数值的时间线表格。
+按此填写后保存为 `xxx-evidence-timeline.html`（ASCII 文件名，写入 `/workspace/visualizations/`），正文用 `::visualization[标题]{path="/workspace/visualizations/xxx-evidence-timeline.html"}` 绝对路径引用，并始终保留精确数值的时间线表格。

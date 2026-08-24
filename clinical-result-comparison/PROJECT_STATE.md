@@ -32,6 +32,7 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - 示例：TRAIN-2（`evals/iteration-16/np-clinical-nct01996267/`）`report.md` 的 Mermaid 块替换为 `::visualization` 引用；`train2-evidence-timeline.html/.png` 重生成（3 状态+里程碑，每条=一个证据状态）。report 校验：标记双向一致、连续、无 Mermaid 残留。
 - 验证：`node evals/validate-v05-contract.mjs` → `v0.5_contract_ok` 保持绿。
 - ⚠️ 待办：`::visualization` 在 Tool Smith 正文中的渲染支持尚未在真实环境验证（此前 Mermaid 走渲染器原生渲染）；若正文不支持，需降级为“文字+表格+下载链接”。下次与开发者对齐时确认。
+- 修订（路径规范）：Tool Smith 可视化契约要求**绝对路径** `::visualization[标题]{path="/workspace/visualizations/xxx.html"}`，路径必须位于 `/workspace/visualizations/` 下、不能目录穿越或反斜杠、引用前先写入文件、文件名 ASCII。已把 `chart-templates.md`/`timeline-diagram.md`/三个报告模板/`SKILL.md`/`cross-trial-comparison.md`/v0.8 提示词/README 里所有 `path="..."` 相对写法改为绝对路径，`chart-templates.md` 新增“交付路径契约”小节作为统一条款（含 fallback 要求）；TRAIN-2 示例 `report.md` 引用同步改绝对路径。开发端将加相对路径兜底逻辑——与绝对路径契约不冲突，兜底应同时校验 `..`/反斜杠/前缀外路径。
 
 ## v0.7 change: attachment-based input（每条结果一个附件文件）
 

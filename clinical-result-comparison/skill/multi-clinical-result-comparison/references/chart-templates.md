@@ -19,9 +19,17 @@
 
 1. **复制**对应 HTML 文件为成品（不要直接改模板文件）。
 2. **只改 `<script>` 里的 `CHART` 数据对象**（title/subtitle/source/events/bars/series…），渲染区代码一律不动。
-3. 保存为 `xxx.html`，正文中用 `::visualization[标题]{path="..."}` 引用（workspace 文件 + 引用 通道）。
-   - Tool Smith 交付：写入 `/workspace/visualizations/`，独占一行引用；图前后保留解释文字。
+3. 保存为 `xxx.html`，正文中用 `::visualization[标题]{path="/workspace/visualizations/xxx.html"}` **绝对路径**引用（workspace 文件 + 引用 通道），独占一行；图前后保留解释文字。
+   - Tool Smith 交付：文件**先写入** `/workspace/visualizations/`，再引用；引用路径必须从 `/workspace/visualizations/` 开头。
    - 降级：接入方不支持时，正文保留文字结论 + 可下载链接。
+
+### 交付路径契约（所有图表统一遵守）
+
+- 引用一律用**绝对路径**：`::visualization[标题]{path="/workspace/visualizations/<文件名>.html"}`。不写相对路径（如 `path="xxx.html"` 或 `path="visualizations/xxx.html"`）。
+- 路径必须位于 `/workspace/visualizations/` 下；禁止目录穿越（`..`）、反斜杠 `\`、以及 `/workspace/visualizations/` 前缀之外的任何路径。
+- 文件名用 ASCII 小写字母、数字、连字符（如 `train2-evidence-timeline.html`、`orr-comparison-endpoint-bar.html`），不使用子目录。
+- 引用必须出现在文件写入**之后**；HTML 文件上限 1 MiB。
+- 正文始终保留 fallback（文字结论 + 精确数值表 + 下载链接），接入方不支持可视化时仍能完整理解结论。
 4. 数据填充约束：
    - `events[]`（时间轴模板）一条 = **一个证据状态**（同状态多篇披露合并为一节点，`note` 并列 `{{ref_n}}`），按来源支持的 数据截止→随访→分析里程碑→披露日期 排布（模板按数组顺序排布，不推断阶段/形式）。
    - `value` 只填原文数值；`ci` 填原文给出的置信区间；`note` 为可追溯的补充说明。
