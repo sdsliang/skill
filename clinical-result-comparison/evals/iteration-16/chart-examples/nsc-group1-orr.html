@@ -49,25 +49,21 @@ footer b{color:var(--viz-text-muted,var(--brand-muted));font-weight:600}
 <script>
 /* ===================== 数据区（Agent 填写；仅来自临床证据原文） =====================
    适用：混合/不同试验、且终点没有时间维度（如 ORR、缓解率等单值终点）。
-   **按临床问题分组时**：每个组生成一份独立实例（各图独立 CHART 文件，如
-   group1-orr.html / group2-orr.html）；图内并列该组各试验的试验组结果值，
-   研究内对照数值与证据边界放 note（含 {{ref_n}}）；标题/副标题注明
-   “跨试验并列展示≠头对头比较”；不满足可比条件的组不出图。
    bars[]：
-     label  显示名（试验+试验组方案）；value 终点数值；ci 置信区间文本（可空）；
+     label  显示名（试验+治疗组）；value 终点数值；ci 置信区间文本（可空）；
      series 取色索引（0..4，对应 --viz-series-1..5，缺省 0）；note 悬停补充说明。
 */
 const CHART = {
-  title: "客观缓解率（ORR）对比",
-  subtitle: "不同试验 / 治疗组主要终点 · 无时间维度终点用柱状图",
+  title: "组1 · 一线化疗 — ORR 对比",
+  subtitle: "各试验试验组方案的客观缓解率（ORR）并列展示 · 跨试验非头对头",
   unit: "%",
-  note: "柱高按终点数值；数值与区间均来自 source_full_text",
-  source: "数据来源：各研究公开披露材料（source_full_text 提取）",
+  note: "柱高=各试验试验组方案的 ORR；研究内对照与证据边界见悬停提示；跨试验并列展示≠头对头比较",
+  source: "数据来源：NSCLC 多试验解读（source_full_text 提取）",
   bars: [
-    { label:"试验A · 研究组", value:63.5, ci:"95%CI [55.2, 71.0]", series:0, note:"HARMONi-6 研究组" },
-    { label:"试验A · 对照组", value:31.2, ci:"95%CI [23.4, 39.8]", series:1, note:"HARMONi-6 对照组" },
-    { label:"试验B · 研究组", value:58.0, ci:"95%CI [50.1, 65.6]", series:2, note:"试验 B 研究组" },
-    { label:"试验B · 对照组", value:27.9, ci:"95%CI [20.6, 36.0]", series:3, note:"试验 B 对照组" }
+    { label:"CATAPULT I · TP+顺铂", value:27.5, series:0, note:"研究内对照顺铂 13.7%（P<.001）{{ref_1}}" },
+    { label:"SWOG · 紫杉醇+卡铂", value:25, series:0, note:"研究内对照长春瑞滨+顺铂 28%（无显著差异）{{ref_3}}" },
+    { label:"GP vs GC · 吉西他滨+顺铂", value:41, series:0, note:"研究内对照吉西他滨+卡铂 29%{{ref_4}}" },
+    { label:"Spanish · CG（顺铂+吉西他滨）", value:42, series:0, note:"无铂序贯 GV-VI 27%（CG vs GV-VI P=.003）{{ref_5}}" }
   ]
 };
 
