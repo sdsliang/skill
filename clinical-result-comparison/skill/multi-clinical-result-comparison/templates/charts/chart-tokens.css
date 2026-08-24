@@ -1,62 +1,53 @@
 /* ==========================================================================
-   chart-tokens.css · 临床对比报告图表 · 蓝紫色系（靛蓝→紫）调色板
+   chart-tokens.css · 临床对比报告图表 · Tool Smith 品牌 token 唯一来源
    ==========================================================================
    用途：多临床结果对比 Skill 三张图表模板（时间轴/柱状/折线）的配色基准。
-   设计原则：
-     1. 蓝紫同族渐变，避免红绿色盲陷阱；用明度/饱和度区分层级，不用红绿表语义。
-     2. 所有颜色抽成 CSS 变量，模板内联使用；换肤只需替换 :root 一处的值。
-     3. 将来接入 Tool Smith 宿主注入时，把下方每个变量整体替换为对应
-        --viz-* token（见文件底部映射表），图表代码本身一行都不用改。
-   使用：模板为单文件 HTML，需把下方 :root 原样复制进模板 <style>（保持自包含）。
+   硬规则：
+     1. 图表颜色一律引用宿主注入的 --viz-* 语义 token（见下方映射表），
+        不得把整套独立 hex 色板写进图表代码。
+     2. 品牌 hex 只允许作为 var(--viz-*, #hex) 的 fallback 参数出现，
+        用于本地独立预览 / 宿主未注入 token 的场景；接入后自动被 --viz-* 覆盖。
+     3. 不要在图表里重复定义 --viz-* 变量（那会覆盖宿主注入，属第二套配置）。
+     4. 模板内联使用下方值；新模板从本文件复制映射与 fallback 常量。
    ========================================================================== */
 
-:root {
-  /* ---- 基础（背景/文字/分隔） ---- */
-  --c-bg:      #ffffff;   /* 卡片底（→ --viz-background） */
-  --c-wash:    #f6f5fd;   /* 页面浅紫灰底（→ --viz-background） */
-  --c-wash-2:  #efedfb;   /* hover 底 / 浅填充（→ --viz-surface） */
-  --c-ink:     #211b4d;   /* 主文字：深靛蓝墨色（→ --viz-text） */
-  --c-ink-2:   #5a5684;   /* 次级文字（→ --viz-text-muted） */
-  --c-ink-3:   #8b87ad;   /* 弱文字/来源（→ --viz-text-muted） */
-  --c-line:    #e6e3f4;   /* 分隔线/网格（→ --viz-border） */
-
-  /* ---- 品牌主色（靛→紫 渐变） ---- */
-  --c-indigo-700: #3730a3;
-  --c-indigo-600: #4f46e5;   /* 主色 */
-  --c-indigo-500: #6366f1;
-  --c-indigo-400: #818cf8;
-  --c-violet-600: #7c3aed;
-  --c-violet-500: #8b5cf6;
-  --c-purple-500: #a855f7;
-  --c-purple-400: #c084fc;
-  --c-grad: linear-gradient(135deg, #4f46e5 0%, #7c3aed 55%, #a855f7 100%);
-
-  /* ---- 系列色（多试验/多组区分；同族内可辨识） ---- */
-  --c-s1: #4f46e5;   /* indigo-600（→ --viz-series-1） */
-  --c-s2: #7c3aed;   /* violet-600（→ --viz-series-2） */
-  --c-s3: #a855f7;   /* purple-500（→ --viz-series-3） */
-  --c-s4: #6366f1;   /* indigo-500（→ --viz-series-4） */
-  --c-s5: #c084fc;   /* purple-400（→ --viz-series-5） */
-  --c-s6: #8b5cf6;   /* violet-500（→ --viz-series-6） */
-
-  /* ---- 语义（蓝紫系内区分，不引入红绿） ---- */
-  --c-ok:   #818cf8;   /* 中性/提示 */
-  --c-warn: #a855f7;   /* 强调/更新 */
-  --c-mut:  #8b87ad;   /* 里程碑/弱化 */
-  --c-soft: #e0dcf5;   /* 浅填充 */
+/* ---- 品牌兜底色（仅 fallback，勿在图表中重复定义 --viz-*） ---- */
+:root{
+  --brand-bg:      #f4f5f7;   /* 页面背景 */
+  --brand-surface: #ffffff;   /* 卡片表面 */
+  --brand-text:    #020A1A;   /* 主要文字 */
+  --brand-muted:   #4e5969;   /* 次要文字 */
+  --brand-faint:   #8993a4;   /* 说明文字 */
+  --brand-border:  #DADEE6;   /* 边框 / 坐标轴 / 分隔线 */
+  --brand-s1: #3d7eff;  --brand-s2: #7c3aed;  --brand-s3: #0ea5e9;  --brand-s4: #14b8a6;  --brand-s5: #f59e0b;
 }
 
 /* ==========================================================================
-   注入映射表（接入 Tool Smith 宿主主题时按下表整体替换）
+   Tool Smith 语义 token 映射表（宿主注入；图表直接用 var(--viz-*)）
    --------------------------------------------------------------------------
-   --c-bg / --c-wash     →  var(--viz-background)
-   --c-wash-2            →  var(--viz-surface)
-   --c-ink               →  var(--viz-text)
-   --c-ink-2 / --c-ink-3 →  var(--viz-text-muted)
-   --c-line              →  var(--viz-border)
-   --c-s1…--c-s6         →  var(--viz-series-1…series-6)
-   --c-grad              →  由 series-1/2/3 合成（或保留本地渐变）
-   注：仅这 13 个颜色变量会被注入；字体可用 --font-sans/serif/mono，
-   圆角用 --border-radius-md/lg/xl。注入后 :root 里全部改成 var(--viz-*)，
-   图内其它代码（布局/几何/动效）保持不变。
+   --viz-background  ← --background       页面背景
+   --viz-surface     ← --card            卡片、控件表面
+   --viz-text        ← --foreground      主要文字
+   --viz-text-muted  ← --muted-foreground 次要文字、说明
+   --viz-border      ← --border          边框、坐标轴
+   --viz-info        ← --info            信息状态
+   --viz-success     ← --success         成功状态
+   --viz-warning     ← --warning         警告状态
+   --viz-danger      ← --destructive     错误、危险状态
+   --viz-series-1..5 ← --chart-1..5      分类数据系列
+   字体：--font-sans / serif / mono；圆角：--border-radius-md / lg / xl。
+   注：仅上述变量会被注入；未注入时 var() 的 fallback（品牌 hex）生效。
    ========================================================================== */
+
+/* ---- 常用引用速查（复制进模板） ---- */
+/* 背景/表面/文字/边框
+   background: var(--viz-background, var(--brand-bg));
+   background: var(--viz-surface,    var(--brand-surface));
+   color:      var(--viz-text,       var(--brand-text));
+   color:      var(--viz-text-muted, var(--brand-muted));
+   color:      var(--viz-text-muted, var(--brand-faint));
+   border:     1px solid var(--viz-border, var(--brand-border));
+   系列色：var(--viz-series-1, var(--brand-s1)) … var(--viz-series-5, var(--brand-s5))
+   渐变（SVG 用运行时解析）：linear-gradient(135deg,
+     var(--viz-series-1, var(--brand-s1)), var(--viz-series-3, var(--brand-s3)))
+*/

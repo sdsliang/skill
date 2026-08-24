@@ -37,23 +37,23 @@
    - `value` 只填原文数值；`ci` 填原文给出的置信区间；`note` 为可追溯的补充说明。
    - 引用保留：图下方 source 行写清数据来源，正文相应位置保留 `{{ref_n}}` 标记。
 
-## 三、配色（蓝紫色系）
+## 三、配色（Tool Smith 品牌 token）
 
-基准见 `charts/chart-tokens.css`（每个模板内联了同一套 `:root` 变量）：
+基准见 `charts/chart-tokens.css`（每个模板内联同一套规则），**硬规则**：
 
-- 主色：靛蓝 `#4f46e5` → 紫罗兰 `#7c3aed` → 紫 `#a855f7`（品牌渐变）。
-- 系列色 `--c-s1..s6`：同族可辨识（多试验/多组）。
-- 语义用明度/饱和度区分（里程碑灰紫 `#8b87ad`、更新强调 `#a855f7`），**不用红绿色**表好坏。
-- 文字：深靛蓝墨 `#211b4d`；背景浅紫灰 `#f6f5fd`；网格 `#e6e3f4`。
-
-**接入 Tool Smith 宿主注入时**：把每个模板 `:root` 里的 `--c-*` 整体替换为对应 `--viz-*` token（映射表见 `chart-tokens.css` 文件底部），图表代码本身无需改动。
+- **主色一律引用宿主注入的 `--viz-*` 语义 token**，不得把整套独立 hex 色板写进图表代码（那属第二套配置，会覆盖宿主主题）。
+- 品牌 hex 只允许作为 `var(--viz-*, #hex)` 的 **fallback 参数**（本地独立预览 / 宿主未注入时兜底），接入后被 `--viz-*` 自动覆盖；模板 JS 用 `viz(name, fb)` 运行时读取注入值。
+- 映射（前端给定）：背景 `--viz-background`、卡片 `--viz-surface`、主文字 `--viz-text`、次要/说明 `--viz-text-muted`、边框/坐标轴 `--viz-border`、分类系列 `--viz-series-1..5`；状态 `--viz-info/success/warning/danger`。
+- 品牌 hex fallback 值：背景 `#f4f5f7`、卡片 `#ffffff`、主文字 `#020A1A`、次要 `#4e5969`、说明 `#8993a4`、边框 `#DADEE6`、系列 `#3d7eff/#7c3aed/#0ea5e9/#14b8a6/#f59e0b`（见 `chart-tokens.css`）。
+- 模板内 `legend`/`series` 的 `color` 可填 token 名（如 `"--viz-series-1"`，推荐）或 hex；未填用默认系列色。
+- 不用红绿色表语义好坏（宿主注入的系列色为准）。
 
 ## 四、与 lieflat-charts 的关系
 
-- 当前三张模板为自建（蓝紫定制，先保证"好看 + 品牌一致"）。
+- 当前三张模板为自建（走 Tool Smith 品牌 token，先保证“好看 + 品牌一致”）。
 - 需要更花哨的图型（分布、矩阵、网络、报告页）时，可基于
   `~/.agents/skills/lieflat-charts`（64 图型）的 gallery 模板扩展；
-  颜色仍建议收敛到本文件色板或 `--viz-*` 注入，避免混用色系。
+  颜色仍建议收敛到 `--viz-*` token 注入，避免混用色系。
 - 同试验时间轴无 lieflat 完全对口图型，以本模板为准。
 
 ## 五、当前版本边界

@@ -1,32 +1,32 @@
 <!-- HTML fragment（Tool Smith 可视化交付格式）：仅内容 + <style> + <script>，无文档级包裹标签 -->
 <style>
-/* ===== 蓝紫色系色板（复制自 chart-tokens.css；接入 --viz-* 时整体替换 :root） ===== */
+/* ===== Tool Smith 品牌 token（主色一律 var(--viz-*)；品牌 hex 仅作 fallback） ===== */
 :root{
-  --c-bg:#ffffff; --c-wash:#f6f5fd; --c-wash-2:#efedfb;
-  --c-ink:#211b4d; --c-ink-2:#5a5684; --c-ink-3:#8b87ad; --c-line:#e6e3f4;
-  --c-indigo-700:#3730a3; --c-indigo-600:#4f46e5; --c-indigo-500:#6366f1; --c-indigo-400:#818cf8;
-  --c-violet-600:#7c3aed; --c-violet-500:#8b5cf6; --c-purple-500:#a855f7; --c-purple-400:#c084fc;
-  --c-grad:linear-gradient(135deg,#4f46e5 0%,#7c3aed 55%,#a855f7 100%);
-  --c-s1:#4f46e5; --c-s2:#7c3aed; --c-s3:#a855f7; --c-s4:#6366f1; --c-s5:#c084fc; --c-s6:#8b5cf6;
+  --brand-bg:#f4f5f7; --brand-surface:#ffffff; --brand-text:#020A1A;
+  --brand-muted:#4e5969; --brand-faint:#8993a4; --brand-border:#DADEE6;
+  --brand-s1:#3d7eff; --brand-s2:#7c3aed; --brand-s3:#0ea5e9; --brand-s4:#14b8a6; --brand-s5:#f59e0b;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:var(--c-wash)}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--c-ink);-webkit-font-smoothing:antialiased;padding:18px}
-.chart{background:var(--c-bg);border:1px solid var(--c-line);border-radius:18px;box-shadow:0 1px 2px rgba(79,70,229,.06),0 16px 40px -20px rgba(49,46,129,.18);padding:22px 26px 16px;max-width:940px;margin:0 auto}
+body{background:var(--viz-background,var(--brand-bg))}
+body{font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif);color:var(--viz-text,var(--brand-text));-webkit-font-smoothing:antialiased;padding:18px}
+.chart{background:var(--viz-surface,var(--brand-surface));border:1px solid var(--viz-border,var(--brand-border));border-radius:var(--border-radius-xl,18px);box-shadow:0 1px 2px rgba(2,10,26,.06),0 16px 40px -20px rgba(2,10,26,.18);padding:22px 26px 16px;max-width:940px;margin:0 auto}
 .header{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px}
-.accent{flex:none;width:5px;height:36px;border-radius:4px;background:var(--c-grad);margin-top:2px}
+.accent{flex:none;width:5px;height:36px;border-radius:4px;background:linear-gradient(135deg,var(--viz-series-1,var(--brand-s1)),var(--viz-series-3,var(--brand-s3)));margin-top:2px}
 h1{font-size:18px;font-weight:700;letter-spacing:.2px;line-height:1.4}
-.sub{font-size:12.5px;color:var(--c-ink-2);margin-top:3px}
+.sub{font-size:12.5px;color:var(--viz-text-muted,var(--brand-muted));margin-top:3px}
 .stage{position:relative;width:100%;margin:8px 0 2px}
 .stage svg{display:block;width:100%;height:auto}
-.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:6px 0 4px;font-size:12px;color:var(--c-ink-2)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:6px 0 4px;font-size:12px;color:var(--viz-text-muted,var(--brand-muted))}
 .legend .lg{display:inline-flex;align-items:center;gap:6px}
 .legend .sw{width:18px;height:3px;border-radius:2px;flex:none;margin-top:1px}
-footer{margin-top:4px;padding-top:9px;border-top:1px dashed var(--c-line);font-size:11.5px;color:var(--c-ink-3);display:flex;flex-wrap:wrap;gap:3px 16px;line-height:1.5}
-footer b{color:var(--c-ink-2);font-weight:600}
-.tip{position:fixed;pointer-events:none;background:rgba(33,27,77,.96);color:#fff;font-size:12px;padding:9px 12px;border-radius:10px;max-width:300px;line-height:1.55;opacity:0;transition:opacity .12s;z-index:99;box-shadow:0 10px 26px -10px rgba(33,27,77,.45)}
+footer{margin-top:4px;padding-top:9px;border-top:1px dashed var(--viz-border,var(--brand-border));font-size:11.5px;color:var(--viz-text-muted,var(--brand-faint));display:flex;flex-wrap:wrap;gap:3px 16px;line-height:1.5}
+footer b{color:var(--viz-text-muted,var(--brand-muted));font-weight:600}
+.tip{position:fixed;pointer-events:none;background:rgba(2,10,26,.94);color:var(--viz-background,#f4f5f7);font-size:12px;padding:9px 12px;border-radius:10px;max-width:300px;line-height:1.55;opacity:0;transition:opacity .12s;z-index:99;box-shadow:0 10px 26px -10px rgba(2,10,26,.45)}
+@supports (color: color-mix(in srgb, red, transparent)){
+  .tip{background:color-mix(in srgb, var(--viz-text,var(--brand-text)) 94%, transparent)}
+}
 .tip.on{opacity:1}
-.tip .tt{font-weight:700;margin-bottom:2px;color:#c7c3ff}
+.tip .tt{font-weight:700;margin-bottom:2px;color:var(--viz-info,#7da6ff)}
 </style>
 
 <div class="chart">
@@ -50,7 +50,8 @@ footer b{color:var(--c-ink-2);font-weight:600}
 /* ===================== 数据区（Agent 填写；仅来自临床证据原文） =====================
    适用：混合/不同试验、终点有时间维度（如体重较基线变化、PFS/OS 等按时间点取值）。
    series[]：
-     name   系列名（试验+治疗组）；color 系列色（缺省自动取 --c-s1..s6）；
+     name   系列名（试验+治疗组）；color 系列色（缺省自动取 --viz-series-1..5，
+            也可填 token 名如 "--viz-series-1" 或 hex）；
      points 时间点数组 [{t:时间标签, v:数值}]。若全部系列都只有 1 个点，
      自动进入「单点模式」：只画点 + 数值标签，不强行连线。
    unit：数值单位；xLabel：时间轴标题（可空）。
@@ -70,7 +71,12 @@ const CHART = {
 
 /* ===================== 渲染区（模板逻辑，勿改） ===================== */
 (function(){
-  var SERIES = ["#4f46e5","#7c3aed","#a855f7","#6366f1","#c084fc","#8b5cf6"];
+  // 读取宿主注入的 --viz-* token（未注入时用品牌 hex fallback）
+  function viz(name, fb){ var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim(); return v || fb; }
+  // 颜色：支持 token 名（"--viz-xxx"）或 hex
+  function pick(c, fb){ return (c && c.indexOf("--viz") === 0) ? viz(c, fb) : (c || fb); }
+  // 系列色表：--viz-series-1..5
+  var S = [viz("--viz-series-1","#3d7eff"), viz("--viz-series-2","#7c3aed"), viz("--viz-series-3","#0ea5e9"), viz("--viz-series-4","#14b8a6"), viz("--viz-series-5","#f59e0b")];
   var series = CHART.series || [], nS = series.length;
   var allPts = []; series.forEach(function(s){ allPts = allPts.concat(s.points || []); });
   var singleMode = allPts.length > 0 && series.every(function(s){ return (s.points||[]).length === 1; });
@@ -97,24 +103,28 @@ const CHART = {
   svg.setAttribute("viewBox", "0 0 " + W + " " + H);
   svg.setAttribute("role", "img");
 
+  var border = viz("--viz-border", "#DADEE6");
+  var faint = viz("--viz-text-muted", "#8993a4");
+  var muted = viz("--viz-text-muted", "#4e5969");
+
   // 网格 + Y 刻度
   var g = document.createElementNS(NS, "g");
   for (var k = 0; k <= 4; k++){
     var v = minV + (maxV - minV) * k / 4, y = Y(v);
-    g.innerHTML += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W-padR) + '" y2="' + y + '" stroke="#e6e3f4" stroke-width="1"/>' +
-      '<text x="' + (padL-8) + '" y="' + (y+4) + '" text-anchor="end" font-size="11" fill="#8b87ad">' + (+v.toFixed(1)) + '</text>';
+    g.innerHTML += '<line x1="' + padL + '" y1="' + y + '" x2="' + (W-padR) + '" y2="' + y + '" stroke="' + border + '" stroke-width="1"/>' +
+      '<text x="' + (padL-8) + '" y="' + (y+4) + '" text-anchor="end" font-size="11" fill="' + faint + '">' + (+v.toFixed(1)) + '</text>';
   }
   // X 时间标签
   timeLabels.forEach(function(t, i){
-    g.innerHTML += '<text x="' + X(i) + '" y="' + (padT + plotH + 20) + '" text-anchor="middle" font-size="11.5" fill="#5a5684">' + esc(t) + '</text>';
+    g.innerHTML += '<text x="' + X(i) + '" y="' + (padT + plotH + 20) + '" text-anchor="middle" font-size="11.5" fill="' + muted + '">' + esc(t) + '</text>';
   });
-  if (CHART.xLabel) g.innerHTML += '<text x="' + (padL + plotW/2) + '" y="' + (H - 10) + '" text-anchor="middle" font-size="11" fill="#8b87ad">' + esc(CHART.xLabel) + '</text>';
+  if (CHART.xLabel) g.innerHTML += '<text x="' + (padL + plotW/2) + '" y="' + (H - 10) + '" text-anchor="middle" font-size="11" fill="' + faint + '">' + esc(CHART.xLabel) + '</text>';
   svg.appendChild(g);
 
   // 图例
   var legend = document.getElementById("legend");
   series.forEach(function(s, i){
-    var color = s.color || SERIES[i % SERIES.length];
+    var color = pick(s.color, S[i % S.length]);
     var el = document.createElement("span"); el.className = "lg";
     el.innerHTML = '<span class="sw" style="background:' + color + '"></span>' + esc(s.name);
     legend.appendChild(el);
@@ -122,7 +132,7 @@ const CHART = {
 
   // 系列线/点
   series.forEach(function(s, i){
-    var color = s.color || SERIES[i % SERIES.length];
+    var color = pick(s.color, S[i % S.length]);
     var pts = s.points || [];
     if (pts.length === 0) return;
     var node = document.createElementNS(NS, "g");
@@ -152,7 +162,7 @@ const CHART = {
     var t = document.getElementById("tip");
     t.innerHTML = '<div class="tt">' + esc(p.name) + '</div>' +
       (p.t ? '<div>' + esc(p.t) + '</div>' : "") +
-      '<div style="color:#c7c3ff;font-weight:600">' + esc(p.v) + esc(CHART.unit||"") + '</div>';
+      '<div style="color:' + viz("--viz-info", "#7da6ff") + ';font-weight:600">' + esc(p.v) + esc(CHART.unit||"") + '</div>';
     t.classList.add("on");
   }
   function moveTip(evt){

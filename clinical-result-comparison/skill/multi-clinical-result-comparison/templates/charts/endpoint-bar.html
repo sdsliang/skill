@@ -1,32 +1,32 @@
 <!-- HTML fragment（Tool Smith 可视化交付格式）：仅内容 + <style> + <script>，无文档级包裹标签 -->
 <style>
-/* ===== 蓝紫色系色板（复制自 chart-tokens.css；接入 --viz-* 时整体替换 :root） ===== */
+/* ===== Tool Smith 品牌 token（主色一律 var(--viz-*)；品牌 hex 仅作 fallback） ===== */
 :root{
-  --c-bg:#ffffff; --c-wash:#f6f5fd; --c-wash-2:#efedfb;
-  --c-ink:#211b4d; --c-ink-2:#5a5684; --c-ink-3:#8b87ad; --c-line:#e6e3f4;
-  --c-indigo-700:#3730a3; --c-indigo-600:#4f46e5; --c-indigo-500:#6366f1; --c-indigo-400:#818cf8;
-  --c-violet-600:#7c3aed; --c-violet-500:#8b5cf6; --c-purple-500:#a855f7; --c-purple-400:#c084fc;
-  --c-grad:linear-gradient(135deg,#4f46e5 0%,#7c3aed 55%,#a855f7 100%);
-  --c-s1:#4f46e5; --c-s2:#7c3aed; --c-s3:#a855f7; --c-s4:#6366f1; --c-s5:#c084fc; --c-s6:#8b5cf6;
+  --brand-bg:#f4f5f7; --brand-surface:#ffffff; --brand-text:#020A1A;
+  --brand-muted:#4e5969; --brand-faint:#8993a4; --brand-border:#DADEE6;
+  --brand-s1:#3d7eff; --brand-s2:#7c3aed; --brand-s3:#0ea5e9; --brand-s4:#14b8a6; --brand-s5:#f59e0b;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:var(--c-wash)}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--c-ink);-webkit-font-smoothing:antialiased;padding:18px}
-.chart{background:var(--c-bg);border:1px solid var(--c-line);border-radius:18px;box-shadow:0 1px 2px rgba(79,70,229,.06),0 16px 40px -20px rgba(49,46,129,.18);padding:22px 26px 16px;max-width:940px;margin:0 auto}
+body{background:var(--viz-background,var(--brand-bg))}
+body{font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif);color:var(--viz-text,var(--brand-text));-webkit-font-smoothing:antialiased;padding:18px}
+.chart{background:var(--viz-surface,var(--brand-surface));border:1px solid var(--viz-border,var(--brand-border));border-radius:var(--border-radius-xl,18px);box-shadow:0 1px 2px rgba(2,10,26,.06),0 16px 40px -20px rgba(2,10,26,.18);padding:22px 26px 16px;max-width:940px;margin:0 auto}
 .header{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px}
-.accent{flex:none;width:5px;height:36px;border-radius:4px;background:var(--c-grad);margin-top:2px}
+.accent{flex:none;width:5px;height:36px;border-radius:4px;background:linear-gradient(135deg,var(--viz-series-1,var(--brand-s1)),var(--viz-series-3,var(--brand-s3)));margin-top:2px}
 h1{font-size:18px;font-weight:700;letter-spacing:.2px;line-height:1.4}
-.sub{font-size:12.5px;color:var(--c-ink-2);margin-top:3px}
+.sub{font-size:12.5px;color:var(--viz-text-muted,var(--brand-muted));margin-top:3px}
 .stage{position:relative;width:100%;margin:8px 0 2px}
 .stage svg{display:block;width:100%;height:auto}
-.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:6px 0 4px;font-size:12px;color:var(--c-ink-2)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:6px 0 4px;font-size:12px;color:var(--viz-text-muted,var(--brand-muted))}
 .legend .lg{display:inline-flex;align-items:center;gap:6px}
 .legend .dot{width:10px;height:10px;border-radius:3px;flex:none}
-footer{margin-top:4px;padding-top:9px;border-top:1px dashed var(--c-line);font-size:11.5px;color:var(--c-ink-3);display:flex;flex-wrap:wrap;gap:3px 16px;line-height:1.5}
-footer b{color:var(--c-ink-2);font-weight:600}
-.tip{position:fixed;pointer-events:none;background:rgba(33,27,77,.96);color:#fff;font-size:12px;padding:9px 12px;border-radius:10px;max-width:300px;line-height:1.55;opacity:0;transition:opacity .12s;z-index:99;box-shadow:0 10px 26px -10px rgba(33,27,77,.45)}
+footer{margin-top:4px;padding-top:9px;border-top:1px dashed var(--viz-border,var(--brand-border));font-size:11.5px;color:var(--viz-text-muted,var(--brand-faint));display:flex;flex-wrap:wrap;gap:3px 16px;line-height:1.5}
+footer b{color:var(--viz-text-muted,var(--brand-muted));font-weight:600}
+.tip{position:fixed;pointer-events:none;background:rgba(2,10,26,.94);color:var(--viz-background,#f4f5f7);font-size:12px;padding:9px 12px;border-radius:10px;max-width:300px;line-height:1.55;opacity:0;transition:opacity .12s;z-index:99;box-shadow:0 10px 26px -10px rgba(2,10,26,.45)}
+@supports (color: color-mix(in srgb, red, transparent)){
+  .tip{background:color-mix(in srgb, var(--viz-text,var(--brand-text)) 94%, transparent)}
+}
 .tip.on{opacity:1}
-.tip .tt{font-weight:700;margin-bottom:2px;color:#c7c3ff}
+.tip .tt{font-weight:700;margin-bottom:2px;color:var(--viz-info,#7da6ff)}
 </style>
 
 <div class="chart">
@@ -51,7 +51,7 @@ footer b{color:var(--c-ink-2);font-weight:600}
    适用：混合/不同试验、且终点没有时间维度（如 ORR、缓解率等单值终点）。
    bars[]：
      label  显示名（试验+治疗组）；value 终点数值；ci 置信区间文本（可空）；
-     series 取色索引（0..5，对应 --c-s1..s6，缺省 0）；note 悬停补充说明。
+     series 取色索引（0..4，对应 --viz-series-1..5，缺省 0）；note 悬停补充说明。
 */
 const CHART = {
   title: "客观缓解率（ORR）对比",
@@ -69,7 +69,10 @@ const CHART = {
 
 /* ===================== 渲染区（模板逻辑，勿改） ===================== */
 (function(){
-  var SERIES = ["#4f46e5","#7c3aed","#a855f7","#6366f1","#c084fc","#8b5cf6"];
+  // 读取宿主注入的 --viz-* token（未注入时用品牌 hex fallback）
+  function viz(name, fb){ var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim(); return v || fb; }
+  // 系列色表：--viz-series-1..5
+  var S = [viz("--viz-series-1","#3d7eff"), viz("--viz-series-2","#7c3aed"), viz("--viz-series-3","#0ea5e9"), viz("--viz-series-4","#14b8a6"), viz("--viz-series-5","#f59e0b")];
   var bars = CHART.bars || [], n = bars.length;
   var W = 900;
   var rowH = Math.max(30, Math.min(62, 980 / n));
@@ -89,13 +92,17 @@ const CHART = {
   svg.setAttribute("viewBox", "0 0 " + W + " " + H);
   svg.setAttribute("role", "img");
 
+  var border = viz("--viz-border", "#DADEE6");
+  var faint = viz("--viz-text-muted", "#8993a4");
+  var ink = viz("--viz-text", "#020A1A");
+
   // 网格（竖线）+ 数值刻度（底部横轴，不与左侧组别标签重叠）
   var g = document.createElementNS(NS, "g");
   var ticks = [0, 0.25, 0.5, 0.75, 1];
   ticks.forEach(function(t){
     var x = padL + plotW * t, v = (maxV * t).toFixed(1);
-    g.innerHTML += '<line x1="' + x + '" y1="' + padT + '" x2="' + x + '" y2="' + (padT + plotH) + '" stroke="#e6e3f4" stroke-width="1"/>' +
-      '<text x="' + x + '" y="' + (padT + plotH + 16) + '" text-anchor="middle" font-size="11" fill="#8b87ad">' + v + '</text>';
+    g.innerHTML += '<line x1="' + x + '" y1="' + padT + '" x2="' + x + '" y2="' + (padT + plotH) + '" stroke="' + border + '" stroke-width="1"/>' +
+      '<text x="' + x + '" y="' + (padT + plotH + 16) + '" text-anchor="middle" font-size="11" fill="' + faint + '">' + v + '</text>';
   });
   svg.appendChild(g);
 
@@ -104,21 +111,21 @@ const CHART = {
   var showCi = rowH >= 46;
   var labelFs = rowH < 42 ? 11 : 12.5;
   var gf = document.createElementNS(NS, "linearGradient"); gf.id = "gradBar"; gf.setAttribute("x1","0"); gf.setAttribute("y1","0"); gf.setAttribute("x2","1"); gf.setAttribute("y2","0");
-  gf.innerHTML = '<stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#7c3aed"/>'; svg.appendChild(gf);
+  gf.innerHTML = '<stop offset="0" stop-color="' + S[0] + '"/><stop offset="1" stop-color="' + S[1] + '"/>'; svg.appendChild(gf);
 
   bars.forEach(function(b, i){
     var y = padT + i * rowH + (rowH - barH) / 2;
     var bw = Math.max(plotW * (b.value / maxV), 3);
-    var color = SERIES[(b.series != null ? b.series : 0) % SERIES.length];
+    var color = S[(b.series != null ? b.series : 0) % S.length];
     var node = document.createElementNS(NS, "g");
     node.style.cursor = "pointer";
     node.innerHTML =
       '<rect x="' + padL + '" y="' + y + '" width="' + plotW + '" height="' + barH + '" rx="' + (barH/2) + '" fill="' + color + '" opacity=".10"/>' +
       '<rect x="' + padL + '" y="' + y + '" width="' + bw + '" height="' + barH + '" rx="' + (barH/2) + '" fill="' + color + '" opacity=".92"/>' +
       '<rect x="' + padL + '" y="' + y + '" width="' + bw + '" height="' + (barH/2) + '" rx="' + (barH/2) + '" fill="#fff" opacity=".22"/>' +
-      '<text x="' + (padL-12) + '" y="' + (y + barH/2 + 4) + '" text-anchor="end" font-size="' + labelFs + '" fill="#211b4d" font-weight="600">' + esc(b.label) + '</text>' +
+      '<text x="' + (padL-12) + '" y="' + (y + barH/2 + 4) + '" text-anchor="end" font-size="' + labelFs + '" fill="' + ink + '" font-weight="600">' + esc(b.label) + '</text>' +
       '<text x="' + (padL + bw + 10) + '" y="' + (y + barH/2 + 5) + '" font-size="14" font-weight="700" fill="' + color + '">' + esc(b.value) + esc(CHART.unit||"") + '</text>' +
-      (b.ci && showCi ? '<text x="' + (padL + bw + 10) + '" y="' + (y + barH/2 + 20) + '" font-size="10.5" fill="#8b87ad">' + esc(b.ci) + '</text>' : "");
+      (b.ci && showCi ? '<text x="' + (padL + bw + 10) + '" y="' + (y + barH/2 + 20) + '" font-size="10.5" fill="' + faint + '">' + esc(b.ci) + '</text>' : "");
     node.addEventListener("mouseenter", function(){ showTip(b, b.value); });
     node.addEventListener("mousemove", moveTip);
     node.addEventListener("mouseleave", hideTip);
@@ -130,7 +137,7 @@ const CHART = {
   function showTip(b, v){
     var t = document.getElementById("tip");
     t.innerHTML = '<div class="tt">' + esc(b.label) + '</div>' +
-      '<div style="color:#c7c3ff;font-weight:600">' + esc(v) + esc(CHART.unit||"") + '</div>' +
+      '<div style="color:' + viz("--viz-info", "#7da6ff") + ';font-weight:600">' + esc(v) + esc(CHART.unit||"") + '</div>' +
       (b.ci ? '<div>' + esc(b.ci) + '</div>' : "") +
       (b.note ? '<div>' + esc(b.note) + '</div>' : "");
     t.classList.add("on");
