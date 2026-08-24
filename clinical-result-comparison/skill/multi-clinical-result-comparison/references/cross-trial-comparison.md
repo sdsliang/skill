@@ -137,7 +137,7 @@ The report must contain, in comparison-first order:
 
 1. a one-sentence overall verdict (who is favored on what, with strength and boundary);
 2. the scope and clinical-question clusters;
-3. a core-endpoint snapshot table per cluster (with a Mermaid chart only when the chart contract below passes, otherwise a concise no-chart reason);
+3. a core-endpoint snapshot table per cluster (with an HTML chart from `templates/charts/` only when the chart contract below passes, otherwise a concise no-chart reason);
 4. a compact trial-context table (one row per trial);
 5. outcome-domain alignment tables (efficacy, safety, PK/PD, PRO — one per reported domain, with explicit information gaps);
 6. dimension-specific judgments (who is favored on each dimension, with strength);
@@ -146,14 +146,16 @@ The report must contain, in comparison-first order:
 
 ## Chart contract (descriptive only)
 
-The snapshot may include a Mermaid `xychart-beta` chart only when all plotted values are explicitly reported numbers with a single unit, direction, population, analysis set, and time frame, and the Mermaid syntax is valid. Chart rules:
+The snapshot may include an HTML chart from `templates/charts/` (see `references/chart-templates.md`) only when all plotted values are explicitly reported numbers with a single unit, direction, population, analysis set, and time frame. Chart rules:
 
-- quote category labels; data arrays contain numbers only (never `未报告`, NR, NE, ranges, CIs, or `%` strings);
+- single-value endpoints (ORR-like) use `endpoint-bar.html`; time-series endpoints (weight/PFS/OS over time) use `endpoint-line.html`;
+- copy the template to a product file, edit only the `CHART` data object, and reference it in the body with `::visualization[标题]{path="..."}`; do not alter the render code;
+- data arrays contain numbers only (never `未报告`, NR, NE, ranges, CIs, or `%` strings inside the render arrays);
 - one unit and one endpoint direction per chart;
-- y-axis range includes all plotted values without clipping or exaggerating a narrow difference;
+- axis range includes all plotted values without clipping or exaggerating a narrow difference;
 - state series identity in adjacent text and show every point in the exact-value table;
 - do not assume zero as a baseline unless reported;
-- never emit a Mermaid fence with template placeholders; if any requirement fails, remove the entire fence and state the reason.
+- never emit a chart with template placeholders or with the render code changed; if any requirement fails, omit the chart and state the reason. No Mermaid output.
 
 Charts are descriptive evidence views, not head-to-head proof, rankings, or pooled analyses. They never replace the exact-value table or the domain alignment.
 

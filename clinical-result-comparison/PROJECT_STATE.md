@@ -16,8 +16,22 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 
 ## Current version
 
-- System prompt: `v0.7`
-- Skill: `multi-clinical-result-comparison` trial-level synthesis `v0.7`
+- System prompt: `v0.8`
+- Skill: `multi-clinical-result-comparison` trial-level synthesis `v0.8`
+
+## v0.8 change: 图表统一走 HTML 可视化（全面移除 Mermaid）
+
+- 决策（用户明确）：时间轴与跨试验图都不再输出 Mermaid，统一用 `templates/charts/` 的 HTML 模板 + 正文 `::visualization[标题]{path="..."}` 引用（workspace 文件 + 引用通道）。
+- `references/timeline-diagram.md` 重写：交付方式改为复制 `evidence-timeline.html` → 只改 `CHART` 数据 → `::visualization` 独占一行引用；**节点语义明确为 events[] 一条=一个证据状态**（同状态多篇披露合并为一节点，`note` 并列 `{{ref_n}}`，不构成独立验证）；保留原规则（数据截止→随访→分析里程碑→披露日期排序、时间未明不猜测、成熟度边界、回退规则=仅 1 个状态或先后不确定时不生成图）。删除 Mermaid 结构模板/示例，改为 TRAIN-2 数据填写示例。
+- `references/chart-templates.md`：events[] 语义同步为“一条=一个证据状态”；版本边界改“全部图表随 v0.8 生效、不再输出 Mermaid”。
+- `references/cross-trial-comparison.md`：Chart contract 从 Mermaid `xychart-beta` 改为 HTML 模板（单值→`endpoint-bar.html`，时间序列→`endpoint-line.html`）+ `::visualization` 引用。
+- 模板 `unified-evidence-report.md` / `mixed-comparison-report.md` / `cross-trial-report.md`、`SKILL.md`、`templates/charts/evidence-timeline.html`（注释）同步更新。
+- 新增 `system-prompts/multi-clinical-result-comparison-v0.8.md`（基于 v0.7，时间轴/定量图段改为 HTML；3 处 mermaid 均为禁止性表述“不输出 Mermaid”）。历史 v0.3–v0.7 提示词保留为快照。
+- README：v0.8 段 + 文件描述（timeline-diagram 改 HTML、zip 改 v0.8）+ Tool Smith configuration 改 v0.8。
+- 重建 `dist/multi-clinical-result-comparison-v0.8.zip`（18 文件，同 v0.7 结构）。
+- 示例：TRAIN-2（`evals/iteration-16/np-clinical-nct01996267/`）`report.md` 的 Mermaid 块替换为 `::visualization` 引用；`train2-evidence-timeline.html/.png` 重生成（3 状态+里程碑，每条=一个证据状态）。report 校验：标记双向一致、连续、无 Mermaid 残留。
+- 验证：`node evals/validate-v05-contract.mjs` → `v0.5_contract_ok` 保持绿。
+- ⚠️ 待办：`::visualization` 在 Tool Smith 正文中的渲染支持尚未在真实环境验证（此前 Mermaid 走渲染器原生渲染）；若正文不支持，需降级为“文字+表格+下载链接”。下次与开发者对齐时确认。
 
 ## v0.7 change: attachment-based input（每条结果一个附件文件）
 

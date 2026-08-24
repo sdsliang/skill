@@ -17,10 +17,10 @@ Tool Smith project assets for reconstructing complete trial interpretations from
 
 ## Files
 
-- `system-prompts/multi-clinical-result-comparison-v0.7.md`: Tool Smith project system prompt for trial-level evidence synthesis (current; attachment-based input).
+- `system-prompts/multi-clinical-result-comparison-v0.8.md`: Tool Smith project system prompt for trial-level evidence synthesis (current; attachment-based input, HTML visualizations).
 - `skill/multi-clinical-result-comparison/`: runtime Skill, evidence-chain references, citation contract, and report template.
 - `skill/multi-clinical-result-comparison/templates/unified-evidence-report.md`: single-trial consumer-facing report structure.
-- `skill/multi-clinical-result-comparison/references/timeline-diagram.md`: construction rules for the evidence-chain Mermaid timeline diagram (same-trial, ≥2 distinct evidence states).
+- `skill/multi-clinical-result-comparison/references/timeline-diagram.md`: construction rules for the evidence-chain timeline as an HTML visualization (same-trial, ≥2 distinct evidence states) built on `templates/charts/evidence-timeline.html` with `::visualization` references; no Mermaid.
 - `skill/multi-clinical-result-comparison/templates/cross-trial-report.md`: comparison-first, domain-aligned report structure for multiple independent trials (efficacy, safety, PK/PD, PRO).
 - `skill/multi-clinical-result-comparison/references/input-contract.md`: `np_clinical` lookup, per-source attachment file layout, delivery limits, Agent reading protocol, and frontend marker rendering contract.
 - `skill/multi-clinical-result-comparison/references/citation-and-ref.md`: inline marker, metadata, and separate JSON citation contract.
@@ -36,7 +36,12 @@ Tool Smith project assets for reconstructing complete trial interpretations from
 - `evals/fixtures/nct05840016-selected-results.json`: live `np_clinical` example fetched by `base.nct_id = NCT05840016`, containing four HARMONi-6 source objects.
 - `evals/iteration-11-harmoni6-trial-synthesis.md`: v0.4 hand-authored trial-level regression report with inline Refs.
 - `evals/iteration-12/harmoni6/report-v2.md`: local Skill execution regression report; the v2 rerun verifies proper-name fidelity.
-- `dist/multi-clinical-result-comparison-v0.7.zip`: Tool Smith upload archive for the v0.7 Skill (attachment-based input), citation renderer, timeline diagram reference, and chart templates.
+- `dist/multi-clinical-result-comparison-v0.8.zip`: Tool Smith upload archive for the v0.8 Skill (attachment-based input, HTML visualization path), citation renderer, timeline diagram reference, and chart templates.
+
+## v0.8 changes
+
+- All charts (same-trial evidence timeline and cross-trial bar/line) moved from Mermaid to **HTML templates + `::visualization` references**. `references/timeline-diagram.md` rewritten to build the timeline from `templates/charts/evidence-timeline.html` (one event per evidence state, merging duplicate disclosures; `::visualization[标题]{path="..."}` on its own line above the timeline table); `references/cross-trial-comparison.md` chart contract now uses `endpoint-bar.html`/`endpoint-line.html`; templates `unified-evidence-report.md`, `mixed-comparison-report.md`, `cross-trial-report.md`, `SKILL.md`, and `system-prompts/multi-clinical-result-comparison-v0.8.md` updated. No Mermaid output anywhere.
+- New system prompt `system-prompts/multi-clinical-result-comparison-v0.8.md`; historical v0.3–v0.7 prompts remain as snapshots.
 
 ## v0.7 changes
 
@@ -51,6 +56,6 @@ Tool Smith project assets for reconstructing complete trial interpretations from
 
 ## Tool Smith configuration
 
-Use the v0.7 system prompt and updated Skill family. Bind no legacy single-result Skill or knowledge runtime. The backend must normalize `np_clinical` records to the four-field consumer shape and write one `.md` attachment file per selected source before the run; the frontend attaches the files. Benchmark cases should verify trial identity, source-state deduplication, chronology, marker coverage (markers match attached-file order), exact URL and release-time preservation, valid separate citation JSON, the evidence-chain timeline diagram (when applicable), and complete efficacy/safety-chain interpretation. Run `node evals/validate-v05-contract.mjs` for the local contract check and `node evals/fetch-np-clinical-attachments.mjs <dir> <size>` to produce a reproducible attachment batch.
+Use the v0.8 system prompt and updated Skill family. Bind no legacy single-result Skill or knowledge runtime. The backend must normalize `np_clinical` records to the four-field consumer shape and write one `.md` attachment file per selected source before the run; the frontend attaches the files. Benchmark cases should verify trial identity, source-state deduplication, chronology, marker coverage (markers match attached-file order), exact URL and release-time preservation, valid separate citation JSON, the evidence-chain timeline diagram (when applicable), and complete efficacy/safety-chain interpretation. Run `node evals/validate-v05-contract.mjs` for the local contract check and `node evals/fetch-np-clinical-attachments.mjs <dir> <size>` to produce a reproducible attachment batch.
 
 The product and backend own token counting and request rejection before the Agent run. The Agent must never silently truncate accepted source text.
