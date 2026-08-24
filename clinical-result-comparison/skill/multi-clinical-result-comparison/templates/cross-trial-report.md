@@ -13,7 +13,7 @@
 
 ## 二、核心终点速览
 
-为每个临床问题组选出最重要且可对齐的核心终点，用于快速查看。只展示描述性结果；图表仅在满足绘图契约时插入，否则给出不绘图或有限并列原因。
+为每个临床问题组选出最重要且可对齐的核心终点，用于快速查看。只展示描述性结果；图表仅在满足绘图契约时插入，否则给出不绘图或有限并列原因。**时间维度优先：** 若核心终点含同一队列多时点/OLE 长期随访，用折线图（`endpoint-line.html`）作主线；单时点单值终点才用柱状图（`endpoint-bar.html`）并列。
 
 ### [临床问题组/适应症]
 
@@ -26,7 +26,7 @@
 | 试验 A | | | | | | |
 | 试验 B | | | | | | |
 
-[仅在图表条件全部满足时，在此处用 `::visualization[标题]{path="/workspace/visualizations/xxx.html"}`（绝对路径，先写文件再引用）独占一行引用 HTML 图表（单值终点→`endpoint-bar.html`，时间序列→`endpoint-line.html`；成品为 HTML fragment，不带文档包裹标签，勿用含 `<head` 前缀的标签，保留模板 `<div class="header">`）；图表后保留上表并补充一至两句可比性说明。]
+[仅在图表条件全部满足时，在此处用 `::visualization[标题]{path="/workspace/visualizations/xxx.html"}`（绝对路径，先写文件再引用）独占一行引用 HTML 图表：时间维度终点（同队列多时点/OLE）→`endpoint-line.html` 折线图（series=队列、points=已披露时点，只连同研究同队列同终点，不跨研究连线；单时点→单点模式；无对照单臂注明），单值终点→`endpoint-bar.html` 柱状图（成品为 HTML fragment，不带文档包裹标签，勿用含 `<head` 前缀的标签，保留模板 `<div class="header">`）；图表后保留上表并补充一至两句可比性说明。]
 
 ## 三、试验背景（紧凑，每个试验一行）
 

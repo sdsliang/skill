@@ -119,7 +119,9 @@ For numeric tables, put the marker in the same cell as the number or in a dedica
 
 ### 6. Mixed inputs
 
-For multiple unrelated trials, the primary deliverable is a **cross-trial comparison aligned by outcome domain** (efficacy, safety, PK/PD, PRO) that helps the user judge which treatment is better or worse. Build the comparison first: cluster by clinical question, then align each outcome domain across trials with one compact trial-context block per trial as support. Never fabricate a head-to-head proof or pool results; every per-cluster who-is-better judgment carries an explicit comparability/evidence-strength label. A comparison claim must cite the sources for the trials it compares. See `references/cross-trial-comparison.md`. When the comparison is grouped by clinical question and single-value endpoints are compatible, produce **one `endpoint-bar.html` chart per group** (each group its own product file; plot that group's experimental-arm values side by side; study-internal comparators and boundaries go into the chart hover notes; title/subtitle state 跨试验并列展示≠头对头比较); never merge different groups into one chart, and groups that fail the compatibility conditions get no chart (reason stated in the table).
+For multiple unrelated trials, the primary deliverable is a **cross-trial comparison aligned by outcome domain** (efficacy, safety, PK/PD, PRO) that helps the user judge which treatment is better or worse. Build the comparison first: cluster by clinical question, then align each outcome domain across trials with one compact trial-context block per trial as support. Never fabricate a head-to-head proof or pool results; every per-cluster who-is-better judgment carries an explicit comparability/evidence-strength label. A comparison claim must cite the sources for the trials it compares. See `references/cross-trial-comparison.md`.
+
+**时间维度优先（硬规则，先判时间维再判横截面）：** 当数据以长期随访/多时点披露为主（OLE 开放标签延展、同一研究同一队列 ≥2 个已披露时点、停药后复发等）时，图表主线用**折线图 `endpoint-line.html`**（`series`=队列/治疗组，`points`=已披露时点），只连线同一研究、同一队列、同一终点的时点，不跨研究/不跨队列/不跨人群连线，不插值、不补点、不外推；单时点披露用模板单点模式；无对照单臂（如婴幼儿外用药）也按时间维度画折线，但标题/说明注明「单臂无对照，仅描述随时间变化」。横截面单值终点（ORR、EASI-75 等单时点应答率）才用柱状图：按临床问题分组时，产生 **one `endpoint-bar.html` chart per group** (each group its own product file; plot that group's experimental-arm values side by side; study-internal comparators and boundaries go into the chart hover notes; title/subtitle state 跨试验并列展示≠头对头比较); never merge different groups into one chart, and groups that fail the compatibility conditions get no chart (reason stated in the table). 同一证据状态内既有单值对比又有时间维度的，时间维度折线优先呈现，单值柱状作为组间对照补充。
 
 ## Required distinctions
 
@@ -130,6 +132,7 @@ For multiple unrelated trials, the primary deliverable is a **cross-trial compar
 - Statistical significance versus clinical meaning.
 - Subgroup consistency versus proof of treatment interaction.
 - More mature evidence versus independently replicated evidence.
+- A within-cohort time course (same study/cohort/endpoint multi-time-point, connectable as a line) versus cross-trial or cross-cohort snapshots (never connected into a trend).
 - Unreported safety versus absence of safety risk.
 - Source interpretation versus agent synthesis.
 - Source-supplied proper name versus invented translation or normalization.

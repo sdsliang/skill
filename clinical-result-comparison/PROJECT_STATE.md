@@ -100,6 +100,26 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - Cross-trial reports use one global marker namespace in input order and one shared separate citation JSON artifact for the complete response. Markers do not restart at each trial boundary. Separate independently requested reports may use separate local namespaces.
 - The citation renderer supports multiple trial sections, accepts a separate citation JSON object, validates marker/key parity, and makes only the numeric superscript clickable. Generic Markdown autolinking must not receive the citation JSON.
 
+## 50 试验跨试验跑批（2026-08-24）
+- 输入：`evals/iteration-16/np-clinical-nsclc-50/`（50 个 NSCLC 随机试验 source，2000–2013，gitignored 示例）。
+- 用当前 v0.8 skill 契约跑：按临床问题分 7 组（组A 一线化疗 ORR / 组B 一线抗血管 ORR / 组C 一线 EGFR TKI 中位PFS / 组D 二线 ORR / 组E 维持 PFS / 组F 辅助 5年OS / 组G 放疗不可比不出图），每组一图（endpoint-bar）。
+- 产出：`np-clinical-nsclc-50/report.md`（跨试验报告，每组表格+`::visualization`+可比性说明，{{ref_n}} 追踪）、`report.refs.json`（ref_1..50）、`charts/nsclc50-group-*.html/.png`（6 张图，fragment 校验全 OK）。
+- 关键结论：EGFR 突变一线 TKI 较化疗 PFS 方向一致且显著；含铂双药方向普遍优于单药/非铂；二线无综合胜者（TKI 人群富集 ORR 高不可跨类别解读）；维持各研究内均 PFS 获益。
+- 子代理并行提取（5×10 文件，JSON 到 /tmp/nsclc50-extract/），抽查关键原文核对无偏差。
+
+## 特应性皮炎 50 条跑批（2026-08-24）
+- 用户给定新 query（indications.id=579 + trial_phase.id=9567bdf8567c48c3b5368659e63b12f7 + 排除删除）拉 np_clinical：total=100，拉 50 条 usable。
+- id 579 = 特应性皮炎（非肿瘤），2013–2024，生物/JAK 时代；与 NSCLC 批次不同，重复披露多（OLE/亚组/PRO/特殊人群），主结果仅 7 条。
+- 输出：`evals/iteration-16/np-clinical-ind579-phase3-50/`（manifest + source-001..050 + report.md + report.refs.json + charts/ 3 张 EASI-75 柱状图）。
+- 分组按靶点通路：组A dupilumab/IL-4R、组B IL-13 单抗、组C 口服 JAK、组D 外用（不出图）、组E nemolizumab（瘙痒终点不出图）、组G 传统/基础（不出图）。同主试验多披露合并（PRESCHOOL/PED-OLE/JP01/AD3/AD7/EXTEND）为一个证据状态。
+- 拉取脚本：`/tmp/fetch-np-user-query.mjs`（可复用，接 query 拉任意条件）；子代理 5×10 提取到 /tmp/ind579-extract/。
+
+## 时间维度优先折线图契约（2026-08-24 用户确认，v0.8 修订）
+- **触发**：AD 批次首版交付全用柱状图（横截面 16 周 EASI-75），用户指出时间维度（OLE 长期随访/多时点）才是这批核心，应优先用折线图。
+- **硬规则（固化进 skill）**：先判时间维度再判横截面——同一研究+同一队列+同一终点 ≥2 个已披露时点（OLE 延展、多时点、停药复发）→ 优先 `endpoint-line.html` 折线图（series=队列、points=已披露时点）；只连线同研究/同队列/同终点，**不跨研究/不跨队列/不跨人群连线**；不插值/补点/外推；单时点披露用单点模式；无对照单臂（婴幼儿外用药等）也可画折线但注明「单臂无对照，仅描述随时间变化」。横截面单值终点（ORR/EASI-75 单时点应答率）才用 `endpoint-bar.html` 柱状图，作组间对照补充。
+- **同步文件**：`SKILL.md`（§6 时间维度优先 + Required distinction「同队列时间过程 vs 跨试验横截面快照」）、`references/chart-templates.md`（选型表 + 新增「时间维度优先判定」小节）、`references/cross-trial-comparison.md`（Chart contract time-dimension-first 条款）、`references/same-trial-evolution.md`（区分定量时点折线图 vs 证据链时间轴）、`templates/mixed-comparison-report.md`、`templates/cross-trial-report.md`、`system-prompts/multi-clinical-result-comparison-v0.8.md`（120 行补时间维度优先条款）。dist zip 重建（18 文件字节一致）、`validate-v05-contract.mjs` green。
+- **AD 交付重写**：`np-clinical-ind579-phase3-50/` 新增 4 张时间维度折线图——`ad-line-baricitinib-breeze-ad3-ole`（4mg/2mg EASI-75 W16→W68）、`ad-line-delgocitinib-infant-measi`（mEASI 变化 W4/28/52 单臂）、`ad-line-difamilast-infant`（EASI-75/IGA W1→W4→中期单臂）、`ad-line-nemolizumab-ole`（W68 单点模式）；report.md 重写为「时间维度折线（主线）→ 横截面 EASI-75 柱状（组间对照补充）」结构，共 7 图；全部 DOM 验证 + fragment 校验 OK。
+
 ## Pending verification (next week, with Tool Smith developer)
 
 - **Input delivery (batch-2 待问 ④⑤)**: 20–50 附件跨消息投递——前端是否自动拆成 10/条？跨消息附件是否全部进 `/workspace/uploads/` 且主 Agent 一次 run 都能读到？50 个全文真实读取的 token 实测（读全是否顶爆上下文；缓解：按需读 / 只读元数据 / 子代理分包）。
