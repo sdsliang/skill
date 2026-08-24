@@ -1,9 +1,4 @@
-<!doctype html>
-<html lang="zh-CN">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>终点对比 · 柱状图</title>
+<!-- HTML fragment（Tool Smith 可视化交付格式）：仅内容 + <style> + <script>，无文档级包裹标签 -->
 <style>
 /* ===== 蓝紫色系色板（复制自 chart-tokens.css；接入 --viz-* 时整体替换 :root） ===== */
 :root{
@@ -33,8 +28,7 @@ footer b{color:var(--c-ink-2);font-weight:600}
 .tip.on{opacity:1}
 .tip .tt{font-weight:700;margin-bottom:2px;color:#c7c3ff}
 </style>
-</head>
-<body>
+
 <div class="chart">
   <header>
     <span class="accent"></span>
@@ -150,5 +144,3 @@ const CHART = {
   function hideTip(){ document.getElementById("tip").classList.remove("on"); }
 })();
 </script>
-</body>
-</html>
