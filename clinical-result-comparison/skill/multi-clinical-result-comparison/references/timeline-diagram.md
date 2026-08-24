@@ -56,4 +56,4 @@ const CHART = {
 };
 ```
 
-按此填写后保存为 `xxx-evidence-timeline.html`（ASCII 文件名，写入 `/workspace/visualizations/`；**HTML fragment 格式**，不含 doctype/html/head/body 文档包裹，模板已提供），正文用 `::visualization[标题]{path="/workspace/visualizations/xxx-evidence-timeline.html"}` 绝对路径引用，并始终保留精确数值的时间线表格。
+按此填写后保存为 `xxx-evidence-timeline.html`（ASCII 文件名，写入 `/workspace/visualizations/`；**HTML fragment 格式**，不含 doctype/html/head/body 文档包裹，模板已提供；⚠️ Tool Smith 对全文做子串匹配校验 `<!doctype`/`<html`/`<head`/`<body`，任何位置命中即失败——不要用含 `<head` 前缀的标签（如 header），保留模板的 `<div class="header">`），正文用 `::visualization[标题]{path="/workspace/visualizations/xxx-evidence-timeline.html"}` 绝对路径引用，并始终保留精确数值的时间线表格。

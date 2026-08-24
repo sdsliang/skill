@@ -29,7 +29,7 @@
 
 ## 三、证据链总览与时间线
 
-**时间轴图：** 在同一试验、合并后 ≥2 个真正不同证据状态时，在此处、时间线表格上方用 `::visualization[标题]{path="/workspace/visualizations/xxx-evidence-timeline.html"}` 独占一行引用证据链时间轴图（**绝对路径**，先写文件再引用；按 `references/timeline-diagram.md` 构建）：复制 `templates/charts/evidence-timeline.html`，只改 `CHART` 数据（每节点一个证据状态：状态名+分析阶段/披露形式、核心数值、关键新增与 `{{ref_n}}`、来源支持时间；同状态多披露合并为一节点），图前后保留解释文字与标记；时间未明写“时间未明”，不得猜测。只有 1 个证据状态或先后无法确定时不生成图，仅保留表格并说明顺序不确定。图是描述性示意，不替代下方精确数值表。不输出 Mermaid 代码块。
+**时间轴图：** 在同一试验、合并后 ≥2 个真正不同证据状态时，在此处、时间线表格上方用 `::visualization[标题]{path="/workspace/visualizations/xxx-evidence-timeline.html"}` 独占一行引用证据链时间轴图（**绝对路径**，先写文件再引用；按 `references/timeline-diagram.md` 构建）：复制 `templates/charts/evidence-timeline.html`，只改 `CHART` 数据（每节点一个证据状态：状态名+分析阶段/披露形式、核心数值、关键新增与 `{{ref_n}}`、来源支持时间；同状态多披露合并为一节点），图前后保留解释文字与标记；时间未明写“时间未明”，不得猜测。成品须为 HTML fragment：不带文档包裹标签，不要用含 `<head` 前缀的标签（如 header），保留模板 `<div class="header">`（详见 `references/chart-templates.md`）。只有 1 个证据状态或先后无法确定时不生成图，仅保留表格并说明顺序不确定。图是描述性示意，不替代下方精确数值表。不输出 Mermaid 代码块。
 
 | 证据状态 | 数据截止/随访/分析里程碑 | 本阶段新增的证据 | 相对前一状态的影响 | 支持来源 |
 |---|---|---|---|---|

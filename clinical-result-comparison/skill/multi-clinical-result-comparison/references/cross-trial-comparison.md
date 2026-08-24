@@ -149,7 +149,7 @@ The report must contain, in comparison-first order:
 The snapshot may include an HTML chart from `templates/charts/` (see `references/chart-templates.md`) only when all plotted values are explicitly reported numbers with a single unit, direction, population, analysis set, and time frame. Chart rules:
 
 - single-value endpoints (ORR-like) use `endpoint-bar.html`; time-series endpoints (weight/PFS/OS over time) use `endpoint-line.html`;
-- copy the template to a product file, edit only the `CHART` data object, write it to `/workspace/visualizations/` first, and reference it in the body with an absolute path `::visualization[标题]{path="/workspace/visualizations/xxx.html"}` on its own line; do not alter the render code;
+- copy the template to a product file, edit only the `CHART` data object, write it to `/workspace/visualizations/` first, and reference it in the body with an absolute path `::visualization[标题]{path="/workspace/visualizations/xxx.html"}` on its own line; the product file must remain an **HTML fragment** (no `<!doctype html>`/`<html>`/`<head>`/`<body>` wrapper; Tool Smith validates by substring match over the whole file — `<!doctype`/`<html`/`<head`/`<body` anywhere are rejected, so never use `<head`-prefixed tags such as `<header>`; keep the template's `<div class="header">`); do not alter the render code;
 - data arrays contain numbers only (never `未报告`, NR, NE, ranges, CIs, or `%` strings inside the render arrays);
 - one unit and one endpoint direction per chart;
 - axis range includes all plotted values without clipping or exaggerating a narrow difference;

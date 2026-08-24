@@ -26,7 +26,7 @@
 | 试验 A | | | | | | |
 | 试验 B | | | | | | |
 
-[仅在图表条件全部满足时，在此处用 `::visualization[标题]{path="/workspace/visualizations/xxx.html"}`（绝对路径，先写文件再引用）独占一行引用 HTML 图表（单值终点→`endpoint-bar.html`，时间序列→`endpoint-line.html`）；图表后保留上表并补充一至两句可比性说明。]
+[仅在图表条件全部满足时，在此处用 `::visualization[标题]{path="/workspace/visualizations/xxx.html"}`（绝对路径，先写文件再引用）独占一行引用 HTML 图表（单值终点→`endpoint-bar.html`，时间序列→`endpoint-line.html`；成品为 HTML fragment，不带文档包裹标签，勿用含 `<head` 前缀的标签，保留模板 `<div class="header">`）；图表后保留上表并补充一至两句可比性说明。]
 
 ## 三、试验背景（紧凑，每个试验一行）
 
