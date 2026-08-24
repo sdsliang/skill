@@ -30,6 +30,7 @@
 - 文件名用 ASCII 小写字母、数字、连字符（如 `train2-evidence-timeline.html`、`orr-comparison-endpoint-bar.html`），不使用子目录。
 - 引用必须出现在文件写入**之后**；HTML 文件上限 1 MiB。
 - 文件必须是 **HTML fragment**（Tool Smith 用隔离 iframe 的 fragment 渲染器注入，规则与内联 widget 相同）：**不含** `<!doctype html>`、`<html>`、`<head>`、`<body>`、`<meta>`、`<title>` 等文档级包裹；只保留 `<style>` + 内容 + `<script>`。模板已按此格式提供，成品不得再加回文档包裹标签。
+- ⚠️ Tool Smith 前端用**子串匹配**校验：`lower.includes('<!doctype') / '<html' / '<head' / '<body'`，对**全文**（含注释、CSS、script 字符串）任何位置命中即报“不是有效的 HTML/SVG fragment”。因此**不要使用 `<header>` 等含 `<head` 前缀的标签**（模板已用 `<div class="header">`）；CSS 选择器、注释、脚本字符串里也不要出现这些子串。
 - 正文始终保留 fallback（文字结论 + 精确数值表 + 下载链接），接入方不支持可视化时仍能完整理解结论。
 4. 数据填充约束：
    - `events[]`（时间轴模板）一条 = **一个证据状态**（同状态多篇披露合并为一节点，`note` 并列 `{{ref_n}}`），按来源支持的 数据截止→随访→分析里程碑→披露日期 排布（模板按数组顺序排布，不推断阶段/形式）。

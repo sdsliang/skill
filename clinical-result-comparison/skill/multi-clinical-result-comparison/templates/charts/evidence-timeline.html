@@ -13,7 +13,7 @@
 html,body{background:var(--c-wash)}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--c-ink);-webkit-font-smoothing:antialiased;padding:18px}
 .chart{background:var(--c-bg);border:1px solid var(--c-line);border-radius:18px;box-shadow:0 1px 2px rgba(79,70,229,.06),0 16px 40px -20px rgba(49,46,129,.18);padding:22px 26px 16px;max-width:940px;margin:0 auto}
-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px}
+.header{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px}
 .accent{flex:none;width:5px;height:36px;border-radius:4px;background:var(--c-grad);margin-top:2px}
 h1{font-size:18px;font-weight:700;letter-spacing:.2px;line-height:1.4}
 .sub{font-size:12.5px;color:var(--c-ink-2);margin-top:3px}
@@ -30,13 +30,13 @@ footer b{color:var(--c-ink-2);font-weight:600}
 </style>
 
 <div class="chart">
-  <header>
+  <div class="header">
     <span class="accent"></span>
     <div>
       <h1 id="title">证据链时间轴</h1>
       <div class="sub" id="subtitle"></div>
     </div>
-  </header>
+  </div>
   <div class="stage" id="stage"></div>
   <div class="legend" id="legend"></div>
   <footer>
