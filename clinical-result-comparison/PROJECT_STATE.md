@@ -46,6 +46,18 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - 防复发改动：新增可执行校验脚本 `templates/charts/validate-chart.py`（纯 Python，node 可用时额外做真 JS 语法校验）——检测 Tool Smith 禁用子串/结构、双 `{`、缺 `;`、花括号配对、CHART 字段、文件大小，FAIL 时输出行号 + 修复提示，供 Agent 修复后重跑；`references/chart-templates.md` 数据填充约束「5. ⚠️ 脚本批量填充与自检」改为指向该脚本（必跑，FAIL→修复→重跑直到 PASS）；系统提示词 `multi-clinical-result-comparison-v0.8.md` 定量图段落 + Final verification 均改为要求运行 `validate-chart.py`。`SKILL.md` 契约层未改。
 - 脚本自测：修复产物 3 份全 PASS；未修复坏文件准确报双 `{`（第 17 行）+ node SyntaxError（第 18 行）；缺分号场景由启发式报“未以 `};` 结尾”（node 不报因语法合法）；`<body` 禁用子串报第 1 行；三模板本体 PASS。
 - 重建 `dist/multi-clinical-result-comparison-v0.8.zip`（含更新后的 `chart-templates.md` + `validate-chart.py`，系统提示词不入 zip）。
+
+## v0.8.1 follow-up 2: 时间轴重设计（lieflat L11 语法延伸，去掉旗帜/成熟带矩形）
+
+- 背景（用户）：分享页（share `22a71675…`）时间轴「不知道三角形和长方形都是啥意味」——旧模板的竖矩形（旗面）+ 三角（旗杆）+ 底部横矩形（成熟度带）几何符号语义不明，且长标签/长日期两端溢出被裁（真实产物 TRAIN-2：首标签从 x=46 向左截断、末日期从 x=854 向右截断）。用户询问是否用了 lieflat skill。
+- 结论：lieflat 决策树有「事件序列生命史 → L11 Trend Lineage」，为最接近组件；上轮未去 gallery 找对口实现而是沿用旗帜造型，属疏漏。按 lieflat 规则第 3 条（无现成单试验时间轴 → 从 L11 现有语法延伸）重做。
+- 新版 `evidence-timeline.html`（仅改渲染区，CHART 结构/契约不变）：
+  - 语义：圆点=事件节点（**实心=披露/更新、空心=里程碑锚点**），圆点**直接坐基线**（时间轴即证据链），**圆点大小=证据成熟度**（phase 0..4 → r 6.5..11.3）；数值**横排在圆点右侧**（末节点放左侧防溢出）；无矩形/三角/刻线。
+  - 动画：基线 draw（链式展开）、圆点 pop、文本 fade，reduced-motion 全关。
+  - 健壮性：标签/日期**自动折行**（按间距算每行字数）+ **端部锚定**（首节点左对齐、末节点右对齐）——彻底解决两端溢出与重叠。
+  - 契约不变：fragment（无 `<!doctype`/`<html`/`<head`/`<body` 子串）、`--viz-*` + violet fallback、确定性（无随机）。
+- 验证：validate-chart.py PASS；渲染 DOM dump 全坐标在 viewBox 内无溢出无重叠（圆点 y=200 坐线，r 递增，标签 2 行折行正常）；真实 TRAIN-2 数据产物校验 PASS。预览：`charts/timeline-v2-preview/`（产物 + wrapped + PNG）。
+- 文档同步：`chart-templates.md`（模板选型表、与 lieflat 关系改为 L11 语法延伸）、`timeline-diagram.md`（phase → 圆点大小递增）。系统提示词无视觉描述，未改。
 - 验证：`node --check` 三个脚本通过；禁用子串 grep 干净；headless Chrome 渲染 violet 色值/横档/旗/线均出；预览包在 `/home/xupeipeioo1/charts/skill-violet-redesign/`（wrapper + PNG）。
 - ⚠️ 待办：`::visualization` 正文渲染支持仍未在真实环境验证（延续 v0.8 待办，与开发者对齐时确认）。
 
