@@ -58,6 +58,10 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
   - 契约不变：fragment（无 `<!doctype`/`<html`/`<head`/`<body` 子串）、`--viz-*` + violet fallback、确定性（无随机）。
 - 验证：validate-chart.py PASS；渲染 DOM dump 全坐标在 viewBox 内无溢出无重叠（圆点 y=200 坐线，r 递增，标签 2 行折行正常）；真实 TRAIN-2 数据产物校验 PASS。预览：`charts/timeline-v2-preview/`（产物 + wrapped + PNG）。
 - 文档同步：`chart-templates.md`（模板选型表、与 lieflat 关系改为 L11 语法延伸）、`timeline-diagram.md`（phase → 圆点大小递增）。系统提示词无视觉描述，未改。
+
+### v0.8.1 follow-up 2 修订（用户复看："数值不要放在轴上，多整几行，注意对齐"）
+- 改 3 点：①数值不再横排在轴线（原 y=204 贴基线 200），改为**纵排多行**在圆点下方（`value` 支持 `\n` 手动分行 + 自动折行，每节点 ≤3 行）；②圆点从"坐基线"改为**悬浮于基线上方**（信息块与轴线分层，数值离开轴线、基线下方为日期）；③对齐：数值首行固定 `dotY+25` 各节点**顶对齐**（修复初版随 r 变化的 160/162/163 错位）、标签**底对齐**贴节点（2 行时 54/69）、日期首行固定 235。
+- 坐标（H=270）：标签 54/69 → 圆点 140 → 数值 165/181/197 → 基线 215 → 日期 235/249。校验 PASS；真实 TRAIN-2 产物 v3 + 截图：`charts/timeline-v2-preview/train2-evidence-timeline-v3(.html/-wrapped.html/.png)`。文档两处视觉描述同步（chart-templates.md、timeline-diagram.md）。
 - 验证：`node --check` 三个脚本通过；禁用子串 grep 干净；headless Chrome 渲染 violet 色值/横档/旗/线均出；预览包在 `/home/xupeipeioo1/charts/skill-violet-redesign/`（wrapper + PNG）。
 - ⚠️ 待办：`::visualization` 正文渲染支持仍未在真实环境验证（延续 v0.8 待办，与开发者对齐时确认）。
 

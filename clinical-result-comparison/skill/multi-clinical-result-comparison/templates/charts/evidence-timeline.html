@@ -1,8 +1,9 @@
 <!-- HTML fragment（Tool Smith 可视化交付格式）：仅内容 + <style> + <script>，无文档级包裹标签 -->
 <!-- 设计语言：lieflat-charts L11 Trend Lineage 语法延伸（violet 紫罗兰预设）
-     圆点=事件节点（实心=披露/更新，空心=里程碑锚点），圆点直接坐基线上（时间轴即证据链）
-     圆点大小=证据成熟度（phase），数值横排在圆点右侧（末节点放左侧），无矩形/三角/刻线
-     标签/日期自动折行 + 端部锚定（首节点左对齐、末节点右对齐）防溢出 -->
+     圆点=事件节点（实心=披露/更新，空心=里程碑锚点），圆点大小=证据成熟度（phase）
+     圆点悬浮于基线上方、数值纵排在圆点下方（离开轴线），基线下为日期 —— 信息块与轴线分层
+     标签/数值/日期均支持多行（value 支持 \n 手动分行 + 自动折行），按固定行距对齐
+     端部锚定（首节点左对齐、末节点右对齐）防溢出 -->
 <style>
 /* ===== 颜色全部引用宿主注入 --viz-*（fallback = lieflat violet 预设） ===== */
 :root{
@@ -60,9 +61,10 @@ svg text{font-family:inherit}
    不自行推断阶段/形式（数组顺序即时间顺序，模板不重排）。date 缺失时写“时间未明”，不得猜测日期。
    kind   ：图例键，见下方 legend；未命中图例时取主色 DATA。
    phase  ：证据链成熟度（0=里程碑/无，1..n 依次递增表示证据逐步成熟）→ 圆点越大越成熟；缺省 0。
-   value  ：该状态关键数值（可空）；note：悬停提示的补充说明 + {{ref_n}}。
+   value  ：该状态关键数值，支持 "行1\n行2" 多行（每行再自动折行，每节点最多 3 行）；可空。
+   note   ：悬停提示的补充说明 + {{ref_n}}。
    视觉：实心圆=披露/更新（有数值），空心圆=里程碑（无数值，仅时间锚点）；
-   圆点直接坐基线上（时间轴即证据链），数值横排在圆点右侧（末节点在左侧）；
+   圆点悬浮于基线上方，数值纵排在圆点下方（离开轴线），基线下为日期；
    颜色一律走 violet 单色系，不混入第二套色系。
    颜色：legend 的 color 填 Tool Smith 语义 token 名（如 "--viz-series-1"）或 hex。
 */
@@ -78,9 +80,9 @@ const CHART = {
   ],
   events: [
     { date:"2013-12 · 入组启动", label:"研究启动（里程碑）", kind:"milestone", phase:0, value:"", note:"2013-12-09 起入组、2016-01-14 完成；438 例 1:1 随机、荷兰 37 家中心{{ref_3}}" },
-    { date:"2016-08 · 披露", label:"早期毒性分析", kind:"disclosure", phase:1, value:"FN 9% vs 0%", note:"110 例早期子集：G3-4 中性粒细胞减少 53% vs 51%、无症状 LVEF 下降 G2 24% vs 11%、G3-4 腹泻 5% vs 18%{{ref_5}}" },
-    { date:"2017-03/2018-12 · 中位随访 19 个月", label:"pCR 主要分析 · 摘要/主刊", kind:"disclosure", phase:2, value:"pCR 67% vs 68%", note:"418 例可评估（蒽环 212 vs 非蒽环 206）；摘要 p=0.75、主刊 p=0.95，数值一致、统计量有出入{{ref_1}}{{ref_3}}" },
-    { date:"2020-05/2021-05 · 中位随访 48.8 个月", label:"3 年 EFS/OS 随访 · 摘要/主刊", kind:"update", phase:3, value:"EFS HR 0.90", note:"3 年 EFS 92.7% vs 93.6%、OS 97.7% vs 98.2%（95% CI 0.50-1.63）；蒽环组 2 例急性白血病；LVEF 下降蒽环组更多{{ref_2}}{{ref_4}}" }
+    { date:"2016-08 · 披露", label:"早期毒性分析", kind:"disclosure", phase:1, value:"FN 9% vs 0%\nG3-4 中性粒 53% vs 51%", note:"110 例早期子集：G3-4 中性粒细胞减少 53% vs 51%、无症状 LVEF 下降 G2 24% vs 11%、G3-4 腹泻 5% vs 18%{{ref_5}}" },
+    { date:"2017-03/2018-12 · 中位随访 19 个月", label:"pCR 主要分析 · 摘要/主刊", kind:"disclosure", phase:2, value:"pCR 67% vs 68%\n摘要 p=0.75 · 主刊 0.95", note:"418 例可评估（蒽环 212 vs 非蒽环 206）；摘要 p=0.75、主刊 p=0.95，数值一致、统计量有出入{{ref_1}}{{ref_3}}" },
+    { date:"2020-05/2021-05 · 中位随访 48.8 个月", label:"3 年 EFS/OS 随访 · 摘要/主刊", kind:"update", phase:3, value:"EFS HR 0.90\n95% CI 0.50–1.63", note:"3 年 EFS 92.7% vs 93.6%、OS 97.7% vs 98.2%（95% CI 0.50-1.63）；蒽环组 2 例急性白血病；LVEF 下降蒽环组更多{{ref_2}}{{ref_4}}" }
   ],
   chain: { show:true, label:"证据链成熟度" }
 };
@@ -88,10 +90,10 @@ const CHART = {
 /* ===================== 渲染区（模板逻辑，勿改） ===================== */
 (function(){
   var ev = CHART.events || [], n = ev.length;
-  var W = 920, H = 252;
+  var W = 920, H = 270;
   var padL = 44, padR = 44;
-  var baseY = 200;
-  var dotY = baseY; // 圆点直接坐基线上（时间轴即证据链）
+  var baseY = 215;   // 时间轴基线（最下方，发丝）
+  var dotY = 140;    // 圆点悬浮于基线上方，信息块与轴线分层
   var plotW = W - padL - padR;
   function x(i){ return padL + plotW * (n === 1 ? 0.5 : i / (n - 1)); }
   function esc(s){ return String(s == null ? "" : s).replace(/[<>&]/g, function(c){ return {"<":"&lt;",">":"&gt;","&":"&amp;"}[c]; }); }
@@ -105,8 +107,15 @@ const CHART = {
   }
   // 圆点半径 = 证据成熟度（phase 递增 → 更大，上限 4 档）
   function rad(e){ var p = (e.phase == null ? 0 : e.phase); return 6.5 + Math.min(Math.max(p, 0), 4) * 1.6; }
-  // 折行：按近似字符宽切行（中文近似等宽）
-  function wrap(s, per){ s = String(s == null ? "" : s); if (s.length <= per) return [s]; var a = [], i = 0; while (i < s.length){ a.push(s.slice(i, i + per)); i += per; if (a.length >= 3) break; } return a; }
+  // 折行：按近似字符宽切行（中文近似等宽），cap 为最大行数
+  function wrap(s, per, cap){ s = String(s == null ? "" : s); if (s.length <= per) return [s]; var a = [], i = 0; while (i < s.length){ a.push(s.slice(i, i + per)); i += per; if (a.length >= (cap || 3)) break; } return a; }
+  // 数值多行：先按 \n 手动分行，每段再自动折行，总数上限 3 行
+  function wrapValue(s, per){
+    s = String(s == null ? "" : s); if (!s) return [];
+    var out = [], segs = s.split("\n"), i, seg;
+    for (i = 0; i < segs.length; i++){ seg = segs[i]; if (!seg) continue; out = out.concat(wrap(seg, per, 3)); if (out.length >= 3) break; }
+    return out.slice(0, 3);
+  }
   // 端部锚定：首节点左对齐、末节点右对齐，中间居中 → 防两端溢出
   function anchorFor(i){ return i === 0 ? "start" : (i === n - 1 ? "end" : "middle"); }
   function axFor(i){ return i === 0 ? padL + 2 : (i === n - 1 ? W - padR - 2 : x(i)); }
@@ -117,6 +126,7 @@ const CHART = {
   var spacing = plotW / Math.max(1, n - 1);
   var labelPer = Math.max(6, Math.min(12, Math.round(spacing / 15)));
   var datePer = Math.max(8, Math.min(16, Math.round(spacing / 11)));
+  var valuePer = Math.max(6, Math.min(14, Math.round(spacing / 12)));
 
   document.getElementById("badge").textContent = "EVIDENCE TIMELINE";
   document.getElementById("title").textContent = CHART.title;
@@ -145,45 +155,49 @@ const CHART = {
   svg.setAttribute("viewBox", "0 0 " + W + " " + H);
   svg.setAttribute("role", "img");
 
-  // 时间轴基线 = 证据链（发丝，draw 动画从左到右展开）
+  // 时间轴基线（发丝，draw 动画从左到右展开）
   var g = document.createElementNS(NS, "g");
   g.innerHTML = '<line x1="' + padL + '" y1="' + baseY + '" x2="' + (W - padR) + '" y2="' + baseY + '" stroke="' + GRID + '" stroke-width="1.4" class="draw" style="animation-delay:.1s"/>' +
     '<circle cx="' + padL + '" cy="' + baseY + '" r="2.6" fill="' + GRID + '" class="fade"/>' +
     '<circle cx="' + (W - padR) + '" cy="' + baseY + '" r="2.6" fill="' + GRID + '" class="fade"/>';
   svg.appendChild(g);
 
-  // 事件节点
+  // 事件节点：标签（贴顶，底对齐）→ 圆点（悬浮）→ 数值（圆点下方，多行，顶对齐）→ 日期（基线下）
+  var LBL_TOP = 54, LBL_LH = 15;       // 标签区首行 y（底对齐：底行固定 LBL_TOP+LBL_LH）
+  var VAL_LH = 16;                     // 数值行距
+  var DATE_TOP = baseY + 20, DATE_LH = 14; // 日期首行 y
   ev.forEach(function(e, i){
     var cx = x(i), r = rad(e), color = kindColor(e.kind);
     var hollow = (e.kind === "milestone");
     var anchor = anchorFor(i), ax = axFor(i);
-    // 数值横排在圆点右侧（末节点放左侧，防右溢出）
-    var nax = (i === n - 1 ? cx - r - 8 : cx + r + 8);
-    var nanchor = (i === n - 1 ? "end" : "start");
-    var lbl = wrap(e.label, labelPer);
-    var dts = wrap(e.date, datePer);
-    var lblTop = dotY - r - 10;
-    var dateY = baseY + 22;
-    var lspans = "", dspans = "", li, di;
+    var lbl = wrap(e.label, labelPer, 2);   // 标签 ≤2 行
+    var vals = wrapValue(e.value, valuePer); // 数值 ≤3 行
+    var dts = wrap(e.date, datePer, 2);     // 日期 ≤2 行
+    var valY0 = dotY + 25;                  // 数值首行固定（= dotY + 最大半径 + 12），各节点顶对齐
+    // 标签底对齐：底行固定在 LBL_TOP+LBL_LH，行数不足时向上补（不影响下方布局）
+    var lspans = "", vspans = "", dspans = "", li, vi, di;
     for (li = 0; li < lbl.length; li++){
-      lspans += '<tspan x="' + ax + '" y="' + (lblTop - (lbl.length - 1 - li) * 15) + '">' + esc(lbl[li]) + '</tspan>';
+      lspans += '<tspan x="' + ax + '" y="' + (LBL_TOP + LBL_LH - (lbl.length - 1 - li) * LBL_LH) + '">' + esc(lbl[li]) + '</tspan>';
+    }
+    for (vi = 0; vi < vals.length; vi++){
+      vspans += '<tspan x="' + ax + '" y="' + (valY0 + vi * VAL_LH) + '">' + esc(vals[vi]) + '</tspan>';
     }
     for (di = 0; di < dts.length; di++){
-      dspans += '<tspan x="' + ax + '" y="' + (dateY + di * 14) + '">' + esc(dts[di]) + '</tspan>';
+      dspans += '<tspan x="' + ax + '" y="' + (DATE_TOP + di * DATE_LH) + '">' + esc(dts[di]) + '</tspan>';
     }
     var node = document.createElementNS(NS, "g");
     node.style.cursor = "pointer";
     node.innerHTML =
-      // 标签（圆点上方，纸色光晕，fade）
-      '<text x="' + ax + '" y="' + (lblTop - (lbl.length - 1) * 15) + '" text-anchor="' + anchor + '" font-size="12" font-weight="600" fill="' + INK + '" paint-order="stroke" stroke="' + PAPER + '" stroke-width="3.5px" class="fade" style="animation-delay:' + (i * 0.09 + 0.1) + 's">' + lspans + '</text>' +
-      // 节点圆点（坐基线上，pop；里程碑空心，披露/更新实心）
+      // 标签（贴顶，纸色光晕，fade）
+      '<text x="' + ax + '" y="' + (LBL_TOP + LBL_LH - (lbl.length - 1) * LBL_LH) + '" text-anchor="' + anchor + '" font-size="12" font-weight="600" fill="' + INK + '" paint-order="stroke" stroke="' + PAPER + '" stroke-width="3.5px" class="fade" style="animation-delay:' + (i * 0.09 + 0.1) + 's">' + lspans + '</text>' +
+      // 节点圆点（悬浮于基线上方，pop；里程碑空心，披露/更新实心）
       (hollow
         ? '<circle cx="' + cx + '" cy="' + dotY + '" r="' + r + '" fill="' + PAPER + '" stroke="' + color + '" stroke-width="2" class="pop" style="animation-delay:' + (i * 0.09 + 0.1) + 's"/>'
         : '<circle cx="' + cx + '" cy="' + dotY + '" r="' + r + '" fill="' + color + '" class="pop" style="animation-delay:' + (i * 0.09 + 0.1) + 's"/>') +
-      // 数值（圆点右侧水平，800）
-      (e.value ? '<text x="' + nax + '" y="' + (dotY + 4) + '" text-anchor="' + nanchor + '" font-size="12" font-weight="800" fill="' + color + '" paint-order="stroke" stroke="' + PAPER + '" stroke-width="3px" class="fade" style="animation-delay:' + (i * 0.09 + 0.2) + 's">' + esc(e.value) + '</text>' : "") +
-      // 日期（基线下方）
-      '<text x="' + ax + '" y="' + (dateY + (dts.length - 1) * 14) + '" text-anchor="' + anchor + '" font-size="10.5" font-weight="600" fill="' + MUTED + '" paint-order="stroke" stroke="' + PAPER + '" stroke-width="3px" class="fade" style="animation-delay:' + (i * 0.09 + 0.18) + 's">' + dspans + '</text>';
+      // 数值（圆点下方纵排，多行，800；离开轴线）
+      (vals.length ? '<text x="' + ax + '" y="' + valY0 + '" text-anchor="' + anchor + '" font-size="12" font-weight="800" fill="' + color + '" paint-order="stroke" stroke="' + PAPER + '" stroke-width="3px" class="fade" style="animation-delay:' + (i * 0.09 + 0.2) + 's">' + vspans + '</text>' : "") +
+      // 日期（基线下）
+      '<text x="' + ax + '" y="' + (DATE_TOP + (dts.length - 1) * DATE_LH) + '" text-anchor="' + anchor + '" font-size="10.5" font-weight="600" fill="' + MUTED + '" paint-order="stroke" stroke="' + PAPER + '" stroke-width="3px" class="fade" style="animation-delay:' + (i * 0.09 + 0.18) + 's">' + dspans + '</text>';
     node.addEventListener("mouseenter", function(){ showTip(e); });
     node.addEventListener("mousemove", moveTip);
     node.addEventListener("mouseleave", hideTip);
@@ -196,7 +210,7 @@ const CHART = {
     var t = document.getElementById("tip");
     t.innerHTML = '<div class="tt">' + esc(e.label) + '</div>' +
       '<div style="opacity:.85">' + esc(e.date) + '</div>' +
-      (e.value ? '<div style="font-weight:800">' + esc(e.value) + '</div>' : "") +
+      (e.value ? '<div style="font-weight:800;white-space:pre-line">' + esc(e.value) + '</div>' : "") +
       (e.note ? '<div style="opacity:.85">' + esc(e.note) + '</div>' : "");
     t.classList.add("on");
   }
