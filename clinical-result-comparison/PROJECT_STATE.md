@@ -67,6 +67,10 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - 问题：v3 圆点悬浮于基线上方 75px，与基线上的日期刻度无视觉连接，读起来“飘”。
 - v4 定稿：**圆点直接坐回基线**（dotY=baseY=200，点轴一体，关联最强），**数值纵排多行移到圆点上方**（离开轴线，`\n` 分行 ≤3 行），基线下为日期。三块固定槽位顶部对齐：标签 52/67 → 数值 96/112/128 → 圆点 200（坐基线）→ 日期 222/236；H=272。
 - 对齐=固定槽位（各节点同一 y），行数不足留白但不歪；端部锚定保留。校验 PASS；真实产物 v4 + 截图：`charts/timeline-v2-preview/train2-evidence-timeline-v4(.html/-wrapped.html/.png)`。文档两处同步。
+
+### v0.8.1 follow-up 2 修订 3（用户："整点丝线连接，现在偏离太远没关联"）→ v5 定稿
+- v4 数值悬在圆点上方 47px+ 仅靠脑补归属，加**丝线**：1px muted、opacity .5 细线，从数值块底部（VAL_TOP+(rows-1)*VAL_LH，如 128）连到圆点顶部（dotY-r，189–192 随 r 变，长 61–64px），draw 动画自圆点向上生长；先画（数值文字与圆点盖住线头）；**里程碑无数值不连**，保持空心圆纯净。
+- 布局坐标不变（v4 定稿：标签 52/67 → 数值 96/112/128 → 圆点 200 坐线 → 日期 222/236）。校验 PASS；真实产物 v5 + 截图：`charts/timeline-v2-preview/train2-evidence-timeline-v5(.html/-wrapped.html/.png)`。文档两处同步。
 - 验证：`node --check` 三个脚本通过；禁用子串 grep 干净；headless Chrome 渲染 violet 色值/横档/旗/线均出；预览包在 `/home/xupeipeioo1/charts/skill-violet-redesign/`（wrapper + PNG）。
 - ⚠️ 待办：`::visualization` 正文渲染支持仍未在真实环境验证（延续 v0.8 待办，与开发者对齐时确认）。
 

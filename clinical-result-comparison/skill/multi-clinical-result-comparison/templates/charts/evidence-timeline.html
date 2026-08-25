@@ -1,7 +1,7 @@
 <!-- HTML fragment（Tool Smith 可视化交付格式）：仅内容 + <style> + <script>，无文档级包裹标签 -->
 <!-- 设计语言：lieflat-charts L11 Trend Lineage 语法延伸（violet 紫罗兰预设）
      圆点=事件节点（实心=披露/更新，空心=里程碑锚点），圆点大小=证据成熟度（phase）
-     圆点直接坐基线上（点轴一体，关联清晰），数值纵排多行在圆点上方（离开轴线），基线下为日期
+     圆点直接坐基线上（点轴一体），数值纵排多行在圆点上方，一条丝线连接数值块与圆点（归属）
      标签/数值/日期均支持多行（value 支持 \n 手动分行 + 自动折行），固定槽位顶部对齐
      端部锚定（首节点左对齐、末节点右对齐）防溢出 -->
 <style>
@@ -65,6 +65,7 @@ svg text{font-family:inherit}
    note   ：悬停提示的补充说明 + {{ref_n}}。
    视觉：实心圆=披露/更新（有数值），空心圆=里程碑（无数值，仅时间锚点）；
    圆点直接坐基线上（点轴一体），数值纵排多行在圆点上方（离开轴线），基线下为日期；
+   每条丝线连接数值块底部与圆点顶部（归属连接，里程碑无数值不连）；
    颜色一律走 violet 单色系，不混入第二套色系。
    颜色：legend 的 color 填 Tool Smith 语义 token 名（如 "--viz-series-1"）或 hex。
 */
@@ -189,6 +190,8 @@ const CHART = {
     node.innerHTML =
       // 标签（顶部对齐，纸色光晕，fade）
       '<text x="' + ax + '" y="' + LBL_TOP + '" text-anchor="' + anchor + '" font-size="12" font-weight="600" fill="' + INK + '" paint-order="stroke" stroke="' + PAPER + '" stroke-width="3.5px" class="fade" style="animation-delay:' + (i * 0.09 + 0.1) + 's">' + lspans + '</text>' +
+      // 丝线：数值块底部 → 圆点顶部（归属连接；里程碑无数值不画；先画，数值文字与圆点盖住线头）
+      (vals.length ? '<line x1="' + cx + '" y1="' + (VAL_TOP + (vals.length - 1) * VAL_LH) + '" x2="' + cx + '" y2="' + (dotY - r) + '" stroke="' + MUTED + '" stroke-width="1" opacity=".5" class="draw" style="animation-delay:' + (i * 0.09 + 0.12) + 's"/>' : "") +
       // 数值（圆点上方纵排，多行，800；离开轴线，顶部对齐）
       (vals.length ? '<text x="' + ax + '" y="' + VAL_TOP + '" text-anchor="' + anchor + '" font-size="12" font-weight="800" fill="' + color + '" paint-order="stroke" stroke="' + PAPER + '" stroke-width="3px" class="fade" style="animation-delay:' + (i * 0.09 + 0.2) + 's">' + vspans + '</text>' : "") +
       // 节点圆点（坐基线上，pop；里程碑空心，披露/更新实心）
