@@ -49,6 +49,11 @@
    - **排序规则**：柱状图（`endpoint-bar.html`）按 `value` 从高到低**自动降序**（模板内完成，无需人工排）；折线图/时间轴按**时间顺序**（`points[]`/`events[]` 数组顺序即时间顺序，模板不重排）。
    - `value` 只填原文数值；`ci` 填原文给出的置信区间；`note` 为可追溯的补充说明。
    - 引用保留：图下方 source 行写清数据来源，正文相应位置保留 `{{ref_n}}` 标记。
+5. ⚠️ **脚本批量填充与自检（防 JS 语法错误）**：多图批量时可用脚本（如 Python）复制模板后替换 `CHART` 数据对象，但替换结果**必须是合法 JS**——否则 Tool Smith 隔离 iframe 直接报「渲染失败」：
+   - `const CHART = {` 的左花括号**只能有一个**（模板已带）。数据对象是 `{…}` 时不要再拼一个 `{`：直接用 `json.dumps` 拼接会在其后多出一个 `{`（`const CHART = {` 下一行出现 `{`）→ `Unexpected token '{'`。
+   - 数据对象必须以 `};` 结尾，**保留模板分号**。丢了分号会被 ASI 与下一行 `(function(){…})()` 连读成“调用对象”→ 运行时 `TypeError: … is not a function`。
+   - 只替换 `CHART`；不改渲染区、不换配色。
+   - **生成后自检（硬步骤）**：每个成品写入 `/workspace/visualizations/` 前，提取 `<script>` 内容做一次 JS 语法校验（`node --check` 提取出的脚本，或 `new Function(script)`），通过才算完成；不要让语法错误的文件进入分享页。
 
 ## 三、配色（lieflat violet 预设 + Tool Smith token 契约）
 

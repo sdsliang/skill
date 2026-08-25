@@ -38,6 +38,13 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - `references/cross-trial-comparison.md`：Chart rules 补同款排序与外观条款。
 - 重建 `dist/multi-clinical-result-comparison-v0.8.zip`（18 文件，前缀正确，含新版 violet 模板 + 排序规则，66KB）。
 - 文档同步：`chart-templates.md`（导语/第三节配色/第四节与 lieflat 关系）、`chart-tokens.css`（fallback 改 violet + 明度即数据规则）、模板内注释。`SKILL.md` 契约层描述未改（仍是“只改 CHART”）。
+
+## v0.8.1 follow-up: 脚本填充防复发纪律 + 生成自检
+
+- 背景（用户）：某 Tool Smith 分享页图表渲染失败，错误 `渲染失败：Unexpected token '{'`，怀疑是 violet 模板改动引起。
+- 排查结论（与本轮模板无关）：从分享快照拉取 Agent 实际生成的三份 `endpoint-bar` 产物（`nsclc-egfr-3g-tki-pfs` / `nsclc-egfr-tki-combo-pfs` / `nsclc-io-chemo-pfs`），`node --check` 全部报 `Unexpected token '{'`——Agent 临时写的 `gen_charts.py` 用 `tpl[:i] + start_marker + payload` 拼接时，模板自带的 `const CHART = {` 与 `json.dumps` 输出（以 `{` 开头）叠成双 `{`；同时用 json 的 `}` 替换模板 `};` 丢失分号，ASI 把对象与下一行 IIFE 连读成“调用对象”→ 修完语法错误后还会报 `TypeError: … is not a function`。用同一脚本逻辑拼旧模板（349eabc）复现同样双 `{` + 丢 `;`，证明与 violet 重写无关。修复后三图在 Tool Smith 同款沙箱（`--viz-*` 注入 + 隔离 iframe）零错误渲染；修复产物见 `charts/share-fix-preview/`（fragment + 包裹预览 + PNG）。
+- 防复发改动：`references/chart-templates.md` 数据填充约束新增「5. ⚠️ 脚本批量填充与自检（防 JS 语法错误）」条款（单 `{`、`};` 结尾、生成后 `node --check`/`new Function` 自检）；系统提示词 `multi-clinical-result-comparison-v0.8.md` 定量图段落补脚本纪律 + Final verification 补「每张图产物通过 JS 语法校验后才写入」检查项。`SKILL.md` 契约层未改。
+- 重建 `dist/multi-clinical-result-comparison-v0.8.zip`（含更新后的 `chart-templates.md`，系统提示词不入 zip）。
 - 验证：`node --check` 三个脚本通过；禁用子串 grep 干净；headless Chrome 渲染 violet 色值/横档/旗/线均出；预览包在 `/home/xupeipeioo1/charts/skill-violet-redesign/`（wrapper + PNG）。
 - ⚠️ 待办：`::visualization` 正文渲染支持仍未在真实环境验证（延续 v0.8 待办，与开发者对齐时确认）。
 
