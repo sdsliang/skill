@@ -1,6 +1,7 @@
 # 图表模板（charts/）使用说明
 
-> 多临床结果对比 Skill 的三张图表模板，基于蓝紫色系自定义色板（靛蓝→紫），
+> 多临床结果对比 Skill 的三张图表模板，基于 **lieflat-charts violet 紫罗兰预设**
+> （象牙纸 + 单色相紫阶，明度 = 数值；柱形为横档柱、1 格 = 1 单位；一律实心无渐变阴影），
 > 纯 SVG/CSS/原生 JS 单文件 HTML，无外部依赖（离线可用、Tool Smith 沙箱内可运行）。
 > 与 `templates/charts/` 下的 HTML 文件配套使用。
 
@@ -45,27 +46,36 @@
 - 正文始终保留 fallback（文字结论 + 精确数值表 + 下载链接），接入方不支持可视化时仍能完整理解结论。
 4. 数据填充约束：
    - `events[]`（时间轴模板）一条 = **一个证据状态**（同状态多篇披露合并为一节点，`note` 并列 `{{ref_n}}`），按来源支持的 数据截止→随访→分析里程碑→披露日期 排布（模板按数组顺序排布，不推断阶段/形式）。
+   - **排序规则**：柱状图（`endpoint-bar.html`）按 `value` 从高到低**自动降序**（模板内完成，无需人工排）；折线图/时间轴按**时间顺序**（`points[]`/`events[]` 数组顺序即时间顺序，模板不重排）。
    - `value` 只填原文数值；`ci` 填原文给出的置信区间；`note` 为可追溯的补充说明。
    - 引用保留：图下方 source 行写清数据来源，正文相应位置保留 `{{ref_n}}` 标记。
 
-## 三、配色（Tool Smith 品牌 token）
+## 三、配色（lieflat violet 预设 + Tool Smith token 契约）
 
-基准见 `charts/chart-tokens.css`（每个模板内联同一套规则），**硬规则**：
+基准见 `charts/chart-tokens.css`（每个模板内联同一套规则）。默认设计语言 = **lieflat-charts violet 紫罗兰预设**：
+象牙纸 `#F7F2EB`、墨 `#2B1450`、紫阶 `#2B1450 → #55339A → #8A63D2 → #C6B3EE`，单色相明度阶、
+一律实心无渐变阴影、发丝网格、数值标签纸色描边光晕、全大写来源行。**硬规则**：
 
-- **主色一律引用宿主注入的 `--viz-*` 语义 token**，不得把整套独立 hex 色板写进图表代码（那属第二套配置，会覆盖宿主主题）。
-- 品牌 hex 只允许作为 `var(--viz-*, #hex)` 的 **fallback 参数**（本地独立预览 / 宿主未注入时兜底），接入后被 `--viz-*` 自动覆盖；模板 JS 用 `viz(name, fb)` 运行时读取注入值。
-- 映射（前端给定）：背景 `--viz-background`、卡片 `--viz-surface`、主文字 `--viz-text`、次要/说明 `--viz-text-muted`、边框/坐标轴 `--viz-border`、分类系列 `--viz-series-1..5`；状态 `--viz-info/success/warning/danger`。
-- 品牌 hex fallback 值：背景 `#f4f5f7`、卡片 `#ffffff`、主文字 `#020A1A`、次要 `#4e5969`、说明 `#8993a4`、边框 `#DADEE6`、系列 `#3d7eff/#7c3aed/#0ea5e9/#14b8a6/#f59e0b`（见 `chart-tokens.css`）。
-- 模板内 `legend`/`series` 的 `color` 可填 token 名（如 `"--viz-series-1"`，推荐）或 hex；未填用默认系列色。
-- 不用红绿色表语义好坏（宿主注入的系列色为准）。
+- **每个模板只使用一种色彩系统（violet 紫系）**，禁止在图表里混入第二套色系。
+- **柱形深浅 = 数值高低**（明度即数据，柱越高越深紫）；折线/图例/时间轴默认取紫系多档色（SER）；
+  研究组/对照组等语义由标签与标题区分，不用第二色相。
+- 仍保留 `--viz-*` 契约：颜色一律以 `var(--viz-*, #violet-fallback)` 引用宿主注入值，
+  未注入时 fallback = violet 预设；宿主注入主题时自动覆盖（几何/排版不变）。
+- 模板 JS 用 `viz(name, fb)` 运行时读取注入值；`legend`/`series` 的 `color` 可填 token 名
+  （如 `"--viz-series-1"`）或 hex；未填用紫系默认档位。
+- fallback 值见 `chart-tokens.css`：背景 `#F7F2EB`、卡片 `#F7F2EB`、主文字 `#2B1450`、
+  次要 `rgba(43,20,80,.60)`、说明 `rgba(43,20,80,.32)`、边框 `rgba(43,20,80,.16)`、
+  紫阶系列 `#55339A/#2B1450/#8A63D2/#C6B3EE/#E4DAF8`。
+- 不用红绿色表语义好坏；深浅只表数值/证据强度，好坏判断留在文字。
 
 ## 四、与 lieflat-charts 的关系
 
-- 当前三张模板为自建（走 Tool Smith 品牌 token，先保证“好看 + 品牌一致”）。
-- 需要更花哨的图型（分布、矩阵、网络、报告页）时，可基于
-  `~/.agents/skills/lieflat-charts`（64 图型）的 gallery 模板扩展；
-  颜色仍建议收敛到 `--viz-*` token 注入，避免混用色系。
-- 同试验时间轴无 lieflat 完全对口图型，以本模板为准。
+- 三张模板的设计语言已接入 **lieflat-charts violet 预设**（`~/.agents/skills/lieflat-charts`，
+  `color-presets.js` 四套内置之一）：象牙纸 + 单色相紫阶 + 横档柱 + 发丝网格 + 编辑排版，
+  几何与排版继承 lieflat 的 Mono 视觉语法；violet 由用户定制的紫色家族固化而来。
+- 需要更花哨的图型（分布、矩阵、网络、报告页）时，可基于 lieflat-charts gallery 模板扩展；
+  颜色仍收敛到同一套 violet 预设或 `--viz-*` 注入，禁止混用色系。
+- 同试验时间轴无 lieflat 完全对口图型，以本模板（violet 实心旗帜）为准。
 
 ## 五、当前版本边界
 

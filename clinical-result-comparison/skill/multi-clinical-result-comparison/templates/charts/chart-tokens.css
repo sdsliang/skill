@@ -1,25 +1,27 @@
 /* ==========================================================================
-   chart-tokens.css · 临床对比报告图表 · Tool Smith 品牌 token 唯一来源
+   chart-tokens.css · 临床对比报告图表 · lieflat violet 预设 + Tool Smith token 契约
    ==========================================================================
    用途：多临床结果对比 Skill 三张图表模板（时间轴/柱状/折线）的配色基准。
+   默认设计语言 = lieflat-charts violet 紫罗兰预设（象牙纸 + 单色相紫阶）。
    硬规则：
-     1. 图表颜色一律引用宿主注入的 --viz-* 语义 token（见下方映射表），
-        不得把整套独立 hex 色板写进图表代码。
-     2. 品牌 hex 只允许作为 var(--viz-*, #hex) 的 fallback 参数出现，
+     1. 每个模板只使用一种色彩系统（violet 紫系），禁止混入第二套色系；
+        柱形深浅 = 数值高低（明度即数据）。
+     2. 颜色一律引用宿主注入的 --viz-* 语义 token（见下方映射表），
+        violet hex 只作为 var(--viz-*, #hex) 的 fallback 参数出现，
         用于本地独立预览 / 宿主未注入 token 的场景；接入后自动被 --viz-* 覆盖。
      3. 不要在图表里重复定义 --viz-* 变量（那会覆盖宿主注入，属第二套配置）。
      4. 模板内联使用下方值；新模板从本文件复制映射与 fallback 常量。
    ========================================================================== */
 
-/* ---- 品牌兜底色（仅 fallback，勿在图表中重复定义 --viz-*） ---- */
+/* ---- violet 兜底色（仅 fallback，勿在图表中重复定义 --viz-*） ---- */
 :root{
-  --brand-bg:      #f4f5f7;   /* 页面背景 */
-  --brand-surface: #ffffff;   /* 卡片表面 */
-  --brand-text:    #020A1A;   /* 主要文字 */
-  --brand-muted:   #4e5969;   /* 次要文字 */
-  --brand-faint:   #8993a4;   /* 说明文字 */
-  --brand-border:  #DADEE6;   /* 边框 / 坐标轴 / 分隔线 */
-  --brand-s1: #3d7eff;  --brand-s2: #7c3aed;  --brand-s3: #0ea5e9;  --brand-s4: #14b8a6;  --brand-s5: #f59e0b;
+  --brand-bg:      #F7F2EB;   /* 页面背景（象牙纸） */
+  --brand-surface: #F7F2EB;   /* 卡片表面（同纸色，无边框无阴影） */
+  --brand-text:    #2B1450;   /* 主要文字（墨紫） */
+  --brand-muted:   rgba(43,20,80,.60);  /* 次要文字 */
+  --brand-faint:   rgba(43,20,80,.32);  /* 说明文字 */
+  --brand-border:  rgba(43,20,80,.16);  /* 边框 / 发丝网格 / 分隔线 */
+  --brand-s1: #55339A;  --brand-s2: #2B1450;  --brand-s3: #8A63D2;  --brand-s4: #C6B3EE;  --brand-s5: #E4DAF8;
 }
 
 /* ==========================================================================
@@ -36,7 +38,8 @@
    --viz-danger      ← --destructive     错误、危险状态
    --viz-series-1..5 ← --chart-1..5      分类数据系列
    字体：--font-sans / serif / mono；圆角：--border-radius-md / lg / xl。
-   注：仅上述变量会被注入；未注入时 var() 的 fallback（品牌 hex）生效。
+   注：仅上述变量会被注入；未注入时 var() 的 fallback（violet hex）生效。
+   设计说明：宿主注入主题时覆盖颜色，但几何/排版保持 lieflat 编辑风（不变）。
    ========================================================================== */
 
 /* ---- 常用引用速查（复制进模板） ---- */
@@ -48,6 +51,5 @@
    color:      var(--viz-text-muted, var(--brand-faint));
    border:     1px solid var(--viz-border, var(--brand-border));
    系列色：var(--viz-series-1, var(--brand-s1)) … var(--viz-series-5, var(--brand-s5))
-   渐变（SVG 用运行时解析）：linear-gradient(135deg,
-     var(--viz-series-1, var(--brand-s1)), var(--viz-series-3, var(--brand-s3)))
+   一律实心（无渐变、无阴影、无发光）；柱/线/点深浅 = 数值或证据强度。
 */

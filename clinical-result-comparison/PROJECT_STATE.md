@@ -14,10 +14,32 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 
 - 从 NP Clinical 拉取的示例数据（`evals/**/np-clinical-*/`）不入库：`.gitignore` 已忽略，`fetch-np-clinical-attachments.mjs` 可随时重拉。已提交的历史版本也已从跟踪移除（commit 63c031c）。
 
+## ⏸️ Parked: bar 柱下钻（v0.9-test，已由用户验证可行，暂不开发）
+
+- 全部改动（未提交）已 stash：`git stash list` → `stash@{0}: On chart-drilldown-nct: wip: bar drill-down (v0.9-test) + 1L ORR test datasets — verified by user, park for later`。分支 `feat/chart-drilldown-nct` 与 main 同提交 `349eabc`（无独立 commit），后续要继续可直接 `git checkout feat/chart-drilldown-nct && git stash pop`。
+- 内容：`endpoint-bar.html` 支持 `bars[].url` → `window.__toolsmithNavigate(url)`（登记号详情页 `https://ct.pharmcube.com/trial/{nct_id}`）；`SKILL.md`/`chart-templates.md` 下钻契约；v0.9-test 系统提示词（优先读 md 元数据 `source_nct_id` 拼 url）；`test/drilldown-bar-sample.html`；两套测试数据集 `test/drilldown-sources/`（仅保证登记号）与 `test/drilldown-sources-1l-orr/`（一线+ORR，必出柱状图，均带 `source_nct_id`）；`dist/multi-clinical-result-comparison-v0.9-test.zip`。
+- 验证结论：部署端 `__toolsmithNavigate` 桥 + 宿主 `window.open` 均已就位；不画图的根因是数据异构（跨线/跨终点）触发契约不绘图，`1l-orr` 数据集（indication 135 + III期 + ORR 端点 `4a8abd33ec374a46b758926758ed410a` + `therapy_labels.meta.text∈{一线治疗,一线}`）可稳定出柱状图。恢复时无需动 tool-smith 端。
+
 ## Current version
 
 - System prompt: `v0.8`
 - Skill: `multi-clinical-result-comparison` trial-level synthesis `v0.8`
+
+## v0.8.1 change: 三张图表模板视觉升级（lieflat violet 紫罗兰设计语言）
+
+- 背景（用户）：现有时间轴/柱状/折线模板不好看，希望按已认可的 ORR 图（violet 横档柱）重做；并确认用了 lieflat skill。
+- 三张模板（`templates/charts/`）重写，设计语言 = lieflat-charts **violet 预设**（象牙纸 `#F7F2EB`、墨 `#2B1450`、紫阶 `#2B1450→#55339A→#8A63D2→#C6B3EE`），单色相明度阶、一律实心无渐变阴影、发丝网格、数值标签纸色描边光晕、虚线徽章、全大写来源行、fade/draw 动画 + reduced-motion、确定性 rnd（无 Math.random）。
+  - `endpoint-bar.html`：改为**横档柱**（1 格 = 1 单位，档距 ~2.6px，1-2-5 自动步进），**柱深浅 = 数值高低**（明度即数据，12 档紫阶）；`series` 保留为可选显式紫档覆盖（缺省=数值取色）；加 TRACK 打底、nice 网格刻度、悬停 tip（墨紫底）。
+  - `endpoint-line.html`：系列默认 = 紫系 SER（研究组最深 `#2B1450`），线宽 ×1.8 实心圆头、纸色光晕数据点 + 800 数值标签、发丝网格 + 虚线动画，保留单点模式。
+  - `evidence-timeline.html`：旗帜改**实心**（去掉渐变），图例默认按证据类型取紫系深浅（里程碑 `#C6B3EE`/披露 `#55339A`/更新 `#8A63D2`）；成熟带改实心 TRACK 底 + 纸色圆点描边（去渐变）。
+  - 排序规则：柱状图按 value 从高到低自动降序（模板内 sort，无需人工排）；折线/时间轴按时间顺序（数组顺序即时间顺序，模板不重排）。注释与 `chart-templates.md` 数据填充约束同步。
+- 契约不变：仍是 Tool Smith HTML fragment（无 `<!doctype`/`<html`/`<head`/`<body` 子串，含注释/脚本）；颜色一律 `var(--viz-*, violet_fallback)` + 模板 JS `viz(name,fb)` 读注入值；`CHART` 数据对象结构不变（`endpoint-bar` 的 `series` 语义改为“可选紫档覆盖”）。
+- 系统提示词 `multi-clinical-result-comparison-v0.8.md`：定量图段落补“排序与外观固定”条款（柱形自动降序、折线/时间轴保持时间顺序、内置 violet 编辑设计只填 CHART 不改样式）。
+- `references/cross-trial-comparison.md`：Chart rules 补同款排序与外观条款。
+- 重建 `dist/multi-clinical-result-comparison-v0.8.zip`（18 文件，前缀正确，含新版 violet 模板 + 排序规则，66KB）。
+- 文档同步：`chart-templates.md`（导语/第三节配色/第四节与 lieflat 关系）、`chart-tokens.css`（fallback 改 violet + 明度即数据规则）、模板内注释。`SKILL.md` 契约层描述未改（仍是“只改 CHART”）。
+- 验证：`node --check` 三个脚本通过；禁用子串 grep 干净；headless Chrome 渲染 violet 色值/横档/旗/线均出；预览包在 `/home/xupeipeioo1/charts/skill-violet-redesign/`（wrapper + PNG）。
+- ⚠️ 待办：`::visualization` 正文渲染支持仍未在真实环境验证（延续 v0.8 待办，与开发者对齐时确认）。
 
 ## v0.8 change: 图表统一走 HTML 可视化（全面移除 Mermaid）
 

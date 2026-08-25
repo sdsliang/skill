@@ -1,48 +1,48 @@
 <!-- HTML fragment（Tool Smith 可视化交付格式）：仅内容 + <style> + <script>，无文档级包裹标签 -->
+<!-- 设计语言：lieflat-charts violet 紫罗兰预设 · 实心旗帜（无渐变）· 单色系按证据类型分深浅 · 发丝基线与实心成熟带 -->
 <style>
-/* ===== Tool Smith 品牌 token（主色一律 var(--viz-*)；品牌 hex 仅作 fallback） ===== */
+/* ===== 颜色全部引用宿主注入 --viz-*（fallback = lieflat violet 预设） ===== */
 :root{
-  --brand-bg:#f4f5f7; --brand-surface:#ffffff; --brand-text:#020A1A;
-  --brand-muted:#4e5969; --brand-faint:#8993a4; --brand-border:#DADEE6;
-  --brand-s1:#3d7eff; --brand-s2:#7c3aed; --brand-s3:#0ea5e9; --brand-s4:#14b8a6; --brand-s5:#f59e0b;
+  --brand-bg:#F7F2EB; --brand-surface:#F7F2EB; --brand-text:#2B1450;
+  --brand-muted:rgba(43,20,80,.60); --brand-faint:rgba(43,20,80,.32); --brand-border:rgba(43,20,80,.16);
+  --brand-s1:#55339A; --brand-s2:#2B1450; --brand-s3:#8A63D2; --brand-s4:#C6B3EE; --brand-s5:#E4DAF8;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--viz-background,var(--brand-bg))}
-body{font-family:var(--font-sans,-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif);color:var(--viz-text,var(--brand-text));-webkit-font-smoothing:antialiased;padding:18px}
-.chart{background:var(--viz-surface,var(--brand-surface));border:1px solid var(--viz-border,var(--brand-border));border-radius:var(--border-radius-xl,18px);box-shadow:0 1px 2px rgba(2,10,26,.06),0 16px 40px -20px rgba(2,10,26,.18);padding:22px 26px 16px;max-width:940px;margin:0 auto}
-.header{display:flex;align-items:flex-start;gap:12px;margin-bottom:6px}
-.accent{flex:none;width:5px;height:36px;border-radius:4px;background:linear-gradient(135deg,var(--viz-series-1,var(--brand-s1)),var(--viz-series-3,var(--brand-s3)));margin-top:2px}
-h1{font-size:18px;font-weight:700;letter-spacing:.2px;line-height:1.4}
-.sub{font-size:12.5px;color:var(--viz-text-muted,var(--brand-muted));margin-top:3px}
-.stage{position:relative;width:100%;margin:8px 0 2px}
+body{font-family:var(--font-sans,"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif);color:var(--viz-text,var(--brand-text));-webkit-font-smoothing:antialiased;padding:24px 20px}
+.chart{background:var(--viz-surface,var(--viz-background,var(--brand-surface)));border-radius:24px;padding:26px 28px 18px;max-width:920px;margin:0 auto}
+.badge{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.1em;padding:3px 11px;border-radius:99px;margin-bottom:14px;border:1px dashed var(--viz-text-muted,var(--brand-faint));color:var(--viz-text-muted,var(--brand-muted))}
+h1{font-size:19px;font-weight:700;letter-spacing:-.02em;line-height:1.35}
+.sub{font-size:12px;color:var(--viz-text-muted,var(--brand-muted));margin-top:5px;line-height:1.65}
+.stage{position:relative;width:100%;margin:14px 0 2px}
 .stage svg{display:block;width:100%;height:auto}
-.legend{display:flex;flex-wrap:wrap;gap:8px 18px;margin:6px 0 4px;font-size:12px;color:var(--viz-text-muted,var(--brand-muted))}
+svg text{font-family:inherit}
+.legend{display:flex;flex-wrap:wrap;gap:7px 16px;margin:4px 0 2px;font-size:11.5px;color:var(--viz-text-muted,var(--brand-muted))}
 .legend .lg{display:inline-flex;align-items:center;gap:6px}
 .legend .dot{width:10px;height:10px;border-radius:3px;flex:none}
-footer{margin-top:4px;padding-top:9px;border-top:1px dashed var(--viz-border,var(--brand-border));font-size:11.5px;color:var(--viz-text-muted,var(--brand-faint));display:flex;flex-wrap:wrap;gap:3px 16px;line-height:1.5}
-footer b{color:var(--viz-text-muted,var(--brand-muted));font-weight:600}
-.tip{position:fixed;pointer-events:none;background:rgba(2,10,26,.94);color:var(--viz-background,#f4f5f7);font-size:12px;padding:9px 12px;border-radius:10px;max-width:280px;line-height:1.55;opacity:0;transition:opacity .12s;z-index:99;box-shadow:0 10px 26px -10px rgba(2,10,26,.45)}
+.src{margin-top:14px;padding-top:11px;border-top:1px dashed var(--viz-text-muted,var(--brand-faint));font-size:9.5px;letter-spacing:.08em;font-weight:500;color:var(--viz-text-muted,var(--brand-faint));display:flex;flex-wrap:wrap;gap:3px 14px;line-height:1.65}
+.src b{font-weight:600;color:var(--viz-text-muted,var(--brand-muted))}
+.fade{animation:fade .7s ease both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.fade{animation:none}}
+.tip{position:fixed;pointer-events:none;background:#2B1450;color:#F7F2EB;font-size:12px;padding:10px 13px;border-radius:12px;max-width:320px;line-height:1.55;opacity:0;transition:opacity .12s;z-index:99;box-shadow:0 10px 26px -10px rgba(43,20,80,.5)}
 @supports (color: color-mix(in srgb, red, transparent)){
   .tip{background:color-mix(in srgb, var(--viz-text,var(--brand-text)) 94%, transparent)}
 }
 .tip.on{opacity:1}
-.tip .tt{font-weight:700;margin-bottom:2px;color:var(--viz-info,#7da6ff)}
+.tip .tt{font-weight:700;margin-bottom:2px;color:#C6B3EE}
 </style>
 
 <div class="chart">
-  <div class="header">
-    <span class="accent"></span>
-    <div>
-      <h1 id="title">证据链时间轴</h1>
-      <div class="sub" id="subtitle"></div>
-    </div>
-  </div>
+  <span class="badge" id="badge">EVIDENCE TIMELINE · VIOLET</span>
+  <h1 id="title">证据链时间轴</h1>
+  <div class="sub" id="subtitle"></div>
   <div class="stage" id="stage"></div>
   <div class="legend" id="legend"></div>
-  <footer>
+  <div class="src">
     <span id="note"></span>
     <span id="source"></span>
-  </footer>
+  </div>
 </div>
 <div class="tip" id="tip"></div>
 
@@ -50,12 +50,13 @@ footer b{color:var(--viz-text-muted,var(--brand-muted));font-weight:600}
 /* ===================== 数据区（Agent 填写；仅来自临床证据原文） =====================
    events[]：一条 = 一个证据状态（同状态多篇披露合并为一节点，note 并列 {{ref_n}}）；
    按来源支持的 数据截止→随访→分析里程碑→披露日期 排布，模板按数组顺序从左到右，
-   不自行推断阶段/形式。date 缺失时写“时间未明”，不得猜测日期。
-   kind   ：图例键，见下方 legend；未命中图例时取主色。
+   不自行推断阶段/形式（数组顺序即时间顺序，模板不重排）。date 缺失时写“时间未明”，不得猜测日期。
+   kind   ：图例键，见下方 legend；未命中图例时取主色 DATA。
    phase  ：证据链成熟度（0=里程碑/无，1..n 依次递增表示证据逐步成熟）；缺省不参与链带。
    value  ：该状态关键数值（可空）；note：悬停提示的补充说明 + {{ref_n}}。
    颜色：legend 的 color 填 Tool Smith 语义 token 名（如 "--viz-series-1"）或 hex；
-   主色一律走 --viz-*（宿主注入），未注入时用品牌 fallback。
+   默认走 violet 单色系——按证据类型取紫系深浅（里程碑浅 / 披露中 / 更新深），
+   不混入第二套色系；主色一律走 --viz-*（宿主注入），未注入时用 violet fallback。
 */
 const CHART = {
   title: "HARMONi-6 研究证据链时间轴",
@@ -63,9 +64,9 @@ const CHART = {
   note: "同一试验证据状态 ≥2 个时生成此图；证据边界：仅 source_full_text",
   source: "数据来源：HARMONi-6 研究公开披露材料（source_full_text 提取）",
   legend: [
-    { key:"milestone",  label:"研究里程碑", color:"--viz-text-muted" },
-    { key:"disclosure", label:"证据披露",   color:"--viz-series-1" },
-    { key:"update",     label:"数据更新",   color:"--viz-series-2" }
+    { key:"milestone",  label:"研究里程碑", color:"#C6B3EE" },
+    { key:"disclosure", label:"证据披露",   color:"#55339A" },
+    { key:"update",     label:"数据更新",   color:"#8A63D2" }
   ],
   events: [
     { date:"2022-05", label:"研究启动",  kind:"milestone",  phase:0, value:"",            note:"HARMONi-6 研究启动（背景）" },
@@ -79,22 +80,29 @@ const CHART = {
 /* ===================== 渲染区（模板逻辑，勿改） ===================== */
 (function(){
   var ev = CHART.events || [], n = ev.length;
-  var W = 900, H = 292, padL = 46, padR = 46, padT = 72, padB = 72;
+  var W = 900, H = 300, padL = 46, padR = 46, padT = 74, padB = 74;
   var plotW = W - padL - padR;
   var baseY = H - padB;
-  var bandY = baseY + 36, bandH = 14;
+  var bandY = baseY + 38, bandH = 13;
   function x(i){ return padL + plotW * (n === 1 ? 0.5 : i / (n - 1)); }
   function esc(s){ return String(s == null ? "" : s).replace(/[<>&]/g, function(c){ return {"<":"&lt;",">":"&gt;","&":"&amp;"}[c]; }); }
-  // 读取宿主注入的 --viz-* token；未注入时返回品牌 fallback
+  // 读取宿主注入的 --viz-* token；未注入时返回 violet fallback
   function viz(name, fb){ var v = getComputedStyle(document.documentElement).getPropertyValue(name).trim(); return v || fb; }
-  // 颜色：支持 token 名（"--viz-xxx"）或 hex；未命中用 series-1
+  // 颜色：支持 token 名（"--viz-xxx"）或 hex
   function pick(c, fb){ return (c && c.indexOf("--viz") === 0) ? viz(c, fb) : (c || fb); }
   function kindColor(kind){
-    if (CHART.legend){ var m = CHART.legend.find(function(l){ return l.key === kind; }); if (m && m.color) return pick(m.color, viz("--viz-series-1", "#3d7eff")); }
-    return viz("--viz-series-1", "#3d7eff");
+    if (CHART.legend){ var m = CHART.legend.find(function(l){ return l.key === kind; }); if (m && m.color) return pick(m.color, viz("--viz-series-1", "#55339A")); }
+    return viz("--viz-series-1", "#55339A");
   }
   function chainLabel(){ return (CHART.chain && CHART.chain.label) || "证据链成熟度"; }
+  var INK = viz("--viz-text","#2B1450");
+  var PAPER = viz("--viz-background","#F7F2EB");
+  var MUTED = viz("--viz-text-muted","rgba(43,20,80,.60)");
+  var FAINT = viz("--viz-text-muted","rgba(43,20,80,.32)");
+  var GRID = viz("--viz-border","rgba(43,20,80,.16)");
+  var TRACK = "rgba(43,20,80,.12)";
 
+  document.getElementById("badge").textContent = "EVIDENCE TIMELINE · VIOLET";
   document.getElementById("title").textContent = CHART.title;
   document.getElementById("subtitle").textContent = CHART.subtitle || "";
   document.getElementById("note").innerHTML = CHART.note ? "<b>说明：</b>" + esc(CHART.note) : "";
@@ -103,7 +111,7 @@ const CHART = {
   var legend = document.getElementById("legend");
   (CHART.legend || []).forEach(function(l){
     var el = document.createElement("span"); el.className = "lg";
-    el.innerHTML = '<span class="dot" style="background:' + pick(l.color, "#3d7eff") + '"></span>' + esc(l.label);
+    el.innerHTML = '<span class="dot" style="background:' + pick(l.color, "#55339A") + '"></span>' + esc(l.label);
     legend.appendChild(el);
   });
 
@@ -112,54 +120,43 @@ const CHART = {
   svg.setAttribute("viewBox", "0 0 " + W + " " + H);
   svg.setAttribute("role", "img");
 
-  // 渐变定义（先挂载；颜色用运行时解析的 token）
-  var gf = document.createElementNS(NS, "linearGradient"); gf.id = "gradFlag"; gf.setAttribute("x1","0"); gf.setAttribute("y1","0"); gf.setAttribute("x2","0"); gf.setAttribute("y2","1");
-  gf.innerHTML = '<stop offset="0" stop-color="' + viz("--viz-series-1", "#3d7eff") + '"/><stop offset="1" stop-color="' + viz("--viz-series-2", "#7c3aed") + '"/>'; svg.appendChild(gf);
-  var gc = document.createElementNS(NS, "linearGradient"); gc.id = "gradChain"; gc.setAttribute("x1","0"); gc.setAttribute("y1","0"); gc.setAttribute("x2","1"); gc.setAttribute("y2","0");
-  gc.innerHTML = '<stop offset="0" stop-color="' + viz("--viz-series-1", "#3d7eff") + '"/><stop offset=".55" stop-color="' + viz("--viz-series-2", "#7c3aed") + '"/><stop offset="1" stop-color="' + viz("--viz-series-3", "#0ea5e9") + '"/>'; svg.appendChild(gc);
-
-  // 时间轴基线
-  var base = viz("--viz-border", "#DADEE6");
+  // 时间轴基线（发丝）
   var g = document.createElementNS(NS, "g");
-  g.innerHTML = '<line x1="' + padL + '" y1="' + baseY + '" x2="' + (W-padR) + '" y2="' + baseY + '" stroke="' + base + '" stroke-width="1.6"/>' +
-    '<circle cx="' + padL + '" cy="' + baseY + '" r="3.5" fill="' + base + '"/><circle cx="' + (W-padR) + '" cy="' + baseY + '" r="3.5" fill="' + base + '"/>';
+  g.innerHTML = '<line x1="' + padL + '" y1="' + baseY + '" x2="' + (W-padR) + '" y2="' + baseY + '" stroke="' + GRID + '" stroke-width="1.1" class="fade"/>' +
+    '<circle cx="' + padL + '" cy="' + baseY + '" r="3" fill="' + GRID + '"/><circle cx="' + (W-padR) + '" cy="' + baseY + '" r="3" fill="' + GRID + '"/>';
   svg.appendChild(g);
 
-  var ink = viz("--viz-text", "#020A1A");
-  var muted = viz("--viz-text-muted", "#4e5969");
-
-  // 事件旗帜 + 标签 + 数值 + 日期
+  // 事件旗帜（实心，无渐变）+ 标签 + 数值 + 日期
   ev.forEach(function(e, i){
     var cx = x(i), color = kindColor(e.kind);
     var node = document.createElementNS(NS, "g");
     node.style.cursor = "pointer";
     node.innerHTML =
-      // 旗标
-      '<rect x="' + (cx-10) + '" y="' + (padT+6) + '" width="20" height="30" rx="5" fill="url(#gradFlag)" opacity=".95"/>' +
-      '<rect x="' + (cx-10) + '" y="' + (padT+6) + '" width="20" height="7" rx="3.5" fill="#fff" opacity=".35"/>' +
-      '<path d="M' + cx + ' ' + (padT+36) + ' L' + (cx-7) + ' ' + baseY + ' L' + (cx+7) + ' ' + baseY + ' Z" fill="' + color + '" opacity=".92"/>' +
-      '<line x1="' + cx + '" y1="' + (padT+36) + '" x2="' + cx + '" y2="' + baseY + '" stroke="' + color + '" stroke-width="1.1" opacity=".3"/>' +
+      // 旗标（实心圆角矩形 + 三角指向基线）
+      '<rect x="' + (cx-9) + '" y="' + (padT+6) + '" width="18" height="28" rx="4" fill="' + color + '" opacity=".95" class="fade" style="animation-delay:' + (i*0.08) + 's"/>' +
+      '<rect x="' + (cx-9) + '" y="' + (padT+6) + '" width="18" height="5" rx="2.5" fill="#fff" opacity=".28" class="fade" style="animation-delay:' + (i*0.08) + 's"/>' +
+      '<path d="M' + cx + ' ' + (padT+34) + ' L' + (cx-6) + ' ' + baseY + ' L' + (cx+6) + ' ' + baseY + ' Z" fill="' + color + '" opacity=".9" class="fade" style="animation-delay:' + (i*0.08) + 's"/>' +
       // 标签（旗帜上方）
-      '<text x="' + cx + '" y="' + (padT-5) + '" text-anchor="middle" font-size="13" font-weight="600" fill="' + ink + '">' + esc(e.label) + '</text>' +
+      '<text x="' + cx + '" y="' + (padT-4) + '" text-anchor="middle" font-size="12.5" font-weight="600" fill="' + INK + '" class="fade" style="animation-delay:' + (i*0.08) + 's;' + 'paint-order:stroke;stroke:' + PAPER + ';stroke-width:3.5px">' + esc(e.label) + '</text>' +
       // 数值（旗帜下方，有则显示）
-      (e.value ? '<text x="' + cx + '" y="' + (padT+58) + '" text-anchor="middle" font-size="12.5" font-weight="700" fill="' + color + '">' + esc(e.value) + '</text>' : "") +
+      (e.value ? '<text x="' + cx + '" y="' + (padT+52) + '" text-anchor="middle" font-size="11.5" font-weight="800" fill="' + color + '" class="fade" style="animation-delay:' + (i*0.08+0.1) + 's;' + 'paint-order:stroke;stroke:' + PAPER + ';stroke-width:3px">' + esc(e.value) + '</text>' : "") +
       // 日期（轴下方）
-      '<text x="' + cx + '" y="' + (baseY+20) + '" text-anchor="middle" font-size="11.5" fill="' + muted + '">' + esc(e.date) + '</text>';
+      '<text x="' + cx + '" y="' + (baseY+20) + '" text-anchor="middle" font-size="11" fill="' + MUTED + '" font-weight="600" class="fade" style="animation-delay:' + (i*0.08+0.05) + 's">' + esc(e.date) + '</text>';
     node.addEventListener("mouseenter", function(){ showTip(e); });
     node.addEventListener("mousemove", moveTip);
     node.addEventListener("mouseleave", hideTip);
     svg.appendChild(node);
   });
 
-  // 证据链成熟度带
+  // 证据链成熟度带（实心 TRACK 底 + 白点描边，无渐变）
   if (CHART.chain && CHART.chain.show){
     var g2 = document.createElementNS(NS, "g");
     g2.innerHTML =
-      '<text x="' + padL + '" y="' + (bandY-9) + '" font-size="11.5" font-weight="600" fill="' + muted + '">' + esc(chainLabel()) + '</text>' +
-      '<rect x="' + padL + '" y="' + bandY + '" width="' + plotW + '" height="' + bandH + '" rx="' + (bandH/2) + '" fill="url(#gradChain)" opacity=".9"/>';
+      '<text x="' + padL + '" y="' + (bandY-8) + '" font-size="10.5" font-weight="600" letter-spacing=".05em" fill="' + MUTED + '" class="fade">' + esc(chainLabel()) + '</text>' +
+      '<rect x="' + padL + '" y="' + bandY + '" width="' + plotW + '" height="' + bandH + '" rx="' + (bandH/2) + '" fill="' + TRACK + '" class="fade" style="animation-delay:.3s"/>';
     ev.forEach(function(e, i){
       if (e.phase == null) return;
-      g2.innerHTML += '<circle cx="' + x(i) + '" cy="' + (bandY + bandH/2) + '" r="5" fill="#fff" stroke="' + viz("--viz-series-2", "#7c3aed") + '" stroke-width="2.5"/>';
+      g2.innerHTML += '<circle cx="' + x(i) + '" cy="' + (bandY + bandH/2) + '" r="4.5" fill="' + PAPER + '" stroke="' + (kindColor(e.kind)) + '" stroke-width="2.2" class="fade" style="animation-delay:' + (i*0.08+0.35) + 's"/>';
     });
     svg.appendChild(g2);
   }
@@ -168,9 +165,10 @@ const CHART = {
 
   function showTip(e){
     var t = document.getElementById("tip");
-    t.innerHTML = '<div class="tt">' + esc(e.label) + '</div>' + esc(e.date) +
-      (e.value ? '<div style="color:' + viz("--viz-info", "#7da6ff") + ';font-weight:600">' + esc(e.value) + '</div>' : "") +
-      (e.note ? '<div>' + esc(e.note) + '</div>' : "");
+    t.innerHTML = '<div class="tt">' + esc(e.label) + '</div>' +
+      '<div style="opacity:.85">' + esc(e.date) + '</div>' +
+      (e.value ? '<div style="font-weight:800">' + esc(e.value) + '</div>' : "") +
+      (e.note ? '<div style="opacity:.85">' + esc(e.note) + '</div>' : "");
     t.classList.add("on");
   }
   function moveTip(evt){
