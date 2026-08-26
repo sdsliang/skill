@@ -22,8 +22,23 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 
 ## Current version
 
-- System prompt: `v0.8`
-- Skill: `multi-clinical-result-comparison` trial-level synthesis `v0.8`
+- System prompt: `v0.9`
+- Skill: `multi-clinical-result-comparison` trial-level synthesis `v0.9` (file-based report delivery via `present_artifact`)
+
+## v0.9 change: 报告文件化交付（present_artifact 终局）
+
+- 背景（用户确认）：利用 Tool Smith 新增 `present_artifact` capability，把最终报告从「聊天正文流式输出」改为「写盘 + 卡片交付」；开发要点：后端不用解析模型输出、可杜绝开场白/尾随 tool、可为交付写文件模板。用户定案：**方案 B**（正文留空/至多一句用途说明，只有卡片）+ **`{{ref_n}}` 与独立引文 JSON 暂不改**（保留标记与 schema，只是 JSON 也变成文件）；气泡/悬停字段说明本轮不做。
+- 交付契约（新增 `skill/.../references/file-delivery.md`，权威）：
+  - 报告 → `/workspace/output/<slug>-report.md`（路由模板内容 + `{{ref_n}}` + `::visualization` 引用，首行即标题无开场白）；引文 JSON → `/workspace/output/<slug>-citations.json`（raw strict JSON，一源一键，字段 byte-for-byte）。
+  - `present_artifact('/workspace/output/<slug>-report.md')` 作为**最后一个 tool call**，成功后立即结束；正文留空或至多一句「完整报告已生成，见下方文件卡片」；调用后不得再输出/再调 tool。
+  - 只 present 报告文件；内嵌 `::visualization` 图不再单独 present（除非本身就是独立交付物）。
+  - 引文 JSON 文件不 present 也可见：`/workspace/output/` 下的文件都是 workspace artifact（已核实 tool-smith `list_artifacts` 只过滤忽略目录），后端/前端走 artifacts API 直接取两个文件。
+  - 若部署未开 `artifact_presentation`（工具不可见），回退 v0.8 契约（正文全量报告 + 独立 JSON）。
+- 依赖开关：目标项目须开 `artifact_presentation`（默认 OFF）+ `visualization`（报告文件里的 `::visualization` 渲染依赖）。
+- 改动文件：新增 `references/file-delivery.md`；`SKILL.md`（阅读清单 #9 + 工作流第5步写盘 + Output firewall 文件化交付/回退）；新系统提示词 `system-prompts/multi-clinical-result-comparison-v0.9.md`；`references/citation-and-ref.md` 与 `references/input-contract.md` 的 JSON 交付改为文件；`runtime/citation-renderer.mjs` 新增 `validateCitationPair`（不渲染的配对校验）+ `test/citation-renderer.test.mjs` 两条新测试；README v0.9 段落/文件清单/配置；重建 `dist/multi-clinical-result-comparison-v0.9.zip`（20 文件，含 file-delivery.md）。
+- 报告模板（unified/cross-trial/mixed）未改动——它们就是报告文件的内容骨架；v0.9 只改了「交付方式」这一层，不改内容结构与图表契约。
+- 验证：`node --test test/citation-renderer.test.mjs` 8/8；`node evals/validate-v05-contract.mjs` → `v0.5_contract_ok`；zip 解包结构/前缀/20 文件校验通过。
+- 遗留：`{{ref_n}}` 在 artifact 文件阅读器里仍显示为字面 token（前端上标渲染未做，属已知限制，`{{ref_n}}` 不改是用户定案）；正文 `::visualization` 真实环境渲染仍待验证（延续 v0.8 待办）。
 
 ## v0.8.1 change: 三张图表模板视觉升级（lieflat violet 紫罗兰设计语言）
 

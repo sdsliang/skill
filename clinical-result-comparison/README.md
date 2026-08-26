@@ -17,12 +17,12 @@ Tool Smith project assets for reconstructing complete trial interpretations from
 
 ## Files
 
-- `system-prompts/multi-clinical-result-comparison-v0.8.md`: Tool Smith project system prompt for trial-level evidence synthesis (current; attachment-based input, HTML visualizations).
+- `system-prompts/multi-clinical-result-comparison-v0.9.md`: Tool Smith project system prompt for trial-level evidence synthesis (current; attachment-based input, HTML visualizations, file-based report delivery via `present_artifact`).
 - `skill/multi-clinical-result-comparison/`: runtime Skill, evidence-chain references, citation contract, and report template.
 - `skill/multi-clinical-result-comparison/templates/unified-evidence-report.md`: single-trial consumer-facing report structure.
 - `skill/multi-clinical-result-comparison/references/timeline-diagram.md`: construction rules for the evidence-chain timeline as an HTML visualization (same-trial, ≥2 distinct evidence states) built on `templates/charts/evidence-timeline.html` with `::visualization` references; no Mermaid.
 - `skill/multi-clinical-result-comparison/templates/cross-trial-report.md`: comparison-first, domain-aligned report structure for multiple independent trials (efficacy, safety, PK/PD, PRO).
-- `skill/multi-clinical-result-comparison/references/input-contract.md`: `np_clinical` lookup, per-source attachment file layout, delivery limits, Agent reading protocol, and frontend marker rendering contract.
+- `skill/multi-clinical-result-comparison/references/file-delivery.md`: v0.9 file-delivery contract — final report written to `/workspace/output/<slug>-report.md`, citation JSON to `/workspace/output/<slug>-citations.json`, delivered with `present_artifact` as the terminal tool call, empty/minimal chat body.
 - `skill/multi-clinical-result-comparison/references/citation-and-ref.md`: inline marker, metadata, and separate JSON citation contract.
 - `skill/multi-clinical-result-comparison/references/chart-templates.md` + `templates/charts/`: blue-purple HTML chart templates (evidence timeline / bar / line) with `--viz-*` injection mapping; the bar template renders ORR-type single-value comparisons.
 - `evals/fetch-np-clinical-attachments.mjs`: reproducible condition-query adapter that writes one `.md` attachment file per source plus a backend `manifest.json`, with a built-in round-trip check.
@@ -36,7 +36,15 @@ Tool Smith project assets for reconstructing complete trial interpretations from
 - `evals/fixtures/nct05840016-selected-results.json`: live `np_clinical` example fetched by `base.nct_id = NCT05840016`, containing four HARMONi-6 source objects.
 - `evals/iteration-11-harmoni6-trial-synthesis.md`: v0.4 hand-authored trial-level regression report with inline Refs.
 - `evals/iteration-12/harmoni6/report-v2.md`: local Skill execution regression report; the v2 rerun verifies proper-name fidelity.
-- `dist/multi-clinical-result-comparison-v0.8.zip`: Tool Smith upload archive for the v0.8 Skill (attachment-based input, HTML visualization path), citation renderer, timeline diagram reference, and chart templates.
+- `dist/multi-clinical-result-comparison-v0.9.zip`: Tool Smith upload archive for the v0.9 Skill (attachment-based input, HTML visualization path, file-based report delivery), citation renderer, file-delivery reference, timeline diagram reference, and chart templates.
+
+## v0.9 changes
+
+- **File-based report delivery via `present_artifact`** (方案 B). The finished report is no longer streamed as chat text. It is written to `/workspace/output/<slug>-report.md` (report template content with inline `{{ref_n}}` markers and `::visualization` references) and the strict citation JSON to `/workspace/output/<slug>-citations.json`, then the report file is delivered with `present_artifact` as the **final tool call**. The chat body stays empty or holds at most one short purpose line — no intro text, no report content, and no tool call after `present_artifact`.
+- Backend no longer parses model output: it serves the report and citation files directly from the artifacts API; the citation file is a visible workspace artifact even without a card.
+- `{{ref_n}}` markers and the separate citation JSON schema are unchanged; downstream consumers render markers using the citation file. New `references/file-delivery.md` is the authoritative delivery contract.
+- New system prompt `system-prompts/multi-clinical-result-comparison-v0.9.md`; historical v0.3–v0.8 prompts remain as snapshots.
+- `runtime/citation-renderer.mjs` adds `validateCitationPair(report, citationJson)` (parity check without rendering) with tests.
 
 ## v0.8 changes
 
@@ -57,6 +65,6 @@ Tool Smith project assets for reconstructing complete trial interpretations from
 
 ## Tool Smith configuration
 
-Use the v0.8 system prompt and updated Skill family. Bind no legacy single-result Skill or knowledge runtime. The backend must normalize `np_clinical` records to the four-field consumer shape and write one `.md` attachment file per selected source before the run; the frontend attaches the files. Benchmark cases should verify trial identity, source-state deduplication, chronology, marker coverage (markers match attached-file order), exact URL and release-time preservation, valid separate citation JSON, the evidence-chain timeline diagram (when applicable), and complete efficacy/safety-chain interpretation. Run `node evals/validate-v05-contract.mjs` for the local contract check and `node evals/fetch-np-clinical-attachments.mjs <dir> <size>` to produce a reproducible attachment batch.
+Use the v0.9 system prompt and updated Skill family. The project must enable the **`artifact_presentation`** capability (per-project switch, default OFF) and keep the **`visualization`** capability on (report files embed `::visualization` references). Bind no legacy single-result Skill or knowledge runtime. The backend must normalize `np_clinical` records to the four-field consumer shape and write one `.md` attachment file per selected source before the run; the frontend attaches the files. Benchmark cases should verify trial identity, source-state deduplication, chronology, marker coverage (markers match attached-file order), exact URL and release-time preservation, valid citation JSON file, the evidence-chain timeline diagram (when applicable), complete efficacy/safety-chain interpretation, and that the report is delivered as a presented artifact file with an empty/minimal chat body.
 
 The product and backend own token counting and request rejection before the Agent run. The Agent must never silently truncate accepted source text.

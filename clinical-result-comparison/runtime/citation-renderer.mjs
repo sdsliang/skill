@@ -13,6 +13,14 @@ export function renderCitationReport(report, citationJson) {
   return renderCitationMarkers(report, citations);
 }
 
+/** Validate a report file + citation file pair without rendering (v0.9 file delivery). */
+export function validateCitationPair(report, citationJson) {
+  if (typeof report !== "string") throw new TypeError("report must be a string");
+  const citations = parseCitationJson(citationJson);
+  validateCitations(report, citations);
+  return true;
+}
+
 
 export function renderCitationMarkers(html, citations) {
   if (typeof html !== "string") throw new TypeError("html must be a string");

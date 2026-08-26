@@ -58,14 +58,14 @@ When a sentence combines distinct source-supported facts, attach the relevant ma
 
 ## Separate citation JSON
 
-The Markdown report contains inline markers only. Output a separate, raw JSON object with one key per marker. Each value must contain exactly the supplied `title`, `link`, and `paper_release_time_str` strings. Do not append this object to the report body.
+The Markdown report contains inline markers only. The citation metadata is emitted as a **raw JSON file** `/workspace/output/<slug>-citations.json` (see `references/file-delivery.md`), one key per marker. Each value must contain exactly the supplied `title`, `link`, and `paper_release_time_str` strings. Do not append this object to the report body.
 
 ```json
 {"ref_1":{"title":"Source title","link":"https://example.com/source","paper_release_time_str":"2025-01-01"}}
 ```
 
-The code fence is documentation only. The delivered JSON artifact must be unfenced, strict JSON. Every marker used in the report has exactly one matching key, no unused key is present, and keys are contiguous from `ref_1` in input order. Links must be preserved byte-for-byte; empty values remain empty when supplied.
+The code fence is documentation only. The delivered citation file must be raw, unfenced strict JSON. Every marker used in the report has exactly one matching key, no unused key is present, and keys are contiguous from `ref_1` in input order. Links must be preserved byte-for-byte; empty values remain empty when supplied.
 
 ## Verification
 
-Before delivery, scan every clinical numeral and ensure it has a nearby marker. Parse the separate citation JSON. Compare the set of inline marker keys against the JSON keys in both directions. Verify every cited source contains the claimed value and every JSON title, link, and release-time string exactly matches the supplied metadata.
+Before delivery, scan every clinical numeral and ensure it has a nearby marker. Read the citation file back and parse it. Compare the set of inline marker keys against the JSON keys in both directions. Verify every cited source contains the claimed value and every JSON title, link, and release-time string exactly matches the supplied metadata. Then call `present_artifact` on the report file as the final tool call (see `references/file-delivery.md`).

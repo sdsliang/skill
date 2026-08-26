@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { parseCitationJson, renderCitationMarkers, renderCitationReport } from "../runtime/citation-renderer.mjs";
+import { parseCitationJson, renderCitationMarkers, renderCitationReport, validateCitationPair } from "../runtime/citation-renderer.mjs";
 
 test("renders safe superscript links from a separate citation JSON object", () => {
   const rendered = renderCitationReport("Claim{{ref_1}}", {
@@ -41,6 +41,21 @@ test("escapes supplied metadata before HTML interpolation", () => {
 
 test("rejects marker and JSON key mismatches", () => {
   assert.throws(() => renderCitationReport("Claim{{ref_1}}", {
+    ref_2: { title: "x", link: "https://example.com", paper_release_time_str: "" }
+  }), /citation_marker_key_mismatch/);
+});
+
+test("validateCitationPair accepts a matching report file + citation file pair", () => {
+  const report = "中位 PFS 11.1 个月{{ref_1}}；OS 27.9 个月{{ref_2}}";
+  const citations = {
+    ref_1: { title: "A", link: "https://example.com/a", paper_release_time_str: "2025-01-01" },
+    ref_2: { title: "B", link: "https://example.com/b", paper_release_time_str: "2025-02-01" }
+  };
+  assert.equal(validateCitationPair(report, citations), true);
+});
+
+test("validateCitationPair throws when file pair marker keys do not match", () => {
+  assert.throws(() => validateCitationPair("值{{ref_1}}", {
     ref_2: { title: "x", link: "https://example.com", paper_release_time_str: "" }
   }), /citation_marker_key_mismatch/);
 });

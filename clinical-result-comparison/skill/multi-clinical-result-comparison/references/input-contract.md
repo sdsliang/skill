@@ -82,7 +82,7 @@ When the deployment exposes the `task` tool (backend `SubAgentCapability` regist
 
 ## Citation rendering
 
-The Agent emits machine-readable `{{ref_n}}` tokens in the Markdown report. The citation metadata is a separate JSON artifact and must not be appended to the report or passed through a generic Markdown autolinker. The frontend receives the report and citation JSON separately, validates marker/key parity, then renders only the report body.
+The Agent emits machine-readable `{{ref_n}}` tokens in the Markdown report. Both the report and the citation metadata are delivered as workspace files under `/workspace/output/` (see `references/file-delivery.md`): the report is presented with `present_artifact` as the final tool call, and the citation file is a supporting machine-readable artifact (listed by the artifacts API without needing a card). The citation metadata must not be appended to the report or passed through a generic Markdown autolinker. The frontend/consumer fetches the report file and the citation file from the artifact endpoints, validates marker/key parity, then renders only the report body.
 
 ```html
 <sup class="source-citation"><a href="SUPPLIED_LINK" title="SUPPLIED_TITLE" target="_blank" rel="noopener noreferrer">n</a></sup>
