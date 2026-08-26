@@ -11,6 +11,7 @@ Rationale: a user may select many results (for example 20–50). Inline JSON in 
 - Use the POC project configuration loader at `/home/xupeipeioo1/apps/POC/src/config.js` for `ES_HOST`, `ES_USERNAME`/`ES_PASSWORD`, or `ES_API_KEY`.
 - Query the `np_clinical` index. An optional `NP_CLINICAL_INDEX` environment variable may override the default for a deployment, but the default is `np_clinical`.
 - Request only the source fields required for this Agent: `base.title`, `base.full_article_link`, and `source_full_text`. For the current index data, also request `base.paper_title` as a title compatibility fallback and `base.paper_release_time_str` for the citation timestamp.
+- For entity inline references (v0.10), additionally request the entity-ID sources: `base.nct_id`, `base.trial_drug` (drug_earth entities), and `trial_details` (company IDs under arms). Resolve company IDs to `base_company` display names via the `base_company` index (`term` query on the `id` field; prefer `name_show_cn`, else `short_name`, else `name`). These become the `source_nct_id` / `source_drug_entities` / `source_company_entities` metadata lines. They are display/label metadata, not clinical evidence.
 - Resolve either the Elasticsearch document ID or the selected record's composite key by extracting the portion after `::` for an ID query and retaining the original selection order only in backend memory.
 - Exclude deleted records according to the backend's existing selection policy. Do not pass technical record IDs into the Agent.
 
@@ -25,6 +26,9 @@ Normalize each selected record to this consumer-facing shape:
   "source_title": "value from base.title.text, otherwise base.paper_title.text",
   "source_url": "value from base.full_article_link.text",
   "source_paper_release_time_str": "value from base.paper_release_time_str.text",
+  "source_nct_id": "value from base.nct_id.text (optional, when a clean registration id exists)",
+  "source_drug_entities": "array of {name, index: drug_earth, id} tuples from base.trial_drug (optional)",
+  "source_company_entities": "array of {name, index: base_company, id} tuples resolved from trial_details company IDs (optional)",
   "source_full_text": "value from source_full_text.text"
 }
 ```
@@ -37,11 +41,21 @@ Write one `.md` file per selected result, named by input order. The file has exa
 source_title: {title}
 source_url: {url}
 source_paper_release_time_str: {time}
+source_nct_id: {nct_id}                        # optional line; only when a clean registration id exists
+source_drug_entities: {name}|drug_earth|{id}[; {name}|drug_earth|{id}]   # optional line
+source_company_entities: {name}|base_company|{id}[; {name}|base_company|{id}]   # optional line
 
 ## source_full_text
 
 {source_full_text}
 ```
+
+**Entity-ID metadata lines (v0.10):**
+
+- `source_nct_id`: single registration number. When `base.nct_id.text` is a multi-value list (e.g. `A | B`), emit only the first clean registration token (prefer an `NCT…` id); omit the line entirely when no clean registration id exists.
+- `source_drug_entities` / `source_company_entities`: semicolon-separated `名称|实体索引|ID` tuples. Omit the whole line when there are no tuples with a usable ID. A tuple whose name contains `|` or `;` is dropped (the Agent must never need to unescape it). `drug_earth` IDs come from `base.trial_drug[].meta[].id`; `base_company` IDs come from `trial_details` arms' `company_ids`, resolved to a display name via `base_company`.
+- These three lines are **entity-ID metadata** (display/label only), same tier as `source_title`/`source_url`. They are **not clinical evidence**: the Agent uses them solely to attach entity labels to mentions already present in the report (see `references/entity-inline-reference.md`), never to derive clinical facts.
+- A missing or empty line means that entity type is not referenced at all (graceful degradation).
 
 Filename convention: `source-{n}.md`, where `{n}` is the 1-based input-order index left-padded to three digits (`source-001.md`, `source-002.md`, …). The file order defines the `{{ref_n}}` marker scope for the whole response. Do not include `result_id`, `doc_id`, Elasticsearch `_id`, index names, storage paths, structured clinical fields, or retrieval diagnostics in the file or filename.
 
@@ -58,8 +72,9 @@ Filename convention: `source-{n}.md`, where `{n}` is the 1-based input-order ind
 
 1. List the attached source files in the workspace uploads directory.
 2. Order them by filename (`source-001.md`, `source-002.md`, …); that is the input order and the `{{ref_n}}` assignment order. Filename order is a presentation label, not clinical chronology.
-3. For each file, read the `source_title`, `source_url`, and `source_paper_release_time_str` values from the metadata lines and the full text from the body after `## source_full_text`.
-4. Build the internal worksheet exactly as described in `references/input-and-extraction.md`, using the same rules that previously applied to inline source objects.
+3. For each file, read the `source_title`, `source_url`, `source_paper_release_time_str`, and (when present) the `source_nct_id` / `source_drug_entities` / `source_company_entities` values from the metadata lines and the full text from the body after `## source_full_text`.
+4. Keep a per-source entity ledger for the report: registration id (from `source_nct_id`) and drug/company `{name, type, id}` tuples (from the entity lines). Use them only per `references/entity-inline-reference.md`.
+5. Build the internal worksheet exactly as described in `references/input-and-extraction.md`, using the same rules that previously applied to inline source objects.
 
 ## Large-batch delegation via subagents (OPTIONAL, pending verification)
 

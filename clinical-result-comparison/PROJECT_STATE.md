@@ -22,8 +22,18 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 
 ## Current version
 
-- System prompt: `v0.9`
-- Skill: `multi-clinical-result-comparison` trial-level synthesis `v0.9` (file-based report delivery via `present_artifact`)
+- System prompt: `v0.10`
+- Skill: `multi-clinical-result-comparison` trial-level synthesis `v0.10` (file-based report delivery via `present_artifact` + entity inline references)
+
+## v0.10 change: 实体内联引用（药品 / 公司 / 临床试验注册号）
+
+- 背景（用户拍板）：整合 Tool Smith 的 `[name](entity:type:id)` 实体内联引用能力，让报告里的药品、公司、注册号渲染成可交互实体胶囊（前端 `EntityAnchor` 已支持，artifact 阅读器走 `ChatMarkdown` → `EntityAnchor`，**前端 0 改动**）。范围限定三类：药品 + 公司 + 注册号；适应症/靶点不做（无元数据行）。
+- **ID 来源 = 后端附件元数据行透传**（用户确认），nct_id 也是元数据行优先：新增三行可选元数据 `source_nct_id` / `source_drug_entities` / `source_company_entities`（`名称|实体索引|ID`，`;` 分隔）。行缺失/为空 → 该类型不引用（自然降级）。不编造 ID、不为拿 ID 调工具；注册号仅在 `source_nct_id` 存在时引用（v0.10 不做 CTR/ChiCTR 文本抽取兑底）。
+- **数据源核实**（只读）：`base.nct_id.text`（多值时取首个干净 token，NCT 优先）→ `entity:trial:`；`base.trial_drug[].meta[]`（drug_earth，中文药名+ID，如依沃西单抗=12483）→ `entity:drug:`；`trial_details` 内 `company_ids`（仅 ID 数组）→ 用 `base_company` 索引 `terms{id}` 解析显示名（`name_show_cn`→`short_name`→`name`，319=BMS/169=Pfizer/355=Eli Lilly/55=Bayer）→ `entity:company:`。HARMONi-6 记录无 company_ids（自然省略公司行）。
+- 证据边界：三行实体元数据是**展示/标签元数据，非临床证据**；只给报告里本来出现的实体名绑 ID，不推临床事实。与 `{{ref_n}}` 共存（`[依沃西单抗](entity:drug:12483){{ref_1}}`）；`::visualization` 图表内不写 `entity:`（隔离 iframe 无实体渲染器，登记号下钻仍走 `__toolsmithNavigate`）。
+- 改动文件：新增 `skill/.../references/entity-inline-reference.md`（语法/ID 来源硬规则/适用范围/与证据边界关系/校验）；`references/input-contract.md`（JSON 形状加三字段 + 文件布局加三行 + 读取协议第 4 步实体台账）；`references/citation-and-ref.md`（首段交叉引用）；`SKILL.md`（阅读清单 #10 + Input 段 + 证据边界 + 工作流第 8 步 + Output firewall 允许 `entity:` 受控格式）；三份报告模板（研究名称/注册号、试验组/试验组方案单元格加 `entity:` 示例）；新增 `system-prompts/multi-clinical-result-comparison-v0.10.md`（基于 v0.9，加「Entity inline references」规则表 + 工作流第 8 步 + Final verification 实体校验条款）；`evals/fetch-np-clinical-attachments.mjs`（`_source` 加三字段、`enrichEntityMetadata` 生成三行、renderSourceFile/parseSourceFile/roundtrip 扩展）；新增 `evals/validate-entity-refs.mjs`（报告实体引用 ↔ 附件元数据行一致性校验：类型白名单、ID 必须在元数据、图表内禁 `entity:`）；README（v0.10 段 + 文件清单 + 配置）；重建 `dist/multi-clinical-result-comparison-v0.10.zip`（21 文件 = v0.9 的 20 + entity-inline-reference.md，系统提示词不入 zip）。
+- 验证：fetch 脚本 `node --check` OK + 小批量（3 条）实拉——无 ID 旧来源自然省略三行、有 drug_earth 的来源正确输出 `source_drug_entities`；HARMONi-6（NCT05840016）nct_id 提取=可 `NCT05840016`、drugs=卡铂1618/依沃西单抗12483/紫杉醇1738、公司为空（数据本身无）；带 company_ids 的样本（319,169,355,31284,55）经 `base_company` 全部解析出名称；roundtrip 校验全过。`validate-entity-refs.mjs`：编造 ID（NCT99999999 不在元数据）正确 FAIL，真实 ID 正确 PASS；zip 解包 = v0.9 集 + 新参考文档。
+- 遗留：前端实体胶囊实际渲染仍待真实部署验证（延续 `{{ref_n}}`/`::visualization` 同款待办）；公司显示名取 `name_show_cn→short_name→name`，可能含非目标拼写，Agent 以来源拼写为展示名（元数据名仅作匹配提示）。
 
 ## v0.9 change: 报告文件化交付（present_artifact 终局）
 

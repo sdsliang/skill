@@ -2,7 +2,7 @@
 
 ## Goal
 
-Make every material number and source-dependent conclusion in a trial synthesis traceable to one supplied source. Inline markers are presentation-stable tokens that the frontend converts to numeric superscript links; they do not represent independent trials, evidence grades, or chronology.
+Make every material number and source-dependent conclusion in a trial synthesis traceable to one supplied source. Inline markers are presentation-stable tokens that the frontend converts to numeric superscript links; they do not represent independent trials, evidence grades, or chronology. Entity inline references (`[name](entity:type:id)`, v0.10) are a separate display feature that coexists with markers — see `references/entity-inline-reference.md`; they never replace or alter marker placement.
 
 ## Input metadata
 
