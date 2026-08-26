@@ -22,8 +22,16 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 
 ## Current version
 
-- System prompt: `v0.10`
-- Skill: `multi-clinical-result-comparison` trial-level synthesis `v0.10` (file-based report delivery via `present_artifact` + entity inline references)
+- System prompt: `v0.11`
+- Skill: `multi-clinical-result-comparison` trial-level synthesis `v0.11` (file-based report delivery via `present_artifact` + entity inline references with trial short-name display)
+
+## v0.11 change: 试验简称内联（trial short name as entity display label）
+
+- 用户需求：「试验简称能内联」——报告里试验展示名优先用简称（如 HARMONi-6、TRAIN-2），而不是只显示注册号。
+- 数据源核实（只读）：`np_clinical.base.trial_abbreviation` 是现成字段，形态为对象 `{text}` 或数组 `[{text}]`（多别名）；覆盖度：nsclc 三期积极 88/100、ind579 三期 70/100、TRAIN-2 5/5。试验简称 ID 不新增——`entity:trial:` 的 ID 仍是注册号（`source_nct_id`），简称仅作展示名。
+- 契约：附件新增可选元数据行 `source_trial_abbr`（试验简称，多个别名 `;` 分隔，去重、丢弃含 `|`/`;` 的值；无简称不写行）。展示名优先级 = `source_trial_abbr` → 注册号；行缺失/为空 → 回退注册号（自然降级）。注册号仍只作 `entity:trial:` 的 ID。
+- 改动文件：`evals/fetch-np-clinical-attachments.mjs`（`_source` 加 `base.trial_abbreviation` + `extractTrialAbbr` + render/parse/roundtrip 加 `source_trial_abbr`）；`references/input-contract.md`（ES lookup + JSON 形状 + 文件布局 + 实体元数据行 + 读取协议 + 可复现检查）；`references/entity-inline-reference.md`（trial 规则：简称优先展示、ID 仍注册号、图表内仍禁）；三份报告模板（研究名称/注册号、试验/注册号单元格改简称优先示例）；`SKILL.md`（阅读清单 #10 + Input + 证据边界 + 工作流第 8 步）；新增 `system-prompts/multi-clinical-result-comparison-v0.11.md`（基于 v0.10，Entity 表加「试验（展示名优先用简称）」行 + 展示名规则 + Final verification）；README（v0.11 段 + 文件清单 + 配置）；重建 `dist/multi-clinical-result-comparison-v0.11.zip`（21 文件，系统提示词不入 zip）。`validate-entity-refs.mjs` 无需改（trial ID 仍是注册号）。
+- 重拉 `evals/iteration-16` 三个数据目录（均 gitignored）：nsclc-50 50 条（34/50 带简称，顺序与旧一致）、ind579-phase3-50 59 条（40/59 带简称）、nct01996267 5 条（5/5 带 TRAIN-2，`NP_CLINICAL_ATTACH_ORDER` 保持旧顺序）。roundtrip 全过。
 
 ## v0.10 change: 实体内联引用（药品 / 公司 / 临床试验注册号）
 
@@ -34,6 +42,16 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - 改动文件：新增 `skill/.../references/entity-inline-reference.md`（语法/ID 来源硬规则/适用范围/与证据边界关系/校验）；`references/input-contract.md`（JSON 形状加三字段 + 文件布局加三行 + 读取协议第 4 步实体台账）；`references/citation-and-ref.md`（首段交叉引用）；`SKILL.md`（阅读清单 #10 + Input 段 + 证据边界 + 工作流第 8 步 + Output firewall 允许 `entity:` 受控格式）；三份报告模板（研究名称/注册号、试验组/试验组方案单元格加 `entity:` 示例）；新增 `system-prompts/multi-clinical-result-comparison-v0.10.md`（基于 v0.9，加「Entity inline references」规则表 + 工作流第 8 步 + Final verification 实体校验条款）；`evals/fetch-np-clinical-attachments.mjs`（`_source` 加三字段、`enrichEntityMetadata` 生成三行、renderSourceFile/parseSourceFile/roundtrip 扩展）；新增 `evals/validate-entity-refs.mjs`（报告实体引用 ↔ 附件元数据行一致性校验：类型白名单、ID 必须在元数据、图表内禁 `entity:`）；README（v0.10 段 + 文件清单 + 配置）；重建 `dist/multi-clinical-result-comparison-v0.10.zip`（21 文件 = v0.9 的 20 + entity-inline-reference.md，系统提示词不入 zip）。
 - 验证：fetch 脚本 `node --check` OK + 小批量（3 条）实拉——无 ID 旧来源自然省略三行、有 drug_earth 的来源正确输出 `source_drug_entities`；HARMONi-6（NCT05840016）nct_id 提取=可 `NCT05840016`、drugs=卡铂1618/依沃西单抗12483/紫杉醇1738、公司为空（数据本身无）；带 company_ids 的样本（319,169,355,31284,55）经 `base_company` 全部解析出名称；roundtrip 校验全过。`validate-entity-refs.mjs`：编造 ID（NCT99999999 不在元数据）正确 FAIL，真实 ID 正确 PASS；zip 解包 = v0.9 集 + 新参考文档。
 - 遗留：前端实体胶囊实际渲染仍待真实部署验证（延续 `{{ref_n}}`/`::visualization` 同款待办）；公司显示名取 `name_show_cn→short_name→name`，可能含非目标拼写，Agent 以来源拼写为展示名（元数据名仅作匹配提示）。
+
+## v0.10 follow-up: iteration-16 数据重拉 + fetch 脚本增强
+
+- 背景（用户）：把 `evals/iteration-16` 里所有 np-clinical 数据目录按 v0.10 新规则（实体元数据行）重新拉取。
+- `evals/fetch-np-clinical-attachments.mjs` 增强（同一脚本三种场景）：`NP_CLINICAL_ATTACH_NO_EVALUATION=1`（去掉 evaluation 过滤，供 ind579 这类无 evaluation 批次）；`NP_CLINICAL_ATTACH_NCT="NCT..."`（按注册号拉单试验）；`NP_CLINICAL_ATTACH_ORDER="<doc_id>,..."`（按文档 `_id` 指定输出顺序，复现历史手工选择顺序，保持旧报告 ref 对齐）。`normalizeSource` 携带 `_docId` 用于排序，写入 manifest/文件前删除（`_id` 不泄漏）。`references/input-contract.md` Reproducible local check 段补三种 env 覆盖说明。
+- 重拉结果（均为 gitignored 生成物，不入库）：
+  - `np-clinical-nsclc-50`：50 条，顺序与旧一致（旧 report.md/refs.json 仍对齐）；实体行 44/50 至少一行（nct 36 / drug 31 / company 21）。
+  - `np-clinical-ind579-phase3-50`：59 条（原 50 条前序一致 + 数据源新增 9 条 usable）；实体行 58/59（nct 56 / drug 43 / company 0——AD 试验 np_clinical 无 company_ids）。旧 report.md 对应前 50 条仍对齐；多出的 9 条无报告覆盖。
+  - `np-clinical-nct01996267`（TRAIN-2）：5 条，按旧顺序（`NP_CLINICAL_ATTACH_ORDER`）重拉，与旧 report.md 完全对齐；全部带 `source_nct_id: NCT01996267` + drug_earth 药名，company 行 0（记录无 company_ids）。
+- roundtrip 校验全部通过；备份旧数据在 `/tmp/iter16-backup/`。
 
 ## v0.9 change: 报告文件化交付（present_artifact 终局）
 

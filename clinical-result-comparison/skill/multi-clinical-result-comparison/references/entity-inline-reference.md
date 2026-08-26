@@ -30,12 +30,13 @@ ToolSmith 前端（`EntityAnchor`）识别的格式是 Markdown 内联链接：
 
 ```markdown
 source_nct_id: NCT05840016
+source_trial_abbr: HARMONi-6
 source_drug_entities: 依沃西单抗|drug_earth|12483; 卡铂|drug_earth|1618; 紫杉醇|drug_earth|1738
 source_company_entities: Bristol-Myers Squibb|base_company|319
 ```
 
-- `source_drug_entities` / `source_company_entities` 的元组格式为 `名称|实体索引|ID`，多个元组用 `;` 分隔。
-- **只引用这三行里明确给出的 ID**。不得从 `source_full_text` 推断 ID，不得为拿 ID 调用任何外部查询/链接工具，不得编造或补全 ID，不得引用元数据行里不存在的实体。
+- `source_drug_entities` / `source_company_entities` 的元组格式为 `名称|实体索引|ID`，多个元组用 `;` 分隔；`source_trial_abbr` 是试验简称（如 `HARMONi-6`、`TRAIN-2`），多个别名用 `;` 分隔，**自身不带 ID**（试验的 ID 就是注册号）。
+- **只引用这些行里明确给出的 ID**。不得从 `source_full_text` 推断 ID，不得为拿 ID 调用任何外部查询/链接工具，不得编造或补全 ID，不得引用元数据行里不存在的实体。
 - 某行缺失或为空 → 该类型不引用任何实体（自然降级为纯文本名称）。
 - 注册号以 `source_nct_id` 为准（元数据行优先）：该行存在才把注册号渲染为 `entity:trial:`；行缺失时，即使全文出现 NCT/CTR/ChiCTR 也不引用（v0.10 不做文本抽取兜底）。
 
@@ -43,15 +44,15 @@ source_company_entities: Bristol-Myers Squibb|base_company|319
 
 - **类型映射**：注册号 → `entity:trial:<source_nct_id>`；药品 → `entity:drug:<药品 ID>`；公司 → `entity:company:<公司 ID>`。
 - **展示名 = 报告本来要用的名称**：中文报告沿用来源支持的中文名（如 `依沃西单抗`），英文来源仅保留英文时沿用英文名（如 `ivonescimab`）。展示名不必等于元数据行的名称，但必须是同一实体的来源支持写法；不得为凑引用而给实体起新名或翻译。
-- **注册号展示名用注册号本身**：`[NCT05840016](entity:trial:NCT05840016)`。
-- **每次提及都引用**，不只是首次：报告中同一药品/公司/注册号的每一处出现，只要有可用 ID 就包成实体引用。
+- **试验展示名优先用试验简称（v0.11）**：当附件有 `source_trial_abbr` 行时，试验的展示名用简称（如 `[HARMONi-6](entity:trial:NCT05840016)`、`[TRAIN-2](entity:trial:NCT01996267)`）；无简称行时才回退用注册号本身（`[NCT05840016](entity:trial:NCT05840016)`）。注册号永远只作 `entity:trial:` 的 ID，不作为展示名被强行优先。
+- **每次提及都引用**，不只是首次：报告中同一药品/公司/注册号的每一处出现，只要有可用 ID 就包成实体引用（含正文/表格/图注里的试验简称）。
 - 实体引用可与 `{{ref_n}}` 共存：`[依沃西单抗](entity:drug:12483){{ref_1}}`；两者互不影响。
 - **表格与正文均可使用**；同一单元格内的实体引用和 `{{ref_n}}` 相邻书写。
 - **图表内不引用**：`::visualization` HTML/SVG 在隔离 iframe 中渲染，没有实体渲染器。图表中的药品/公司/注册号保留纯文本，不写 `entity:` 链接（图表登记号下钻另走 `__toolsmithNavigate`，见 `chart-templates.md`，与实体引用无关）。
 
 ## 与证据边界的关系
 
-实体元数据行（`source_nct_id` / `source_drug_entities` / `source_company_entities`）与 `source_title`/`source_url` 同级，是**展示/标签元数据，不是临床证据**。用途仅限：
+实体元数据行（`source_nct_id` / `source_trial_abbr` / `source_drug_entities` / `source_company_entities`）与 `source_title`/`source_url` 同级，是**展示/标签元数据，不是临床证据**。用途仅限：
 
 - 把报告中**本来就会出现**的实体名称绑定到 ID 标签；
 - 不得用这些 ID 推断、补充或拼接任何临床事实、阶段、人群、数值或结论；
@@ -70,3 +71,5 @@ source_company_entities: Bristol-Myers Squibb|base_company|319
 ## 当前范围
 
 v0.10 只启用三类：**药品（drug）、公司（company）、临床试验注册号（trial）**。适应症、靶点等类型在元数据行提供前不引用。
+
+v0.11 在 trial 类型上增加**试验简称展示名**：`entity:trial:` 的 ID 仍是注册号（`source_nct_id`），但当 `source_trial_abbr` 行存在时展示名用简称；无简称则回退注册号。试验简称同样只在报告正文/表格中使用，不写进图表文件。
