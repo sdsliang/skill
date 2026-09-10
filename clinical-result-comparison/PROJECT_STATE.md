@@ -51,8 +51,8 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - Chart validation entry: `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <product.json>`（前端仓库别名 `pnpm validate:chart -- <path>`）；自研 `validate-chart.py` 已退役。
 - TEMP `.preview.html` 双写：**v0.14 已移除**（`dist/multi-clinical-result-comparison-v0.12-temp-preview.zip` 降级为历史快照）。
 - v0.13 轻量版：**弃用但未删除**（源码 `docs/legacy-v0.13/`，归档 `dist/multi-clinical-result-comparison-v0.13.zip`）。
-- 当前 dist：`dist/multi-clinical-result-comparison-v0.14.zip`（19 文件，系统提示词不入包），SHA-256 `816b3174580c350876285d0748937f54fb6e43961632353773e3937376e8f67a`（含下述「输出文件固定命名」契约）。
-- Git：分支 `main`，HEAD 仍为 `7ca131d v0.11`；v0.12/v0.13/v0.14 改动**未 commit / 未 push**（等用户授权）。
+- 当前 dist：`dist/multi-clinical-result-comparison-v0.14.zip`（19 文件，系统提示词不入包），SHA-256 `c0a7d4c03f9a9b3b90d07f943ef74bfbbd79c53e2587f2aaa52a121943fc1c4c`（含「输出文件固定命名」契约与删除重复小节后的 `chart-templates.md`；历史值 `f54fc741…` → `414dcd04…` → `816b3174…` → `09de0a15…` 均已作废）。
+- Git：分支 `main`，**已 commit 并 push** —— `e4f3bb7`「v0.14: chart JSON protocol delegated to chart-visualization-json + hard-coded deliverable paths」（33 files changed / +2104 −310，含 v0.12/v0.13/v0.14 全部改动、3 个 sys prompt、3 个 dist zip、3 个 JSON 临床模板、`docs/`；5 个 HTML/CSS/validator 以 rename 形态入库 `docs/legacy-html-charts/`）。前 HEAD `7ca131d v0.11`，快进推送，`origin/main` 现为 `e4f3bb7`。提交前守卫：暂存区无 `__pycache__`/`.pyc`（PASS）。未提交：`dist/multi-clinical-result-comparison-v0.12-temp-preview.zip`（调试期双写包，仓库惯例为「每版本一个 zip」，故留作本地未跟踪，未入库）。无 `Dockerfile`/compose，不涉及镜像。
 
 ## v0.14 change: 复用上游 chart-visualization-json skill；撤销 TEMP 双写（2026-09-08）
 
