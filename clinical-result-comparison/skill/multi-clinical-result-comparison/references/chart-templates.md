@@ -11,8 +11,9 @@
 > | Schema 实现     | `chart-visualization-json/references/schemas/`（Zod，小驼峰字段）                  |
 > | 校验命令        | `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <file.json>` |
 >
-> 本 skill 不再产出 HTML/SVG fragment，也**不再维护自研校验脚本**（`validate-chart.py` 已随 v0.11 的
-> HTML 图表一并归档到 `docs/legacy-html-charts/`）。`templates/charts/*.json` 只是**按该协议预填的
+> 本 skill 不再产出 HTML/SVG fragment，也**不再维护自研校验脚本**：旧 HTML 图表模板与
+> `validate-chart.py` / `render-preview.py` 自 **v0.15 起已从本仓库彻底移除**（回溯可见 git 历史
+> `e4f3bb7`，本 skill 不再默认它们存在）。`templates/charts/*.json` 只是**按该协议预填的
 > 临床场景起点**，产物是否合法一律以图表 skill 的 schema 与 CLI 校验结果为准；渲染由前端
 > chart-visualization-json 渲染层完成。
 >
