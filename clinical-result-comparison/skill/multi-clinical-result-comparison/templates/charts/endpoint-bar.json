@@ -1,0 +1,18 @@
+{
+  "type": "bar",
+  "direction": "horizontal",
+  "group": false,
+  "stack": false,
+  "title": "客观缓解率（ORR）对比",
+  "subTitle": "不同试验 / 治疗组主要终点 · 无时间维度终点用柱状图（跨试验并列展示，非头对头比较）",
+  "dataSource": "数据来源：params 返回的摘要字段（论文题名 / 发布时间），数值仅来自所选临床结果字段",
+  "describe": "每条横档 = 一个试验 × 治疗组的单值终点。柱长按数值；`data[]` 由生成方按 value 从高到低排好序后交付（渲染端不重排）。置信区间等原文补充可放在每项的 description 里做说明，不参与绘制。",
+  "axisXTitle": "终点数值（%）",
+  "axisYTitle": "试验 · 治疗组",
+  "data": [
+    { "label": "试验A · 研究组", "value": 63.5, "description": "研究组，95% CI [55.2, 71.0]" },
+    { "label": "试验A · 对照组", "value": 31.2, "description": "对照组，95% CI [23.4, 39.8]" },
+    { "label": "试验B · 研究组", "value": 58.0, "description": "研究组，95% CI [50.1, 65.6]" },
+    { "label": "试验B · 对照组", "value": 27.9, "description": "对照组，95% CI [20.6, 36.0]" }
+  ]
+}

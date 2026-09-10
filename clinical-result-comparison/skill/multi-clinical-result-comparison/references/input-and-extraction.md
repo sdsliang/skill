@@ -2,11 +2,11 @@
 
 ## Source authority
 
-Each selected clinical result arrives as one attached file (`source-{n}.md`). The file carries backend-supplied `source_title`, `source_url`, and `source_paper_release_time_str` metadata lines plus the full text under `## source_full_text`; the full text is the sole clinical evidence for the item. Read the metadata and the full text from the attached file per `references/input-contract.md`; do not retrieve facts from the title, URL, or release-time fields, and never retrieve or guess a missing URL.
+Each selected clinical result is pulled by esid through the MCP tool `pharmcube-query-clinical-result-with-params` (`extra_esids` + strict `selected_fields`; see `references/input-contract.md`). The clinical evidence for the item is carried by the returned fields that hold clinical content (`abstract_text`, `summary`, `study_results` structured endpoint results, and the design/arms context fields); `paper_title`, `full_article_link`, `paper_release_time`, `journal`, `doi`, `pm_id` are citation metadata only. Do not retrieve facts from citation fields, and never retrieve or guess a missing URL.
 
-Preserve drug names, trial names, biomarkers, companies, and other proper nouns exactly as supplied. Use a Chinese equivalent only when a selected source explicitly provides it. Do not translate, transliterate, normalize, or map a proper name from memory; retain the English name in a Chinese report when it is the only source-supported form.
+Preserve drug names, trial names, biomarkers, companies, and other proper nouns exactly as returned. Use a Chinese equivalent only when a selected record explicitly provides it. Do not translate, transliterate, normalize, or map a proper name from memory; retain the English name in a Chinese report when it is the only source-supported form.
 
-Assign each selected source a stable presentation marker (`{{ref_1}}`, `{{ref_2}}`, etc.) before extraction. The marker is the traceability key used in the report; its number does not indicate chronology, maturity, or evidence strength. Keep runtime correlation keys outside the Agent input and report.
+Assign each selected record a stable presentation marker (`{{ref_1}}`, `{{ref_2}}`, etc.) before extraction, in input (esid) order. The marker is the traceability key used in the report; its number does not indicate chronology, maturity, or evidence strength. Keep runtime correlation keys outside the Agent input and report.
 
 ## Source quality flags
 
@@ -26,7 +26,7 @@ Build the following worksheet independently for every source.
 
 ### Identity and timing
 
-- backend-supplied `source_title`, `source_url`, and `source_paper_release_time_str` for citation JSON only;
+- pulled `paper_title`, `full_article_link`, and `paper_release_time` for citation JSON only;
 - internal runtime key, retained outside the Agent input for backend correlation only;
 - disclosure/publication date;
 - data cutoff;

@@ -1,0 +1,17 @@
+{
+  "type": "line",
+  "title": "体重较基线的变化",
+  "subTitle": "时间维主要终点 · 不同治疗组随时间的趋势（同队列时点连线，不跨队列外推）",
+  "dataSource": "数据来源：params 返回的摘要字段（论文题名 / 发布时间），数值仅来自所选临床结果字段",
+  "describe": "折线仅连接已披露的时间点，不作外推；单点终点以单点展示。每条折线 = 一个队列/治疗组的同终点时点序列，用 group 区分。",
+  "axisXTitle": "治疗周数",
+  "axisYTitle": "较基线变化（kg）",
+  "data": [
+    { "label": "W4", "value": -1.2, "group": "试验A · 研究组" },
+    { "label": "W12", "value": -2.8, "group": "试验A · 研究组" },
+    { "label": "W24", "value": -3.1, "group": "试验A · 研究组" },
+    { "label": "W4", "value": -0.4, "group": "试验A · 对照组" },
+    { "label": "W12", "value": -0.9, "group": "试验A · 对照组" },
+    { "label": "W24", "value": -1.2, "group": "试验A · 对照组" }
+  ]
+}

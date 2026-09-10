@@ -13,7 +13,7 @@
 
 ## 二、核心终点速览
 
-为每个临床问题组选出最重要且可对齐的核心终点，用于快速查看。只展示描述性结果；图表仅在满足绘图契约时插入，否则给出不绘图或有限并列原因。**时间维度优先：** 若核心终点含同一队列多时点/OLE 长期随访，用折线图（`endpoint-line.html`）作主线；单时点单值终点才用柱状图（`endpoint-bar.html`）并列。
+为每个临床问题组选出最重要且可对齐的核心终点，用于快速查看。只展示描述性结果；图表仅在满足绘图契约时插入，否则给出不绘图或有限并列原因。**时间维度优先：** 若核心终点含同一队列多时点/OLE 长期随访，用折线图（`endpoint-line.json`）作主线；单时点单值终点才用柱状图（`endpoint-bar.json`）并列。
 
 ### [临床问题组/适应症]
 
@@ -26,7 +26,7 @@
 | 试验 A | | | | | | |
 | 试验 B | | | | | | |
 
-[仅在图表条件全部满足时，在此处用 `::visualization[标题]{path="/workspace/visualizations/xxx.html"}`（绝对路径，先写文件再引用）独占一行引用 HTML 图表：时间维度终点（同队列多时点/OLE）→`endpoint-line.html` 折线图（series=队列、points=已披露时点，只连同研究同队列同终点，不跨研究连线；单时点→单点模式；无对照单臂注明），单值终点→`endpoint-bar.html` 柱状图（成品为 HTML fragment，不带文档包裹标签，勿用含 `<head` 前缀的标签，保留模板 `<div class="header">`）；图表后保留上表并补充一至两句可比性说明。]
+[仅在图表条件全部满足时，在此处用 `::visualization[标题]{path="/workspace/visualizations/endpoint-<kind>-<n>.json"}`（绝对路径，先写文件、图表 skill CLI 校验 PASS 再引用）独占一行引用 JSON 图表：时间维度终点（同队列多时点/OLE）→`endpoint-line.json` 折线图（group=队列、label=已披露时点，只连同研究同队列同终点，不跨研究连线；单时点→单点模式；无对照单臂注明），单值终点→`endpoint-bar.json` 柱状图（`value` 并列该组各试验的试验组结果值，研究内对照与边界放 `description` 或精确数值表；成品为纯 JSON，无 HTML 包裹/注释/尾逗号）；图表后保留上表并补充一至两句可比性说明。]
 
 ## 三、试验背景（紧凑，每个试验一行）
 
@@ -34,7 +34,7 @@
 
 | 试验/注册号 | 人群与治疗场景 | 阶段与设计 | 试验组方案 | 研究内对照 | 试验组样本/分析集 | 主要终点 | 主要随访/成熟度 |
 |---|---|---|---|---|---|---|---|
-| 试验 A（试验展示名优先用简称：有 `source_trial_abbr` 时渲染为 `[HARMONi-6](entity:trial:NCT05840016)`，无简称时回退注册号 `[NCT05840016](entity:trial:NCT05840016)`） | | | [有 ID 时渲染为 `[依沃西单抗](entity:drug:12483)`；公司名有 ID 时渲染为 `[公司名](entity:company:xxx)`] | | | | |
+| 试验 A（试验展示名优先用简称：有 `trial_abbreviation` 时渲染为 `[HARMONi-6](entity:trial:NCT05840016)`，无简称时回退登记号 `projects.associate_ids` 的注册号 `[NCT05840016](entity:trial:NCT05840016)`） | | | [有 ID（`arms.drugs.drug_earth_id`）时渲染为 `[依沃西单抗](entity:drug:12483)`；公司名有 ID（`projects.company_ids`）时渲染为 `[公司名](entity:company:xxx)`] | | | | |
 | 试验 B | | | | | | | |
 
 缺失字段写“未报告”。技术关联键、数据库标识和内部字段不得展示。

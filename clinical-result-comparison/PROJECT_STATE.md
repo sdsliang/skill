@@ -14,16 +14,79 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 
 - 从 NP Clinical 拉取的示例数据（`evals/**/np-clinical-*/`）不入库：`.gitignore` 已忽略，`fetch-np-clinical-attachments.mjs` 可随时重拉。已提交的历史版本也已从跟踪移除（commit 63c031c）。
 
+## 📌 待办: 报告表格整表复制 / 整表下载 CSV-Excel（2026-09-01，已交产品验证，不改文件）
+
+- **背景**：对比结果 skill 报告（`present_artifact` 交付的 .md）含多张 Markdown 表格（timeline 表、endpoint 表、cross-trial 对比表）。问 ToolSmith 能否支持「表格整表复制」+「整表下载为 CSV/Excel」。
+- **结论（只读分析，未改 skill 文件）**：
+  - 整表复制：**无按钮级能力**。浏览器原生「选中整表→复制」可用（HTML 表格复制为制表符分隔，贴 Excel 保留列）；要一键按钮 = ToolSmith 前端给 markdown 表格加 action。Skill 侧替代（widget 内 `navigator.clipboard`/`<a download>`）受 `sandbox="allow-scripts"` opaque origin 限制（无 allow-downloads / 无 clipboard-write 权限策略 / 消息桥无 copy 事件），不可靠。
+  - 整表下载 CSV/Excel：**Skill 侧现在就能做**——每张关键表同步产一份 `.csv`/`.tsv`（`::visualization` 引用 → 前端通用文本预览 + 下载按钮）或 `.xlsx`（沙箱 openpyxl 生成 → `present_artifact`/ArtifactPanel 下载）。注意 CSV/TSV 预览是纯文本不渲染成表格。
+  - 产品级「表格卡片自带复制/下载按钮」属 ToolSmith 平台功能，需前端新增 action（类比：下钻 navigate 事件也是待确认项）。
+- **决定**：先不改 skill 文件；已交产品（何林杰）先尝试验证平台能力，等其结论后再决定是否给 skill 交付契约加「每表同步产 CSV/TSV/XLSX 数据文件」规则。
+- **飞书任务**：待建 task，负责人=何林杰（open_id `ou_543a818d8dcd7a4ce52a9349b1a000ac` 本地聊天记录已取，无需 contact 搜索权限）。**卡点（2026-09-01）**：应用 `cli_aae61ba424389d06` 已启用 28 个 scope（含全部 task），但用户侧 token 未授予 `task:task:write`；bot 身份也未申请该 scope。→ **精简申请链接（仅 task+日历 17 个 scope，一轮审批）**：https://open.feishu.cn/page/scope-apply?clientID=cli_aae61ba424389d06&scopes=task%3Acomment%3Awrite%2Ctask%3Acustom_field%3Awrite%2Ctask%3Atasklist%3Awrite%2Ctask%3Acustom_field%3Aread%2Ctask%3Asection%3Awrite%2Ctask%3Atask%3Aread%2Ctask%3Atasklist%3Aread%2Ctask%3Aattachment%3Awrite%2Ctask%3Asection%3Aread%2Ctask%3Atask%3Awrite%2Ccalendar%3Acalendar%3Areadonly%2Ccalendar%3Acalendar%3Awrite%2Ccalendar%3Acalendar.event%3Aread%2Ccalendar%3Acalendar.event%3Awrite%2Ccalendar%3Acalendar.acl%3Aread%2Ccalendar%3Acalendar.acl%3Acreate%2Ccalendar%3Acalendar.acl%3Adelete 。审批通过后用户再做一次 `--domain task,calendar` 授权即可建任务。
+
 ## ⏸️ Parked: bar 柱下钻（v0.9-test，已由用户验证可行，暂不开发）
 
 - 全部改动（未提交）已 stash：`git stash list` → `stash@{0}: On chart-drilldown-nct: wip: bar drill-down (v0.9-test) + 1L ORR test datasets — verified by user, park for later`。分支 `feat/chart-drilldown-nct` 与 main 同提交 `349eabc`（无独立 commit），后续要继续可直接 `git checkout feat/chart-drilldown-nct && git stash pop`。
 - 内容：`endpoint-bar.html` 支持 `bars[].url` → `window.__toolsmithNavigate(url)`（登记号详情页 `https://ct.pharmcube.com/trial/{nct_id}`）；`SKILL.md`/`chart-templates.md` 下钻契约；v0.9-test 系统提示词（优先读 md 元数据 `source_nct_id` 拼 url）；`test/drilldown-bar-sample.html`；两套测试数据集 `test/drilldown-sources/`（仅保证登记号）与 `test/drilldown-sources-1l-orr/`（一线+ORR，必出柱状图，均带 `source_nct_id`）；`dist/multi-clinical-result-comparison-v0.9-test.zip`。
 - 验证结论：部署端 `__toolsmithNavigate` 桥 + 宿主 `window.open` 均已就位；不画图的根因是数据异构（跨线/跨终点）触发契约不绘图，`1l-orr` 数据集（indication 135 + III期 + ORR 端点 `4a8abd33ec374a46b758926758ed410a` + `therapy_labels.meta.text∈{一线治疗,一线}`）可稳定出柱状图。恢复时无需动 tool-smith 端。
 
+## ⏸️ Parked: 通用下钻契约（drillDownValue，等前端 MCP+skill 落地后再对照）
+
+- 背景（2026-08-28，前端告知）：前端侧通用 `/chart-visualization` skill 的图表格式里，每个数据点带 `drillDownValue`（**一个 id**，如 `"2024-01_销售额"`）；前端拿到该 id 后调接口取 workspace 里脚本生成的 detail json 渲染，**被取的 json schema 可自定义**（"支持数据格式多样"）。链路：`点.drillDownValue(单 id) → 前端调接口 → workspace detail json → 渲染`。
+- 与对比结果 skill 的关系：聚合点（如「II期积极结果 = 5 条」）→ **`drillDownValue` 保持单 id，多条记录放进该 id 对应的 detail json**（数组/多值不进 drillDownValue 字段）。可替代/升级现有 parked 的 `bars[].url` → `__toolsmithNavigate(url)` 方案。
+- **✅ 已确认设计（2026-08-28 与段帅帅/何林杰对齐）**：
+  - `drillDownValue` = **detail json 的文件名**（id↔文件名一一对应，一 id 一 json）。
+  - **命名约束**：id/文件名只用安全字符（字母数字+下划线，不含 `/`、空格、`..` 等）——何林杰示例 `赛道_PD1/VEGF 双特异性抗体_结果id` 含 `/`+空格不安全，需用如 `track_pd1vegf_bispecific` 这类 slug。
+  - detail json 内容 = **esid 数组**（`clinical_trial_result_structured._id` = ES 的 `_id`，B7 已确认）；前端拿这批 esid 去「临床结果列表页做检索」。极简 schema：`{"ids": [esid1, esid2, …]}`。
+  - 会议解读（WCLC 按赛道统计，如 PD1/VEGF 双特异性抗体=10 个结果）是下钻落地场景；下钻逻辑与可视化逻辑分离，仅用 `drillDownValue` 关联。
+- **2026-08-28 决定：本条目交接/挂起，等何林杰结果再动。** 何林杰已主动承诺「下周拿具体案例跟帅帅测试验证对接细节和标准规范，把路径跑通、范式具象化并描述记录下来」，届时我方再照着写 skill（若需）。
+  - **本周我方 skill 零待办**：下午 2 点会「一句话确认（detail json 放 /workspace/output/、文件名=drillDownValue、安全字符）」改为可选——该问题下周案例测试自然会暴露并顺带记录，不硬推。
+  - **下周待办**：等何林杰的测试结果 + 具象化范式；到时评估对比结果 skill 是否也输出 drillDownValue + detail json（照其记录规范执行，属半小时照抄级小活）。
+  - 对比结果 skill 继续 parked；当前不做任何代码改动。
+
 ## Current version
 
-- System prompt: `v0.11`
-- Skill: `multi-clinical-result-comparison` trial-level synthesis `v0.11` (file-based report delivery via `present_artifact` + entity inline references with trial short-name display)
+- System prompt: `v0.14`
+- Skill: `multi-clinical-result-comparison` trial-level synthesis `v0.14` (esid + `pharmcube-query-clinical-result-with-params` input, chart products as pure JSON **produced by reusing the upstream `chart-visualization-json` skill** and validated by that skill's CLI, file-based report delivery via `present_artifact`, entity inline references with trial short-name display)
+- Chart validation entry: `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <product.json>`（前端仓库别名 `pnpm validate:chart -- <path>`）；自研 `validate-chart.py` 已退役。
+- TEMP `.preview.html` 双写：**v0.14 已移除**（`dist/multi-clinical-result-comparison-v0.12-temp-preview.zip` 降级为历史快照）。
+- v0.13 轻量版：**弃用但未删除**（源码 `docs/legacy-v0.13/`，归档 `dist/multi-clinical-result-comparison-v0.13.zip`）。
+- 当前 dist：`dist/multi-clinical-result-comparison-v0.14.zip`（19 文件，系统提示词不入包），SHA-256 `816b3174580c350876285d0748937f54fb6e43961632353773e3937376e8f67a`（含下述「输出文件固定命名」契约）。
+- Git：分支 `main`，HEAD 仍为 `7ca131d v0.11`；v0.12/v0.13/v0.14 改动**未 commit / 未 push**（等用户授权）。
+
+## v0.14 change: 复用上游 chart-visualization-json skill；撤销 TEMP 双写（2026-09-08）
+
+- **触发**：前端发来两份说明书（`chart-templates.md` + `chart-visualization-json-prompt-examples.md`；两份均为 Windows DLP 透明加密文件，WSL 直读只得密文，经 Windows Python 提取明文后阅读）。**结论：说明书有用**——上游 `chart-visualization-json` skill 已是图表协议 / 模板 / Zod schema / CLI 校验的权威实现；我方 v0.12 的平行实现（自研 `validate-chart.py` + 本地重述协议）属重复维护，且存在「本地宽松校验 PASS 但真实 Zod 渲染失败」的风险。
+- **决策（用户拍板）**：v0.13 弃用但不删除；**以 v0.12 为基线**做 **v0.14**；图表能力**复用上游 skill**（协议/模板/schema/校验）；**撤销 TEMP 双写**，`::visualization` 引用回切 `.json`（开发即将联调，renderer 即将落地）。版本号取 v0.14 而非原地改 v0.12，避免与已部署的 v0.12（TEMP 版）及 `dist/v0.12.zip` 混淆（可应要求改名）。
+- **`SKILL.md`**：frontmatter `description` 增「图表产物为纯 JSON，由复用 chart-visualization-json skill 产出」；每次运行必读清单增 `references/chart-templates.md` 并声明复用关系；中英文两处校验命令改图表 skill CLI；**整段删除 TEMP section**。
+- **`references/chart-templates.md` 整篇重写**：新增「能力来源表」（上游 `SKILL.md` / `chart-types.md` / `templates/{line,bar,timeline}.json` / `schemas/` / `validate-cli.js`）；协议要点以图表 skill 为准（`RENDERABLE = line|bar|timeline`；`dataSource`/`describe` 为不参与绘制的元数据；bar 默认 `stack: true`，并排柱状须显式 `group:false, stack:false`；timeline `time` 必填、`weight` 驱动圆点、`legend` 用 `circle`/`empty-circle` 且与 `data[].group` 对应）；`templates/charts/*.json` 降级为「临床场景预填起点」；新增**校验环境不可用时的降级规则**（不静默跳过、不退回自研脚本；先 `ls` 定位真实路径重试一次，仍不可用则在报告中声明「图表校验环境不可用」、省略该图 `::visualization` 引用、以精确数值表为主交付）。
+- **其余引用/模板**：`references/timeline-diagram.md` 去 TEMP 两行 + CLI 命令替换；`references/file-delivery.md`、`references/cross-trial-comparison.md`、`templates/{unified-evidence-report,mixed-comparison-report,cross-trial-report}.md` 的校验命令与终检项全部改为图表 skill CLI。
+- **`templates/charts/`**：删除 `validate-chart.py`；`render-preview.py` 移入 `docs/legacy-html-charts/`；`endpoint-bar.json` 补 `group:false, stack:false`；v0.13 残留的 `templates/quick-comparison-report.md` 移出发布集（副本在 `docs/legacy-v0.13/`）。
+- **新 `system-prompts/multi-clinical-result-comparison-v0.14.md`**：基于 v0.12，删除 TEMP override 段与 Final verification 的 TEMP 项；`### Chart contract` 改为 v0.14 并新增声明段（协议/模板/Zod schema/CLI 为唯一真源，不自研校验、不产 HTML/SVG fragment、不写 `.preview.html`）；两处校验命令改 CLI 并补 bar `group/stack` 提醒；Final verification 新增「每个 `::visualization` 引用必须指向 `/workspace/visualizations/` 下的 `.json`」与「校验环境不可用时禁止输出未校验引用」两项。
+- **验证**：三个临床模板经上游 CLI 全部 `校验通过`（bar / line / timeline，exit=0）；解包后包内三模板同样全 PASS；发布集内 TEMP / `preview.html` / `render-preview` 残留清零，仅 `chart-templates.md` 保留两处**历史说明**（「`validate-chart.py` 已归档」/「v0.12 调试期双写方案已随 v0.14 移除」）。
+- **阻塞项（待上游确认）**：(a) 校验命令与技能的权威路径到底是前端说明书写的 `.agents/skills/chart-visualization-json/scripts/validate-cli.js` + `pnpm validate:chart`，还是上游 `SKILL.md` 写的 `/workspace/skills/chart-visualization-json/scripts/validate-cli.js` + `node`；(b) Tool Smith 工作区是否已装 `zod`/`node_modules`——上游 `package.json` **未声明依赖**，缺依赖时 CLI 以 `Cannot find module 'zod'` 崩溃（本地测试时用 `npm install zod --no-save` 绕过）。
+- **DLP 排除记录**：两份前端文档 `head -c 8` 为 `88 7d 1c .. 3f 02 4c 00`（DLP 包装头，非 PDF/Office 魔数），WSL 直读高熵密文；改用 `C:\Users\YYMF\AppData\Local\Programs\Python\Python311\python.exe` 读 `D:\Users\feishu_download\` 抽明文到 `\\wsl.localhost\Ubuntu-22.04\home\xupeipeioo1\tmp\frontend-chart-docs` 后正常解析。
+- **输出文件命名契约收紧（2026-09-09，用户提「后端好传输」）**：原契约只有「后缀固定 + slug 需小写连字符」的弱约束，slug 由模型自由发挥，后端只能 glob 或猜。**先查后端实际消费方式**，结论三点：(a) 报告路径**无需预知**——`present_artifact` 把真实 `path` 记入 run-local `ArtifactPresentationCollector`（manifest 存 `{"path","filename"}`），前端卡片直接用；(b) 图表路径**无需推导**——每张图在报告里以 `::visualization{path="/workspace/visualizations/..."}` 绝对路径逐条携带；(c) **唯一需要推导的是引文 JSON**（报告正文刻意不含引文清单）。且 `backend/src` + `frontend/src` 里 `citations` / `-report.md` **零命中**——后端/前端尚未实现消费，**现在定契约零成本、不构成 breaking change**。
+  - **最终采纳（方案 C，后端开发者明确要求「加个约束文件名，我直接写死好了，就不从 tool 里取了」）**：**四个产物路径全部固定**，移除 `<slug>` 概念——报告 `/workspace/output/report.md`、引文 `/workspace/output/citations.json`、时间轴图 `/workspace/visualizations/evidence-timeline.json`、定量图按**图表类型 + 序号**命名：柱状 `/workspace/visualizations/endpoint-bar-<n>.json`、折线 `/workspace/visualizations/endpoint-line-<n>.json`（`<n>` 为该类型图在正文中的出现顺序，从 1 开始；单张柱状图恒为 `endpoint-bar-1.json`，单张折线图恒为 `endpoint-line-1.json`）。需编号是因为混合/跨试验输入允许**每组各一图**（`mixed-comparison-report.md`、`cross-trial-comparison.md`），同类型也可能多张，定量图数量不限于 1。重跑**覆盖**同名文件（一个 workspace 一份当前报告），与平台 `present_artifact` 的 “current version of this path” 语义一致；已写进契约“不得用加后缀的方式规避”。
+  - **类型区分方式（2026-09-09 追问后定稿）**：用户追问「line 和 bar 在哪里区分」。上游 `chart-visualization-json` 的真实区分点在 **JSON 内部的 `type` 字段**——`scripts/validate.js` 的 `TopLevelSchema` 把 `type` 定为 `z.enum(CHART_TYPES)`（**必填**，非 optional），`RENDERABLE_CHART_TYPES = ["line", "bar", "timeline"]`，渲染器即按 `type` 派发。最初定稿的 `endpoint-chart-<n>.json`（数量词命名）经追问后判定不够：混合模式下折线/柱状混编序号，`endpoint-chart-1.json` 不保证是哪种图，后端无法对某一种图写死。故把**类型提到文件名**（`endpoint-bar-*` / `endpoint-line-*`），并在 `references/chart-templates.md`、`references/file-delivery.md`、sys v0.14 File delivery + Final verification 写入**双向一致约束**：文件名类型必须与 JSON 内 `type` 一致（fail-loud 校验项）。文件名供人与后端做稳定索引，渲染仍以 `type` 为准。
+  - **落地文件**：`references/file-delivery.md`（`## Naming contract` 改为固定路径表 + 重写 Deliverables / Delivery sequence / 验证项 / `present_artifact` 调用）、`references/citation-and-ref.md`、`references/chart-templates.md`（复制示例、引用示例、交付路径契约、CLI 自检命令均换成固定成品名）、`references/timeline-diagram.md`（2 处）、`references/cross-trial-comparison.md`（1 处）、`templates/{unified-evidence-report,mixed-comparison-report,cross-trial-report}.md`（共 4 处 `::visualization` 路径）、`SKILL.md`（必读清单第 9 条、同试验流程、Output firewall）、sys v0.14（Step 9、File delivery 硬规则、citation 段、两处 `::visualization` 示例、Final verification 3 项）。机械替换全部经 Python 断言脚本（`assert n == count`）；第一轮在 `templates/mixed-comparison-report.md` 因实际 2 处而被断言拦下（脚本中止未写入），修正计数后继续——断言机制有效。全库 `grep` 残留扫描：`<slug>` / `xxx-` / `/workspace/visualizations/<` 全部为 0。dist 重打，19 entries / 63015 B，SHA-256 `816b3174580c350876285d0748937f54fb6e43961632353773e3937376e8f67a`。
+  - **已知代价（已告知用户）**：卡片与下载名会变成 `report.md`（`present_artifact` 的显示名只能从路径派生，无 `display_name` 参数），报告主题靠文件内 H1 承载；同一 workspace 多次运行会覆盖旧报告（历史需后端/平台侧快照）。若后续要改善下载名，平台侧给 `present_artifact` 加 `display_name` 参数是干净做法。
+  - **上一轮曾按方案 A 落地（已被本轮覆盖）**：保留描述性 `<slug>` + 强制两文件同 slug + 正则 `^[a-z0-9]+(-[a-z0-9]+)*$` + ≤40 字符 + 幂等复用，引文路径 = 报告路径单次后缀替换；因后端明确不要推导而废弃。
+
+## v0.12 change: 输入切 esid + params 拉取；图表切外部 JSON 协议（纯 JSON 产物）
+
+- 背景（用户批准，2026-09-01 起三批次执行）：因上游/前端协作需要，输入契约从「每源一个 .md 附件」改为「**选中 esid 列表** + Skill 经 MCP `pharmcube-query-clinical-result-with-params`（`extra_esids` + 严格 `selected_fields`）自拉详情」；图表从「自研 HTML fragment」改为「**外部 chart-visualization-json skill 的纯 JSON 协议**」（仅 `line`/`bar`/`timeline` 可渲染），本地只保留自研 JSON 结构校验脚本。**schema 权威真源 = `docs/params-tool-schema.md`**（用户粘贴存档；远端 data schema 服务 172.17.16.224:31234 经飞连不可达，无法自动 dump 运行时 ALLOWED_FIELD_NAMES，以此存档为准）。  - **删减重复小节（2026-09-10，前端开发反馈「这一段和 chart skill 重复了，可以删掉」）**：`references/chart-templates.md` 删除末尾三节——「三、配色与渲染」（theme/色板/HTML token 均属渲染层职责）、「四、与 chart-visualization-json skill 的关系」（与文件头「能力来源表」重复）、「五、当前版本边界」（v0.11 HTML / v0.12 双写 / validate-chart.py 属内部历史，非运行时契约），共 964 字符；文件从 136 行降至 114 行，小节收归为「零、协议要点 / 一、选型规则 / 二、怎么用」。**保留性核验**：三条守卫项未随删除流失——① 「不写 Mermaid、不产出 `.html`」在「零」末条（并在 `SKILL.md` ×1、sys ×4）；② 「不混入自定义色板/CSS/HTML token」已并入「零」末条（sys 另有 "do not restyle or swap palettes"）；③ 「证据边界只能来自 params 字段」在「一」末条。删除前逐项 grep 比对，确认无其它文件引用被删小节标题。
+
+- **图表富文本取舍（用户拍板）**：协议能承载的说明文字（data point `description` + 顶层 `describe`/`subTitle`/`dataSource`）保留；协议外富文本（行内 `{{ref_n}}`、CI/误差线、交互 tab）丢弃；数值/边界由正文表格承载。**校验脚本（用户拍板）**：保留自研——`validate-chart.py` 重写为纯 Python JSON 结构校验器（不依赖 node/zod）。
+- **图表契约**：`templates/charts/` 下 `endpoint-bar.json` / `endpoint-line.json` / `evidence-timeline.json` 三个 JSON 骨架（字段完全对齐外部协议）；旧 HTML 五件（chart-tokens.css + 三 .html + 旧 validate-chart.py）归档到 `docs/legacy-html-charts/`；bar 用 `direction:"horizontal"`、line 用 `group` 分系列、timeline 用 legend/weightLegend/data{time,label,group,weight,content,description}；**data[] 排序责任改为生成方**（前端不重排：bar 降序、line/timeline 时间序由 Agent 排好）。`references/chart-templates.md`、`references/timeline-diagram.md` 整篇重写为 JSON 协议；`references/cross-trial-comparison.md`、`references/same-trial-evolution.md`、`SKILL.md` 与三份报告模板的图表段 .json 化。
+- **输入契约**：`references/input-contract.md` 整篇重写（保留 subagent 预写章节为可选、pending 验证）；`references/citation-and-ref.md` / `input-and-extraction.md` / `file-delivery.md` / `entity-inline-reference.md` / `SKILL.md` Input+Evidence boundary+Workflow、三份报告模板 source_* 单元格全部改为 params 字段。字段映射：`source_title`→`paper_title`、`source_url`→`full_article_link`、`source_paper_release_time_str`→`paper_release_time`、`source_nct_id`→`projects[].associate_ids`、`source_trial_abbr`→`trial_abbreviation`、`source_drug_entities`→`arms[].drugs[].drug_earth_id`+名称、`source_company_entities`→`projects[].company_ids`+名称、`source_full_text`→`abstract_text`/`summary`/`study_results` 组合（无直接等价）。引文 JSON 的 `title`/`link`/`paper_release_time_str` 三个 key 不变，值来自 params 返回字段 byte-for-byte。
+- 新系统提示词 `system-prompts/multi-clinical-result-comparison-v0.12.md`（基于 v0.11：输入 esid + params、证据边界改 params 临床内容字段、实体表改 params 实体字段来源、图表段改纯 JSON + validate PASS + 排序责任、Final verification 全改）；重建 `dist/multi-clinical-result-comparison-v0.12.zip`（20 文件 = v0.11 集去掉 css+3 html、加 3 json，系统提示词不入 zip）；README v0.12 段 + 文件清单 + 配置。
+- 验证：三份 JSON 骨架 `validate-chart.py` 全 PASS；skill 本体（SKILL.md+references+templates）旧术语（source_*/attached/.html 图名/CHART 数据）清零（仅保留 input-contract 映射对照列与 chart-templates「不再产出 .html」历史说明等有意保留）；v0.12 系统提示词旧措辞清零。
+- 后补小修（2026-09-07）：`templates/charts/endpoint-bar.json` 的 `describe` 残留 v0.11 旧 HTML 语义「本模板按 value 从高到低自动降序，无需人工排序」——v0.12 协议为渲染端不重排、`data[]` 降序排序由生成方负责。已改为「`data[]` 由生成方按 value 从高到低排好序后交付（渲染端不重排）」；dist v0.12.zip 仅替换该条目后重建，20 文件逐文件 SHA-256 对比 BAD=0。
+- **TEMP 双写调试资产（2026-09-07 用户批准「双写安排」）**：Tool Smith 对话页目前**不渲染 chart-visualization-json 的 `.json` 图**（只对 `.html` fragment 原生绘图），所以 v0.12 纯 JSON 产物在对话端不可见图。调试期方案 B 落地 = skill 运行期**双写**：每个 `.json` 成品（`validate-chart.py` PASS）后用随附 `templates/charts/render-preview.py` 从**同一份 JSON** 机械生成同名 `<name>.preview.html`（单一数据源，HTML 内嵌同一 JSON，禁手工另填），报告正文 `::visualization` **引用 `.preview.html`**（对话端可见），`.json` 作为正式契约随行交付。改动：`SKILL.md` 新增「TEMP (debug only — remove when the chart renderer is deployed)」权威覆盖段（override 全文档含模板的 `.json` 引用示例）；`references/timeline-diagram.md` / `references/chart-templates.md` 各加 TEMP 提示行；新增 `templates/charts/render-preview.py`（自原型 `/tmp/chartpreview/render-preview.py` 收编，fragment-safe 子串自检 + `-o` 输出）。**dist v0.12.zip 正式快照未动**，另打 `dist/multi-clinical-result-comparison-v0.12-temp-preview.zip`（21 文件，逐文件 SHA-256 BAD=0）。**回切**：renderer 落地后删除 SKILL.md TEMP 段 + 两个 references 的 TEMP 行 + `render-preview.py`，报告引用回切 `.json`，删除本 zip。
+- **（后补 2026-09-07 会话诊断）TEMP 双写进系统提示词（方案 A）**：用户共享会话 share4（Lp(a) 跨试验）/share5（sqNSCLC）/share6（HARMONi-6）出现「一会 json 一会 html」不稳定——同一部署端 skill 资产一致（SKILL.md 含 TEMP 段），但**系统提示词 v0.12 仍是纯 JSON 契约（无 preview 字样）**，两契约互斥，Agent 裁决摇摆：share5/6 跟 skill TEMP 引用 `.preview.html`，share4 判「sys 更高权威」引用 `.json` 并跳过 render-preview（reasoning 有明确权衡原文）。根因 = TEMP 双写只进了 skill、没进 sys；skill（load_skill 注入）对 Agent 是次级指令。修复（用户拍板方案 A）：`system-prompts/multi-clinical-result-comparison-v0.12.md` 图表段（`### Chart contract` 标题下、所有 `.json` 引用示例之前）新增「TEMP override (debug only — remove when the chart renderer is deployed)」四步双写段，显式声明覆盖本 prompt + skill 内全部 `.json` 引用示例；`Final verification` 图表检查项后补同义 TEMP 双写检查项。sys 与 skill 对齐后 Agent 无论读哪层都指向 `.preview.html`。**该 sys 改动需 Tool Smith 侧重新装载/重传系统提示词**（此前结论「sys 不用重传」作废，仅限本轮 TEMP 期间）。
+- **（2026-09-08 v0.14 撤销 TEMP）** 用户拍板：renderer 即将联调，**撤销双写**。已删除 sys v0.14 的 TEMP override 段与 Final verification TEMP 项、`SKILL.md` 的 TEMP section、`references/timeline-diagram.md` 与 `references/chart-templates.md` 的 TEMP 提示行；`render-preview.py` 移入 `docs/legacy-html-charts/`；报告引用回切 `.json`。`dist/multi-clinical-result-comparison-v0.12-temp-preview.zip` 降级为历史快照（勿用）。详见「v0.14 change」段。
+- **契约未定待办（挂起/交上游）**：表格整表复制/下载 CSV-Excel（产品验证中，见文首待办段）；bar 柱下钻（parked，等何林杰 drillDownValue 案例）；subagent 四项验证（next week 上游协作方）。
 
 ## v0.11 change: 试验简称内联（trial short name as entity display label）
 
@@ -337,3 +400,25 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - Added `evals/fixtures/obesity-results-es-source-full-text.json` and the reproducible fetcher `evals/fetch-obesity-es-fixture.mjs`.
 - Added `evals/iteration-7/obesity-results-es-source-full-text-report.md`, which separates adult weight management, T2D/prediabetes, pediatric obesity, and OSA questions before limited vertical alignment.
 - Marked `35658024`/`39536238` as the same SURMOUNT-1 trial and `38912654` Study 1/Study 2 as two trials in one disclosure.
+
+## v0.13 quick-comparison rebuild (2026-09-07) — ABANDONED in v0.14, kept for reference only
+
+- Reframed the default product from full trial synthesis to a fast comparison brief: one MCP pull, one digest, one compact alignment table, one main chart at most, short interpretation and gaps.
+- Added `skill/multi-clinical-result-comparison/templates/quick-comparison-report.md`.
+- Added `system-prompts/multi-clinical-result-comparison-v0.13.md`; v0.12 remains the historical deep-synthesis prompt.
+- Retained strict selected-fields input, citation parity, duplicate handling, no inference/pooling, safety boundaries, entity provenance, chart validation, TEMP preview dual-write, and `present_artifact` delivery.
+- Verification: Python syntax checks pass; all three JSON chart skeletons pass `validate-chart.py`; v0.13 archive contains 22 runtime Skill files, including the quick-comparison template and the same-trial evidence timeline assets.
+
+## Preview renderer visual refresh (2026-09-08) — renderer archived in v0.14 (`docs/legacy-html-charts/render-preview.py`)
+
+- Refined `templates/charts/render-preview.py` without changing the JSON protocol or Tool Smith fragment contract.
+- Replaced the monochrome violet debug styling with a neutral paper/white surface, ink typography, teal/coral/blue/gold series palette, restrained border/shadow treatment, clearer source footer, and responsive mobile spacing.
+- Improved badge, legend, tooltip and chart-stage hierarchy; preserved hover tooltips and host `--viz-*` token overrides.
+- Chrome desktop/mobile screenshots were generated for bar, line, and timeline previews; all three renderers emitted non-empty PNGs without wrapper-fragment validation errors.
+- Rebuilt `dist/multi-clinical-result-comparison-v0.13.zip` after the renderer update.
+
+## v0.13 timeline condition correction — applies to the abandoned v0.13 line only
+
+- The evidence-chain timeline is generated only when **all usable selected records belong to one trial** and there are at least two distinct evidence states.
+- Mixed-trial inputs do not receive the default timeline, even when some records are repeated disclosures from the same trial.
+- Rebuilt `dist/multi-clinical-result-comparison-v0.13.zip`; current SHA-256: `445d7335f0d503c60fd3da6950015915fbb36f0d883360d03e971ec25462e7f3`.

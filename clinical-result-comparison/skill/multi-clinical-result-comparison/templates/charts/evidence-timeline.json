@@ -1,0 +1,21 @@
+{
+  "type": "timeline",
+  "title": "TRAIN-2（NCT01996267）证据链时间轴",
+  "subTitle": "同一试验证据披露与结果演进 · 节点 = 合并后的证据状态（5 篇披露 → 3 个证据状态 + 1 个里程碑）",
+  "dataSource": "数据来源：params 返回的摘要字段（论文题名 / 发布时间），时间仅来自所选临床结果字段",
+  "describe": "同一试验证据状态 ≥2 个时生成此图。数组顺序即时间顺序（从左到右），模板不重排；时间未知写「时间未明」，不得猜测。weight 驱动节点圆点大小（可表示证据成熟度）；legend.shape 决定节点形状。",
+  "width": 920,
+  "height": 300,
+  "legend": [
+    { "key": "milestone", "label": "研究里程碑", "shape": "empty-circle" },
+    { "key": "disclosure", "label": "证据披露", "shape": "circle" },
+    { "key": "update", "label": "数据更新", "shape": "circle" }
+  ],
+  "weightLegend": { "show": true, "label": "证据成熟度" },
+  "data": [
+    { "time": "2013-12", "label": "研究启动（里程碑）", "group": "milestone", "weight": 1, "content": "入组启动\n438 例 · 1:1 随机 · 荷兰 37 家中心", "description": "2013-12-09 起入组、2016-01-14 完成。" },
+    { "time": "2016-08", "label": "早期毒性分析", "group": "disclosure", "weight": 2, "content": "FN 9% vs 0%\nG3-4 中性粒 53% vs 51%", "description": "110 例早期子集。" },
+    { "time": "2017-03", "label": "pCR 主要分析", "group": "disclosure", "weight": 3, "content": "pCR 67% vs 68%\n摘要 p=0.75", "description": "418 例可评估；摘要与主刊数值一致。" },
+    { "time": "2020-05", "label": "3 年 EFS/OS 随访", "group": "update", "weight": 4, "content": "EFS HR 0.90\n95% CI 0.50–1.63", "description": "3 年 EFS 92.7% vs 93.6%；蒽环组 2 例急性白血病。" }
+  ]
+}

@@ -137,7 +137,7 @@ The report must contain, in comparison-first order:
 
 1. a one-sentence overall verdict (who is favored on what, with strength and boundary);
 2. the scope and clinical-question clusters;
-3. a core-endpoint snapshot table per cluster (with an HTML chart from `templates/charts/` only when the chart contract below passes, otherwise a concise no-chart reason);
+3. a core-endpoint snapshot table per cluster (with a chart JSON from `templates/charts/` only when the chart contract below passes, otherwise a concise no-chart reason);
 4. a compact trial-context table (one row per trial);
 5. outcome-domain alignment tables (efficacy, safety, PK/PD, PRO — one per reported domain, with explicit information gaps);
 6. dimension-specific judgments (who is favored on each dimension, with strength);
@@ -146,19 +146,19 @@ The report must contain, in comparison-first order:
 
 ## Chart contract (descriptive only)
 
-The snapshot may include an HTML chart from `templates/charts/` (see `references/chart-templates.md`) only when all plotted values are explicitly reported numbers with a single unit, direction, population, analysis set, and time frame. Chart rules:
+The snapshot may include a chart JSON from `templates/charts/` (see `references/chart-templates.md`) only when all plotted values are explicitly reported numbers with a single unit, direction, population, analysis set, and time frame. Chart rules:
 
-- single-value endpoints (ORR-like) use `endpoint-bar.html`; time-series endpoints (weight/PFS/OS over time) use `endpoint-line.html`;
-- **排序与外观固定**：柱状图按 value 从高到低**自动降序**（模板内完成，无需人工排）；折线/时间序列与时间轴保持**时间顺序**（`points[]`/`events[]` 数组顺序即时间顺序，不重排）；三张模板外观为内置 **violet 编辑设计**（象牙纸 + 单色相紫阶 + 横档柱/发丝网格，柱深浅=数值高低），只需填 `CHART` 数据，不要自行改样式或换配色；
-- **time-dimension-first (hard rule):** when the data are dominated by long-term follow-up / multi-time-point disclosures (OLE open-label extensions, ≥2 reported time points for the same study+cohort+endpoint, off-treatment relapse timing), chart the time dimension with `endpoint-line.html` as the primary visual (series = cohort/treatment arm, points = reported time points). Only connect time points of the **same study, same cohort, same endpoint**; never connect across different studies, cohorts, or populations (that would mis-draw cross-trial differences as a trend); no interpolation, no extrapolation. A single-time-point disclosure uses the template's single-point mode (dots + values, no line). Uncontrolled single-arm open-label data (e.g. infant topicals) may still be drawn as a line over time, but the title/note must state 单臂无对照，仅描述随时间变化. Cross-sectional single-value bar charts serve only as group-contrast supplement, not the primary presentation;
-- **group-by-clinical-question charting (cross-trial/mixed inputs):** when inputs are clustered by clinical question, produce **one bar chart per group**, each its own product file, plotting that group's experimental-arm values side by side (study-internal comparator values and boundaries go into the chart hover notes; the chart title/subtitle must say 跨试验并列展示≠头对头比较). Never merge different groups into one chart. Groups that do not meet the compatibility conditions get no chart, and the reason is stated in the table;
-- copy the template to a product file, edit only the `CHART` data object, write it to `/workspace/visualizations/` first, and reference it in the body with an absolute path `::visualization[标题]{path="/workspace/visualizations/xxx.html"}` on its own line; the product file must remain an **HTML fragment** (no `<!doctype html>`/`<html>`/`<head>`/`<body>` wrapper; Tool Smith validates by substring match over the whole file — `<!doctype`/`<html`/`<head`/`<body` anywhere are rejected, so never use `<head`-prefixed tags such as `<header>`; keep the template's `<div class="header">`); do not alter the render code;
-- data arrays contain numbers only (never `未报告`, NR, NE, ranges, CIs, or `%` strings inside the render arrays);
+- single-value endpoints (ORR-like) use `endpoint-bar.json`; time-series endpoints (weight/PFS/OS over time) use `endpoint-line.json`;
+- **排序与字段纪律**：柱状图由生成方按 value 从高到低排好 `data[]` 顺序；折线/时间序列与时间轴保持**时间顺序**（`data[]`/`time` 数组顺序即时间顺序，前端不重排）；产物是**纯 JSON**（见 `references/chart-templates.md`），前端 chart-visualization-json 渲染层统一处理配色/主题，本 skill 不产出自带样式的 HTML；
+- **time-dimension-first (hard rule):** when the data are dominated by long-term follow-up / multi-time-point disclosures (OLE open-label extensions, ≥2 reported time points for the same study+cohort+endpoint, off-treatment relapse timing), chart the time dimension with `endpoint-line.json` as the primary visual (group = cohort/treatment arm, label = reported time points). Only connect time points of the **same study, same cohort, same endpoint**; never connect across different studies, cohorts, or populations (that would mis-draw cross-trial differences as a trend); no interpolation, no extrapolation. A single-time-point disclosure uses a single-point mode (dots + values, no line). Uncontrolled single-arm open-label data (e.g. infant topicals) may still be drawn as a line over time, but the title/describe must state 单臂无对照，仅描述随时间变化. Cross-sectional single-value bar charts serve only as group-contrast supplement, not the primary presentation;
+- **group-by-clinical-question charting (cross-trial/mixed inputs):** when inputs are clustered by clinical question, produce **one bar chart per group**, each its own product file, plotting that group's experimental-arm values side by side (study-internal comparator values and boundaries go into per-item `description` or the exact-value table; the chart title/subtitle must say 跨试验并列展示≠头对头比较). Never merge different groups into one chart. Groups that do not meet the compatibility conditions get no chart, and the reason is stated in the table;
+- copy the template to a product file, fill the data and text fields, write it to `/workspace/visualizations/` first, run `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <成品>` until PASS, and reference it in the body with an absolute path `::visualization[标题]{path="/workspace/visualizations/endpoint-<kind>-<n>.json"}` on its own line; the product file must be **pure JSON** (no HTML wrapper, no comments, no trailing commas);
+- `value` fields contain numbers only (never `未报告`, NR, NE, ranges, CIs, or `%` strings inside `value` — such context goes into `description` or the exact-value table);
 - one unit and one endpoint direction per chart;
 - axis range includes all plotted values without clipping or exaggerating a narrow difference;
 - state series identity in adjacent text and show every point in the exact-value table;
 - do not assume zero as a baseline unless reported;
-- never emit a chart with template placeholders or with the render code changed; if any requirement fails, omit the chart and state the reason. No Mermaid output.
+- never emit a chart with template placeholder values left in place or with schema-violating fields; if any requirement fails, omit the chart and state the reason. No Mermaid output.
 
 Charts are descriptive evidence views, not head-to-head proof, rankings, or pooled analyses. They never replace the exact-value table or the domain alignment.
 

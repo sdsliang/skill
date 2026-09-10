@@ -6,20 +6,19 @@ Make every material number and source-dependent conclusion in a trial synthesis 
 
 ## Input metadata
 
-Each selected source arrives as:
+Each selected clinical result is pulled by esid through the MCP tool `pharmcube-query-clinical-result-with-params` (`extra_esids` + strict `selected_fields`, see `references/input-contract.md`). The consumer-facing citation fields map from the returned record as:
 
 ```json
 {
-  "source_title": "backend-supplied title",
-  "source_url": "https://backend-supplied.example/source",
-  "source_paper_release_time_str": "backend-supplied release time string",
-  "source_full_text": "clinical evidence text"
+  "title": "paper_title",
+  "link": "full_article_link",
+  "paper_release_time_str": "paper_release_time"
 }
 ```
 
-Only `source_full_text` supports clinical claims. `source_title`, `source_url`, and `source_paper_release_time_str` are citation metadata. Do not derive clinical facts from them. Preserve the release-time string exactly and do not retrieve, complete, transform, or guess metadata.
+Only the fields that carry clinical content (`abstract_text`, `summary`, `study_results`, design/arms context) support clinical claims. `paper_title`, `full_article_link`, `paper_release_time`, `journal`, `doi`, and `pm_id` are citation metadata. Do not derive clinical facts from them. Preserve the returned strings exactly and do not retrieve, complete, transform, or guess metadata.
 
-Assign markers in input inventory order: `{{ref_1}}`, `{{ref_2}}`, and so on. This ordering is stable but does not establish clinical chronology.
+Assign markers in input (esid) order: `{{ref_1}}`, `{{ref_2}}`, and so on. This ordering is stable but does not establish clinical chronology.
 
 ## Inline syntax
 
@@ -58,7 +57,7 @@ When a sentence combines distinct source-supported facts, attach the relevant ma
 
 ## Separate citation JSON
 
-The Markdown report contains inline markers only. The citation metadata is emitted as a **raw JSON file** `/workspace/output/<slug>-citations.json` (see `references/file-delivery.md`), one key per marker. Each value must contain exactly the supplied `title`, `link`, and `paper_release_time_str` strings. Do not append this object to the report body.
+The Markdown report contains inline markers only. The citation metadata is emitted as a **raw JSON file** at the fixed path `/workspace/output/citations.json` (see `references/file-delivery.md`), one key per marker. The path is hard-coded by the backend and never derived from the report name, so write it exactly there — a renamed or relocated citation file is orphaned and downstream marker rendering silently fails. Each value must contain exactly the `title`, `link`, and `paper_release_time_str` strings from the pulled record (fields copied byte-for-byte from the returned `paper_title` / `full_article_link` / `paper_release_time`). Do not append this object to the report body.
 
 ```json
 {"ref_1":{"title":"Source title","link":"https://example.com/source","paper_release_time_str":"2025-01-01"}}

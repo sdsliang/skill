@@ -15,11 +15,11 @@
 
 | 维度 | 综合信息 | 引用标记 |
 |---|---|---|
-| 研究名称/注册号 | [仅使用来源明确报告的信息；试验展示名优先用简称：当附件元数据行有 `source_trial_abbr` 时渲染为 `[HARMONi-6](entity:trial:NCT05840016)`，无简称但有 `source_nct_id` 时回退注册号 `[NCT05840016](entity:trial:NCT05840016)`] | {{ref_n}} |
+| 研究名称/注册号 | [仅使用来源明确报告的信息；试验展示名优先用简称：当 params 返回有 `trial_abbreviation` 时渲染为 `[HARMONi-6](entity:trial:NCT05840016)`，无简称但有登记号 `projects.associate_ids` 时回退注册号 `[NCT05840016](entity:trial:NCT05840016)`] | {{ref_n}} |
 | 阶段与设计 | [阶段、随机、盲法、中心、地区] | {{ref_n}} |
 | 入组人群 | [关键纳入条件、治疗场景] | {{ref_n}} |
 | 随机与样本 | [随机比例、各组人数、分析集] | {{ref_n}} |
-| 试验组 | [药物、剂量、频次、联合、维持和最长疗程；当附件元数据行有对应药品 ID 时渲染为 `[依沃西单抗](entity:drug:12483)`；公司名有 ID 时渲染为 `[康方生物](entity:company:xxx)`] | {{ref_n}} |
+| 试验组 | [药物、剂量、频次、联合、维持和最长疗程；当 params 返回的 arms 有对应药品 ID（`arms.drugs.drug_earth_id`）时渲染为 `[依沃西单抗](entity:drug:12483)`；公司名有 ID（`projects.company_ids`）时渲染为 `[康方生物](entity:company:xxx)`] | {{ref_n}} |
 | 对照组 | [药物、剂量、频次、联合和维持；有 ID 时同样用 `entity:` 引用] | {{ref_n}} |
 | 分层因素 | [仅列原文明确报告的因素] | {{ref_n}} |
 | 主要终点 | [定义、评估者/方法、分析人群] | {{ref_n}} |
@@ -29,7 +29,7 @@
 
 ## 三、证据链总览与时间线
 
-**时间轴图：** 在同一试验、合并后 ≥2 个真正不同证据状态时，在此处、时间线表格上方用 `::visualization[标题]{path="/workspace/visualizations/xxx-evidence-timeline.html"}` 独占一行引用证据链时间轴图（**绝对路径**，先写文件再引用；按 `references/timeline-diagram.md` 构建）：复制 `templates/charts/evidence-timeline.html`，只改 `CHART` 数据（每节点一个证据状态：状态名+分析阶段/披露形式、核心数值、关键新增与 `{{ref_n}}`、来源支持时间；同状态多披露合并为一节点），图前后保留解释文字与标记；时间未明写“时间未明”，不得猜测。成品须为 HTML fragment：不带文档包裹标签，不要用含 `<head` 前缀的标签（如 header），保留模板 `<div class="header">`（详见 `references/chart-templates.md`）。只有 1 个证据状态或先后无法确定时不生成图，仅保留表格并说明顺序不确定。图是描述性示意，不替代下方精确数值表。不输出 Mermaid 代码块。
+**时间轴图：** 在同一试验、合并后 ≥2 个真正不同证据状态时，在此处、时间线表格上方用 `::visualization[标题]{path="/workspace/visualizations/evidence-timeline.json"}` 独占一行引用证据链时间轴图（**绝对路径**，先写文件再引用；按 `references/timeline-diagram.md` 构建）：复制 `templates/charts/evidence-timeline.json`，只填数据与文案字段（每个节点一个证据状态：`label` 状态名+分析阶段/披露形式、`content`/`description` 核心数值与关键新增及 `{{ref_n}}`、`time` 来源支持时间；同状态多披露合并为一节点），图前后保留解释文字与标记；时间未明写“时间未明”，不得猜测。成品须为**纯 JSON**（无 HTML 包裹/注释/尾逗号），先跑 `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <成品>` PASS 再引用（详见 `references/chart-templates.md`）。只有 1 个证据状态或先后无法确定时不生成图，仅保留表格并说明顺序不确定。图是描述性示意，不替代下方精确数值表。不输出 Mermaid 代码块。
 
 | 证据状态 | 数据截止/随访/分析里程碑 | 本阶段新增的证据 | 相对前一状态的影响 | 支持来源 |
 |---|---|---|---|---|
