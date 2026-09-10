@@ -52,7 +52,7 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - Chart validation entry: `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <product.json>`（前端仓库别名 `pnpm validate:chart -- <path>`）；自研 `validate-chart.py` 已退役。
 - **`dist/multi-clinical-result-comparison-v0.12-temp-preview.zip` 已删除（v0.15，用户要求）**：v0.12 调试期双写包（含 `render-preview.py`，写 `.preview.html` 孪生页）；双写已在 v0.14 撤销、HTML 已在 v0.15 全销，该包随之下线。它从未入库，删除后不可恢复。
 - v0.13 轻量版：**弃用但未删除**（源码 `docs/legacy-v0.13/`，归档 `dist/multi-clinical-result-comparison-v0.13.zip`）。
-- 当前 dist：`dist/multi-clinical-result-comparison-v0.15.zip`（19 文件，系统提示词不入包），SHA-256 `b89024c8cd81baeaaf7afecfc5677c8f8814067ed6b293b8ec8d9131c2e6cc57`（v0.14 内容 + `chart-templates.md` 不再指向已删的 HTML 归档目录）。`dist/…-v0.14.zip`（`c0a7d4c0…`，含「输出文件固定命名」契约）及更早自动降为历史归档。
+- 当前 dist：`dist/multi-clinical-result-comparison-v0.15.zip`（19 文件，系统提示词不入包），SHA-256 `1a6b52744ac71605611721e8afd165ed9ee7f65120f6cf22368d32d926954403`（HTML 清理版 + 子代理委派规则，触发 >5 / 每块 ≤5；63387 B，重打幂等）。`dist/…-v0.14.zip`（`c0a7d4c0…`，含「输出文件固定命名」契约）及更早自动降为历史归档。
 - Git：分支 `v0.15-remove-html`（从 `main` 的 `16cbb96` 切出）；`main` 已含 v0.14 提交 `e4f3bb7` 与记账提交 `16cbb96`，且已 push（`origin/main` = `16cbb96`）。v0.15 改动**尚未 commit / 未 push**（等用户授权）。
 - 未提交：无（v0.12 调试期包 `dist/…-v0.12-temp-preview.zip` 已按用户要求删除；更早的 HTML 类残留已随 v0.15 全销）。无 `Dockerfile`/compose，不涉及镜像。
 
@@ -65,7 +65,17 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - **保留（故意，防回退护栏）**：`references/chart-templates.md` 仍写明「不写 Mermaid、不产出 `.html`、不混入自定义色板/CSS/HTML token」；sys 仍禁止 HTML/SVG fragment 与非 `.json` 图表文件；Final verification 仍断言 `::visualization` 目标是 `/workspace/visualizations/*.json`。只把两处 **v0.12 调试期遗留** 的 `.preview.html` 提法泛化为「非 `.json` 图表文件」。
 - **eval 目录一并清空 HTML**：`evals/iteration-16/chart-examples/*.html` 7 个已跟踪文件 `git rm`；`evals/iteration-16/np-clinical-*/`（gitignore 内的本地示例数据）里 14 个 HTML 图表先移到仓库外暂存（`/tmp/html-attic/`），**经用户确认后已彻底删除**（这 14 个从未入库，不可恢复）。PNG 预览保留，`chart-examples/README.md` 已改写为「HTML 时代留存预览」并指向 JSON 契约。工作区内 `.html` / `.css` 残留 = 0。
 - **历史段落说明**：本文档 v0.8–v0.11 各段里的 `*.html` 文件名、`CHART` 结构、坐标数值、`chart-tokens.css` 配色都是 HTML 时代的历史记录，**对应文件已不存在**（回溯看 git `e4f3bb7`）；原文保留仅为决策追溯，不代表当前能力。
-- **同步**：新建 `system-prompts/multi-clinical-result-comparison-v0.15.md`（200 行，仅版本号 + 那两处泛化与 v0.14 不同）；`references/chart-templates.md` 头部不再指向已删目录；`README.md` 新增 v0.15 段并把历史段里指向该目录的句子标注「deleted in v0.15」；重打 `dist/multi-clinical-result-comparison-v0.15.zip`（打包断言新增「拒绝 `.html`/`.css`/`.py` 入包」）。
+- **同步**：新建 `system-prompts/multi-clinical-result-comparison-v0.15.md`（后扩充至 **213 行**：HTML 清理版 + `## Subagent delegation` 段）；`references/chart-templates.md` 头部不再指向已删目录；`README.md` 新增 v0.15 段并把历史段里指向该目录的句子标注「deleted in v0.15」；重打 `dist/multi-clinical-result-comparison-v0.15.zip`（打包断言新增「拒绝 `.html`/`.css`/`.py` 入包」）。
+
+## v0.15 change: 子代理委派规则上移入 sys（2026-09-10）
+
+- **触发**：用户问「sys 是不是该强调下（子代理规则）」，并回复「我开了呀」——即本项目 Tool Smith 部署的 `capabilities_config.subagents` 开关**已开**，于是子代理变成真实可用能力；若 sys 继续零提及，会出现「工具可见但无约束」的裸奔（模型自行委派，而 `{{ref_n}}` 全局顺序、来源 marker 回显、不得跳过来源这些护栏只在 Skill 正文里）。
+- **决定：在 v0.15 上原地改**（不新开 v0.16）——因为 v0.15 尚未投递 Tool Smith，属未发布版本，改版号无意义。
+- **sys 变更**：v0.15 新增 `## Subagent delegation (when the `task` tool is visible and there are more than 5 esids)`（位于 Step discipline 之后、Evidence boundary 之前，L33-45）；Required workflow 第 1 步加同义指针。sys **200 → 213 行**。
+- **Skill 变更**：`references/input-contract.md` 该节标题去掉 `pending verification`、状态改为「platform-supported, and enabled on our deployment — still opt-in」；Constraints 补「子代理不继承项目 sys/Skill，description 必须自带规格」「多 call 串行」；原「Verification checklist（4 项待问）」替换为「**Platform facts**（已对 Tool Smith 后端源码核实，2026-09-10）」六条。`SKILL.md` Input 段指针同步改写。
+- **设计取舍**：即便开关已开，规则仍保持 **opt-in + 条件式**（>5 esid 才用），且**只写「不变量」不写「提速承诺」**——委派治的是上下文膨胀，而实测并发不存在（串行），端到端 token/耗时收益仍未量化。护栏优先于收益：`task` 不可用/失败一律 fail-loud 回退直读，绝不静默缩源。
+- **阈值二次校准（同日，用户反馈）**：初版写「~20+ esid 才委派、每块 ≤10」，用户指出**产品侧选中上限就只有 20 个**，等于阈值卡在理论上限 → 改为 **触发 >5 个 esid、每块 ≤5**（6 → 3+3；20 → 5+5+5+5），并加「不得切细于 5（每块要花一个串行子代理回合）、能均衡就不留 1 个的零头」。附带修正旧例「20–50 esid」为「最多约 20」。
+- **重打 dist**：`1a6b52744ac71605611721e8afd165ed9ee7f65120f6cf22368d32d926954403`（19 entries / 63387 B；旧 `b89024c8…` / 62896 B、`1a7db902…` / 63328 B 均作废）。SKILL.md 与 input-contract.md 是在包内的，所以本次**运行时有变化**（与上一节「HTML 清理对运行时零影响」不同）。
 
 ## v0.14 change: 复用上游 chart-visualization-json skill；撤销 TEMP 双写（2026-09-08）
 
@@ -297,8 +307,8 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 ## Pending verification (next week, with Tool Smith developer)
 
 - **Input delivery (batch-2 待问 ④⑤)**: 20–50 附件跨消息投递——前端是否自动拆成 10/条？跨消息附件是否全部进 `/workspace/uploads/` 且主 Agent 一次 run 都能读到？50 个全文真实读取的 token 实测（读全是否顶爆上下文；缓解：按需读 / 只读元数据 / 子代理分包）。
-- **Subagent 机制（调研结论，batch-2 待问 ⑥）**: Tool Smith 后端**已支持**——`SubAgentCapability` 默认注册，主 Agent 有 `task` 工具（参数仅 `subagent_type`+`description`，自包含、无状态、只返回最终结果）；子代理共享同一文件系统（可直接读 `/workspace/uploads/source-0XX.md`，写出的文件主线程可见）；递归深度 `max_recursive_depth=2`；前端 project-dialog 有 `capabilities_config.subagents` 开关。用户提议的「5 个子代理 × 10 个文件 → 汇总」架构上可行（把主 Agent 从读 50 全文降为收 5 份摘要，缓解 token）。待确认：开关是否默认开、多 `task` 并发是否真实生效（pydantic-ai 默认串行，Tool Smith 代码未见 `allow_concurrent_tool_calls`）。
-- **Subagent 策略已预写入 SKILL（标注待验证）**: `references/input-contract.md` 新增「Large-batch delegation via subagents (OPTIONAL, pending verification)」章节（分包 ≤10/块、task 自包含描述、只回紧凑摘要、ref 按文件名全局映射、递归≤1 层、无 task 工具时回退直读）；`SKILL.md` Input 段加了同义指针。等下周确认 4 项验证清单（开关、附件落盘、并发、token）后即可转默认启用。
+- **Subagent 机制（已核查代码，2026-09-10）**: Tool Smith 后端支持且**本项目部署已开启开关**——`schemas/capabilities.py` `subagents: bool = False`（项目级默认关，用户已手动打开）；主 Agent 有 `task` 工具（参数仅 `subagent_type`+`description`，仅有 `general-purpose` 一种，自包含、无状态、只回最终结果）；子代理由同一 `create_chat_agent()` 工厂构造，因此继承默认能力集（**含 params MCP 工具**、`load_skill`、文件系统、代码执行）并共享同一文件系统/凭证/额度；递归深度 `max_recursive_depth=2`（主→子→孙，本 Skill 自身收紧为 1 层）。**已确认**：多 `task` 并发**不生效**——全仓无 `allow_concurrent_tool_calls`，pydantic-ai 默认串行（平台工具描述写「concurrently」与实际不符，可报给后端）；且 `agent.py:65-75` 在 `recursive_depth > 0` 时把系统提示词换成通用子代理提示词，**子代理看不到项目 sys / Skill 正文**（它仍能 `load_skill`，但委派 `description` 必须自带完整抽取规格）。
+- **Subagent 策略已写入 sys + SKILL（v0.15，已去待验证标注）**: `references/input-contract.md` 的「Large-batch delegation via subagents (OPTIONAL)」章节 + `SKILL.md` Input 段指针 + sys v0.15 新增 `## Subagent delegation` 段。规则：>5 esid 且 `task` 可见才用、≤5/块按输入顺序均衡切分、一块一 `task`、`description` 完全自包含、只回带 source marker 的紧凑摘要、`{{ref_n}}` 仍按输入 esid 全局分配、串行执行预期、只许一层嵌套、`task` 缺失或 chunk 失败则回退直读且**绝不因此跳过任何来源**。仍未实测：6–20 esid 下的端到端 token/耗时收益，所以仍为 opt-in（不作为提速手段）。
 
 ## Validation completed
 

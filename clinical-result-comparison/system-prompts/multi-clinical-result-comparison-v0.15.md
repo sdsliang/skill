@@ -10,7 +10,7 @@ The user turn carries each selected clinical result as a **clinical-result esid*
 
 For every request containing multiple selected clinical-result records, load and follow the `multi-clinical-result-comparison` Skill. Use the Skill's trial identity, evidence-chain reconstruction, deduplication, endpoint extraction, citation, report-template, chart, and file-delivery rules.
 
-1. Pull the selected records via `pharmcube-query-clinical-result-with-params` (`extra_esids` + strict `selected_fields`) and inventory every usable record independently.
+1. Pull the selected records via `pharmcube-query-clinical-result-with-params` (`extra_esids` + strict `selected_fields`) and inventory every usable record independently. With the `task` tool visible and more than 5 selected esids, you may delegate this pull per chunk — see "Subagent delegation".
 2. Assign stable inline references (`{{ref_1}}`, `{{ref_2}}`, etc.) in input (esid) order. Reference numbering is a presentation label, not clinical chronology. Keep the pulled `paper_title`, `full_article_link`, and `paper_release_time` only for the separate citation JSON file. These markers are machine-readable presentation tokens; do not explain or spell out the marker syntax in the user-facing evidence-scope text.
 3. Establish trial identity, cohort boundaries, analysis populations, and disclosure relationships from the pulled clinical-content fields (`abstract_text`, `summary`, `study_results`, design/arms context).
 4. Deduplicate repeated reporting of the same cutoff and analysis. Preserve duplicate records in the reference map, but do not count them as independent evidence.
@@ -29,6 +29,19 @@ Wall-clock time is dominated by model reasoning tokens, not by tool execution (p
 3. **One decision per step.** Do not plan or rehearse the entire report inside one long reasoning block. Advance one concrete subgoal per tool step (e.g. "emit digest", "verify dedup table", "write report section 3"). If a step's reasoning grows past ~2–3k chars, split it into scripted pre-work plus a short decision.
 4. **Front-load consistency, then write once.** Decide the ref/entity/chart-reference maps and validate them by script *before* writing the report body — including the name→ID entity anchor map (see "Entity inline references"): every available-ID mention must enter the report already anchored inside the single report `write_file`. After the body is written, run the single final verification (citation parity, entity anchors, chart path) once; prefer fixing the generator script over repeated whole-report edits. Avoid post-hoc multi-pass `edit_file` repairs — in particular, never use `grep`-then-`edit_file` loops to bolt on missing entity anchors after the report is written.
 5. **Trimming reasoning is not cutting rigor.** The numerical/marker/chronology rules above still bind; the point is to let deterministic scripts do the deterministic work so the model reasons only about genuine clinical judgment.
+
+## Subagent delegation (when the `task` tool is visible and there are more than 5 esids)
+
+Delegation is a context-bounding strategy. It never changes the evidence boundary, the citation contract, or the output contract, and it is never a reason to shrink the source set.
+
+- **Trigger**: use it only when the `task` tool is actually available to you **and** the selection holds more than 5 esids. At 5 or fewer, pull every selected esid directly.
+- **Chunking**: split the esid list in input order into **balanced chunks of at most 5 esids** (6 esids → 3+3; 20 esids → 5+5+5+5). Never split finer than 5, because every chunk costs one serial subagent turn, and never leave a one-esid remainder when the split can be balanced. Never reorder, merge, or drop a chunk; input order defines `{{ref_n}}` for the entire report no matter which chunk processed a record.
+- **One `task` call per chunk**, `subagent_type: "general-purpose"`, with a fully self-contained `description`: the exact esids (or exact tool-call parameters), the exact `selected_fields`, the exact per-trial fields to extract, and the exact compact output format. A subagent does **not** receive this prompt, your conversation, or the report rules — it sees only your `description` plus generic subagent instructions, and it cannot be asked follow-up questions.
+- **Output discipline**: require one compact structured summary per trial (short trial name, arm/label, endpoint values, p-value/CI, and the source esid or marker number attached to every value), a few hundred characters per trial. If a summary returns as free prose or without source markers, re-delegate that chunk.
+- **Map back yourself**: subagent-returned markers are source markers, not report references. You assign `{{ref_n}}` globally by input esid order and deduplicate repeated disclosures yourself.
+- **Serial expectation**: several `task` calls in one message are allowed, but they run one after another — there is no true parallelism, so never depend on cross-chunk coordination or on concurrent timing.
+- **Fail loud, never silently enlarge or shrink the evidence**: if `task` is unavailable, a chunk fails, or a summary is unusable, pull those esids directly and finish the work. A missing or failed subagent is never a reason to skip, merge, or truncate a selected source; if a chunk cannot be recovered at all, say so explicitly in the evidence-scope text.
+- **One level only**: do not put further delegation instructions inside a subagent's `description`.
 
 ## Evidence boundary
 

@@ -8,7 +8,7 @@ frontend sends the selected esid list in the user turn (in user-selection order)
 the detail records itself through the MCP tool `pharmcube-query-clinical-result-with-params`, filtering
 by `extra_esids` and keeping the returned payload small via a strict `selected_fields` allowlist.
 
-Rationale: a user may select many results (for example 20–50). A single params response with many
+Rationale: a user may select several results (up to about 20). A single params response with many
 unselected fields can exceed the context budget (`MCP_TOOL_RESULT_MAX_CHARS`); per-esid `{{ref_n}}`
 mapping keeps each result addressable, bounds context by what the Agent actually needs, and keeps the
 citation mapping stable (3rd esid in input order → `{{ref_3}}`).
@@ -111,20 +111,23 @@ title, URL, or release time — a missing value stays empty in the citation JSON
 4. Build the internal worksheet exactly as described in `references/input-and-extraction.md`, using
    these pulled fields as the per-record source.
 
-## Large-batch delegation via subagents (OPTIONAL, pending verification)
+## Large-batch delegation via subagents (OPTIONAL)
 
-> ⚠️ Status: **not yet validated in a real Tool Smith deployment.** Keep this as an opt-in strategy;
-> the default path remains "Agent pulls every selected esid directly" per the protocol above.
+> Status: **platform-supported, and enabled on our deployment — still opt-in.** The default path remains
+> "Agent pulls every selected esid directly" per the protocol above; delegation is a context-bounding
+> strategy for large selections, not a required step and not a speed-up.
 
 When the deployment exposes the `task` tool (backend `SubAgentCapability` registered and
-`capabilities_config.subagents` enabled) and the number of selected esids is large
-(recommendation: ≥ 20), the Agent MAY delegate extraction to subagents to keep the main-thread context
+`capabilities_config.subagents` enabled) and the number of selected esids is more than 5, the Agent
+MAY delegate extraction to subagents to keep the main-thread context
 bounded. This is a performance strategy, **not a change to the evidence boundary**: only the pulled
 fields (`abstract_text`/`summary`/`study_results`/design context) are evidence, and every extracted
 value must still carry its source esid / marker number.
 
-- **Chunking**: split the esid list by input order into chunks of at most 10 esids each (e.g. 50 esids
-  → 5 chunks). Chunk boundaries must never reorder markers.
+- **Chunking**: split the esid list by input order into **balanced chunks of at most 5 esids**
+  (6 esids → 3+3; 20 esids → 5+5+5+5). Never split finer than 5 — each chunk costs one serial subagent
+  turn — and avoid a one-esid remainder when the split can be balanced. Chunk boundaries must never
+  reorder markers.
 - **One `task` call per chunk**: `subagent_type: "general-purpose"`, with a fully self-contained
   `description` stating exactly which esids to pull (or the tool call parameters), the exact
   `selected_fields` to use, the exact per-trial fields to extract (same as the evidence worksheet in
@@ -132,24 +135,35 @@ value must still carry its source esid / marker number.
   / marker number on every extracted value.
 - **Output discipline**: the subagent returns only a compact structured summary (short trial name,
   arm/label, endpoint values, p-values/CIs, source marker). Keep the returned text small (a few hundred
-  characters per trial) so 5–10 summaries do not re-bloat the main thread.
+  characters per trial) so the 2–4 per-chunk summaries do not re-bloat the main thread.
 - **Citation correctness**: `{{ref_n}}` assignment stays global by input esid order regardless of
   which chunk processed it. Subagents must echo the source marker; the main Agent maps those to ref
   markers and deduplicates.
-- **Constraints**: subagents are stateless (single `description`, no follow-ups — put everything needed
-  in it); recursive depth is limited (do not nest delegation deeper than one level); multiple `task`
-  calls in one message are allowed but concurrency is not guaranteed — treat serial execution as
-  acceptable.
+- **Constraints**: `task` accepts only two parameters, `subagent_type` and `description`, and every call
+  is stateless (no follow-ups — put everything needed in the description); a subagent does **not**
+  inherit this Skill's prompt or the project system prompt, so the description must repeat the
+  `selected_fields`, the fields to extract, and the output format in full; recursive depth is limited
+  (do not nest delegation deeper than one level); multiple `task` calls in one message execute
+  **serially**, so treat delegation as a context-saving device rather than a parallel speed-up.
 - **Fallback**: if the `task` tool is not visible/available, ignore this section and pull every
   selected esid directly (default protocol). Never skip a source because delegation is unavailable.
 
-**Verification checklist before enabling as default** (see pending questions with the Tool Smith
-developer):
-1. `capabilities_config.subagents` is enabled on the deployment and `task` is visible to the Agent.
-2. Subagents can reach the params MCP tool with the same credentials/quota, and 20–50 esids are pulled
-   reliably in one run.
-3. Concurrent `task` calls are either truly concurrent or acceptably fast serially.
-4. Measured token cost: 5–10 compact summaries + aggregation stay well under the run budget.
+**Platform facts** (verified against the Tool Smith backend source, 2026-09-10):
+
+1. `capabilities_config.subagents` defaults to `False` (`schemas/capabilities.py`) and is switched on per
+   project; once on, the main Agent sees the `task` tool. It is **enabled on our deployment**.
+2. The child agent comes from the same `create_chat_agent()` factory, so it inherits the default
+   capabilities — the params MCP tool, `load_skill`, the filesystem and code execution — and shares the
+   main Agent's filesystem, credentials and quota.
+3. A subagent does **not** inherit the project system prompt: the backend swaps in generic subagent
+   instructions whenever `recursive_depth > 0`. It still sees the skill list and may call `load_skill`,
+   but never depend on that — the `description` must carry the extraction spec itself.
+4. Several `task` calls in one message run **serially** (the backend never enables pydantic-ai
+   `allow_concurrent_tool_calls`), despite the tool description promising concurrency.
+5. Platform recursion allows main → child → grandchild (`max_recursive_depth = 2`); this Skill stays
+   stricter and uses a single level.
+6. Still unmeasured: the end-to-end token/latency benefit at 6–20 esids. Keep delegation opt-in until a
+   real large-batch run confirms it.
 
 ## Citation rendering
 
