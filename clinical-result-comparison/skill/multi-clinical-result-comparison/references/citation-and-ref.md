@@ -24,7 +24,7 @@ Assign markers in input (esid) order: `{{ref_1}}`, `{{ref_2}}`, and so on. This 
 
 Markers are internal presentation tokens. The visible report should not explain or spell out `{{ref_n}}` in its evidence-scope paragraph; the frontend replaces them with numeric superscripts.
 
-Use markers immediately after the supported number, clause, or table value:
+Use markers at the end of the supported sentence, bullet, or table cell:
 
 ```text
 中位 PFS 为 11.1 个月（95% CI 9.9-NE），对照组为 6.9 个月（95% CI 5.8-8.6），HR 0.60（95% CI 0.46-0.78；单侧 p<0.0001）。{{ref_1}}
@@ -32,7 +32,11 @@ Use markers immediately after the supported number, clause, or table value:
 11.1 个月（95% CI 9.9-NE）{{ref_1}}
 ```
 
-For a claim fully supported by more than one source, concatenate markers without punctuation: `{{ref_1}}{{ref_3}}`. Do not place a single marker after a long paragraph containing independently sourced values; split the statement or cite each clause locally.
+For a claim fully supported by more than one source, concatenate markers without punctuation: `{{ref_1}}{{ref_3}}`.
+
+Granularity is the **sentence / bullet / table cell, not the individual number**. When one sentence (or one cell) as a whole rests on one source, a single marker at its end is enough — three numbers in that sentence still need only one marker. Attach several markers to one sentence **only when the sentence genuinely mixes facts from different sources**, and then place each marker at the end of the clause it supports (a separated `{{ref_1}} … {{ref_3}}` inside one sentence is fine; a concatenated `{{ref_1}}{{ref_3}}` means both sources support the whole claim).
+
+Never fragment citations to satisfy the marker rule: do not split a sentence, bullet, or table row into several lines just to hang a marker on each part, do not bolt a marker onto every number, and do not run repeated `edit_file` passes to redistribute markers — decide the marker placement together with the text in the single report write (or in the generator script that renders it).
 
 ## Claims requiring markers
 

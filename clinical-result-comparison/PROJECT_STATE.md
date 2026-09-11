@@ -52,9 +52,33 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - Chart validation entry: `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <product.json>`（前端仓库别名 `pnpm validate:chart -- <path>`）；自研 `validate-chart.py` 已退役。
 - **`dist/multi-clinical-result-comparison-v0.12-temp-preview.zip` 已删除（v0.15，用户要求）**：v0.12 调试期双写包（含 `render-preview.py`，写 `.preview.html` 孪生页）；双写已在 v0.14 撤销、HTML 已在 v0.15 全销，该包随之下线。它从未入库，删除后不可恢复。
 - v0.13 轻量版：**弃用但未删除**（源码 `docs/legacy-v0.13/`，归档 `dist/multi-clinical-result-comparison-v0.13.zip`）。
-- 当前 dist：`dist/multi-clinical-result-comparison-v0.15.zip`（19 文件，系统提示词不入包），SHA-256 `b9b46d8a24ceb9e740ff0d8e10230cc9e59b9174bf7828439b52576d92d17e6f`（HTML 清理版 + 子代理委派规则（触发 >5 / 每块 ≤5）+ 图表 envelope 契约 + 空目录兜底 + 上游 v1.0.9 对齐 / 渲染配置归图表 skill + `::visualization` 标签不进实体锚点覆盖 + **A 组六项硬化 / 同试验图表张数上限**；69254 B）。2026-09-11 复盘上游 chart skill v1.0.10 后再跑 `/tmp/pack15b.py` 得同一 SHA（`0deda5d3…`，因 dist 只装运行文件、当时未改运行文件）；随后 A 组落地改了 5 个运行文件，故重新打包为 `b9b46d8a…`。`dist/…-v0.14.zip`（`c0a7d4c0…`，含「输出文件固定命名」契约）及更早自动降为历史归档。
+- 当前 dist：`dist/multi-clinical-result-comparison-v0.15.zip`（19 文件，系统提示词不入包），SHA-256 `58a66abc396475b287c70af4977f3d77d2352977f5699b56594993686e5cfb12`（HTML 清理版 + 子代理委派规则（触发 >5 / 每块 ≤5）+ 图表 envelope 契约 + 空目录兜底 + 上游 v1.0.9 对齐 / 渲染配置归图表 skill + `::visualization` 标签不进实体锚点覆盖 + **A 组六项硬化 / 同试验图表张数上限** + **分享复盘第二轮硬化（标记粒度、混合图数去歧义、shell 参数措辞、渲染期断言、嵌套锚点断言）**；70301 B）。2026-09-11 共重打两次：A 组落地后为 `b9b46d8a…` / 69254 B；同日第二轮硬化改了 3 个入包运行文件（`SKILL.md`、`references/{citation-and-ref,chart-templates,entity-inline-reference}.md`）后重打为当前 SHA。当日上午复盘上游 v1.0.10 时那次重打与 `0deda5d3…` 逐字节相同（dist 只装运行文件、当时未改运行文件）。`dist/…-v0.14.zip`（`c0a7d4c0…`，含「输出文件固定命名」契约）及更早自动降为历史归档。
 - Git：分支 `v0.15-remove-html`（从 `main` 的 `16cbb96` 切出）；`main` 已含 v0.14 提交 `e4f3bb7` 与记账提交 `16cbb96`，且已 push（`origin/main` = `16cbb96`）。v0.15 提交链 **`da5b157`（HTML 全销）→ `aa05104`（子代理委派边界，含阈值二次校准）→ `d65abdf`（记账）→ `4040ff3`（上游 v1.0.9 对齐 + 渲染配置归 Skill + 重打 dist）→ `87a2afb`（记账）→ **`49f00d9`（`::visualization` 标签不进实体锚点覆盖 + 重打 dist）→ `dc0afd0`（上游 v1.0.10 负值修复记账）→ 本轮 A 组六项硬化 + 图表张数上限（同轮把 `vendor/README.md` 入库）**）** 全部按用户授权 push 到 `origin/v0.15-remove-html`；**按要求不合回 `main`、不开 PR**（不合并分支）。
-- 未提交：无 tracked 改动（A 组硬化及其 dist/记账改动随本轮提交 push）。`vendor/` 处置已按用户 2026-09-11 拍板定案：**`vendor/README.md` 入库**（只含 provenance / 差异表 / 发布 ID，不含上游源码），**上游源码副本 `vendor/chart-visualization-json/{1.0.9,1.0.10}/` 继续 gitignore**（`.gitignore` 已有 `vendor/**/node_modules/` 与 `vendor/chart-visualization-json/*/`）。无 `Dockerfile`/compose，不涉及镜像。
+- 未提交：**第二轮硬化（4 个 skill 运行文档 + sys + 重打 dist）已在工作区改完、尚未 commit/push**，等用户授权（按硬规：commit 与 push 各取一次显式授权）。待提交文件：`system-prompts/multi-clinical-result-comparison-v0.15.md`、`skill/multi-clinical-result-comparison/SKILL.md`、`skill/multi-clinical-result-comparison/references/{citation-and-ref,chart-templates,entity-inline-reference}.md`、`dist/multi-clinical-result-comparison-v0.15.zip`、`README.md`、`PROJECT_STATE.md`。`vendor/` 处置已按用户 2026-09-11 拍板定案：**`vendor/README.md` 入库**（只含 provenance / 差异表 / 发布 ID，不含上游源码），**上游源码副本 `vendor/chart-visualization-json/{1.0.9,1.0.10}/` 继续 gitignore**（`.gitignore` 已有 `vendor/**/node_modules/` 与 `vendor/chart-visualization-json/*/`）。无 `Dockerfile`/compose，不涉及镜像。**注意 Git 与 ToolSmith 的漂移**：本轮内容已用个人令牌 API 发布上线（prompt `1.5` / skill `1.0.6`），但 git 尚未提交 —— 不提交就会出现「线上有、仓库无；别人克隆到的不是跑着的那份」。详见「ToolSmith 发布通道」节。
+
+## ToolSmith 发布通道：个人令牌 API 同步（2026-09-11）
+
+- **背景**：此前 prompt/skill 都靠人工在 ToolSmith Web 上传；现改用前端提供的「个人令牌 API」（`<host>/docs/integrate/token-api`，实例即 `http://39.106.82.157:36688`，与分享链接同一环境）。链路已实测跑通。
+- **鉴权**：PAT（`ts_pat_` 前缀的软令牌，Web → 用户菜单 →「访问令牌」，明文只返回一次）通过 `Authorization: Bearer …` 头传递。本账号 `徐佩佩` 角色 `project_manager`，含 `prompt:write` / `skill:manage` / `skill:update_own` / `project:write`；`GET /api/auth/me` 自检。令牌**不入库、不进文档**。
+- **平台聚合 id（已定位）**
+  - 提示词家族 `91febc286412479a8b6d569fa3b8025e`（title `multi-clinical-result-comparison`）
+  - 技能家族 `9fe0035bdd324b998436c6cb9c2de212`（name `multi-clinical-result-comparison`）
+  - 项目 `a7cdda6508e0423c8b7afaaf3a68e50d`：`resources.prompt` = 当前提示词版本 id；`skills=[chart-visualization-json, multi-clinical-result-comparison]` **按家族绑定** → 换版本自动跟随，无需改项目配置。
+- **两个写接口语义（据部署端 `openapi.json` + tool-smith 后端源码双重核对，非照文档猜）**
+  - 提示词追加版本：`POST /api/prompts/{family_id}/versions`，body `{version, content, ifadd:true, is_current:true}`；同家族版本号重复 → 400；`is_current=true` 使新版本**自动成为当前版本**，无需再调 set-current。
+  - 技能追加版本：`POST /api/skills/create`（multipart `name`/`version`/`file` **+ `family_id` + `message`**）；`message` 空 → 400「发布新版本时必须填写版本更新说明」；`name` 必须等于包内 `SKILL.md` 的 `name`（大小写不敏感比对）；新版本自动 `is_current=True` 并把家族内旧版本降级。
+  - ⚠️ `/api/skills/update_skill_file`（`skill_id` = 某个**具体版本** id）是**原地覆盖该版本文件**（`commit_id+1`），**不产生新版本** —— 要留版本历史就别用它。
+- **平台版本号 ≠ 仓库版本号**：平台自成序列（提示词 `1.0…1.5`、技能 `1.0.0…1.0.6`）。按内容 SHA 对齐得到映射：prompt `1.2`=仓库 `v0.11`、`1.3`=`v0.13`、`1.4`=`v0.15（A 组之后、R1–R5 之前；仓库未留该文件）`、`1.5`=`v0.15`（当前）；skill `1.0.5`=dist `b9b46d8a…`、`1.0.6`=dist `58a66abc…`（当前）。
+- **本次已同步（2026-09-11 17:42，即第二轮硬化）**
+  - prompt **`1.5`**（id `00ce20bbf3e14c30875aeb9257fb530f`，41113 B，sha `f0e813a5678d`，逐字节 == `system-prompts/multi-clinical-result-comparison-v0.15.md`），已 current，项目 `resources.prompt` 已指向它。
+  - skill **`1.0.6`**（skill_id `cdd1715065c246e9af6224a7a921b56e`，70301 B，`message` 记 R1–R5 + dist `58a66abc`），下载回读 **19/19 文件与本地树逐字节一致**，已 current（`1.0.5` 自动降级）。
+- **发布工具（已全局安装，2026-09-11；不进本仓库）**：命令 `toolsmith-publish`，源码 `~/.local/bin/toolsmith-publish`（可执行，无第三方依赖）；本项目 id 写在工作区之外的全局配置 `~/.config/toolsmith/projects.json`（按仓库根路径索引）；凭证 `TS_BASE` / `TS_TOKEN` 存在 `~/.secrets`（600，`~/.bashrc` 已 source），仓库里零凭证。
+  - `status`：**只读**比对本地 vs 线上 —— 打印平台版本↔仓库版本映射、当前技能包逐文件比对、项目绑定检查；不一致时 **exit 3**（可直接当提交前闸门）。
+  - `publish`：自动取下一个版本号（提示词 max minor +1；技能 patch +1）→ 先推 prompt 再推 skill → 自动重跑 `status` 校验，绿了才算完成。
+  - `push-prompt` / `push-skill` / `pull`（把线上 version 下回 `/tmp/toolsmith-publish/` 做 diff）/ `find`（发现 family_id，禁止硬编码）/ `whoami` / `config`；`--dry-run` 预览。全局参数放子命令前后均可。
+- **以后的工作流（用户 2026-09-11 定，已记入工作区 `AGENTS.md`）**：改完 skill/prompt → **先问「要不要推 ToolSmith」**（与 commit 同级，不自行发布）→ 同意后 `toolsmith-publish publish` → `status` 必须绿 → **再问 commit & push**。
+- **为什么不把脚本放进仓库**：它跨多个 skill 项目复用，且令牌/平台 id 属本机环境，不属于任何单个项目；入仓反而会把平台 id 固化进公共代码。
+  - **推荐流程**：改仓库 → `publish` → `status` 绿 → 再 commit。
 
 ## v0.15 change: 仓库内 HTML 资产彻底移除（2026-09-10）
 
@@ -150,6 +174,19 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - **重打 dist**：`b9b46d8a24ceb9e740ff0d8e10230cc9e59b9174bf7828439b52576d92d17e6f`（19 entries / 69254 B；上一版 `0deda5d3…` / 67897 B 作废）。行数变化：sys **216 → 217 行**、`entity-inline-reference.md` 78 → 91、`chart-templates.md` 143 → 146、`file-delivery.md` 71 → 72、`input-contract.md` 194 → 199、`SKILL.md` 151 行（段内追加，行数不变）。
 - **B 组不动作**：bar 负值问题单（上游 v1.0.10 已修，问题单作废但**不生成文件**）、`{{ref_n}}` 图表内不替换的前端报备、前端文档 CLI 路径口径（`.agents/skills/...` + `pnpm validate:chart` vs 部署端 `/workspace/skills/...` + `node`）——按用户「攒着」处理。
 - **C 组处置**：① `vendor/README.md` 入库、上游源码副本继续 gitignore；② Obsidian 沉淀由我方判断执行；③ 视觉升级的像素级目检需用户在 Tool Smith 页面确认（本环境视觉子代理通道不可用：deepseek-vision 403 billing、glm 收不到图像）；④ 平台侧「execute 写空目录不持久」「并发措辞」用户已知晓/已修，不再单独报。
+
+## v0.15 change: 分享复盘第二轮硬化（2026-09-11，第四份决策清单落地）
+
+- **触发**：三个新分享会话（`42df8830` 18 esid 柱状 / `5b27e12f` 14 esid 柱状 / `63da8004` 4 esid 时间轴）只读复盘——硬契约 3/3 全过，但墙钟与 reasoning 比上一批上升（bar +12%/+16%、line +35%/+30%、timeline +30%/+18%），归因到四处**可归因的额外步数**：line 批 12 次 `edit_file` 全花在 `{{ref_n}}` 标记粒度上、timeline 批 A1 断言失败 4 次、bar 批 1 次把 `shell_command` 当工具名、bar 批 14 处嵌套锚点靠事后脚本修补。用户拍板：「**原地改吧，上一轮你提的其他几点我都没问题，听你的**」→ 5 项全落地、版本号仍记 v0.15。
+- **R1 标记粒度 = 句子/单元格，不是数字**：`references/citation-and-ref.md` L27 改为「句末/条目末/单元格末」，并在多来源连写之后新增两段——一句（一格）整体来自同一来源时句末一个标记即可（句内多个数字仍只需一个）、只有一句真的混了不同来源才按子句就近标（`{{ref_1}} … {{ref_3}}`）/ 连写 `{{ref_1}}{{ref_3}}` 仍表示所有列出来源共同支持整句、**禁止**为标注拆句拆行、禁止逐数字补标、禁止对同一处反复 `edit_file` 重分配标记（标记位置与正文在同一次写入/同一个生成脚本里定）。sys Final verification 对应条目从「every material number has an immediately adjacent marker」（**line 批 12 次 edit_file 的直接诱因**）改为「every source-dependent claim carries a marker at the end of its sentence, bullet, or table cell」。
+- **R2 混合输入图表张数去歧义**：`references/chart-templates.md` 的混合条改为条件式三步（≥2 同时点 → 1 张折线；每组 ≥2 条可比横截面值 → 该组 1 张柱状；两者成立就都出，按「时间维度 → 横截面对比」分段；某组不可比则该组不出图并说明）并明写「**时间维度优先只是排序/取舍优先级，不是「有折线就不出柱状」**」；上限句改为「混合 = 至多 1 张折线 + 每组至多 1 张柱状」。sys 同段改写为「line 与 bars **independent, not either/or**；只有柱状也是合法结果」。依据：同一个 Lp(a) 14 esid 输入上一批出 bar+line、本批只出 bar，模型自述「mixed 规则写法有歧义」。
+- **R3 shell 参数措辞不再诱导工具名混淆**：sys Step discipline 第 6 条重写——工具是 `execute`、脚本进 `shell_command` **参数**；写成 `command` 会失败（有时**无任何输出**，故空结果不能证伪「命令没跑」）；**不要把参数名当工具名**，遇到 unknown tool / 参数错误应改用 `execute` 重发而不是重发同样形状。依据：bar 批 `tool-shell_command` 一次 `output-error`。
+- **R4 渲染即断言（A1 降本）**：`entity-inline-reference.md` 的 A1 小节新增第 3 条「渲染、断言、落盘放同一个脚本里」（先渲染到内存 → 跑完 (a)(b)(c) 断言 → 通过才写盘，失败只是重跑同一脚本而非回到 `edit_file` 逐条补），sys anti-patch 段与 `SKILL.md` 第 5 步同步补该句。依据：timeline 批断言触发 4 次（`{T_IVO}: 5 != 6`、`bare mention left: 依沃西单抗`）+ 1 次 heredoc 写坏空转。
+- **R5 新增「无嵌套锚点」断言**：`entity-inline-reference.md` 校验清单新增一条（`[X](entity:t:[X](entity:t:ID))` 双层包裹是错的，脚本断言 `](entity:` 不出现嵌套形态，发现即 fail-loud 重跑而非事后抠）、sys Final verification 实体条目与 `SKILL.md` 第 5 步同步。依据：bar 批实际发生 14 处，msg26 脚本 `repairs: 14` 自修。
+- **同步修正**：A3 原措辞「The shell tool is `execute` with its command in the `shell_command` argument」把工具名与参数名并排写，实测会让模型把 `shell_command` 当工具名 → R3 已改写为「工具=`execute`，脚本进其 `shell_command` 参数；不要把参数名当工具名」。
+- **重打 dist**：`58a66abc396475b287c70af4977f3d77d2352977f5699b56594993686e5cfb12`（19 entries / 70301 B；上一版 `b9b46d8a…` / 69254 B 作废），独立脚本复核包内 19 文件与工作区逐字节一致（`mismatch []` / `missing []`）、无 `__pycache__`/`.pyc`。行数：sys **217 行（不变，段内改写）**、`SKILL.md` 151（不变，段内追加）、`entity-inline-reference.md` 91 → 94、`chart-templates.md` 146 → 150、`citation-and-ref.md` 72 → 74、`file-delivery.md` 72、`input-contract.md` 199；`README.md` 136 → 137。
+- **未动作**：B8–10 继续攒着（bar 负值问题单、`{{ref_n}}` 前端报备、CLI 路径口径）；「图表内 `{{ref_n}}` 原样显示」按用户拍板放行不改；不升版本号。
+- **下一步（待用户）**：Tool Smith 侧重传 sys v0.15 + 当前 dist，用**新 thread**、同一批输入（18 / 14 / 4 esid）复跑，验 R1/R2 是否把墙钟与 reasoning 拉回上一批水平（line 批 ≤5 min / bar 批 ≤4.5 min 为合理目标）。
 
 ## v0.14 change: 复用上游 chart-visualization-json skill；撤销 TEMP 双写（2026-09-08）
 
