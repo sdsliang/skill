@@ -146,7 +146,7 @@ The report must contain, in comparison-first order:
 
 ## Chart contract (descriptive only)
 
-The snapshot may include a chart JSON from `templates/charts/` (see `references/chart-templates.md`) only when all plotted values are explicitly reported numbers with a single unit, direction, population, analysis set, and time frame. Chart rules:
+The snapshot may include a chart product (the chart skill **envelope** whose `option` body is filled from the `templates/charts/` starters — see `references/chart-templates.md`; never deliver a bare `option` object) only when all plotted values are explicitly reported numbers with a single unit, direction, population, analysis set, and time frame. Chart rules:
 
 - single-value endpoints (ORR-like) use `endpoint-bar.json`; time-series endpoints (weight/PFS/OS over time) use `endpoint-line.json`;
 - **排序与字段纪律**：柱状图由生成方按 value 从高到低排好 `data[]` 顺序；折线/时间序列与时间轴保持**时间顺序**（`data[]`/`time` 数组顺序即时间顺序，前端不重排）；产物是**纯 JSON**（见 `references/chart-templates.md`），前端 chart-visualization-json 渲染层统一处理配色/主题，本 skill 不产出自带样式的 HTML；

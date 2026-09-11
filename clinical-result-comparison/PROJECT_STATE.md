@@ -52,9 +52,9 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - Chart validation entry: `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <product.json>`（前端仓库别名 `pnpm validate:chart -- <path>`）；自研 `validate-chart.py` 已退役。
 - **`dist/multi-clinical-result-comparison-v0.12-temp-preview.zip` 已删除（v0.15，用户要求）**：v0.12 调试期双写包（含 `render-preview.py`，写 `.preview.html` 孪生页）；双写已在 v0.14 撤销、HTML 已在 v0.15 全销，该包随之下线。它从未入库，删除后不可恢复。
 - v0.13 轻量版：**弃用但未删除**（源码 `docs/legacy-v0.13/`，归档 `dist/multi-clinical-result-comparison-v0.13.zip`）。
-- 当前 dist：`dist/multi-clinical-result-comparison-v0.15.zip`（19 文件，系统提示词不入包），SHA-256 `1a6b52744ac71605611721e8afd165ed9ee7f65120f6cf22368d32d926954403`（HTML 清理版 + 子代理委派规则，触发 >5 / 每块 ≤5；63387 B，重打幂等）。`dist/…-v0.14.zip`（`c0a7d4c0…`，含「输出文件固定命名」契约）及更早自动降为历史归档。
+- 当前 dist：`dist/multi-clinical-result-comparison-v0.15.zip`（19 文件，系统提示词不入包），SHA-256 `495647bf3e1daf6ba1adfa6693c7d2441fbb90ec901d529201f98323b2b92cf3`（HTML 清理版 + 子代理委派规则（触发 >5 / 每块 ≤5）+ 图表 envelope 契约 + 空目录兜底 + **上游 v1.0.9 对齐 / 渲染配置归图表 skill**；67496 B）。`dist/…-v0.14.zip`（`c0a7d4c0…`，含「输出文件固定命名」契约）及更早自动降为历史归档。
 - Git：分支 `v0.15-remove-html`（从 `main` 的 `16cbb96` 切出）；`main` 已含 v0.14 提交 `e4f3bb7` 与记账提交 `16cbb96`，且已 push（`origin/main` = `16cbb96`）。v0.15 两个提交 **`da5b157`（HTML 全销）+ `aa05104`（子代理委派边界，含阈值二次校准）** 已按用户授权 push 到 `origin/v0.15-remove-html`；**按要求不合回 `main`、不开 PR**（不合并分支）。
-- 未提交：无（v0.12 调试期包 `dist/…-v0.12-temp-preview.zip` 已按用户要求删除；更早的 HTML 类残留已随 v0.15 全销）。无 `Dockerfile`/compose，不涉及镜像。
+- 未提交：**有**。`v0.15-remove-html` 工作区现有 14 个 tracked 文件改动（`.gitignore`、`README.md`、`PROJECT_STATE.md`、`dist/…-v0.15.zip`、`SKILL.md`、5 个 `references/*.md`、3 个 `templates/charts/*.json`、`templates/unified-evidence-report.md`、sys v0.15）+ 未跟踪的 `vendor/`；**等用户授权后再 commit/push**（不合 `main`）。无 `Dockerfile`/compose，不涉及镜像。
 
 ## v0.15 change: 仓库内 HTML 资产彻底移除（2026-09-10）
 
@@ -67,6 +67,24 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - **历史段落说明**：本文档 v0.8–v0.11 各段里的 `*.html` 文件名、`CHART` 结构、坐标数值、`chart-tokens.css` 配色都是 HTML 时代的历史记录，**对应文件已不存在**（回溯看 git `e4f3bb7`）；原文保留仅为决策追溯，不代表当前能力。
 - **同步**：新建 `system-prompts/multi-clinical-result-comparison-v0.15.md`（后扩充至 **213 行**：HTML 清理版 + `## Subagent delegation` 段）；`references/chart-templates.md` 头部不再指向已删目录；`README.md` 新增 v0.15 段并把历史段里指向该目录的句子标注「deleted in v0.15」；重打 `dist/multi-clinical-result-comparison-v0.15.zip`（打包断言新增「拒绝 `.html`/`.css`/`.py` 入包」）。
 
+## v0.15 change: 图表 envelope 契约 + 空目录兜底（2026-09-10，分享会话复盘后）
+
+- **触发**：用户分享 Tool Smith 会话 `fa0c0317-6c35-4b3e-8a57-6490fa9eb1b4`（thread `55906375`，标题 “Snapshot of 折线图”，同一批 14 个 Lp(a) esid），问「子代理用上了吗？好像也没有变快」。复盘结论：
+  - **sys v0.15 生效，但模型主动否决了委派**：msg#1 reasoning 原文「We have 14 esids. More than 5, and the task tool is available. So delegation is possible.」；msg#3 权衡 5+5+4 后否决，理由：(a) citation 元数据要逐字节，(b) **params MCP 结果会自动落盘**到 `/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_*.jsonl`，用 `execute`+python 脚本 digest 更省，(c) 委派要多管一条线。→ **在本平台「结果落盘 + execute」形态下委派无收益**，脚本化 digest 才是真省钱项（本次 23 次 `execute`）。
+  - **其实更快**：本次总时长 **5.5 分钟**（`latency_ms 329871`）、42 步、48 次工具调用、reasoning 10.3 万字符；同批 14 esid 历史基线 9.9 / 10.9 分钟。但该 thread 复用了旧上下文，不算干净 A/B。
+  - **返工点两处**：图表 envelope（约 4 步）+ `/workspace/output` 空目录（3 步）；契约面（固定命名、绝对路径引用、`present_artifact`、144 个实体锚点）全部遵守。
+- **根因 1（我们的文档 bug）**：部署端 `chart-visualization-json` 已是 **2026-09-10 新版**，协议要求成品为 envelope `{"id":"chart-visualization-json","iframe_template":"<与 config.js 全等>","option":{…}}`，并**显式拒绝**旧的 option 层平铺格式（`未包 envelope：…；旧格式（option 层配置）已不再兼容。`）；`iframe_template` 由 `apps/ai-charts-html` 每次发布 CDN 后刷新、**必须与运行期 `config.js` 的 `IFRAME_TEMPLATE` 全等**。而本 skill `references/chart-templates.md` 旧版写的是「**合并 JSON 无额外 envelope**」——**写反了**；`templates/charts/*.json` 三个模板也都平铺。模型因此写入 → 校验失败 → 读 `validate.js`(6.3KB) → 读 `config.js` → 重写 → 才 PASS。
+- **根因 2（平台 bug，已交后端）**：`/workspace/output` 空目录不跨 `execute` 调用持久——早期 `mkdir -p` 过、后续 `ls /workspace/` 里已无该目录（`scripts`/`visualizations` 在），单独 mkdir 后仍报 `FileNotFoundError`，最后把 `mkdir -p` 与写入放**同一次调用**才过。
+- **改动（全部在 v0.15 上原地改）**：
+  1. `references/chart-templates.md`：能力来源表加「成品包裹层」行；§零 把「无额外 envelope」整条替换为 **envelope 硬规则 + 三键来源（禁止硬编码）**（首选复制图表 skill 自己的 `templates/{bar,line,timeline}.json`，退路 `cat config.js`，两者都不可读则 fail-loud）；§一 表下补「两者交付角色不同」；§二 步骤 1/2 改为「先复制图表 skill 模板拿 envelope → 再只替换 `option` 内层」；自检段加 envelope 前置确认、校验覆盖加三键，并新增「**权威只有部署端那一份**」避坑条（旧副本会给出错误的 PASS）。
+  2. `templates/charts/{endpoint-bar,endpoint-line,evidence-timeline}.json`：三个文件头部加 `_comment`，标明它们是 **`option` 内层起点**、不是可交付成品。（`_comment` 被 Zod schema 的默认 strip 语义忽略，`option` 内层仍校验通过。）
+  3. 同步改写交付措辞：`SKILL.md`、`references/{timeline-diagram,cross-trial-comparison,file-delivery}.md`、`templates/unified-evidence-report.md`。
+  4. `references/file-delivery.md` 新增 **empty-dir fallback** 条目（`mkdir -p` 必须与首次写入同一次调用；报目录缺失就重做后继续）。
+  5. sys v0.15 六处：File delivery 段加同一条 mkdir 规则；Chart contract 段补 envelope 硬规则（`templates/charts/*.json` 只是 `option` 内层）；timeline 段改为「先拷图表 skill `templates/timeline.json` 拿 envelope」；Final verification 的图表项加 envelope 与「旧副本 PASS 不算权威」、交付文件项加「与父目录同一次调用创建」；**子代理段新增「先试脚本化 digest 再考虑委派」**（避免下次再花一段 reasoning 权衡）。sys **213 → 214 行**（段落内改写，行数几乎不变）。
+- **重打 dist**：`67c17a026d21bcd437c1940214f628c7f59068b70ba3f0178abc6f2969d3c5ae`（19 entries / 66440 B；上一版 `1a6b5274…` / 63387 B 作废）。
+- **验证**：包内 envelope 措辞就位（`chart-templates.md` 11 处命中）、旧措辞「无额外 envelope」与硬编码 CDN 地址残留 0、包内三个 `option` 内层经图表 skill CLI 仍 `校验通过: bar/line/timeline`。**未验证项**：envelope 层校验本地做不到（手头只有前端给的**旧副本**图表 skill，本地无部署端 `validate.js`/`config.js`），须由用户在 Tool Smith 运行期确认。
+- **教训**：上一轮「三模板全 PASS」是**无效验证**——验的是前端给的旧副本；上游协议升级后本地副本不再是权威。凡「上游能力」类结论，一律以**部署端实际安装的文件**为准。
+
 ## v0.15 change: 子代理委派规则上移入 sys（2026-09-10）
 
 - **触发**：用户问「sys 是不是该强调下（子代理规则）」，并回复「我开了呀」——即本项目 Tool Smith 部署的 `capabilities_config.subagents` 开关**已开**，于是子代理变成真实可用能力；若 sys 继续零提及，会出现「工具可见但无约束」的裸奔（模型自行委派，而 `{{ref_n}}` 全局顺序、来源 marker 回显、不得跳过来源这些护栏只在 Skill 正文里）。
@@ -75,7 +93,27 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - **Skill 变更**：`references/input-contract.md` 该节标题去掉 `pending verification`、状态改为「platform-supported, and enabled on our deployment — still opt-in」；Constraints 补「子代理不继承项目 sys/Skill，description 必须自带规格」「多 call 串行」；原「Verification checklist（4 项待问）」替换为「**Platform facts**（已对 Tool Smith 后端源码核实，2026-09-10）」六条。`SKILL.md` Input 段指针同步改写。
 - **设计取舍**：即便开关已开，规则仍保持 **opt-in + 条件式**（>5 esid 才用），且**只写「不变量」不写「提速承诺」**——委派治的是上下文膨胀，而实测并发不存在（串行），端到端 token/耗时收益仍未量化。护栏优先于收益：`task` 不可用/失败一律 fail-loud 回退直读，绝不静默缩源。
 - **阈值二次校准（同日，用户反馈）**：初版写「~20+ esid 才委派、每块 ≤10」，用户指出**产品侧选中上限就只有 20 个**，等于阈值卡在理论上限 → 改为 **触发 >5 个 esid、每块 ≤5**（6 → 3+3；20 → 5+5+5+5），并加「不得切细于 5（每块要花一个串行子代理回合）、能均衡就不留 1 个的零头」。附带修正旧例「20–50 esid」为「最多约 20」。
-- **重打 dist**：`1a6b52744ac71605611721e8afd165ed9ee7f65120f6cf22368d32d926954403`（19 entries / 63387 B；旧 `b89024c8…` / 62896 B、`1a7db902…` / 63328 B 均作废）。本节的 sys/Skill/dist 改动落在提交 **`aa05104`**（分支 `v0.15-remove-html`，已 push，不合 `main`）。SKILL.md 与 input-contract.md 是在包内的，所以本次**运行时有变化**（与上一节「HTML 清理对运行时零影响」不同）。
+- **重打 dist**：`1a6b52744ac71605611721e8afd165ed9ee7f65120f6cf22368d32d926954403`（19 entries / 63387 B；旧 `b89024c8…` / 62896 B、`1a7db902…` / 63328 B 均作废；**该包随后被下一节的 envelope 修复版 `67c17a02…` / 66440 B 取代**）。本节的 sys/Skill/dist 改动落在提交 **`aa05104`**（分支 `v0.15-remove-html`，已 push，不合 `main`）。SKILL.md 与 input-contract.md 是在包内的，所以本次**运行时有变化**（与上一节「HTML 清理对运行时零影响」不同）。
+
+## v0.15 change: 对齐上游 chart skill v1.0.9 + 渲染配置归 Skill + vendor 留档（2026-09-11）
+
+- **触发**：① 用户要求执行上一轮挂起的 4 处文档微调，且**保持 v0.15 版本号不变**（不下发新版本）；② 用户转达 TS 前端建议：在 sys 的**可视化渲染**部分加一条「渲染配置优先取自 Skill」，避免图表被内置渲染路径绕开、skill 不被触发。
+- **上游版本核实**：解包前端交付的 `chart-visualization-json-v1.0.9.zip`（2026-09-10 build，源包 SHA-256 `572fbe553978696e3f915b6a13ea9a7ebe31f4be6d00987c057c8daf75e20438`），逐条比对我们已编码的规则——envelope 三键、`iframe_template` 需与 `config.js` 的 `IFRAME_TEMPLATE` 全等且每次发布 CDN 后刷新、`RENDERABLE_CHART_TYPES = line|bar|timeline`、bar `group` 默认 false / `stack` 默认 true、`theme ∈ default|academy|dark`（默认 default）、`width` 600 / `height` 400、行格式 `{label, value:number, group?, description?, drill?}`、timeline `time` 必填 / `weight` min 0 默认 0 / `legend[].shape ∈ circle|empty-circle` / 数组顺序即时间序不重排 / `weightLegend.show` 默认 true、`dataSource`+`describe` 不参与绘制——**全部一致，无规则变更**。
+- **本地校验空缺补齐**：用留档的 v1.0.9 副本跑 `validate-cli.js`（exit 0 通过 / 1 失败）。正例：我们三个 `templates/charts/*.json` 的 `option` 内层套上游 envelope（含 `_comment`）→ 全 PASS；负例：平铺 `option` → `未包 envelope：…旧格式（option 层配置）已不再兼容。`、陈旧 `iframe_template` → `必须与 config.js 的 IFRAME_TEMPLATE 全等，期望 …20260910-153117…`、相对路径 template / 错 `id` 均报错，而**多出一个未知顶层键**与**极简 `option`** 都 PASS（前者被 strip、后者用 bar 默认值）——即上游对未知字段是「静默忽略」。
+- **文档微调（4 处，全在 v0.15 原地改）**：
+  1. 「协议 v2」措辞废除（上游只有 zip 版本号，没有 v2 概念）→ 改为「图表 skill v1.0.9 / 2026-09-10 build」（`references/chart-templates.md` 两处：能力来源表 + §零 硬规则标题）。
+  2. 能力来源表「可渲染模板」行补上游最小骨架 `templates/visualization.json`。
+  3. §零 新增「上游对未知字段静默忽略（Zod strip）」一条：`_comment` 之类说明键不会校验失败，但渲染层不保证使用 → 面向读者的说明写 `describe`/`description`。
+  4. §零 记录 v1.0.9 新增可选字段（`bar.minCategoryGap`、`bar.style.barWidth`、各类型 `style.palette`/`texture`/`backgroundColor`）**本 skill 不用**，保持最小字段集。
+  5. 「权威只有部署端那一份」条补「离线核对可用带版本号副本，但**前提是版本与部署端一致**，且副本内嵌的 `iframe_template` 只是留档时点的值」。
+- **渲染配置归 Skill（前端要求，落三处）**：
+  - `references/chart-templates.md` §零 新增「**渲染配置一律取自图表 skill（硬规则）**」：类型/字段名/默认值/`theme` 以图表 skill 的 `templates/*.json` 与 `references/schemas/` 为准，**原样复用、不重述、不扩展、不自造**；交付通道只有「图表 skill 定义的 JSON 数据文件 + `::visualization`」，**不要为本 skill 的 JSON 图调 `read_me`**（平台 Visualizer 段声明 Skill-defined data file 无需 `read_me`）、不用 `show_widget`、不退到内置 chart 模块（Chart.js/HTML/SVG）、不另造字段与配色。
+  - `SKILL.md`：必读文件第 11 项把上游图表 skill 标为「**render config and single source of truth**，原样复用」，并补「唯一图表通道 + 不使用内置 chart 模块/`show_widget`/HTML/SVG/Mermaid + 不为这些 JSON 图调 `read_me`」；第 6 步 mixed-inputs 图表段补同义约束。
+  - sys v0.15 Chart contract 新增独立段 **"The Skill owns the chart rendering config — never bypass it (hard rule)."**（类型/字段名/默认值/`theme`/envelope 一律 verbatim 取自图表 skill 模板与 schema；唯一通道是 Skill 定义的 JSON + `::visualization`；不得用平台内置 chart 模块 / `show_widget` / 手写 HTML-SVG-Chart.js 替代；不为这些图调 `read_me`；不得因「有个图会更好」而绕开 Skill）。Final verification 的图表项同步加「每张图都出自 Skill JSON 契约、渲染配置来自图表 skill 模板/schema，无内置模块/`show_widget`/`read_me`/自造字段与配色」断言。sys **214 → 216 行**。
+- **`vendor/` 留档落地（新约定）**：`vendor/<上游 skill 名>/<版本>/` 逐字节复制上游包（本次 `vendor/chart-visualization-json/1.0.9/`，47 文件 + `node_modules`），并写 `vendor/README.md`（来源 zip、SHA-256、接收日期、该 build 内嵌的 `iframe_template`、跑法、协议要点、更新流程）。**默认不入 git**（`.gitignore` 加 `vendor/**/node_modules/` 与 `vendor/chart-visualization-json/*/`）——上游源码含内部 CDN 地址，是否入库待用户决定。留档副本自证可用：`node scripts/validate-cli.js templates/{bar,line,timeline,visualization}.json` 全 PASS。**skill/sys 文档内零 `vendor/` 引用**（部署端无此目录，已 grep 确认）；`dist` 内零 `vendor`。
+- **顺带修正**：`templates/unified-evidence-report.md` 的旧措辞（「无额外 envelope」类）已改；全 skill 残留旧措辞 = 0，硬编码 CDN 地址 = 0。
+- **重打 dist**：`495647bf3e1daf6ba1adfa6693c7d2441fbb90ec901d529201f98323b2b92cf3`（19 entries / 67496 B；上一版 `67c17a02…` / 66440 B 作废）。**未提交**：本节的 14 个 tracked 文件改动 + 未跟踪 `vendor/` 仍在工作区，等用户授权后再 commit/push（不合 `main`）。
+- **待用户决定**：① `vendor/` 是否入库；② 是否按上述改动 commit + push；③ 「6–8 条且单条 payload 不大时直接直读」的下限豁免是否写进 sys。
 
 ## v0.14 change: 复用上游 chart-visualization-json skill；撤销 TEMP 双写（2026-09-08）
 

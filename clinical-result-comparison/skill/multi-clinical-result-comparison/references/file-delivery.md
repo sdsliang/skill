@@ -27,6 +27,8 @@ The deliverable paths are **constant across runs**. Never derive them from the t
 - The chart kind is carried by the file name (`endpoint-bar-*` vs `endpoint-line-*`) and must match the JSON `type` field (`"type": "bar"` / `"type": "line"`). The renderer dispatches on `type`, while the file name is the stable human/backend index. A lone quantitative chart therefore always sits at `/workspace/visualizations/endpoint-bar-1.json` or `/workspace/visualizations/endpoint-line-1.json`; cross-trial/mixed inputs number each kind independently in report order.
 - Chart paths need no backend derivation either, because the report carries each path verbatim inside its `::visualization[...]` reference. Keep every path ASCII, lowercase, hyphen-separated, and directly under those two directories (no subdirectories, no `..`, no backslashes).
 
+- **Create each parent directory in the same command as the first write into it (empty-dir fallback).** Run `mkdir -p /workspace/output /workspace/visualizations` **together with** the first write into those paths, not in an earlier step: empty directories do not reliably survive between `execute` calls, so a later write can fail with `FileNotFoundError: /workspace/output/citations.json` even though an earlier `mkdir` appeared to succeed. Never assume an empty directory created in a previous step still exists; if a write reports the directory missing, re-run `mkdir -p` and the write in one command and continue.
+
 ## Deliverables
 
 Two files are produced each run:
@@ -44,7 +46,7 @@ Two files are produced each run:
 
 ## Delivery sequence (terminal action)
 
-1. Write chart product files to `/workspace/visualizations/` under the fixed names from the naming contract first, and run the chart skill CLI (`node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <成品>`) until PASS (per `references/chart-templates.md`).
+1. Write chart product files to `/workspace/visualizations/` under the fixed names from the naming contract first, and run the chart skill CLI (`node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <成品>`) until PASS (per `references/chart-templates.md`). Each product must be the chart skill **envelope** (`{ id, iframe_template, option }`), not a bare `option` object: copy the chart skill's own `templates/{bar,line,timeline}.json` and replace only its `option` body. `iframe_template` is refreshed on every chart publish, so read it from that template (or its `config.js`) at run time — never hardcode it.
 2. Write the complete report Markdown to `/workspace/output/report.md`.
 3. Write the citation JSON to `/workspace/output/citations.json` (raw JSON, no code fences, no commentary).
 4. Verify before presenting:

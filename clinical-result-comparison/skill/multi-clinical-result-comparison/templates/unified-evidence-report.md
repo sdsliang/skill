@@ -29,7 +29,7 @@
 
 ## 三、证据链总览与时间线
 
-**时间轴图：** 在同一试验、合并后 ≥2 个真正不同证据状态时，在此处、时间线表格上方用 `::visualization[标题]{path="/workspace/visualizations/evidence-timeline.json"}` 独占一行引用证据链时间轴图（**绝对路径**，先写文件再引用；按 `references/timeline-diagram.md` 构建）：复制 `templates/charts/evidence-timeline.json`，只填数据与文案字段（每个节点一个证据状态：`label` 状态名+分析阶段/披露形式、`content`/`description` 核心数值与关键新增及 `{{ref_n}}`、`time` 来源支持时间；同状态多披露合并为一节点），图前后保留解释文字与标记；时间未明写“时间未明”，不得猜测。成品须为**纯 JSON**（无 HTML 包裹/注释/尾逗号），先跑 `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <成品>` PASS 再引用（详见 `references/chart-templates.md`）。只有 1 个证据状态或先后无法确定时不生成图，仅保留表格并说明顺序不确定。图是描述性示意，不替代下方精确数值表。不输出 Mermaid 代码块。
+**时间轴图：** 在同一试验、合并后 ≥2 个真正不同证据状态时，在此处、时间线表格上方用 `::visualization[标题]{path="/workspace/visualizations/evidence-timeline.json"}` 独占一行引用证据链时间轴图（**绝对路径**，先写文件再引用；按 `references/timeline-diagram.md` 构建）：先把图表 skill 的 `templates/timeline.json` 拷成成品（保留 envelope 三键 `id`/`iframe_template`/`option`，`iframe_template` 每次发布都变、禁止硬编码），再把 `templates/charts/evidence-timeline.json`（**`option` 内层**，不是可交付成品）的内容放进 `option`，只填数据与文案字段（每个节点一个证据状态：`label` 状态名+分析阶段/披露形式、`content`/`description` 核心数值与关键新增及 `{{ref_n}}`、`time` 来源支持时间；同状态多披露合并为一节点），图前后保留解释文字与标记；时间未明写“时间未明”，不得猜测。成品须为**纯 JSON envelope**（无 HTML 包裹/注释/尾逗号），先跑 `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <成品>` PASS 再引用（详见 `references/chart-templates.md`）。只有 1 个证据状态或先后无法确定时不生成图，仅保留表格并说明顺序不确定。图是描述性示意，不替代下方精确数值表。不输出 Mermaid 代码块。
 
 | 证据状态 | 数据截止/随访/分析里程碑 | 本阶段新增的证据 | 相对前一状态的影响 | 支持来源 |
 |---|---|---|---|---|

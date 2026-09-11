@@ -4,7 +4,7 @@
 
 - 仅用于**同一试验的多篇披露**（合并后 ≥2 个真正不同的证据状态）的输入。
 - 不用于跨试验或混合输入：不同试验没有共享时间线，不生成该图。
-- 交付方式：复制 `templates/charts/evidence-timeline.json` 为**固定成品名** `/workspace/visualizations/evidence-timeline.json`，**只改数据与文案字段**（`title`/`subTitle`/`dataSource`/`describe`、`data[]`、`legend`/`weightLegend`），JSON 无注释、无渲染代码可改。正文“证据链总览与时间线”一节中在时间线表格上方用 `::visualization[标题]{path="/workspace/visualizations/evidence-timeline.json"}` 绝对路径独占一行引用（写入 `/workspace/visualizations/` 后再引用；禁止目录穿越/反斜杠/前缀外路径，文件名 ASCII）。**不再输出 Mermaid 代码块、不再产出 HTML 图表。** 接入方不支持可视化文件时，正文保留时间线表格 + 文字结论，并提供图的下载链接。
+- 交付方式：**先把图表 skill 的 `templates/timeline.json` 拷成固定成品名** `/workspace/visualizations/evidence-timeline.json`（拿到 envelope 三键 `id`/`iframe_template`/`option`，**三键原样保留**；`iframe_template` 每次发布都变，禁止硬编码），**再把本 skill `templates/charts/evidence-timeline.json`（`option` 内层，不是可交付成品）的内容整体放进 `option`**，只改数据与文案字段（`title`/`subTitle`/`dataSource`/`describe`、`data[]`、`legend`/`weightLegend`），JSON 无注释、无渲染代码可改。正文“证据链总览与时间线”一节中在时间线表格上方用 `::visualization[标题]{path="/workspace/visualizations/evidence-timeline.json"}` 绝对路径独占一行引用（写入 `/workspace/visualizations/` 后再引用；禁止目录穿越/反斜杠/前缀外路径，文件名 ASCII）。**不再输出 Mermaid 代码块、不再产出 HTML 图表。** 接入方不支持可视化文件时，正文保留时间线表格 + 文字结论，并提供图的下载链接。
 
 ## 图要回答的问题
 

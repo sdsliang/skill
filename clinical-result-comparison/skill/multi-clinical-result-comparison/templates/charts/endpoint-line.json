@@ -1,4 +1,5 @@
 {
+  "_comment": "本文件是 chart-visualization-json 协议的 **option 内层起点**，不是可直接交付/校验的成品（直接校验会报「未包 envelope」）。交付时先把 /workspace/skills/chart-visualization-json/templates/line.json 拷到成品路径，保留它的 envelope 三键（id / iframe_template / option），再把本文件内容整体放进 option；iframe_template 每次发布都会变，必须现读、禁止硬编码。见 references/chart-templates.md。",
   "type": "line",
   "title": "体重较基线的变化",
   "subTitle": "时间维主要终点 · 不同治疗组随时间的趋势（同队列时点连线，不跨队列外推）",

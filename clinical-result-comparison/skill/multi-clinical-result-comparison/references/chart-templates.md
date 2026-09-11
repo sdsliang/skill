@@ -7,14 +7,15 @@
 > | --------------- | ---------------------------------------------------------------------------------- |
 > | 协议与工作流    | `chart-visualization-json/SKILL.md`                                                |
 > | 类型 / 字段细则 | `chart-visualization-json/references/chart-types.md`                               |
-> | 可渲染模板      | `chart-visualization-json/templates/line.json`、`bar.json`、`timeline.json`        |
+> | 可渲染模板      | `chart-visualization-json/templates/line.json`、`bar.json`、`timeline.json`（另有 `visualization.json` 最小骨架）        |
 > | Schema 实现     | `chart-visualization-json/references/schemas/`（Zod，小驼峰字段）                  |
+> | 成品包裹层      | **envelope** `{ id, iframe_template, option }`（图表 skill v1.0.9 / 2026-09-10 build 起必需，见「零」）        |
 > | 校验命令        | `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <file.json>` |
 >
 > 本 skill 不再产出 HTML/SVG fragment，也**不再维护自研校验脚本**：旧 HTML 图表模板与
 > `validate-chart.py` / `render-preview.py` 自 **v0.15 起已从本仓库彻底移除**（回溯可见 git 历史
 > `e4f3bb7`，本 skill 不再默认它们存在）。`templates/charts/*.json` 只是**按该协议预填的
-> 临床场景起点**，产物是否合法一律以图表 skill 的 schema 与 CLI 校验结果为准；渲染由前端
+> 临床场景起点**（**它们只是 `option` 内层，不是可直接交付/校验的成品**，见「零」），产物是否合法一律以图表 skill 的 schema 与 CLI 校验结果为准；渲染由前端
 > chart-visualization-json 渲染层完成。
 >
 > 运行时路径以工作区实际情况为准（图表 skill 通常位于 `/workspace/skills/chart-visualization-json/`，
@@ -23,10 +24,27 @@
 ## 零、协议要点（以图表 skill 为准，勿自造字段）
 
 - 可渲染类型 `RENDERABLE = line | bar | timeline`（图表 skill 的 `RENDERABLE_CHART_TYPES`）；本 skill 只产出这三种。
-- 合并 JSON 无额外 envelope：顶层公共字段（小驼峰）+ `type` + 类型专属 payload。
+- **成品是 envelope，不是平铺的 option（图表 skill v1.0.9 起硬规则）**：成品 JSON 顶层必须是
+  `{ "id": "chart-visualization-json", "iframe_template": "<图表 skill 当前发布值>", "option": { …图表配置… } }`。
+  图表 skill 的校验器**已不再接受**旧的「option 层平铺」写法，报错原文：
+  `未包 envelope：必须是 { "id": "chart-visualization-json", "option": {…}, "iframe_template": "…" }；旧格式（option 层配置）已不再兼容。`
+  本节以下（含 `templates/charts/*.json`）描述的全是 **`option` 内层**结构。
   - 公共字段：`title`、`subTitle`、`dataSource`、`describe`、`width`、`height`、`theme`，带坐标轴的图再加
     `axisXTitle`、`axisYTitle`（`timeline` 不适用坐标轴标题）。
   - `dataSource` / `describe` 是元数据，**不参与前端组件绘制**（只在协议层保留来源与读图说明）。
+- **envelope 三键从哪里来（硬规则，禁止硬编码）**：
+  - `id`：固定字面量 `chart-visualization-json`。
+  - `iframe_template`：校验器要求它与图表 skill 的 `config.js` 中 `IFRAME_TEMPLATE` **全等**（不是「任意绝对路径都放行」）。
+    该值由 `apps/ai-charts-html` **每次发布 CDN 成功后刷新**（同步写 `config.js` 与图表 skill 的 `templates/*.json`），
+    因此**每次运行都要现读**：不得硬编码、不得沿用上一次运行的值、不得从本文件或任何文档里抄。
+  - 最稳做法：**先复制图表 skill 自己的模板**（`/workspace/skills/chart-visualization-json/templates/{bar,line,timeline}.json`，
+    它们已带正确的三键与当前 `iframe_template`）到成品路径，**三键原样不动，只替换 `option` 内层**。
+  - 退路：模板不可读时 `cat /workspace/skills/chart-visualization-json/config.js` 取字面量套进 envelope；
+    两处都取不到 → **fail-loud**（按「校验环境不可用」处理，不输出未经校验的图引用），绝不猜一个值填进去。
+- **渲染配置一律取自图表 skill（硬规则）**：类型、字段名、默认值（如 bar 的 `stack: true`、`width` 600 / `height` 400）、`theme` 取值都以图表 skill 的 `templates/*.json` 与 `references/schemas/` 为准，**原样复用，不重述、不扩展、不自造**；本 skill 只在其上补临床选型、数据语义与证据边界。
+  - 交付通道只有一条：图表 skill 定义的 JSON 数据文件 + `::visualization`。**不要为本 skill 的 JSON 图调用 `read_me`**（平台 Visualizer 段的 Skill-defined data file 例外即声明这类文件无需 `read_me`）、**不要用 `show_widget`**、不要退到内置 chart 模块（Chart.js / HTML / SVG）、也不要另造一套自己的 JSON 字段与配色——需要图时一律由图表 skill 的契约定义它。
+  - 上游对**未知字段是「静默忽略」（Zod strip）**：`option` 内保留 `_comment` 之类的说明键不会导致校验失败，但渲染层不保证使用它；面向读者的说明要写进 `describe` / `description` 这类协议字段。
+  - v1.0.9 较上一版新增的可选字段（`bar.minCategoryGap`、`bar.style.barWidth`、各类型 `style.palette`/`texture`/`backgroundColor`）本 skill 按最小字段集处理，不主动使用。
 - 数据行（line/bar 的 `data[]`）：`label`（维度标签）、`value`（**纯 number**）、`group`（多系列分组，string）、
   `description`（可选短说明，不参与绘制）、`drill`（可选下钻传参）。
 - timeline 的 `data[]`：`label`（必填）+ `time`（**必填**，时间锚点文案；未知写「时间未明」）、`group`、
@@ -53,6 +71,8 @@
 | **混合/不同试验**，终点有时间维（体重、PFS/OS 按时间点） | `line`；仅一个时间点→自动单点模式 | `templates/line.json` | `templates/charts/endpoint-line.json` |
 
 > 「图表 skill 模板」列的路径相对图表 skill 根目录；「本 skill 临床起点」列的路径相对本 skill 根目录。二者同为图表 skill 协议结构，临床起点只是把 `title`/`describe`/`axisTitle`/示例数据预填成临床口径，**仍以图表 skill 的 schema 为准**。
+>
+> **两者的交付角色不同**：图表 skill 的 `templates/*.json` 是**带 envelope 的完整成品骨架**（复制它拿到 `id`/`iframe_template`）；本 skill 的临床起点是 **`option` 内层**（嵌进 envelope 的 `option` 里）。直接拿临床起点当成品交付会在校验时被拒（`未包 envelope`）。
 
 ### 时间维度优先判定（硬规则）
 
@@ -67,10 +87,12 @@
 
 ## 二、怎么用
 
-1. **复制**对应模板为成品（不要直接改模板文件）：优先从图表 skill 模板或本 skill 临床起点复制，例如
-   `cp /workspace/skills/chart-visualization-json/templates/bar.json /workspace/visualizations/endpoint-bar-1.json`，
-   或 `cp templates/charts/endpoint-bar.json /workspace/visualizations/endpoint-bar-1.json`。
-2. **只改数据与文案字段**：`title`/`subTitle`/`dataSource`/`describe`/`axisXTitle`/`axisYTitle` 与 `data[]`
+1. **先复制图表 skill 的模板拿到 envelope**（不要直接改模板文件，也不要把本 skill 的临床起点当成品）：
+   `cp /workspace/skills/chart-visualization-json/templates/bar.json /workspace/visualizations/endpoint-bar-1.json`
+   ——复制来的 `id` / `iframe_template` / `option` 三键**原样保留**，`iframe_template` 每次发布都会变，本 skill 文档里没有、也不该有这个值。
+2. **只替换 `option` 内层**：把 `option` 内的 `data[]` 与文案换成该次运行的临床内容；内容可从本 skill 临床起点
+   `templates/charts/endpoint-bar.json` 拷进去（它是 **`option` 内层，直接当成品校验会报「未包 envelope」**）。
+   只改数据与文案字段：`title`/`subTitle`/`dataSource`/`describe`/`axisXTitle`/`axisYTitle` 与 `data[]`
    （及 timeline 的 `legend`/`weightLegend`/`time`/`weight`/`content`）。JSON 无注释；不要加 HTML/注释/尾逗号。
 3. **用图表 skill 的 CLI 校验**（见下「自检」），全部 PASS 后再在正文引用；FAIL 则按输出的 JSON path 修正后重跑，直到 PASS。
 4. 正文中用 `::visualization[标题]{path="/workspace/visualizations/endpoint-bar-1.json"}` **绝对路径**引用（workspace 文件 + 引用通道），独占一行；图前后保留解释文字与 `{{ref_n}}` 标记。
@@ -95,7 +117,8 @@
 
 ### 自检（硬步骤，必跑）
 
-**生成后自检（硬步骤，必跑）**：每个成品写入 `/workspace/visualizations/` 前，运行图表 skill 的校验命令：
+**生成后自检（硬步骤，必跑）**：先确认成品顶层是 envelope 三键（`id` / `iframe_template` / `option`），不是平铺的 `option`；
+再对每个成品运行图表 skill 的校验命令：
 
 ```bash
 node /workspace/skills/chart-visualization-json/scripts/validate-cli.js /workspace/visualizations/endpoint-bar-1.json
@@ -106,8 +129,13 @@ pnpm validate:chart -- /workspace/visualizations/endpoint-bar-1.json
 （把示例中的 `endpoint-bar-1.json` 换成该次运行实际产出的固定成品名，如 `endpoint-bar-2.json`、`endpoint-line-1.json`、`evidence-timeline.json`，对每个成品各跑一次。）
 
 全部 **PASS（退出码 0）** 才算完成；**FAIL 时按输出的 JSON path 与提示修正后重跑校验，直到 PASS**，不要让非法 JSON 进入交付。
-校验覆盖：`type` 属于图表 skill 收录的类型、`data` 非空、字段名/类型符合 Zod schema、timeline 的
+校验覆盖：envelope 三键（`id` 为字面量；`iframe_template` 与运行期图表 skill `config.js` 的 `IFRAME_TEMPLATE` **全等**）、
+`type` 属于图表 skill 收录的类型、`data` 非空、字段名/类型符合 Zod schema、timeline 的
 `time`/`weight`/`legend` 关联、JSON 可解析等。产物是**纯 JSON**，不校验 HTML 片段（本 skill 不产出 HTML）。
+
+**权威只有部署端那一份（避坑）**：校验结果以工作区里实际安装的图表 skill（`/workspace/skills/chart-visualization-json/`）为准。离线核对可以拿**带版本号的上游副本**（如 v1.0.9）跑同一个 `validate-cli.js`，但**前提是该副本版本与部署端一致**，且副本里内嵌的 `iframe_template` 只是**留档时点的值**，永远不能当本次运行的取值。
+不要拿手头保存的旧副本或旧文档里的模板当基准——图表 skill 升级协议（例如新增 envelope 要求）后，旧副本会给出错误的「PASS」结论。
+若部署端报出本文件未覆盖的新规则，以部署端报错为准修正，并把差异反馈给维护者（不要自研平行校验器）。
 
 **校验环境不可用时的降级（不得静默跳过）**：若脚本不存在（图表 skill 未安装在工作区）或运行时报依赖缺失
 （如 `Cannot find module 'zod'`），**不要**跳过校验、也**不要**输出未经校验的图表引用。此时按以下顺序处理：

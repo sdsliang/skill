@@ -4,3 +4,7 @@ evals/**/np-clinical-*/
 # 临时文件
 *.tmp
 .DS_Store
+
+# 外部 skill 留档（见 vendor/README.md）：源码副本默认本地留档不入库，避免把上游内部源码提交进本仓库
+vendor/**/node_modules/
+vendor/chart-visualization-json/*/
