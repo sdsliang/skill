@@ -53,8 +53,8 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - **`dist/multi-clinical-result-comparison-v0.12-temp-preview.zip` 已删除（v0.15，用户要求）**：v0.12 调试期双写包（含 `render-preview.py`，写 `.preview.html` 孪生页）；双写已在 v0.14 撤销、HTML 已在 v0.15 全销，该包随之下线。它从未入库，删除后不可恢复。
 - v0.13 轻量版：**弃用但未删除**（源码 `docs/legacy-v0.13/`，归档 `dist/multi-clinical-result-comparison-v0.13.zip`）。
 - 当前 dist：`dist/multi-clinical-result-comparison-v0.15.zip`（19 文件，系统提示词不入包），SHA-256 `495647bf3e1daf6ba1adfa6693c7d2441fbb90ec901d529201f98323b2b92cf3`（HTML 清理版 + 子代理委派规则（触发 >5 / 每块 ≤5）+ 图表 envelope 契约 + 空目录兜底 + **上游 v1.0.9 对齐 / 渲染配置归图表 skill**；67496 B）。`dist/…-v0.14.zip`（`c0a7d4c0…`，含「输出文件固定命名」契约）及更早自动降为历史归档。
-- Git：分支 `v0.15-remove-html`（从 `main` 的 `16cbb96` 切出）；`main` 已含 v0.14 提交 `e4f3bb7` 与记账提交 `16cbb96`，且已 push（`origin/main` = `16cbb96`）。v0.15 两个提交 **`da5b157`（HTML 全销）+ `aa05104`（子代理委派边界，含阈值二次校准）** 已按用户授权 push 到 `origin/v0.15-remove-html`；**按要求不合回 `main`、不开 PR**（不合并分支）。
-- 未提交：**有**。`v0.15-remove-html` 工作区现有 14 个 tracked 文件改动（`.gitignore`、`README.md`、`PROJECT_STATE.md`、`dist/…-v0.15.zip`、`SKILL.md`、5 个 `references/*.md`、3 个 `templates/charts/*.json`、`templates/unified-evidence-report.md`、sys v0.15）+ 未跟踪的 `vendor/`；**等用户授权后再 commit/push**（不合 `main`）。无 `Dockerfile`/compose，不涉及镜像。
+- Git：分支 `v0.15-remove-html`（从 `main` 的 `16cbb96` 切出）；`main` 已含 v0.14 提交 `e4f3bb7` 与记账提交 `16cbb96`，且已 push（`origin/main` = `16cbb96`）。v0.15 提交链 **`da5b157`（HTML 全销）→ `aa05104`（子代理委派边界，含阈值二次校准）→ `d65abdf`（记账）→ `4040ff3`（上游 v1.0.9 对齐 + 渲染配置归 Skill + 重打 dist）** 全部按用户授权 push 到 `origin/v0.15-remove-html`；**按要求不合回 `main`、不开 PR**（不合并分支）。
+- 未提交：无 tracked 改动。未跟踪保留 `vendor/`（上游 chart skill v1.0.9 源码副本 + `vendor/README.md`）；`.gitignore` 已忽略 `vendor/**/node_modules/` 与 `vendor/chart-visualization-json/*/`，而 `vendor/README.md` **尚未被忽略**——要不要入库待用户拍板（内含上游内部 CDN 地址与源包 SHA）。无 `Dockerfile`/compose，不涉及镜像。
 
 ## v0.15 change: 仓库内 HTML 资产彻底移除（2026-09-10）
 
@@ -112,8 +112,8 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
   - sys v0.15 Chart contract 新增独立段 **"The Skill owns the chart rendering config — never bypass it (hard rule)."**（类型/字段名/默认值/`theme`/envelope 一律 verbatim 取自图表 skill 模板与 schema；唯一通道是 Skill 定义的 JSON + `::visualization`；不得用平台内置 chart 模块 / `show_widget` / 手写 HTML-SVG-Chart.js 替代；不为这些图调 `read_me`；不得因「有个图会更好」而绕开 Skill）。Final verification 的图表项同步加「每张图都出自 Skill JSON 契约、渲染配置来自图表 skill 模板/schema，无内置模块/`show_widget`/`read_me`/自造字段与配色」断言。sys **214 → 216 行**。
 - **`vendor/` 留档落地（新约定）**：`vendor/<上游 skill 名>/<版本>/` 逐字节复制上游包（本次 `vendor/chart-visualization-json/1.0.9/`，47 文件 + `node_modules`），并写 `vendor/README.md`（来源 zip、SHA-256、接收日期、该 build 内嵌的 `iframe_template`、跑法、协议要点、更新流程）。**默认不入 git**（`.gitignore` 加 `vendor/**/node_modules/` 与 `vendor/chart-visualization-json/*/`）——上游源码含内部 CDN 地址，是否入库待用户决定。留档副本自证可用：`node scripts/validate-cli.js templates/{bar,line,timeline,visualization}.json` 全 PASS。**skill/sys 文档内零 `vendor/` 引用**（部署端无此目录，已 grep 确认）；`dist` 内零 `vendor`。
 - **顺带修正**：`templates/unified-evidence-report.md` 的旧措辞（「无额外 envelope」类）已改；全 skill 残留旧措辞 = 0，硬编码 CDN 地址 = 0。
-- **重打 dist**：`495647bf3e1daf6ba1adfa6693c7d2441fbb90ec901d529201f98323b2b92cf3`（19 entries / 67496 B；上一版 `67c17a02…` / 66440 B 作废）。**未提交**：本节的 14 个 tracked 文件改动 + 未跟踪 `vendor/` 仍在工作区，等用户授权后再 commit/push（不合 `main`）。
-- **待用户决定**：① `vendor/` 是否入库；② 是否按上述改动 commit + push；③ 「6–8 条且单条 payload 不大时直接直读」的下限豁免是否写进 sys。
+- **重打 dist**：`495647bf3e1daf6ba1adfa6693c7d2441fbb90ec901d529201f98323b2b92cf3`（19 entries / 67496 B；上一版 `67c17a02…` / 66440 B 作废）。**已提交并 push**：本节的 14 个 tracked 文件改动落提交 **`4040ff3`**（分支 `v0.15-remove-html`，不合 `main`）；未跟踪的 `vendor/` 未入库。
+- **待用户决定**：① `vendor/`（含 `vendor/README.md`）是否入库；② 「6–8 条且单条 payload 不大时直接直读」的下限豁免是否写进 sys。
 
 ## v0.14 change: 复用上游 chart-visualization-json skill；撤销 TEMP 双写（2026-09-08）
 
