@@ -145,6 +145,11 @@ value must still carry its source esid / marker number.
   `selected_fields`, the fields to extract, and the output format in full; recursive depth is limited
   (do not nest delegation deeper than one level); multiple `task` calls in one message execute
   **serially**, so treat delegation as a context-saving device rather than a parallel speed-up.
+- **Small selections favor direct pulls**: with 6–8 selected esids whose records are small (a few
+  endpoints each, short `abstract_text`/`study_results`), pulling them directly in one or two
+  `selected_fields`-bounded calls is usually faster and at least as accurate as delegating. Delegation is a
+  context-bounding device for genuinely heavy payloads (or for a persisted file a script cannot digest),
+  not a default for every selection above 5.
 - **Fallback**: if the `task` tool is not visible/available, ignore this section and pull every
   selected esid directly (default protocol). Never skip a source because delegation is unavailable.
 

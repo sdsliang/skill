@@ -52,9 +52,9 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - Chart validation entry: `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <product.json>`（前端仓库别名 `pnpm validate:chart -- <path>`）；自研 `validate-chart.py` 已退役。
 - **`dist/multi-clinical-result-comparison-v0.12-temp-preview.zip` 已删除（v0.15，用户要求）**：v0.12 调试期双写包（含 `render-preview.py`，写 `.preview.html` 孪生页）；双写已在 v0.14 撤销、HTML 已在 v0.15 全销，该包随之下线。它从未入库，删除后不可恢复。
 - v0.13 轻量版：**弃用但未删除**（源码 `docs/legacy-v0.13/`，归档 `dist/multi-clinical-result-comparison-v0.13.zip`）。
-- 当前 dist：`dist/multi-clinical-result-comparison-v0.15.zip`（19 文件，系统提示词不入包），SHA-256 `0deda5d3b6fa94a279ed62b89e5b107c01bf84516054d852f25a2a71cfe91408`（HTML 清理版 + 子代理委派规则（触发 >5 / 每块 ≤5）+ 图表 envelope 契约 + 空目录兜底 + 上游 v1.0.9 对齐 / 渲染配置归图表 skill + `::visualization` 标签不进实体锚点覆盖；67897 B）。**2026-09-11 复盘上游 chart skill v1.0.10 后再跑 `/tmp/pack15b.py`：SHA 不变**（dist 只装运行文件，本轮未改任何运行文件）。`dist/…-v0.14.zip`（`c0a7d4c0…`，含「输出文件固定命名」契约）及更早自动降为历史归档。
-- Git：分支 `v0.15-remove-html`（从 `main` 的 `16cbb96` 切出）；`main` 已含 v0.14 提交 `e4f3bb7` 与记账提交 `16cbb96`，且已 push（`origin/main` = `16cbb96`）。v0.15 提交链 **`da5b157`（HTML 全销）→ `aa05104`（子代理委派边界，含阈值二次校准）→ `d65abdf`（记账）→ `4040ff3`（上游 v1.0.9 对齐 + 渲染配置归 Skill + 重打 dist）→ `87a2afb`（记账）→ **`49f00d9`（`::visualization` 标签不进实体锚点覆盖 + 重打 dist）→ 本轮 v1.0.10 记账提交**）** 全部按用户授权 push 到 `origin/v0.15-remove-html`；**按要求不合回 `main`、不开 PR**（不合并分支）。
-- 未提交：无 tracked 改动（`49f00d9` 与本轮 v1.0.10 记账提交均已 push）。未跟踪保留 `vendor/`（上游 chart skill **v1.0.9 + v1.0.10** 两份源码副本 + `vendor/README.md`）；`.gitignore` 已忽略 `vendor/**/node_modules/` 与 `vendor/chart-visualization-json/*/`，而 `vendor/README.md` **尚未被忽略**——要不要入库待用户拍板（内含上游内部 CDN 地址与源包 SHA）。无 `Dockerfile`/compose，不涉及镜像。
+- 当前 dist：`dist/multi-clinical-result-comparison-v0.15.zip`（19 文件，系统提示词不入包），SHA-256 `b9b46d8a24ceb9e740ff0d8e10230cc9e59b9174bf7828439b52576d92d17e6f`（HTML 清理版 + 子代理委派规则（触发 >5 / 每块 ≤5）+ 图表 envelope 契约 + 空目录兜底 + 上游 v1.0.9 对齐 / 渲染配置归图表 skill + `::visualization` 标签不进实体锚点覆盖 + **A 组六项硬化 / 同试验图表张数上限**；69254 B）。2026-09-11 复盘上游 chart skill v1.0.10 后再跑 `/tmp/pack15b.py` 得同一 SHA（`0deda5d3…`，因 dist 只装运行文件、当时未改运行文件）；随后 A 组落地改了 5 个运行文件，故重新打包为 `b9b46d8a…`。`dist/…-v0.14.zip`（`c0a7d4c0…`，含「输出文件固定命名」契约）及更早自动降为历史归档。
+- Git：分支 `v0.15-remove-html`（从 `main` 的 `16cbb96` 切出）；`main` 已含 v0.14 提交 `e4f3bb7` 与记账提交 `16cbb96`，且已 push（`origin/main` = `16cbb96`）。v0.15 提交链 **`da5b157`（HTML 全销）→ `aa05104`（子代理委派边界，含阈值二次校准）→ `d65abdf`（记账）→ `4040ff3`（上游 v1.0.9 对齐 + 渲染配置归 Skill + 重打 dist）→ `87a2afb`（记账）→ **`49f00d9`（`::visualization` 标签不进实体锚点覆盖 + 重打 dist）→ `dc0afd0`（上游 v1.0.10 负值修复记账）→ 本轮 A 组六项硬化 + 图表张数上限（同轮把 `vendor/README.md` 入库）**）** 全部按用户授权 push 到 `origin/v0.15-remove-html`；**按要求不合回 `main`、不开 PR**（不合并分支）。
+- 未提交：无 tracked 改动（A 组硬化及其 dist/记账改动随本轮提交 push）。`vendor/` 处置已按用户 2026-09-11 拍板定案：**`vendor/README.md` 入库**（只含 provenance / 差异表 / 发布 ID，不含上游源码），**上游源码副本 `vendor/chart-visualization-json/{1.0.9,1.0.10}/` 继续 gitignore**（`.gitignore` 已有 `vendor/**/node_modules/` 与 `vendor/chart-visualization-json/*/`）。无 `Dockerfile`/compose，不涉及镜像。
 
 ## v0.15 change: 仓库内 HTML 资产彻底移除（2026-09-10）
 
@@ -113,7 +113,7 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - **`vendor/` 留档落地（新约定）**：`vendor/<上游 skill 名>/<版本>/` 逐字节复制上游包（本次 `vendor/chart-visualization-json/1.0.9/`，47 文件 + `node_modules`），并写 `vendor/README.md`（来源 zip、SHA-256、接收日期、该 build 内嵌的 `iframe_template`、跑法、协议要点、更新流程）。**默认不入 git**（`.gitignore` 加 `vendor/**/node_modules/` 与 `vendor/chart-visualization-json/*/`）——上游源码含内部 CDN 地址，是否入库待用户决定。留档副本自证可用：`node scripts/validate-cli.js templates/{bar,line,timeline,visualization}.json` 全 PASS。**skill/sys 文档内零 `vendor/` 引用**（部署端无此目录，已 grep 确认）；`dist` 内零 `vendor`。
 - **顺带修正**：`templates/unified-evidence-report.md` 的旧措辞（「无额外 envelope」类）已改；全 skill 残留旧措辞 = 0，硬编码 CDN 地址 = 0。
 - **重打 dist**：`495647bf3e1daf6ba1adfa6693c7d2441fbb90ec901d529201f98323b2b92cf3`（19 entries / 67496 B；上一版 `67c17a02…` / 66440 B 作废）。**已提交并 push**：本节的 14 个 tracked 文件改动落提交 **`4040ff3`**（分支 `v0.15-remove-html`，不合 `main`）；未跟踪的 `vendor/` 未入库。
-- **待用户决定**：① `vendor/`（含 `vendor/README.md`）是否入库；② 「6–8 条且单条 payload 不大时直接直读」的下限豁免是否写进 sys。
+- **后续处置（2026-09-11 用户拍板）**：① `vendor/README.md` 入库、上游源码副本继续 gitignore；② 「6–8 条且单条 payload 不大时直接直读」的下限豁免已写进 sys 与 `references/input-contract.md`（见「A 组六项硬化」节）。
 
 ## v0.15 change: 上游 chart skill v1.0.10 支持 line/bar 负值（2026-09-11）
 
@@ -123,7 +123,7 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - **实测（同一份全负 bar 数据，两版 bundle 各渲一次，量 DOM 真实盒）**：旧 5 根柱 `3/3/3/3/3 px` 起点同一点（静默炸）；新 `566.8 / 818.8 / 852.8 / 865 / 881.6 px`、右端全部 `x+w = 1320`（即 0 轴）、`881.6/101.1 = 865/99.2 = 852.8/97.8 = 818.8/93.9 = 566.8/65.0 = 8.72 px/单位`、fill 全 `#814487` 紫 → 双向生长正确。对照图 `/tmp/nb_fix_compare.png`（上旧下新，红/绿框）。**回归**：正值分组柱逐像素一致（`275.3/233.8/109.5/68.1`，x/y/fill 全同）、负值折线正常（仅因「补入 0」整体上移压缩）。
 - **本 skill 零改动（结论成立的理由）**：仓库内 `grep vcdn.pharmcube.com|2026091*`（排除 `vendor/`）零命中 → 从不硬编码 `iframe_template`，运行期从部署端 chart skill 模板取 envelope，发布 ID 变更自动跟随（本次更新正好验证该硬规则）；skill/sys 内 `负值` 相关文字本来就是 0 处，无绕行约定需撤；先前记的「若上游选 B（fail-loud）则回 skill 落非负值约定」**不触发**。重打 dist 得同一 SHA（`0deda5d3…`，dist 只装运行文件）。
 - **部署端未升级**：用户 2026-09-11 决定暂不把 v1.0.10 传到 Tool Smith，故部署端仍是 1.0.9 / `20260910-153117`（`vendor/README.md` 已如实标注）；日后升级后若出现 `iframe_template` 不匹配报错属预期（模板值随 CDN 发布刷新）。
-- **记账**：本节改动随记账提交 push 到 `v0.15-remove-html`（提交信息 `v0.15: record upstream chart skill v1.0.10 negative-value support`）；`vendor/1.0.10` 仍按既有约定不入库。
+- **记账**：本节改动随记账提交 **`dc0afd0`** push 到 `v0.15-remove-html`（提交信息 `v0.15: record upstream chart skill v1.0.10 negative-value support`）；`vendor/1.0.10` 当时未入库，后按用户 2026-09-11 拍板「源码副本继续 gitignore、只 `vendor/README.md` 入库」定案。
 
 ## v0.15 change: `::visualization` 标签与实体锚点边界 + 图表内 `{{ref_n}}` 外观问题放行（2026-09-11，两个新分享会话复盘后）
 
@@ -135,7 +135,21 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - **bar 负值已由上游修复（v1.0.10，见下节）——本条闭环**。原状：值域硬编码 `[0, maxValue]`（`Ls()` bar 分支 + `Ts()` 只算 `maxValue`），全负 → `domainMax=0` → 柱长 `Math.max(w*(v/0), 3)` 卡 3px、轴刻度飞出画布；用户拍板**不在本 skill 绕**，驱动上游修（A 支持负值 / B `value.nonnegative()` fail-loud），本 skill 暂不动；负值数据优先选 line（line 值域取数据 min/max，天然支持负值）。**2026-09-11 上游落地 A 方案**：bar 恒以 0 为基准双向生长（单系列负值柱紫 `#814487`）、line 轴含负刻度并补入 0；实测旧 bundle 5 根负值柱全 3px、新 bundle 长度 ∝ 降幅（8.72 px/单位）。**本 skill 仍零改动**（B 分支未触发）。
 - **重打 dist**：`0deda5d3b6fa94a279ed62b89e5b107c01bf84516054d852f25a2a71cfe91408`（19 entries / 67897 B；上一版 `495647bf…` / 67496 B 作废）。脚本 `/tmp/pack15b.py` 幂等（固定 stamp、19 文件断言、fail-loud 守卫），本次仅 SKILL.md 与 `entity-inline-reference.md` 内容变化。
 - **验证工具经验**：本地可用 `/usr/bin/google-chrome --headless=new` + 部署端 bundle 复现 envelope 渲染，并用 `--dump-dom` 做 DOM 级验证（比截图 OCR 可靠）；本环境**视觉子代理通道不可用**（deepseek-v4-flash-vision-exp 403 billing / glm-5.3-flash 收到空图像）→ 需要目检时把 PNG 存 `/tmp` 交用户自己看。
-- **待用户决定**：① 本批（3 个 doc 文件 + README/PROJECT_STATE + 新 dist）是否提交/push；② `vendor/` 是否入库。
+- **后续处置**：① 本批已随提交 `49f00d9` push（用户授权「推送吧」）；② `vendor/` 处置见「A 组六项硬化」节。
+
+## v0.15 change: A 组六项硬化 + 同试验图表张数上限（2026-09-11，第三份决策清单落地）
+
+- **触发**：用户对上一轮列出的 16 条未决项作答——「**A 改**，B8–10 攒着，11 已经 fix 了，C 都听你的，重打吧，还是 15」。即：A 组（skill/sys 小改动）全部落地、版本号仍记 v0.15；B 组对外沟通项（bar 负值问题单、`{{ref_n}}` 图表内不替换的前端报备、CLI 路径口径）继续攒着不发；C 组（vendor 处置、Obsidian 沉淀、视觉目检、视觉通道）由我方判断处理。
+- **A1 实体锚点 token 模板 + 构建脚本（写一次不返工）**：落 `references/entity-inline-reference.md` 新增「建议做法：锚点模板 + 构建脚本」小节（有 ID 的提及写成 `[{T_TOKEN}](entity:type:id)` + 占位符→展示名映射表；脚本渲染并断言「无残留 `{T_…}` / 每个占位符替换次数等于声明值（`assert n == count`）/ 有 ID 的实体名都落在锚点位置」，失败 fail-loud），`SKILL.md` 第 5 步与 sys anti-patch 硬规则各补一句。依据：line/Lp(a) 14 esid run 用「`report_template.md` + `build_report.py`」一次过锚点，而 timeline run 收尾还在跑 `fix_anchors.py` 补锚点。
+- **A2 覆盖检查先剥离 entity ID**：`entity-inline-reference.md` 校验清单 + sys Final verification 各加一句——比较前先剥掉 `](entity:type:id)` 里的 ID，只按方括号展示名匹配，避免已锚定的 `[NCT05840016](entity:trial:NCT05840016)` 被当成裸注册号误判为漏锚点（timeline run 的真实误报）。
+- **A3 工具参数名硬提醒**：sys Step discipline 新增第 6 条——shell 工具是 `execute` + **`shell_command`**（写成 `command` 会**静默失败**、白花 1 步）；文件写入用带引号 heredoc（`python - <<'PY'`）避免 shell 吞花括号；`mkdir -p` 与写入放同一次 `shell_command`。依据：三个 run 各踩一次。
+- **A4 空目录规则覆盖 shell 重定向**：`references/file-delivery.md` 与 sys File delivery 段各补一句——`python gen.py > /workspace/visualizations/x.json` 的重定向目标在脚本执行前就被 shell 解析，故目录必须与写入在同一条命令里创建（timeline run msg03 的真实失败模式）。
+- **A5 小批量直读豁免**：sys 子代理段与 `references/input-contract.md` 各补一条——**6–8 条且单条 payload 不大时直接直读**（一两次带 `selected_fields` 的拉取即可完成），委派只留给真正的大 payload 或「已落盘但脚本 digest 不了」的场景；阈值仍是「>5 可委派」，只把默认路径钉到直读。
+- **A6 递归深度口径对齐**：sys「One level only」补一句——平台本身允许 main → child → grandchild（`max_recursive_depth = 2`），**只一层是本 skill 的自我约束**（`input-contract.md` Platform facts #5 已记同一事实），故不得依赖子代理再委派。
+- **A7 图表张数与组合定死（同试验输入）**：`references/chart-templates.md` 的「图数量」条改写为确定性规则——混合/跨试验 = 每组各一张横截面柱状（时间维度优先折线）；**同试验 = 证据链时间轴（≥2 证据状态必出）+ 至多 1 张可选定量主图**，后者仅在「≥2 条入选结果给出同一终点、同一口径（同人群/同定义/可对齐时点）的纯数值」时才出（横截面单值 → `bar`，同队列同终点 ≥2 时点 → `line`），否则只出时间轴并在正文说明原因；**同试验输入上限 2 张图**。sys 同处镜像一句。依据：同一同试验输入（HARMONi-6 4 esid）旧 run 出 2 张、新 run 出 1 张，属规则留白导致的运行间不一致。
+- **重打 dist**：`b9b46d8a24ceb9e740ff0d8e10230cc9e59b9174bf7828439b52576d92d17e6f`（19 entries / 69254 B；上一版 `0deda5d3…` / 67897 B 作废）。行数变化：sys **216 → 217 行**、`entity-inline-reference.md` 78 → 91、`chart-templates.md` 143 → 146、`file-delivery.md` 71 → 72、`input-contract.md` 194 → 199、`SKILL.md` 151 行（段内追加，行数不变）。
+- **B 组不动作**：bar 负值问题单（上游 v1.0.10 已修，问题单作废但**不生成文件**）、`{{ref_n}}` 图表内不替换的前端报备、前端文档 CLI 路径口径（`.agents/skills/...` + `pnpm validate:chart` vs 部署端 `/workspace/skills/...` + `node`）——按用户「攒着」处理。
+- **C 组处置**：① `vendor/README.md` 入库、上游源码副本继续 gitignore；② Obsidian 沉淀由我方判断执行；③ 视觉升级的像素级目检需用户在 Tool Smith 页面确认（本环境视觉子代理通道不可用：deepseek-vision 403 billing、glm 收不到图像）；④ 平台侧「execute 写空目录不持久」「并发措辞」用户已知晓/已修，不再单独报。
 
 ## v0.14 change: 复用上游 chart-visualization-json skill；撤销 TEMP 双写（2026-09-08）
 
