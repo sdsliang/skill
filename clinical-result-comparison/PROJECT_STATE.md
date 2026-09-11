@@ -52,7 +52,7 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - Chart validation entry: `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <product.json>`（前端仓库别名 `pnpm validate:chart -- <path>`）；自研 `validate-chart.py` 已退役。
 - **`dist/multi-clinical-result-comparison-v0.12-temp-preview.zip` 已删除（v0.15，用户要求）**：v0.12 调试期双写包（含 `render-preview.py`，写 `.preview.html` 孪生页）；双写已在 v0.14 撤销、HTML 已在 v0.15 全销，该包随之下线。它从未入库，删除后不可恢复。
 - v0.13 轻量版：**弃用但未删除**（源码 `docs/legacy-v0.13/`，归档 `dist/multi-clinical-result-comparison-v0.13.zip`）。
-- 当前 dist：`dist/multi-clinical-result-comparison-v0.15.zip`（19 文件，系统提示词不入包），SHA-256 `495647bf3e1daf6ba1adfa6693c7d2441fbb90ec901d529201f98323b2b92cf3`（HTML 清理版 + 子代理委派规则（触发 >5 / 每块 ≤5）+ 图表 envelope 契约 + 空目录兜底 + **上游 v1.0.9 对齐 / 渲染配置归图表 skill**；67496 B）。`dist/…-v0.14.zip`（`c0a7d4c0…`，含「输出文件固定命名」契约）及更早自动降为历史归档。
+- 当前 dist：`dist/multi-clinical-result-comparison-v0.15.zip`（19 文件，系统提示词不入包），SHA-256 `0deda5d3b6fa94a279ed62b89e5b107c01bf84516054d852f25a2a71cfe91408`（HTML 清理版 + 子代理委派规则（触发 >5 / 每块 ≤5）+ 图表 envelope 契约 + 空目录兜底 + 上游 v1.0.9 对齐 / 渲染配置归图表 skill + `::visualization` 标签不进实体锚点覆盖；67897 B）。`dist/…-v0.14.zip`（`c0a7d4c0…`，含「输出文件固定命名」契约）及更早自动降为历史归档。
 - Git：分支 `v0.15-remove-html`（从 `main` 的 `16cbb96` 切出）；`main` 已含 v0.14 提交 `e4f3bb7` 与记账提交 `16cbb96`，且已 push（`origin/main` = `16cbb96`）。v0.15 提交链 **`da5b157`（HTML 全销）→ `aa05104`（子代理委派边界，含阈值二次校准）→ `d65abdf`（记账）→ `4040ff3`（上游 v1.0.9 对齐 + 渲染配置归 Skill + 重打 dist）** 全部按用户授权 push 到 `origin/v0.15-remove-html`；**按要求不合回 `main`、不开 PR**（不合并分支）。
 - 未提交：无 tracked 改动。未跟踪保留 `vendor/`（上游 chart skill v1.0.9 源码副本 + `vendor/README.md`）；`.gitignore` 已忽略 `vendor/**/node_modules/` 与 `vendor/chart-visualization-json/*/`，而 `vendor/README.md` **尚未被忽略**——要不要入库待用户拍板（内含上游内部 CDN 地址与源包 SHA）。无 `Dockerfile`/compose，不涉及镜像。
 
@@ -114,6 +114,18 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - **顺带修正**：`templates/unified-evidence-report.md` 的旧措辞（「无额外 envelope」类）已改；全 skill 残留旧措辞 = 0，硬编码 CDN 地址 = 0。
 - **重打 dist**：`495647bf3e1daf6ba1adfa6693c7d2441fbb90ec901d529201f98323b2b92cf3`（19 entries / 67496 B；上一版 `67c17a02…` / 66440 B 作废）。**已提交并 push**：本节的 14 个 tracked 文件改动落提交 **`4040ff3`**（分支 `v0.15-remove-html`，不合 `main`）；未跟踪的 `vendor/` 未入库。
 - **待用户决定**：① `vendor/`（含 `vendor/README.md`）是否入库；② 「6–8 条且单条 payload 不大时直接直读」的下限豁免是否写进 sys。
+
+## v0.15 change: `::visualization` 标签与实体锚点边界 + 图表内 `{{ref_n}}` 外观问题放行（2026-09-11，两个新分享会话复盘后）
+
+- **触发**：复盘两个并发的新分享会话（同一 Tool Smith 项目 `a7cdda65…`）：`d83e5527…`（标题「条形图」，18 esid / 11 试验，混合跨试验）与 `087abf28…`（标题「时间轴」，4 esid，全部同一试验 HARMONi-6）。
+- **v0.15 生效确认（两个 run 都验到）**：envelope 一次过（A 用 `json.load` 读图表 skill `templates/bar.json`、B 直接 `cp` `templates/{timeline,bar}.json`，只换 `option` 内层；`校验通过: chart-visualization-json（option.type=bar）` exit 0，零返工）；固定命名契约全对（`/workspace/output/report.md`、`citations.json`、`/workspace/visualizations/evidence-timeline.json`、`endpoint-bar-1.json`）；`/workspace/output` 空目录 bug 未复现（建目录与首次写入同一次调用）；渲染配置归图表 skill 的硬规则被遵守（读了图表 skill `SKILL.md` + `templates/*.json`，**没调 `read_me`、没用 `show_widget`、没走内置 chart 模块**）；只 `present_artifact` 报告。
+- **耗时/委派**：A 5.0 min / 39 步 / reasoning 83.2k 字符（18 esid，**未委派**——reasoning 明写「多于 5 个，但指引说先试文件化 digest」，符合 opt-in 设计）；B 2.8 min / 27 步 / 46.8k 字符。对照 v0.12 时代同批 14 esid 的 10.9 min / 178k 字符 → 约 2× 提速、reasoning 减半（两 run 并行）。**图表策略也对**：A（跨试验）不出 timeline；B（单试验 4 披露）合并同分析同披露为 1 个证据状态，timeline 3 节点。
+- **新增规则（本轮落地的唯一改动）**：`::visualization[...]` 的方括号是**图表标题、不是正文实体提及** → 不进实体锚点覆盖、不算「有 ID 的提及必须已引用」；标签内不得出现裸试验名/药品名，用描述性标题，要点名的实体放到图前后说明里再锚定。落点 3 文件：`references/entity-inline-reference.md`（适用范围 1 条 + 校验 1 条，76 → 78 行）、`SKILL.md`（与「图表文件不写 entity」同处 1 句）、sys v0.15（anti-patch 硬规则后 1 句，防止「每个提及都要锚定」被读成覆盖图表标签）。sys 仍 216 行、`SKILL.md` 仍 151 行。触发原因：B 的模型把 `::visualization[HARMONi-6 证据链时间轴]` 的标签当成未锚定裸试验名，自己改名并重跑校验（约 3 步返工）。
+- **图表内 `{{ref_n}}` 问题：查实后按用户决定放行**。事实：图表 iframe **不做**标记替换（部署端 bundle `…/20260910-153117/static/index-DXN82l-u.js` 内 `{{` 命中 0）；时间轴节点说明 `div.mf-ai-charts-timeline-desc` 与 bar hover tooltip `div.mf-ai-charts-tip-desc` 都是逐字渲染 `description`。用 B 会话真实 option + 部署端 bundle 在本地（`google-chrome --headless=new`，按平台 iframe 模板把 `option` 灌进 `window.chartOptions`）渲染后做 DOM/布局探针：标记子串占真实盒子 ~89×17 px、`visibility:visible / opacity:1`、颜色与说明文字同色 → 是**被画出来的可见字符**；去掉标记后同坐标区域墨迹从 916 px 降到 51 px、说明块高度 198 → 158 px。影响面：**仅外观**（读者看到字面量标记，点不了、不提供真正的可追溯性），数值/标签/结论/`citations.json` 全不受影响。**用户拍板：图先允许标引 ref，等开发/前端有人提出或前端做了替换再改**；`chart-templates.md:114` 与 `timeline-diagram.md:20` 的口径不一致（bar 无要求 / timeline 要求）也暂留。
+- **bar 负值仍挂在上游**：值域硬编码 `[0, maxValue]`（`Ls()` bar 分支 + `Ts()` 只算 `maxValue`），全负 → `domainMax=0` → 柱长 `Math.max(w*(v/0), 3)` 卡 3px、轴刻度飞出画布；用户拍板**不在本 skill 绕**，驱动上游修（A 支持负值 / B `value.nonnegative()` fail-loud），本 skill 暂不动；负值数据优先选 line（line 值域取数据 min/max，天然支持负值）。
+- **重打 dist**：`0deda5d3b6fa94a279ed62b89e5b107c01bf84516054d852f25a2a71cfe91408`（19 entries / 67897 B；上一版 `495647bf…` / 67496 B 作废）。脚本 `/tmp/pack15b.py` 幂等（固定 stamp、19 文件断言、fail-loud 守卫），本次仅 SKILL.md 与 `entity-inline-reference.md` 内容变化。
+- **验证工具经验**：本地可用 `/usr/bin/google-chrome --headless=new` + 部署端 bundle 复现 envelope 渲染，并用 `--dump-dom` 做 DOM 级验证（比截图 OCR 可靠）；本环境**视觉子代理通道不可用**（deepseek-v4-flash-vision-exp 403 billing / glm-5.3-flash 收到空图像）→ 需要目检时把 PNG 存 `/tmp` 交用户自己看。
+- **待用户决定**：① 本批（3 个 doc 文件 + README/PROJECT_STATE + 新 dist）是否提交/push；② `vendor/` 是否入库。
 
 ## v0.14 change: 复用上游 chart-visualization-json skill；撤销 TEMP 双写（2026-09-08）
 
