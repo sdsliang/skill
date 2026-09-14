@@ -24,7 +24,29 @@ vendor/<上游 skill 名>/<版本>/
 
 ## 当前留档
 
-### `chart-visualization-json/1.0.10`（上游最新；**部署端尚未升级**）
+### `chart-visualization-json/1.0.12`（**部署端当前版本**，2026-09-14 由 `deps` 门禁发现）
+
+| 项 | 值 |
+| --- | --- |
+| 来源 | 只读拉取平台当前版本：`POST /api/skills/list {family_id, only_latest:true}` → `GET /api/skills/{id}/download`（脚本 `/home/xupeipeioo1/tmp/get_chart_skill.py`） |
+| 源包 SHA-256 | `644a97f32cc6e05e5fae5ce4abfd322e89e332103f10f3d1d378abacb29994b4`（54,684 B） |
+| 拉取日期 | 2026-09-14 |
+| 包内文件数 | 47（与 1.0.10 同集，无新增/删除文件） |
+| 内嵌 `config.js` 的 `IFRAME_TEMPLATE` | `https://vcdn.pharmcube.com/ai-charts-html/test/20260914-145519/iframe-template.json` |
+| 与 Tool Smith 部署端是否一致 | **是**（= 平台 current 版本，发布时间 `2026-09-14T14:56:46`） |
+
+#### 1.0.10 → 1.0.12 差异（2026-09-14 实测，共 6 个文件）
+
+| 文件 | 变化 |
+| --- | --- |
+| `config.js` | `IFRAME_TEMPLATE` 指向新发布 `…/20260914-145519/…` |
+| `templates/{bar,line,timeline,visualization}.json` | 仅 envelope 的 `iframe_template` 值同步为同一发布 ID（其余键逐字节相同） |
+| `references/chart-types.md` | **仅 +1 行**：`**堆叠负值（bar stack: true）**：出现负值时正负分离堆叠——正值自 0 向上/向右累积、负值自 0 向下/向左累积，0 线落在绘图区内；端值合计按方向各标一个…纯正值堆叠与 group 并排不受影响。` |
+| `SKILL.md` / `schemas/*` / `scripts/validate.js` | **逐字节未变** |
+
+即：**协议零变更**，新增的只是「堆叠 + 负值」这一种我们**不产出**的组合（我们的并排柱固定 `group:false, stack:false`）；发布 ID 变化对我们是透明的（本仓库无硬编码 `iframe_template` 的规则已生效，运行期现读模板）。**本 skill 无适配改动**，`deps --accept` 记新基线即可。
+
+### `chart-visualization-json/1.0.10`（历史；部署端曾为 1.0.10 一段时间）
 
 | 项 | 值 |
 | --- | --- |
@@ -33,7 +55,7 @@ vendor/<上游 skill 名>/<版本>/
 | 收到日期 | 2026-09-11 |
 | 包内文件数 | 47（不含 `node_modules/`，与 1.0.9 同集，无新增文件） |
 | 内嵌 `config.js` 的 `IFRAME_TEMPLATE` | `https://vcdn.pharmcube.com/ai-charts-html/test/20260911-134013/iframe-template.json` |
-| 与 Tool Smith 部署端是否一致 | **否**——2026-09-11 用户决定暂不升级部署端，部署端仍是 1.0.9 / `20260910-153117` |
+| 与 Tool Smith 部署端是否一致 | **否（历史记录）**——2026-09-11 用户决定暂不升级部署端；之后部署端实际升到 1.0.10，2026-09-14 又升到 1.0.12 |
 
 #### 1.0.9 → 1.0.10 差异（2026-09-11 实测，共 6 个文件）
 
@@ -48,7 +70,7 @@ vendor/<上游 skill 名>/<版本>/
 
 **渲染器确实修了（源码级 + 实测双证）**，新 bundle `static/index-DocPC1fd.js`：bar 值域 `Si({min:0, max:maxValue||0})` → `vi({min: Math.min(0, n.minValue||0), max: Math.max(0, n.maxValue||0)})`；柱长 `max(plotW*(v/domainMax), 3)` + 固定起点 `padL` → 零轴 `k(0)` + `max(|k(v)−k(0)|, 3)`；横向刻度/网格 `padL + plotW*tick/(domainMax||1)` → 按 `[domainMin, domainMax]` 归一化；新增单系列负值柱紫色判定；line 侧 `max: i<0 ? Math.max(s,0) : s`。实测同一份全负 bar 数据：旧版 5 根柱全 `3px`（起点同一处），新版 `566.8/818.8/852.8/865/881.6 px`、右端全部 `x+w=1320`（0 轴）、`8.72 px per unit` 五根一致、fill 全 `#814487` 紫。回归：正值分组柱逐像素一致，负值折线正常（仅因「补入 0」整体压缩）。
 
-### `chart-visualization-json/1.0.9`（部署端当前等价物）
+### `chart-visualization-json/1.0.9`（历史；曾是部署端等价物）
 
 | 项 | 值 |
 | --- | --- |
@@ -57,7 +79,7 @@ vendor/<上游 skill 名>/<版本>/
 | 收到日期 | 2026-09-11 |
 | 包内文件数 | 47（不含 `node_modules/`） |
 | 内嵌 `config.js` 的 `IFRAME_TEMPLATE` | `https://vcdn.pharmcube.com/ai-charts-html/test/20260910-153117/iframe-template.json` |
-| 与 Tool Smith 部署端是否一致 | 是（截至 2026-09-11；用户暂不升级部署端） |
+| 与 Tool Smith 部署端是否一致 | 否（历史记录，截至 2026-09-11 时为是） |
 
 本地跑校验器（把 `<版本>` 换成实际版本，注意 `iframe_template` 需与该版本 `config.js` 一致）：
 

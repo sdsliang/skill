@@ -121,4 +121,4 @@
 
 ## 八、引用输出
 
-报告正文只保留正文和 `{{ref_n}}` 内部标记以及 `entity:` 实体引用，不追加引用区块。运行时另行输出严格 JSON 引用对象；每个 `ref_n` 包含后端提供的 `title`、`link` 和 `paper_release_time_str`。药品/公司/注册号的 `entity:` 内联引用见 `references/entity-inline-reference.md`：仅当对应元数据行给出 ID 时使用，不编造 ID，每次提及都引用。
+报告正文只保留正文和 `{{ref_n}}` 内部标记以及 `entity:` 实体引用，不追加引用区块。运行时另行输出严格 JSON 引用对象；每个 `ref_n` 包含 `title`、`link` 和 `paper_release_time_str`（前者逐字复制，时间只取 `paper_release_time` 的 `YYYY-MM-DD` 日期部分，去掉 `HH:MM:SS`）。药品/公司/注册号的 `entity:` 内联引用见 `references/entity-inline-reference.md`：仅当对应元数据行给出 ID 时使用，不编造 ID，每次提及都引用。

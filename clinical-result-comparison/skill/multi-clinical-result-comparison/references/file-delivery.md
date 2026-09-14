@@ -41,7 +41,7 @@ Two files are produced each run:
 2. **Citation file** — `/workspace/output/citations.json` (fixed path)
    - The fixed machine-readable sibling of the report; the backend hard-codes both paths, so never rename, relocate, or suffix either one.
    - Raw strict JSON, one key per selected source in input (esid) order: `{"ref_1":{"title":…,"link":…,"paper_release_time_str":…},…}`.
-   - Same schema as the v0.8 separate citation JSON (see `references/citation-and-ref.md`); the three values are copied byte-for-byte from the pulled record's `paper_title` / `full_article_link` / `paper_release_time` fields.
+   - Same schema as the v0.8 separate citation JSON (see `references/citation-and-ref.md`); `title` and `link` are copied byte-for-byte from the pulled record's `paper_title` / `full_article_link`, and `paper_release_time_str` is the **date part only** (`YYYY-MM-DD`) of `paper_release_time` — that field returns a datetime string (`YYYY-MM-DD HH:MM:SS`), so drop the time component, never reformat further, and leave the value empty when the record has none.
    - Not presented as a card: it is the machine-readable source listing for downstream marker rendering. It is still a visible workspace artifact (any file under `/workspace/output/` is listed by the artifacts API and the artifact panel).
 
 ## Delivery sequence (terminal action)
@@ -55,7 +55,7 @@ Two files are produced each run:
    - every chart product sits at its fixed name (`evidence-timeline.json`, `endpoint-bar-<n>.json`, `endpoint-line-<n>.json`) and each file's JSON `type` matches its file name;
    - marker/key parity holds (every `{{ref_n}}` in the report has a matching JSON key and every key is used — see `references/citation-and-ref.md`);
    - every chart product referenced in the report exists under `/workspace/visualizations/` and passed the chart skill CLI validation;
-   - citation fields exactly match the pulled records' `paper_title` / `full_article_link` / `paper_release_time`.
+   - citation fields match the pulled records: `title` / `link` byte-for-byte from `paper_title` / `full_article_link`, and `paper_release_time_str` equal to the `YYYY-MM-DD` date part of `paper_release_time` (no `HH:MM:SS`, no reformatting).
 5. Call `present_artifact('/workspace/output/report.md')` as the **final tool call**. Once it succeeds, end the response immediately: do not call any further tool and do not append report text.
 
 ## Chat body rule (empty body — 方案 B)

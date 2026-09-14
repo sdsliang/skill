@@ -12,11 +12,13 @@ Each selected clinical result is pulled by esid through the MCP tool `pharmcube-
 {
   "title": "paper_title",
   "link": "full_article_link",
-  "paper_release_time_str": "paper_release_time"
+  "paper_release_time_str": "paper_release_time → date part only (YYYY-MM-DD)"
 }
 ```
 
-Only the fields that carry clinical content (`abstract_text`, `summary`, `study_results`, design/arms context) support clinical claims. `paper_title`, `full_article_link`, `paper_release_time`, `journal`, `doi`, and `pm_id` are citation metadata. Do not derive clinical facts from them. Preserve the returned strings exactly and do not retrieve, complete, transform, or guess metadata.
+Only the fields that carry clinical content (`abstract_text`, `summary`, `study_results`, design/arms context) support clinical claims. `paper_title`, `full_article_link`, `paper_release_time`, `journal`, `doi`, and `pm_id` are citation metadata. Do not derive clinical facts from them. `title` and `link` are preserved byte-for-byte and are never completed, transformed, or guessed.
+
+`paper_release_time` comes back as a **datetime string** (`YYYY-MM-DD HH:MM:SS`, e.g. `2018-12-19 00:00:00`); the citation value is its **date part only**: keep `YYYY-MM-DD` (the first 10 characters, after checking they match `\d{4}-\d{2}-\d{2}`) and drop the time component. Never reformat beyond that, never convert to another format or timezone, and never invent or complete a missing date: an empty value stays `""`, and a value that does not begin with a date is passed through unchanged.
 
 Assign markers in input (esid) order: `{{ref_1}}`, `{{ref_2}}`, and so on. This ordering is stable but does not establish clinical chronology.
 
@@ -61,7 +63,7 @@ When a sentence combines distinct source-supported facts, attach the relevant ma
 
 ## Separate citation JSON
 
-The Markdown report contains inline markers only. The citation metadata is emitted as a **raw JSON file** at the fixed path `/workspace/output/citations.json` (see `references/file-delivery.md`), one key per marker. The path is hard-coded by the backend and never derived from the report name, so write it exactly there — a renamed or relocated citation file is orphaned and downstream marker rendering silently fails. Each value must contain exactly the `title`, `link`, and `paper_release_time_str` strings from the pulled record (fields copied byte-for-byte from the returned `paper_title` / `full_article_link` / `paper_release_time`). Do not append this object to the report body.
+The Markdown report contains inline markers only. The citation metadata is emitted as a **raw JSON file** at the fixed path `/workspace/output/citations.json` (see `references/file-delivery.md`), one key per marker. The path is hard-coded by the backend and never derived from the report name, so write it exactly there — a renamed or relocated citation file is orphaned and downstream marker rendering silently fails. Each value must contain exactly the `title`, `link`, and `paper_release_time_str` strings of the pulled record: `title` / `link` copied byte-for-byte from `paper_title` / `full_article_link`, and `paper_release_time_str` = the date part (`YYYY-MM-DD`) of `paper_release_time`. Do not append this object to the report body.
 
 ```json
 {"ref_1":{"title":"Source title","link":"https://example.com/source","paper_release_time_str":"2025-01-01"}}
@@ -71,4 +73,4 @@ The code fence is documentation only. The delivered citation file must be raw, u
 
 ## Verification
 
-Before delivery, scan every clinical numeral and ensure it has a nearby marker. Read the citation file back and parse it. Compare the set of inline marker keys against the JSON keys in both directions. Verify every cited source contains the claimed value and every JSON title, link, and release-time string exactly matches the supplied metadata. Then call `present_artifact` on the report file as the final tool call (see `references/file-delivery.md`).
+Before delivery, scan every clinical numeral and ensure it has a nearby marker. Read the citation file back and parse it. Compare the set of inline marker keys against the JSON keys in both directions. Verify every cited source contains the claimed value; every JSON `title` / `link` matches the supplied metadata byte-for-byte; and every `paper_release_time_str` is exactly the `YYYY-MM-DD` date part of the supplied `paper_release_time` — no `HH:MM:SS` and no time component, and `""` where the record supplied none. Then call `present_artifact` on the report file as the final tool call (see `references/file-delivery.md`).

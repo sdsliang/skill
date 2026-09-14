@@ -77,8 +77,52 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
   - `publish`：自动取下一个版本号（提示词 max minor +1；技能 patch +1）→ 先推 prompt 再推 skill → 自动重跑 `status` 校验，绿了才算完成。
   - `push-prompt` / `push-skill` / `pull`（把线上 version 下回 `/tmp/toolsmith-publish/` 做 diff）/ `find`（发现 family_id，禁止硬编码）/ `whoami` / `config`；`--dry-run` 预览。全局参数放子命令前后均可。
 - **以后的工作流（用户 2026-09-11 定，已记入工作区 `AGENTS.md`）**：改完 skill/prompt → **先问「要不要推 ToolSmith」**（与 commit 同级，不自行发布）→ 同意后 `toolsmith-publish publish` → `status` 必须绿 → **再问 commit & push**。
+
+### 只读事实核对通道（2026-09-11，用户要求「能拉就拉」）
+
+- `toolsmith-publish tools`：平台 MCP 工具目录（26 个，Pharmcube 18 / Report 8，含启用状态与参数个数）；`--schema <tool>` 导出单个工具完整 `inputSchema` 到 `/tmp/toolsmith-publish/schema-<tool>.json` 并打印参数表；`--internal` 列 16 个内置 agent 工具；`--search` 过滤。
+- `toolsmith-publish instructions`：拉**部署端真正装配的系统提示词**（`GET /api/agent/info?project_id=…`）。已验证：本仓库 `system-prompts/…-v0.15.md`（40,309 字符）是部署 `instructions`（58,851 字符）**offset 0 逐字节前缀**，平台另追加 18,542 字符样板（Pharmcube Data Tools / Entity Inline References / Write todos / Task / Skills / Filesystem / Execute / Artifact Presentation / Visualizer 等 20 节），落在 `/tmp/toolsmith-publish/instructions-deployed.txt` 与 `instructions-platform-tail.md`。**这条通道比 share 快照强**：share 不含 system prompt、只能靠运行期正文推断版本，而这里能逐字节判部署版本。
+- 用法例：想确认「部署端 `execute` 的参数名」直接看 `tools --internal --schema execute` → `required=['shell_command']`，无 `command` 参数（与 v0.15 R3 规则一致）。
+
+### 写权限护栏 + 上游新鲜度门禁（2026-09-11，用户追加）
+
+- **用户要求原文**：*「只允许更新我指定的 skill 和 prompt（就是除了我创建的当前正在改的主题，别动其它的）」*、*「每次准备更新我指定的 skill 和 prompt 前面，先检查下我用到的 skill 和 tool 有没有更新」*。
+- **护栏一（配置层）**：`projects.json` 条目必须显式 `"owned": true`，**默认只读**；命令行传的 `--prompt-family` / `--skill-family` 与配置不一致时直接中止（跨项目写被拒）。
+- **护栏二（平台层）**：写前用 `/api/auth/me` + `skills/list` / `prompts/{family}` 核对 `owner` 必须是当前用户；实测把 skill 家族指向他人资源（`7cefbe2a…`）**硬拒**。
+- **门禁（deps）**：`toolsmith-publish deps` 扫本仓库 `skill/` + `system-prompts/` 文本实际引用的上游资源（技能名整词匹配，避免 `chart-visualization` 误配 `-json`），指纹存 `~/.config/toolsmith/deps.json`；`publish` 会自动先跑，**有漂移就停手**并列出「技能升版 / 工具 schema 变 / 参数增删」，须 `--force` 或适配后 `deps --accept`。`deps` 只读，漂移时 **exit 3**。
+- **当前基线**（2026-09-13 重建）：skill `chart-visualization-json` v1.0.10；MCP `pharmcube-query-clinical-result-with-params` 18 参数 + schema SHA；内置 **16 个**——按**项目实际启用的工具集**统计（`GET /api/agent/info?project_id=…` → `tools`），不再靠文档文本匹配（旧口径只命中 10 个，漏掉了运行期高频调用的 `read_file`）。
+- **`docs/params-tool-schema.md` 改为自动生成**：新增 `toolsmith-publish tool-doc`（默认工具取配置 `params_tool`，输出 `<repo>/docs/params-tool-schema.md`）——参数表 + 参数完整 schema + ALLOWED_FIELD_NAMES（73 个）+ ALLOWED_FIELDS 逐字段含义表（73 条）+ MCP 返回封装；幂等（同 schema 二次运行输出 unchanged）。**与旧手贴档对账通过**：73/73 字段名一致、18/18 参数一致；文件 499 行/20,792 B → 326 行/44,003 B（增量来自逐字段含义表）。
 - **为什么不把脚本放进仓库**：它跨多个 skill 项目复用，且令牌/平台 id 属本机环境，不属于任何单个项目；入仓反而会把平台 id 固化进公共代码。
   - **推荐流程**：改仓库 → `publish` → `status` 绿 → 再 commit。
+
+## 部署端自验证：API 直驱 chat + 两栏发现台账（2026-09-13）
+
+- **用户要求（2026-09-13）**：*「之后每次迭代 SKILL 时，AI 自己调用 ToolSmith 的 chat 做验证」*；过程中把发现整理成两栏——(1) **我们自己能改的**、(2) **平台 bug（用户转给开发）**。
+- **新子命令 `toolsmith-publish run`**：建线程 → `POST /api/chat`（单条 user 消息）→ 消费 SSE → 拉 `/timing` `/usage` `/info` `/artifacts/archive`（整 workspace zip）`/debug/history` → 自动断言 13 项 → 落 `~/.local/state/toolsmith-runs/<时间戳>-<tag>/{prompt.txt,stream.sse,debug-history.json,artifacts.zip,artifacts/,verification.md}`（临时工作目录也在 `~/.local/state/toolsmith-publish/`；**不再用 `/tmp`**，它会被系统清空）。退出码 0 全过 / 3 跑完但有断言失败或工具报错 / 4 没跑起来。**属写动作**（会创建线程），与 publish 同级过 `owned: true` + 项目属主护栏。
+- **13 项断言**：deployed prompt 逐字节 == 本地 sys；deployed skill 正文 == 本地 `SKILL.md`（去 frontmatter）；支持文件清单逐个比大小；固定产物路径（`output/report.md`、`output/citations.json`）；图表文件名合法；envelope keys + `id` + 文件名 `bar/line` 与 `option.type` 一致 + `iframe_template` 非空（并打印发布 ID）；`::visualization` 标签数 == 图表文件数；无残留 `{{…}}`；无嵌套 `](entity:`；`{{ref_n}}` 与 citations 双向齐全（**第 11 项为 2026-09-14 新增**：citations 每个键恰为 `link`/`paper_release_time_str`/`title` 三字符串，且日期必须是 `YYYY-MM-DD` 或空串）；末尾工具 == `present_artifact`；无 `tool-output-error`。
+- **台账**：`docs/toolsmith-verification-log.md`（149 行）= 标准流程 + 为什么用 API 而不是分享链接 + 13 项断言 + 运行记录（R1 / R2 / R3）+ 两栏清单。**没有 R 记录就等于这次改动没验证过。**
+- **R3（2026-09-14，本批改动上线后首次）**：thread `61e5d232-519f-40ab-826d-6e2ceb1b423f`，2 个 esid，`DeepSeek Flash`，**13/13 全过、0 工具报错**；墙钟 129 s、21 次工具调用、`reasoning_tokens` 16,082；deployed sys 41,490 字符 + 平台尾部 18,543 字符（sha `e6d9c5fd4188`）、skill 正文 18,755 字符与本地逐字节相同、18 个支持文件 0 处不一致。**硬证据**：线上 `citations.json` 的 `paper_release_time_str` = `"2018-12-19"`（平台原值带 `00:00:00`）。发布号：prompt `v1.6`（sha `ee9dbe9d3a20`）/ skill `v1.0.7`（`ad75ec2c44334f389a0394895a47b765`），`status` in sync。
+- **发布时命中 deps 门禁（设计内行为）**：上游 `chart-visualization-json` 已从 1.0.10 升到 **1.0.12**（2026-09-14T14:56:46），`publish` 被挡下 exit 4、**线上零改动**。逐字节 diff 1.0.10 vs 1.0.12 = 6 个文件：`config.js` + 4 个 `templates/*.json` 只换发布 ID（`20260911-134013` → `20260914-145519`），`references/chart-types.md` **仅 +1 行**（堆叠 + 负值，组合我们不产出；并排柱固定 `group:false, stack:false`），`SKILL.md` / `schemas/*` / `scripts/validate.js` 逐字节未变 → **协议零变更、本 skill 无适配**；留档到 `vendor/chart-visualization-json/1.0.12/` 后 `deps --accept` 再发。
+- **O2 / O3 / O6 已落地（用户 2026-09-14 拍板“我们的问题都改改”）**：O2 → sys 要求 digest 单文件能一次读完（≤ ~300 行）；O3 → 字段名以 params 工具 schema 为准、**禁止发明**（无字段时取最接近的真实字段或留空记“未报告”）、`docs/params-tool-schema.md` 只是维护者镜像且**禁止运行期读**；O6 → `run`/`WORK` 输出目录改 `~/.local/state/`。**新增 O7（待样本）**：给一个**不存在的 esid** 时，模型会换写法对同一输入重试 8 次仍无果，并给出**全空 `ref_2`**（能过断言）→ 候选改法：同一 esid 连续查不到就停手、元数据全空的结果不分配 `{{ref_n}}`。“未拍板项”只剩 O4（正文句子级 `s.replace()`）/ O5（小样本成本），继续攒样本。
+- **R2 冒烟（2026-09-13，`run` 首次）**：thread `eaace30f-0e60-45ab-8384-ae7b10983d27`，1 个 esid，`DeepSeek Flash`，**12/12 全过、0 工具报错**；墙钟 173 s、21 次工具调用、`reasoning_tokens` 26,153；deployed sys 40,308 字符 + 平台尾部 18,543 字符（sha `18e3ee0b85bb`）、skill 正文 18,042 字符与本地逐字节相同、18 个支持文件 0 处不一致、`iframe_template` 发布 ID `20260911-134013`（= 上游 v1.0.10）。
+- **R1（2026-09-11，手工脚本，先于 `run`）**：14 个 esid，299.2 s、50 次工具调用、`reasoning_tokens` 31,782；产物 report 33,166 B + 2 图表；`evidence-timeline` 正确地未生成（11 个不同试验）；1 次 `INVALID_INPUT`（模型发明 `clinical_result.line_count`）下一调用自愈。
+- **本轮顺带修的工具缺陷**：`collect_deps` 的内置工具指纹原靠**文档文本匹配** → 运行期高频使用的 `read_file` 从不进基线；改为取**项目实际启用的工具集**并记录 `enabled_on_project`；顺带修了漂移输出把 `NEW builtin` 截断成 `NEW buil`。基线已 `deps --accept` 重建（16 个，复跑 exit 0）。
+- **平台侧 5 项已写成可直接转发的问题单**（Obsidian `03-技术与VibeCoding/01-AI与LLM/ToolSmith-平台问题单-ChatAPI与SSE文档缺口.md`）：P1 Chat API 无最小可用示例 + 字段命名不一致（`threadId` 驼峰 / `project_id` 下划线、`/api/projects` 用 `projects` 键 vs 其他端点 `items`）；P2 SSE 事件字典缺 `data-turn-start` / `data-sql` / `data-table`；P3 `INVALID_INPUT` 的 `ALLOWED_FIELD_NAMES` 硬截断（180 字符）且无全量获取指引；P4 `/threads/{id}/info` 的 `usage` 只算最后一步（`turn_usage` 才是整轮）；P5 `/artifacts/archive` 未进 token-api 文档。**更正**：此前记的 `/api/threads`、`/api/chat/shares` 返回 Unauthorized 是**漏带 token**，权限模型正常。
+- **待拍板**：O4（正文句子级 `s.replace()` 就地改脚本，8 次）、O5（1 个 esid 也要 21 次调用 /173 s）、**O7（不存在的 esid → 8 次重试 + 全空引用，1 例）** 先记「待样本」；**O2 / O3 / O6 已落地**（sys 与 skill 改完 → 已重新发布 + `R3` 验证）。
+- **本批改了 skill/sys 运行内容**（`citation-and-ref.md`、`input-contract.md`、`file-delivery.md`、`entity-inline-reference.md`、`SKILL.md`、`templates/unified-evidence-report.md`、sys v0.15），故 `dist` 重打 → `8159b1d8aaf0` / 71,466 B，并已 `publish` 到 prompt `v1.6` / skill `v1.0.7`（`status` in sync）+ `R3` 验证通过。
+
+## 上游平台代码拉新：TS `master` → `50f048b`（2026-09-14）
+
+- **动作**：`/home/xupeipeioo1/apps/tool-smith` 工作区无未提交改动 → `git pull --ff-only origin master`，从 `f1fdd58` 快进到 `50f048b`（**33 个新提交**，2026-09-07 → 2026-09-14）。属只读性质上拉，但改动了工作区，已获用户明确指令（“升级啊，你升级到最新版”）。
+- **与本项目直接相关的上游变化**：
+  - `chat_routes.py` / `schemas/chat.py`（`b373e34`）：**chat 请求体顶层字段现在同时接受 snake_case 与 camelCase**（`projectId`/`project_id`、`turn_id`/`turnId`），且 `chat-api.mdx` 已写明“文档示例用前端约定”→ 平台问题单 **P1 大部分自动消失**（剩下的只是 `/api/projects` 用 `projects` 键 vs 其他端点 `items`）。
+  - 新增 `frontend/content/docs/integrate/token-api.mdx`（146 行）：chat / 提示词 / 技能 / 项目的 PAT 接口全表；`chat-api.mdx` 补齐 `/artifacts`、`/artifacts/content`、`/artifacts/file-download` 与 share 侧对应端点 → **P5 部分消失**（`/artifacts/archive` 仍未文档化）。
+  - 新增 `spec/chart-json-ai-renderer.md`：前端正式把**我们的 envelope** 作为渲染门禁（`id === "chart-visualization-json"` + `iframe_template` http(s) + `option` 为对象），并且明确**旧构建的模板 URL 会被删除**（示例 `20260910-145629` 已 `NoSuchKey`）→ 印证「`iframe_template` 只能运行期现读、禁止硬编码」。
+  - DeepSeek 系新增 `low` 推理档（`838ba7f`，`supported_efforts = [low, high, max]`）→ 以后可以用更低的 reasoning 档降本（未在本项目启用）。
+  - `7ad5782 personal access token` / `ce16e7b fix api token copy` / `023704d fine grained permission control`：PAT 与细粒度权限进正式文档，其中「写接口无幂等键、先查再写」与 `toolsmith-publish` 的行为一致；我们的 PAT 拉最新代码后回归正常（`status` / `deps` / `publish` / `run` 全通）。
+  - `56f1ff5 fix subagent token count`：子代理 token 计数修正（影响我们 `task` 委派的成本可观测性，规则本身不改）。
+- **仍未修的平台项**：P2（`data-sql` / `data-table` 仍无事件字典）、P3（`ALLOWED_FIELD_NAMES` 硬截断 180 字符）、P4（`/threads/{id}/info` 的 `usage` 只算最后一步）、P6（`POST /api/tools/debug` 的 `mcp_server_id` schema 与行为不一致 —— 源码级证据 `backend/src/toolsmith/api/routes/tool_routes.py:41/47`：`str | None = None` + `model_validator` 报错）。
+- **同步更新**：`docs/toolsmith-verification-log.md` 第 4 节加了对照小结与 P6；Obsidian 问题单同步。
 
 ## v0.15 change: 仓库内 HTML 资产彻底移除（2026-09-10）
 

@@ -20,9 +20,16 @@ citation mapping stable (3rd esid in input order → `{{ref_3}}`).
 - `extra_esids` = exact-filter by clinical-result ID (each selected esid = one clinical result / one
   disclosure of a trial).
 - `selected_fields` = array of field-name strings, **each copied verbatim** from the
-  ALLOWED_FIELD_NAMES list. Field names are case-sensitive and must not be descriptions.
-  The authoritative full field list + nested shapes live in `docs/params-tool-schema.md`
-  (archived from the running tool schema). **Anchor field for selection: `clinical_result.extra_esid`.**
+  ALLOWED_FIELD_NAMES list that the params tool itself publishes in its `selected_fields`
+  parameter description (visible in the tool schema at run time; the repo mirror
+  `docs/params-tool-schema.md` is maintainer documentation, not a runtime file). Field names are
+  case-sensitive and must not be descriptions.
+  **Never invent a field name.** A concept the report needs (`线数`, `中位随访`, `亚组`…) does not
+  imply a field exists: pick the closest real field on the list (group/arm counts →
+  `clinical_result.group_count`, treatment line → `clinical_result.therapy_line_cn`/`_en`) or leave
+  the field out and record the result as not reported. An invented name
+  (e.g. `clinical_result.line_count`) is rejected and costs the whole pull.
+  **Anchor field for selection: `clinical_result.extra_esid`.**
 - The response injects the record `_id`; per-record fields appear under their selected names
   (nested: `arms`, `projects`, `study_results`, …).
 
@@ -72,7 +79,7 @@ Do not pull large aggregates of unrelated esids; if a batch is big, split the pu
 | --- | --- |
 | `source_title` | `clinical_result.paper_title` |
 | `source_url` | `clinical_result.full_article_link` |
-| `source_paper_release_time_str` | `clinical_result.paper_release_time` |
+| `source_paper_release_time_str` | `clinical_result.paper_release_time` (datetime string `YYYY-MM-DD HH:MM:SS`; only its `YYYY-MM-DD` date part goes into the citation JSON) |
 | `source_nct_id` | `clinical_result.projects[].associate_ids` (registration no.) |
 | `source_trial_abbr` | `clinical_result.trial_abbreviation` |
 | `source_drug_entities` (drug_earth ids) | `clinical_result.arms[].drugs[].drug_earth_id` + `drug_earth_name_*` |
@@ -101,7 +108,7 @@ title, URL, or release time — a missing value stays empty in the citation JSON
 1. Read the selected esid list (input order = marker order).
 2. Pull records with the recommended `selected_fields`; map each returned record to its esid.
 3. For each record, keep an internal ledger:
-   - citation fields (`paper_title`, `full_article_link`, `paper_release_time`, and when returned
+   - citation fields (`paper_title`, `full_article_link`, `paper_release_time` — date part only, and when returned
      `journal`/`doi`/`pm_id`) for the separate final citation JSON;
    - trial identity: registration no. (`projects.associate_ids`), trial short name
      (`trial_abbreviation`), sponsor (`company_ids`/`company_name_*`), drug IDs/names
@@ -193,7 +200,10 @@ visible report body.
 ## Local verification note
 
 The v0.11 reproducible adapter (`evals/fetch-np-clinical-attachments.mjs`, writing `source-*.md`) is
-superseded by the params tool path. Field-name grounding for pulls now comes from the archived tool
-schema in `docs/params-tool-schema.md`; if a live schema dump is ever available at a routable data
-service, re-verify the archived ALLOWED_FIELD_NAMES against it before changing `selected_fields`.
+superseded by the params tool path. Field-name grounding for pulls now comes from the params tool's own
+`selected_fields` description (`ALLOWED_FIELD_NAMES` / `ALLOWED_FIELDS`), which is what the model sees at
+run time; the repo mirror `docs/params-tool-schema.md` is regenerated from that live schema with
+`toolsmith-publish tool-doc` and is for maintainers — it is **not** part of the deployed skill package,
+so never plan a run around reading it. Re-verify the mirror whenever the tool schema changes before
+changing `selected_fields`.
 Production request orchestration remains owned by the backend; the params tool is the delivery path.

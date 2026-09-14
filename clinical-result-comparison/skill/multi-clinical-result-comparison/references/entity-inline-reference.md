@@ -27,7 +27,7 @@ ToolSmith 前端（`EntityAnchor`）识别的格式是 Markdown 内联链接：
 ## ID 来源（硬规则）
 
 实体 ID 来自 MCP `pharmcube-query-clinical-result-with-params` 返回记录中经 `selected_fields`
-拉取的嵌套字段（见 `references/input-contract.md` 与 `docs/params-tool-schema.md`）：
+拉取的嵌套字段（见 `references/input-contract.md`，字段名以 params 工具自身的 `selected_fields` 描述为准）：
 
 | 实体 | 类型 | ID 字段 | 展示名来源 |
 | --- | --- | --- | --- |
