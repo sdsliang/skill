@@ -123,6 +123,8 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 
 ### R4/R5/R6/R7 — 2026-09-14，**R3 真缺陷的根因修正 + 原地（in-place）发布**
 
+> 已 commit **`4cea33d`** 并 push 到 `origin/v0.15-remove-html`（11 文件 / +142 / -30）。
+
 > 这条不是「又跑了一遍」，而是 R3 暴露的**真缺陷**的闭环：空壳引用不是平台 bug，**是我们自己的 sys 规则逼出来的**。
 
 **根因（R3 的 `ref_2` 为何全空）**：dump 部署端 `GET /api/agent/info` 可以看到部署 prompt 的尾部，里面有一句我们自己的规则：
