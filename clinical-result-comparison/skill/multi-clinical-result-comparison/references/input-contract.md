@@ -11,7 +11,7 @@ by `extra_esids` and keeping the returned payload small via a strict `selected_f
 Rationale: a user may select several results (up to about 20). A single params response with many
 unselected fields can exceed the context budget (`MCP_TOOL_RESULT_MAX_CHARS`); per-esid `{{ref_n}}`
 mapping keeps each result addressable, bounds context by what the Agent actually needs, and keeps the
-citation mapping stable (3rd esid in input order → `{{ref_3}}`).
+citation mapping stable (3rd retrieved esid in selection order → `{{ref_3}}`).
 
 ## Source of truth
 
@@ -35,15 +35,42 @@ citation mapping stable (3rd esid in input order → `{{ref_3}}`).
 
 ## Pull protocol
 
-1. Read the selected esid list from the user turn (input order = `{{ref_n}}` assignment order).
+1. Read the selected esid list from the user turn (input order = `{{ref_n}}` assignment order, over the records that return).
 2. Call the tool with:
    - `extra_esids: [ ...selected esids in input order ... ]`;
    - `selected_fields`: the recommended minimal set below (trim further if a run is huge).
 3. Keep the returned payload small: never request the whole record, never request fields you do not
    need, never re-pull the same esids speculatively once the needed fields are present.
-4. Map records back to esids by `clinical_result.extra_esid` (or the record `_id`) in input order →
-   `{{ref_1}}`, `{{ref_2}}`, … . If a record is missing or empty, record it in the source inventory as
-   a limitation, never drop it silently and never reorder the markers.
+4. Map records back to esids by `clinical_result.extra_esid` (or the record `_id`).
+5. Number only what actually came back. Markers are assigned in user-selection order **over the
+   records that returned**: 3rd esid in input order → `{{ref_3}}` holds while that record exists, but
+   an esid that yields no record is not numbered at all (see *Unretrievable selected items*).
+
+### Unretrievable selected items
+
+The params tool answers `ok: true` with an **empty `data` array and no error** when an esid does not
+exist, is not visible, or was deleted — an empty result is silent, so it is on you to detect it.
+
+- **One batched pull, at most one confirmation.** Pull the whole selection in the single
+  `extra_esids` call above. If some esids come back without a record, re-issue **exactly those esids
+  together** in at most one further call, then stop. Never probe variant spellings, guessed ids,
+  neighbouring ids, or other tools, and never loop call-per-esid: a retry that changes the spelling of
+  an id is not a retry, it is a guess, and a series of them burns the run without new information. Do
+  not repeat a confirmation whose arguments are unchanged either — if the same esid and the same
+  `selected_fields` come back empty twice, that esid is absent and further calls cannot change it.
+  (A second call with a **different** purpose — e.g. same trial, extra fields you still need — is not a
+  confirmation and stays allowed.)
+- **No marker, no citation key for a source that did not return.** Do not allocate `{{ref_n}}` to an
+  unretrieved esid, and never emit a citation entry with an empty `title` — an empty-title entry *is*
+  the signature of a citation written for a record that never came back. Keys stay contiguous
+  (`ref_1`, `ref_2`, …) over the retrieved records, in selection order.
+- **Say it in the evidence scope.** Name the selected items that could not be retrieved (esid plus,
+  when the selection carried it, the trial/title the user saw) as an evidence limitation, and state
+  that the report covers only the retrieved records.
+- **Fewer than two usable records → refuse, do not deliver.** Do not write `report.md` and do not write
+  `citations.json`; there is nothing to compare and a one-record "comparison" is a fabricated
+  deliverable. Reply in chat naming the selected results that could not be retrieved and ask the user
+  to re-check the selection.
 
 ### Recommended `selected_fields` (per disclosure record)
 
@@ -144,7 +171,8 @@ value must still carry its source esid / marker number.
   arm/label, endpoint values, p-values/CIs, source marker). Keep the returned text small (a few hundred
   characters per trial) so the 2–4 per-chunk summaries do not re-bloat the main thread.
 - **Citation correctness**: `{{ref_n}}` assignment stays global by input esid order regardless of
-  which chunk processed it. Subagents must echo the source marker; the main Agent maps those to ref
+  which chunk processed it, and covers only the records that actually returned (see *Unretrievable
+  selected items*). Subagents must echo the source marker; the main Agent maps those to ref
   markers and deduplicates.
 - **Constraints**: `task` accepts only two parameters, `subagent_type` and `description`, and every call
   is stateless (no follow-ups — put everything needed in the description); a subagent does **not**

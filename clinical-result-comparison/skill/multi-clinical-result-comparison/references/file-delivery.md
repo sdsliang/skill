@@ -40,7 +40,7 @@ Two files are produced each run:
 
 2. **Citation file** — `/workspace/output/citations.json` (fixed path)
    - The fixed machine-readable sibling of the report; the backend hard-codes both paths, so never rename, relocate, or suffix either one.
-   - Raw strict JSON, one key per selected source in input (esid) order: `{"ref_1":{"title":…,"link":…,"paper_release_time_str":…},…}`.
+   - Raw strict JSON, one key per **retrieved** source in selection (esid) order over the records that returned: `{"ref_1":{"title":…,"link":…,"paper_release_time_str":…},…}`. An esid that returned no record gets no key (never write an entry with an empty `title`; see `references/input-contract.md`, *Unretrievable selected items*).
    - Same schema as the v0.8 separate citation JSON (see `references/citation-and-ref.md`); `title` and `link` are copied byte-for-byte from the pulled record's `paper_title` / `full_article_link`, and `paper_release_time_str` is the **date part only** (`YYYY-MM-DD`) of `paper_release_time` — that field returns a datetime string (`YYYY-MM-DD HH:MM:SS`), so drop the time component, never reformat further, and leave the value empty when the record has none.
    - Not presented as a card: it is the machine-readable source listing for downstream marker rendering. It is still a visible workspace artifact (any file under `/workspace/output/` is listed by the artifacts API and the artifact panel).
 

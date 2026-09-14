@@ -10,11 +10,18 @@
 
 ```bash
 cd /home/xupeipeioo1/apps/skill/clinical-result-comparison
-toolsmith-publish publish                 # 先发布；deps 门禁会自动挡上游漂移
-toolsmith-publish status                  # 必须 in sync
+python3 /home/xupeipeioo1/tmp/pack15b.py   # 重打 dist（幂等：只改文档时 SHA 不变）
+toolsmith-publish publish                  # 默认原地更新当前版本；deps 门禁会自动挡上游漂移
+toolsmith-publish status                   # 必须 in sync（版本号标签不变）
 printf '解读这几个结果 <esid…>' > ~/.local/state/toolsmith-runs/ask.txt
 toolsmith-publish run --prompt-file ~/.local/state/toolsmith-runs/ask.txt --tag <tag>   # 真跑 + 自动断言
+# 「本应拒绝产出」的场景：
+toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --expect refusal
 ```
+
+> **发布语义（2026-09-14 用户拍板）**：`publish` **默认原地更新当前版本**（prompt `ifadd:false` 改写 `is_current` 行；
+> skill `POST /api/skills/update_skill_file` 传全量 bundle zip、保 `skill_id` 与版本号、内部 `commit_id` 递增），
+> **不再自动涨版本号**；要追加新版用 `--new-version`。发错后原地重发即可（内容被覆盖）。
 
 > **产物落点（2026-09-14 起）**：`run` 默认写到 `~/.local/state/toolsmith-runs/<时间戳>-<tag>/`，
 > 临时工作目录也在 `~/.local/state/toolsmith-publish/`；**不再用 `/tmp`**（`/tmp` 会被系统清空，
@@ -52,9 +59,20 @@ toolsmith-publish run --prompt-file ~/.local/state/toolsmith-runs/ask.txt --tag 
 8. 正文无残留 `{{…}}` 占位符（`{{ref_n}}` 除外）
 9. 无嵌套实体锚点 `](entity:…](entity:`
 10. 每个 `{{ref_n}}` 都有 citations 条目（反向也查未引用）
-11. **citations 每个键恰为 `link` / `paper_release_time_str` / `title` 三字符串，且 `paper_release_time_str` 为 `YYYY-MM-DD` 或空串**（2026-09-14 新增：把「日期只取日期部分」变成机器可判定的契约）
+11. **citations 每个键恰为 `link` / `paper_release_time_str` / `title` 三字符串，`paper_release_time_str` 为 `YYYY-MM-DD` 或空串，且每个条目的 `title` 非空**（2026-09-14：先把「日期只取日期部分」变成机器可判定的契约，再把「引用不许是空壳」也变成可判定的——原第 11 项只查键集与日期格式，`{"ref_2":{"title":"","link":"","paper_release_time_str":""}}` 这种**空壳引用能全过**，是 R3 的真缺陷）
 12. 最后一个工具调用是 `present_artifact`
 13. 无 `tool-output-error`
+
+### 附：`run --expect refusal` 模式（2026-09-14 新增，4 项）
+
+用于验证「本应拒绝产出」的场景（选中的结果不足 2 条可检索记录）：
+
+1. deployed system prompt / skill 正文 / 支持文件清单三项同上（部署字节硬证据）
+2. `output/report.md` 与 `output/citations.json` **均不存在**（`output/` 下什么都没有）
+3. 确实调用过 params 工具（不是没查就拒）
+4. 回复非空、不含 `{{ref_`，并说明了取不到的结果
+
+> `--expect refusal` 与默认 `artifacts` 互斥；退出码语义不变（0 全过 / 3 有断言失败 / 4 没跑起来）。
 
 ## 2. 运行记录
 
@@ -103,6 +121,62 @@ toolsmith-publish run --prompt-file ~/.local/state/toolsmith-runs/ask.txt --tag 
 - 工具调用：params×8 / `execute`×8 / `read_file`×3 / `load_skill`×1 / `present_artifact`×1；实体锚点 13 个、嵌套 0
 - **负面发现（→ O7）**：prompt 里我混了一个**不存在的 esid**（`24_1_45608045`），模型对同一输入换写法重试 8 次仍无果，最后给了一个**全空 `ref_2`**；空条目能过断言，说明当前断言集不覆盖「引用是否真的有内容」（已记入 O7 候选改法）
 
+### R4/R5/R6/R7 — 2026-09-14，**R3 真缺陷的根因修正 + 原地（in-place）发布**
+
+> 这条不是「又跑了一遍」，而是 R3 暴露的**真缺陷**的闭环：空壳引用不是平台 bug，**是我们自己的 sys 规则逼出来的**。
+
+**根因（R3 的 `ref_2` 为何全空）**：dump 部署端 `GET /api/agent/info` 可以看到部署 prompt 的尾部，里面有一句我们自己的规则：
+`every selected esid has a corresponding pulled record and exactly one citation JSON entry, including duplicate or unusable items`（＝ sys:196 的部署副本）。它与另两条叠加，等于**三条我方规则联合要求给「压根没回来的 esid」也写一条引用**：
+
+1. sys:7 / `SKILL.md:33`：`returned records map one-to-one to the supplied esids in the same order → {{ref_1}}, {{ref_2}}, …`
+2. sys:196：每个 selected esid 都必须有 pulled record 与恰好一条 citation entry（含 unusable）
+3. `citation-and-ref.md`：keys 从 `ref_1` 起连续、按输入顺序
+
+一个「按输入顺序一一对应」+「每条都必须有条目」的契约，遇到空结果就只能写出空壳——**模型当时的行为是对的，规则是错的**。
+
+**本批落地（仓库 v0.15 原地改，不升版本号）**：
+
+- `references/input-contract.md`：新增 **### Unretrievable selected items** —— 一次批量拉取 + **至多一次**确认（不许换拼写/猜 id/逐 esid 循环）；未返回的 esid **不分配 `{{ref_n}}`、不写 citation key**，keys 在「实际返回的记录」上保持连续；**禁止空 `title` 条目**（空 title = 「写了一条根本没回来的引用」的指纹）；证据范围里点名说明；**可用记录 < 2 条 → 不写 report/citations，改在 chat 说明并请用户复核选择**。同时把 Pull protocol 第 4/5 条第 1 条、`Rationale`、`Citation correctness` 的相关句改为「over the records that returned」。
+- `references/citation-and-ref.md`：marker 分配改为「对**实际返回**的记录按选择顺序」；citation 契约加「`title` 非空」；连续性与校验段同步。
+- `SKILL.md`：把「一一对应」句改为按 `extra_esid` 映射 + markers 落在「回来的记录」上；「至少两条可用记录」扩为「**< 2 条就拒绝产出**」。
+- `references/{input-and-extraction,file-delivery}.md`：marker 分配、citation 文件键位描述同步（只给**取回**的来源编号）。
+- `templates/unified-evidence-report.md`：证据范围声明加「如有选中结果未取回，在此点名，且不占引用编号」。
+- sys v0.15（4+1 处）：line 7 一一对应 → 「按 `extra_esid` 映射 + markers over the records that came back」；新增两条 bullet（**Unretrievable selection — an empty result is not a source** / **Fewer than two usable records → refuse, do not deliver**）；line 196 那条校验项改为「每条引用都对应真正返回且有非空 title 的记录，且正文每个 `{{ref_n}}` 恰有一个 key」；citation JSON 段加「只有取回的记录才出现，空 `title` 绝不可接受」；子代理 fail-loud 那条加「子代理报的 empty 不算证据，主线程要自己在那一次确认调用里复核」。
+- `toolsmith-publish`：`check_run` 第 11 项加 **`title` 非空**断言；新增 **`run --expect refusal`** 模式（4 项断言，见 §1 附）。
+- **发布方式改变（用户拍板）**：`publish` **默认原地更新当前版本**（prompt `ifadd:false` 更新 `is_current` 行；skill `POST /api/skills/update_skill_file` 传全量 bundle zip、保 `skill_id`/version、内部 `commit_id` 递增），`--new-version` 才追加新版本；不再有 `--overwrite` 别名。**本轮就是原地发**：prompt 仍 `v1.6`、skill 仍 `v1.0.7`（`skill_id=ad75ec2c44334f389a0394895a47b765`）。
+
+**R4 — 场景 A（2 个有效 esid）**：thread `6ad0dcee-9f53-42a2-b907-48f1b18b418c`（产物 `~/.local/state/toolsmith-runs/20260914-173645-a-2valid/`）
+
+- prompt `解读这几个结果 24_1_30561610 24_1_36342163`，模型 `DeepSeek Flash`
+- 墙钟 **175.3 s**；**23** 次调用（params×2）；`in=1,135,953 cached=1,073,408 out=34,847 reasoning=24,839`
+- **13/13 断言全过、0 工具报错**；deployed sys sha `b3050f32668e`（43,616 ch + 平台尾 18,543 ch）；产物 `report.md` + `citations.json` + `endpoint-bar-1.json`（envelope 发布 ID `20260914-145519`）；markers=2 keys=2 missing/unused 均空；**params 只调了 2 次**（1 批量 + 1 次「同试验补 study_results 字段」，不是重试）
+
+**R5 — 场景 B（1 有效 + 1 无效，本应拒绝产出）**：thread `49653f36-32d0-4a91-86f4-58fb1a4357f9`
+
+- prompt 与 R3 逐字相同（`解读这几个结果 24_1_30561610 24_1_45608045`）
+- 墙钟 **36.8 s**（R3 同输入是 **129 s**）；**8** 次调用；`in=259,225 out=4,004 reasoning=2,295`
+- **refusal 4 项全过**：`output/` 下**什么都没有**（不再产出空壳引用，也不再造假报告）
+- 回复原文（节选）：`本次无法生成联合解读 … **所选结果中有一条取不到记录** - 24_1_45608045：按该结果 ID 取数两次（先与另一条一起批量取，再单独取），均未返回任何记录。按约定，未取到的记录不进入编号与引用清单，我也不会为它编造任何内容。 - 24_1_30561610：正常返回…`
+- **新发现（→ O8）**：params 调用 3 次，第 2、3 次是**参数完全相同的确认调用**（同一个 `24_1_45608045` 再查一遍）——规则写的是「至多一次确认」，实际做了两次
+
+**R6 — 场景 B 复跑（O8 措辞收紧后）**：thread `73b427f3-3d19-4819-8228-4460e65a9d2b`
+
+- 墙钟 **33.5 s**；**8** 次调用；params **恰好 2 次**（1 批量 + 1 确认）——收紧生效
+- **refusal 4 项全过、0 工具报错**；deployed sys sha `1998f37da67d`
+
+**R7 — 场景 A 复跑（最终部署字节）**：thread `a0420a2f-c1a4-4443-a749-0547eeb43941`
+
+- 墙钟 **209.5 s**；**40** 次调用（params×2）；`in=2,776,723 out=35,662 reasoning=22,256`
+- **13/13 断言全过、0 工具报错**；deployed sys sha **`1998f37da67d`**（43,701 ch + 平台尾 18,543 ch）；markers=2 keys=2 missing/unused 均空（与 R6 同一部署字节）
+- 产物硬证据（**这才是「不空」的证明**）：
+  ```json
+  {"ref_1": {"title": "Persistent arterial wall inflammation in patients with elevated lipoprotein(a) despite strong low-density lipoprotein cholesterol reduction by proprotein convertase subtilisin/kexin type 9 antibody treatment.", "link": "https://pubmed.ncbi.nlm.nih.gov/30561610", "paper_release_time_str": "2018-12-19"},
+   "ref_2": {"title": "Small Interfering RNA to Reduce Lipoprotein(a) in Cardiovascular Disease.", "link": "https://pubmed.ncbi.nlm.nih.gov/36342163", "paper_release_time_str": "2022-11-08"}}
+  ```
+  两张图/报告都存在、两个条目都有真实标题与日期、正文里 `{{ref_1}}{{ref_2}}` 都对得上。
+
+> **R3 的分享链接（`…/chat/share/4a2e4685-…`）无法修**：share 是那一轮 turn 的静态快照，含的就是旧字节的旧输出。修复只能体现为**新跑的 turn**（R6/R7）。
+
 ## 3. 我们自己能改的
 
 | # | 现象（证据） | 改法 | 状态 |
@@ -113,7 +187,8 @@ toolsmith-publish run --prompt-file ~/.local/state/toolsmith-runs/ask.txt --tag 
 | O4 | 正文句子级返工：R1 的 19 次 `execute` 里 8 次是 `s.replace()` **就地改写 `build_report.py` 里的模板字面量**，另有 3 次 `edit_file`；都是内容打磨（不是规则返工） | 暂不改规则。若要压：把「正文与渲染分离」（正文放 md/data，脚本只做 token 替换 + 断言）写成硬规则 | **待样本**（再攒 3–5 次运行） |
 | O5 | 小样本不便宜：1 个 esid 也要 21 次调用 / 173 s / 26k reasoning tokens（14 个 esid 是 50 次 / 299 s / 32k）；成本由"读 skill + 套模板"主导，不随结果数线性 | 暂不改。若体感贵，可考虑给"单结果解读"一条更轻的模板路径 | **待样本** |
 | O6 | 台账里写的本地产物路径（`/tmp/toolsmith-runs/...`）全部失效：`/tmp` 被系统清空，早期的 `R1/R2` 产物离线后无法复核（只剩平台侧 thread id 能回捞） | `toolsmith-publish` 的 `WORK` / `RUNS` 改到 `~/.local/state/toolsmith-publish` 与 `~/.local/state/toolsmith-runs`（不用 `/tmp`）；`run --out` 仍可覆盖 | **已落地**（2026-09-14，R3 起生效） |
-| O7 | 无效 esid 导致空转：R3 里我把 `24_1_45608045`（库中无数据）和有效 esid 一起给，模型对**同一个输入换了 8 种写法**（`extra_esids:["24_1_45608045"]` → `["45608045"]` → 改 `trial_id:"NCT02729025"` …）共 **8 次** params 调用，最后仍产出 `ref_2` 为**全空**（`title`/`link`/`paper_release_time_str` 均 `""`），而 13 项断言全过（断言只管「有对应条目」，不管条目是否为空） | 候选改法（**先攒样本再改**）：① 同一 esid 连续查不到就停手，**不许换写法反复重试**；② 元数据全空的结果**不分配 `{{ref_n}}`**，正文写「未找到/无数据」而不是给一个空引用 | **待样本**（目前 1 例；R3 的 prompt 里我故意混了一个不存在的 esid） |
+| O7 | 无效 esid 导致空转：R3 里我把 `24_1_45608045`（库中无数据）和有效 esid 一起给，模型对**同一个输入换了 8 种写法**（`extra_esids:["24_1_45608045"]` → `["45608045"]` → 改 `trial_id:"NCT02729025"` …）共 **8 次** params 调用，最后仍产出 `ref_2` 为**全空**（`title`/`link`/`paper_release_time_str` 均 `""`），而 13 项断言全过（断言只管「有对应条目」，不管条目是否为空） | 改法：① 一次批量拉取 + **至多一次**确认，同一 esid 连续空即停手，**不许换写法反复重试**（已写入 sys / `input-contract.md` / `citation-and-ref.md` / `SKILL.md`）；② 未返回的 esid **不分配 `{{ref_n}}`、不写 citation key**，**禁止空 `title` 条目**，keys 在「实际返回的记录」上连续；③ 可用记录 < 2 → **拒绝产出**并回 chat 说明（新增 `run --expect refusal` 断言框）；④ 断言第 11 项加「`title` 非空」 | **已落地**（2026-09-14；证据：R3 旧行为 8 次重试 + 空壳引用 vs **R5/R6 同输入 2 次调用、零产物、回复点名说明**；R7 两个条目均有真实标题/日期） |
+| O8 | 同输入重复确认：R5 里规则已写「至多一次确认」，实际 params 调了 3 次——第 2、3 次**参数完全相同**（同一个 `24_1_45608045` 再查一遍） | `input-contract.md` + sys 加一句：**参数不变的确认不得重复**（同一 esid + 同一 `selected_fields` 空两次就是真的不在）；同时明确「不同用途的第二次调用（如补字段）不是确认、仍允许」，以免误伤 R4 那种合理的补字段调用 | **已落地**（2026-09-14；证据：R6 同输入 params **恰好 2 次**） |
 
 ## 4. 平台侧（转开发）
 

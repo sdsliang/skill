@@ -6,7 +6,7 @@ Each selected clinical result is pulled by esid through the MCP tool `pharmcube-
 
 Preserve drug names, trial names, biomarkers, companies, and other proper nouns exactly as returned. Use a Chinese equivalent only when a selected record explicitly provides it. Do not translate, transliterate, normalize, or map a proper name from memory; retain the English name in a Chinese report when it is the only source-supported form.
 
-Assign each selected record a stable presentation marker (`{{ref_1}}`, `{{ref_2}}`, etc.) before extraction, in input (esid) order. The marker is the traceability key used in the report; its number does not indicate chronology, maturity, or evidence strength. Keep runtime correlation keys outside the Agent input and report.
+Assign each **retrieved** record a stable presentation marker (`{{ref_1}}`, `{{ref_2}}`, etc.) before extraction, in selection (esid) order over the records that returned — a selected esid that came back empty is not numbered and gets no citation entry (`references/input-contract.md`, *Unretrievable selected items*). The marker is the traceability key used in the report; its number does not indicate chronology, maturity, or evidence strength. Keep runtime correlation keys outside the Agent input and report.
 
 ## Source quality flags
 
