@@ -350,18 +350,25 @@ DONE 之后：
 
 ---
 
-## 8. 平台侧缺口（→ 问题单 P7 / P8，全文写 Obsidian，仓库只留摘要）
+## 8. 平台侧缺口（P7 / P8，**已写草稿、暂缓上报**，仓库只留摘要）
 
 > **口径（用户 2026-09-14 定）：以代码为准。后续发现的平台文档/文档缺口一律不上报**，只留内部存档。
 > 只报会直接影响"我们能算/能跑"的功能性缺陷 —— P7、P8 属此类；原拟报的 P9（纯文档不一致）**已撑回**，移到 §8.1 存档防踩坑。
+> **但上报时机也由用户定：P7/P8 先不报**（用户 2026-09-14：「p7-8 我先不报告，我们待会转接用新流程跑的时候再排查一下吧」）。
 
 | # | 现象（有源码/实测依据） | 影响 | 建议 |
 |---|---|---|---|
 | P7 | `/timing.active_turn` **不判状态**：跑完但未清理的 run 仍报 `completed=false`、`completed_at=null`、`latency_ms` 现算递增（`chat_service.py:859-874`） | 任何客户端都会把已结束的 run 判成"仍在跑"；我们实测到 53 s 滞后 | `status != running` 时 `active_turn` 归 null，或另给 `last_turn_status` |
 | P8 | **run 结局（成功/失败/取消）不落库**，只在内存活 300–360 s；轮询间隔 >5 min 就无法区分成功/失败/force-kill | 慢轮询客户端只能翻 message 里的 `error_type` 反推；同样地 `webhook_config` 解析失败只写 `logger.warning`（`schemas/webhook.py:76-84`），配置静默失效且读接口看不出 | 把终态（含 `termination_reason`）落到 turn 并暴露在 `/timing` 或 `/info`；项目读接口回显一个 `webhook_config_effective` 之类的字段 |
 
-**动作（✅ 2026-09-14 已做）**：P7/P8 已追加到 Obsidian `03-技术与VibeCoding/01-AI与LLM/ToolSmith-平台问题单-ChatAPI与SSE文档缺口.md`（作为该问题单的"第二批"），
-仓库台账只留摘要 + 指向。
+**动作（2026-09-14，⏸ 暂缓上报）**：P7/P8 已作为"第二批"写进 Obsidian
+`03-技术与VibeCoding/01-AI与LLM/ToolSmith-平台问题单-ChatAPI与SSE文档缺口.md` 的**草稿区**，
+但**没提交给开发**；待 v2 轮询版落地后真跑一次（§9 第 5 步的 `R8`）时顺带排查这两条到底挡不挡我们的路，
+确认后再由用户定报不报。仓库台账只留摘要 + 指向。
+
+**排查口径（v2 真跑时顺手看）**
+- P7：`/timing.active_turn` 在轮询过程中是否出现"`/info.status` 已终态、而它还在报 `completed=false` + latency 继续涨"——§4 状态机已用 `/info.status` 作唯一终态判据绕过它，这里只是确认绕过是否足够。
+- P8：一次有意超时/中断的运行，看轮询能否在 300 s 窗口内捕获终态；错过窗口时能否靠持久化消息里的 `error_type` 把结局反推出来（§5.6）。若都能，P8 就只是"体验问题"，可以不报。
 
 ### 8.1 内部的文档坑（**不对外报**，实现时别信文档）
 
@@ -381,7 +388,7 @@ DONE 之后：
    调用链（用 `~/.local/state/toolsmith-runs/20260914-171953-cite-date/` 做对照：
    期望 `load_skill×1, pharmcube-query-…×8, execute×8, read_file×3, present_artifact×1`，共 21 次）。
    这一步**不需要任何网络**，是最便宜的回归闸门。
-4. ✅（2026-09-14 已完成）§8 的 P7/P8 已追加进 Obsidian 问题单；**文档缺口不再上报**（P9 降级为 §8.1 内部存档）。
+4. ⏸（2026-09-14）P7/P8 已写入 Obsidian **草稿区**，**按用户决定暂缓上报**（合到第 5 步 `R8` 真跑时一起排查，见 §8 排查口径）；文档缺口不再上报（P9 降级为 §8.1 内部存档）。
 5. 一次真跑验证 v2（写动作，**需用户同意**）：`toolsmith-publish run --prompt-file … --tag v2-poll`，
    期望 `transcript.md` / `run.json` / 无 `stream.sse` / 轮询次数在 10–15 次 / 13 项断言与 v1 结论一致。
 6. 更新 `docs/toolsmith-verification-log.md`（新增 `R8` 记录 + 两栏台账）与 `PROJECT_STATE.md`。
@@ -440,3 +447,80 @@ EOF
   `api/routes/chat_routes.py`（info / resume）、`schemas/webhook.py`。
 - 不要做的事：重新 POST；改 webhook 配置；把 SSE 当断言输入；未经同意真跑或 commit。
 - 本方案不涉及 `skill/` / `system-prompts/` → 不触发 Toolsmith 发布流程。
+
+---
+
+## 12. 实施状态（2026-09-16，方案 B 落地：S0 修键名 + run v2 一次改完）
+
+> 授权：用户 2026-09-16 明确选 **B**（"你选啥，B？"），并终止了原持有本方案的另一个 session。
+> 改动范围**只有** `~/.local/bin/toolsmith-publish`（不入任何仓库）；备份
+> `~/.local/state/toolsmith-publish/toolsmith-publish.v1.bak`（65,790 B，改前副本）。
+
+**已落地**
+
+| 项 | 内容 |
+|---|---|
+| S0 | `status` 假警报根因 = 平台返回 snake_case `current_version_id`、工具读 camelCase `currentVersionId`（5 处）。新增 helper `fam_current_version_id(fam)`（读两种拼法），替换 5 个调用点。复测 `status` **EXIT=0**、`prompt deployed == local: True` |
+| 主通道 | `cmd_run` 不再消费 SSE：`POST /api/chat` 只读到 `data-turn-start`（≤ `TAP_MAX_SECONDS` 20 s）即断连，改为轮询 `GET /api/threads/{tid}/info` 的 `status` 判终态（间隔 ≤ `POLL_MAX_INTERVAL` 60 s，默认 20 s） |
+| 状态机 | `完成/失败/取消` → 终态；`未知` 时用 `/timing` 行 + `GET /api/thread-turns/validate`（DB 持久）区分 `not_started`（exit 4）与 `inconclusive`（exit 5）。**超时绝不重发 POST**，只允许 `--resume` |
+| 证据源 | 调用链改由 `tool_chain_from_history()` 从 `/debug/history` 的持久化消息重建；`parse_stream()` **降级为 legacy 离线对账用的 oracle**，运行期不读 SSE |
+| 幂等 | `turn_id = uuid4()` **在 POST 之前**写进 `run.json`；body 同时带 `id`/`threadId`/`thread_id`/`turnId`/`turn_id`；重复 POST 收到 **409** 视为幂等提示而非失败 |
+| 新断言 | ① 终态必须 `completed`；② 每个 tool-call 要么有 tool-return 要么被 schema 拒（WARN 级，只有 FAIL 计入 exit 3）；③ `retry-prompt`（参数被工具 schema 拒绝）单独记账，不再混入 tool error | 
+| 产物 | 每次运行落 `run.json`（thread/turn/repo/model/tag/prompt 长度，**POST 前**）、`prompt.txt`、`stream.tap`（有界 tap）、`info.json`/`timing.json`/`usage.json`、`debug-history.json`、`artifacts.zip` + 解包、`verification.md`（含轮询日志 + 分级断言）、**新增 `transcript.md`** |
+| CLI | 新增 `--resume THREAD_ID`、`--turn-id`、`--poll-interval`、`--grace`、`--no-tap`；`--timeout` 语义改为"停止轮询"（默认 2400 s） |
+| 退出码 | 0 全过 / 3 断言失败或工具报错 / **4 `not_started`（turn 从未进库）** / **5 `inconclusive`（错过 300–360 s 终态窗口）或 `timeout`** |
+
+**零网络回归闸门（§9 第 3 步）** —— `/tmp/verify_v2.py`，对 5 个已录制的 run：
+
+```
+20260914-171953-cite-date  attempts=21 returned=21 rejected=0 errors=0 -> OK
+20260914-173645-a-2valid   attempts=23 returned=23 rejected=0 errors=0 -> OK
+20260914-173947-b-refusal  attempts=8  returned=8  rejected=0 errors=0 -> OK
+20260914-174145-b2-refusal attempts=8  returned=8  rejected=0 errors=0 -> OK
+20260914-174222-a2-2valid  attempts=41 returned=40 rejected=1 errors=0 -> OK
+GATE: PASS — v2 history extraction == v1 SSE chain + schema-rejected attempts
+```
+
+判据（比 §9 第 3 步更严）：把 v2 链里被拒的那次调用剔掉，必须**逐条等于** v1 链；
+`extra ids == rejected`；`attempts == 旧调用数 + 拒绝数`；无未返回调用；`errors` 数与 tap 的 `tool-output-error` 一致。
+
+**顺带查出的旧工具缺陷（→ 台账 O9）**：a2 那次真跑里模型**实际发了 41 次工具调用**，其中 1 次把 `execute` 的
+`shell_command` 写成 `command`，被工具 schema 拒绝后由框架重新提示、以新 id 重发。SSE 里这次尝试是
+`tool-input-error`（`tool-input-start`=41 / `tool-input-available`=40 / `tool-input-error`=1），而 v1 的
+`parse_stream()` **不认这个事件类型** → R7 记的是"40 次调用、0 工具报错"，断言"无工具报错"是**假 PASS**。
+v2 从持久化消息重建，天然看得到（`raw_ui_messages` 里同 id 的 `state=="output-error"` part）。
+
+**已做的只读退出码实测（§9 第 1 步的只读部分）**
+
+- `run --resume <已结束 thread>` → `status=未知` 1 次轮询后由 `/timing` 判 `completed` → **inconclusive / EXIT=5**（16 PASS + 1 FAIL，FAIL 就是"没有活着观察到的终态"，符合预期）
+- `run --resume <thread> --turn-id 0000…` → `/thread-turns/validate` 返回 `exist=false` → **not_started / EXIT=4**
+- 两条都是 GET，**没有产生任何平台写动作**，也没有创建新 turn。
+
+**执行状态 / 剩余项**
+
+1. **R8**（§9 第 5 步）——**已于 2026-09-16 执行完毕**，见 §12.1；
+2. P7/P8 顺手排查（§8 排查口径）：**P7 已取得现场证据**（见 §12.1）；**P8 仍未测**（需一次「有意超时/中断」）→ 维持暂缓上报；
+3. **上游依赖漂移已顺手清掉**：`deps` 报 `pharmcube-query-clinical-result-with-params: schema changed`。
+   逐项核对后确认唯一差异是 `selected_fields` 描述里的**序号笔误修正**（`1./1./2.` → `1./2./3.`）；
+   18 个参数、73 个 `ALLOWED_FIELD_NAMES`、73 条字段描述**逐字节相同** → **本仓库无需适配**；
+   已按流程重生成 `docs/params-tool-schema.md` 镜像 → `deps --accept` → `deps` exit 0。
+4. 本次**不改 `skill/` 或 `system-prompts/`** → 不触发 Toolsmith 发布；`status` 复测 in sync（EXIT=0）。
+
+### 12.1 R8：轮询版首次端到端真跑（2026-09-16，已执行）
+
+- 输入与 R3/R7 相同（`解读这几个结果 24_1_30561610 24_1_36342163`，`DeepSeek Flash`），
+  thread `b1302c80-f1f6-487d-8244-f495a5848490` / turn `5506e105-9396-421f-a559-0d6e85c7962f`，
+  产物 `~/.local/state/toolsmith-runs/20260916-104943-v2-poll/` → **17/17 PASS，exit 0**。
+- **§9 T2「断流不取消 run」证实**：`POST` 后 **0.1 s** 就读到 `data-turn-start` 并断开（`stream.tap` 141 B / 1 事件），
+  然后 11 次轮询（20 s 间隔）看到 `running` → `completed`（202.4 s）→ **主通道成立，不需要 SSE**。
+- **§9 T3「`409` 幂等」证实**：对同一 `(thread_id, turn_id)` 重发 `POST /api/chat` →
+  **HTTP 409 `{"detail":"Turn already exists"}`，0.2 s 返回、零执行**（`chat_service.py:1502` `turn_exists(turn_id, thread_id, user_id)`）。
+  另：`--resume` 只重采集、**完全不 POST**（比本文档原方案更保守）。
+- **§8 P7 现场证据**：`/info.status` 已 `completed`，而 `/timing` 中该 turn 仍 `completed:false`、
+  `latency_ms` 从 204,066 ms 涨到 **350,200 ms**（+146 s）→ 「`/timing` 不能判活」从源码推论变成实测。
+- **§8 P8 未测**：本轮没做「有意超时/中断」实验；仅确认终态在完成的 **5.8 分钟内**仍能从 `/info.status` 读到
+  （与源码 300–360 s 窗口一致）。
+- **量具自身又发现两处错（已修，仓库台账记作 O10）**：① `verification` 里 `no tool errors` 打印两遍（遗留的重复 `add()`）；
+  ② `wall clock … server (permanent)` 把 `latency_ms` 当永久值 —— 实际上账时它是**现算活计数**（P7），
+  会记下一个偏小的服务端耗时。已改为**优先 `completed_at - started_at`**，无 `completed_at` 时回退并明写
+  「live `/timing` counter — keeps rising」。

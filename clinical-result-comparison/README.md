@@ -154,13 +154,20 @@ Prompts and Skill archives can be published from a script instead of the Web pag
 ### Self-verification after each iteration (verified 2026-09-13)
 
 After touching `skill/` or `system-prompts/`, run one real chat turn through the API and assert on its outputs:
-`toolsmith-publish run --prompt-file ~/.local/state/toolsmith-runs/ask.txt --tag <tag>`. It opens a thread, posts one user message, consumes the SSE stream,
-and then collects `/timing`, `/usage`, `/info`, `/artifacts/archive` (whole-workspace zip), and `/debug/history`, writing a
-`verification.md` into `~/.local/state/toolsmith-runs/<ts>-<tag>/`. Exit codes: `0` all assertions passed, `3` ran but something failed,
-`4` could not run. Thirteen assertions cover the deployed bytes (system prompt == local `system-prompts/*-v*.md`; skill body == local
+`toolsmith-publish run --prompt-file ~/.local/state/toolsmith-runs/ask.txt --tag <tag>`. It opens a thread, posts one user message, reads the SSE stream only far enough to see
+`data-turn-start` (<=20 s) and then disconnects, and polls `GET /api/threads/{tid}/info` (`status`) every <=60 s for the terminal state
+(the platform runs the turn as an independent task, so a detached client does not cancel it). It then collects `/timing`, `/usage`, `/info`,
+`/artifacts/archive` (whole-workspace zip), `/messages` and `/debug/history`, writing a
+`verification.md` plus a human-readable `transcript.md` into `~/.local/state/toolsmith-runs/<ts>-<tag>/`. A `run.json` with the
+`thread_id`/`turn_id` is written *before* the POST, so `--resume <THREAD_ID>` can pick a run back up; a repeated POST returns `409` and is
+treated as idempotent (never re-POST after a timeout). Exit codes: `0` all assertions passed, `3` ran but something failed,
+`4` the turn never landed in the database (`not_started`), `5` the terminal state was missed (`inconclusive`) or polling timed out.
+The tool chain and every error are rebuilt from persisted messages, not from SSE; a call rejected by a tool schema is reported separately
+as `schema-rejected` rather than as a tool error. Assertions cover the deployed bytes (system prompt == local `system-prompts/*-v*.md`; skill body == local
 `SKILL.md`; the supporting-file manifest matches file by file) and the output contract (fixed artifact paths, chart file names,
 envelope keys/`id`/`iframe_template`/`type`, `::visualization` tag count, leftover placeholders, nested entity anchors,
-`{{ref_n}}` closure, citations keys plus a date-only `paper_release_time_str`, `present_artifact` last, no tool errors). Findings are logged in `docs/toolsmith-verification-log.md`
+`{{ref_n}}` closure, citations keys plus a date-only `paper_release_time_str` and a non-empty `title` per entry, `present_artifact` last,
+no tool errors). Findings are logged in `docs/toolsmith-verification-log.md`
 (one `R<n>` entry per run, plus the two-column list "what we can fix" / "platform issues for the developers").
 Platform issues intended for other people are kept outside this repo (in the user's Obsidian vault).
 A run creates a thread, so it passes the same ownership guard as publishing.

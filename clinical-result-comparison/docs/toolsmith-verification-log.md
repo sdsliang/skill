@@ -27,10 +27,15 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 > 临时工作目录也在 `~/.local/state/toolsmith-publish/`；**不再用 `/tmp`**（`/tmp` 会被系统清空，
 > 本文件早期记录里的 `/tmp/...` 路径已不可复核，只保留平台侧 thread id 作为回捞入口）。
 
-`run` 会在该目录下落 `stream.sse`、`debug-history.json`、
-`artifacts.zip` + 解包目录、`prompt.txt`、`verification.md`（含逐条断言与工具调用链）。
+`run` 会在该目录下落 `run.json`（thread/turn/repo/model/tag，**POST 之前**就写，供 `--resume` 定位）、`prompt.txt`、
+`stream.tap`（有界 tap，仅存档、**不作为任何断言的输入**）、`debug-history.json`、`info.json` / `timing.json` / `usage.json`、
+`artifacts.zip` + 解包目录、`verification.md`（含轮询日志与分级断言）、`transcript.md`（人读的对话回放）。
 
-退出码：**0** 全过 / **3** 跑完了但有断言失败或工具报错 / **4** 根本没跑起来。
+退出码：**0** 全过 / **3** 跑完了但有断言失败（或非 schema 拒参的工具报错）/ **4** `not_started`（turn 从未进库，POST 没落地）/ **5** `inconclusive`（错过平台 300–360 s 的终态窗口）或 `timeout`。
+
+> **2026-09-16 起 `run` 不再消费 SSE**：`POST /api/chat` 只读到 `data-turn-start` 就断连，之后按 ≤60 s 轮询
+> `GET /api/threads/{tid}/info` 的 `status` 判终态（平台把 run 当独立任务跑，客户端断连只摘订阅者、**不 cancel**）。
+> 证据一律从持久化消息（`/debug/history`、`/messages`）与产物重建；`stream.sse` 不再产生。超时**绝不重发 POST**，只能 `--resume`。
 
 ### 为什么走 API 而不是看分享链接
 
@@ -42,7 +47,11 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 | 整轮 token / 耗时 | 只有 `latency_ms` | `/usage`、`/timing`、`/info`、`/limits` |
 | 产物 | 部分 | `/artifacts/archive` 一次拿整个 workspace 的 zip |
 
-## 1. `run` 自动核对的 13 项
+## 1. `run` 自动核对的断言（分级：PASS / FAIL / WARN）
+
+> **2026-09-16 起分级**：只有 **FAIL** 影响退出码（exit 3）；**WARN** 只打印。另外新增两项：
+> ① **终态必须 `completed`**（轮询判定的结局，`inconclusive`/`timeout` 另走 exit 5）；
+> ② **每个 tool-call 要么有 tool-return、要么被工具 schema 拒**（后者单列成“schema-rejected”，是 WARN/INFO 而非 tool error）。
 
 部署字节类（这是"我们改的东西真的上线了吗"的硬证据）：
 
@@ -61,7 +70,7 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 10. 每个 `{{ref_n}}` 都有 citations 条目（反向也查未引用）
 11. **citations 每个键恰为 `link` / `paper_release_time_str` / `title` 三字符串，`paper_release_time_str` 为 `YYYY-MM-DD` 或空串，且每个条目的 `title` 非空**（2026-09-14：先把「日期只取日期部分」变成机器可判定的契约，再把「引用不许是空壳」也变成可判定的——原第 11 项只查键集与日期格式，`{"ref_2":{"title":"","link":"","paper_release_time_str":""}}` 这种**空壳引用能全过**，是 R3 的真缺陷）
 12. 最后一个工具调用是 `present_artifact`
-13. 无 `tool-output-error`
+13. 无 `tool-output-error`（**仅**指非 schema 拒参者；被 `retry-prompt` 命中的一次尝试另有专项行）
 
 ### 附：`run --expect refusal` 模式（2026-09-14 新增，4 项）
 
@@ -179,6 +188,32 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 
 > **R3 的分享链接（`…/chat/share/4a2e4685-…`）无法修**：share 是那一轮 turn 的静态快照，含的就是旧字节的旧输出。修复只能体现为**新跑的 turn**（R6/R7）。
 
+### 验证工具自身升级（run v2 轮询版，2026-09-16）
+
+> 这不是 skill 迭代，而是**量具本身的升级**（`~/.local/bin/toolsmith-publish`，不入仓库）：SSE 消费 → 轮询
+> `GET /api/threads/{tid}/info` 的 `status`。设计/源码依据见 `docs/toolsmith-run-v2-polling-plan.md`（§12 = 实施状态）。
+> **本批不动 `skill/` 与 `system-prompts/`，因此没有新的 `R<n>`**；验收靠零网络重放 + 只读退出码实测。
+
+- **备份**：`~/.local/state/toolsmith-publish/toolsmith-publish.v1.bak`（65,790 B，改前副本）。
+- **S0（`status` 假警报）**：平台返回 snake_case `current_version_id`、工具读 camelCase `currentVersionId`（5 处）→ 新增 helper `fam_current_version_id()`。复测 `status` **EXIT=0**、`prompt deployed == local: True`。
+- **零网络重放闸门**（5 个已录制 run 的 `stream.sse` vs `debug-history.json`）：
+  `171953-cite-date 21/21`、`173645-a-2valid 23/23`、`173947-b-refusal 8/8`、`174145-b2-refusal 8/8`、`174222-a2-2valid 41=40+1 拒`。
+  判据：剔除被拒调用后**逐条等于** v1 链、无未返回调用、`errors` 数与 tap 一致 → **GATE: PASS**。
+- **只读退出码实测**（全 GET，无写动作）：`--resume <已结束 thread>` → `inconclusive` **exit 5**；`--turn-id <不存在>` → `not_started` **exit 4**。
+- **上游漂移顺手清掉**：`deps` 报 `pharmcube-query-clinical-result-with-params: schema changed`，逐项核对为 `selected_fields` 描述里的**序号笔误修正**（`1./1./2.` → `1./2./3.`），18 参数 / 73 字段名 / 73 字段描述**逐字节相同** → **本仓无需适配** → 重生成 `docs/params-tool-schema.md` 镜像 → `deps --accept` → `deps` exit 0。
+- **R8 已完成**（轮询版首次端到端真跑，见下节）：`17/17 PASS`、exit 0；**T2/T3 均已证实**。
+
+### R8 — 2026-09-16，2 个 esid（**轮询版 `run` 的首次端到端真跑**，输入与 R3/R7 相同）
+
+- thread `b1302c80-f1f6-487d-8244-f495a5848490`，turn `5506e105-9396-421f-a559-0d6e85c7962f`，产物 `~/.local/state/toolsmith-runs/20260916-104943-v2-poll/`，`DeepSeek Flash`。
+- **17/17 PASS，exit 0**。`POST` 后 **0.1 s 就断流**（`stream.tap` 141 B / 1 个事件），其后 **11 次轮询 / 20 s 间隔**看到 `running` → `completed`（202.4 s）→ **T2 证实：客户端断流不取消 run**。
+- 22 attempts = 22 returned + 0 schema-rejected（`execute×10 / read_file×6 / write_file×2 / load_skill×1 / params×1 / edit_file×1 / present_artifact×1`）；`in=1,253,918 out=39,699 reasoning=24,979 cached=1,212,032`；context `sys=20,701 mcp=5,919 tools=50,127 skill=17,201 conv=3,502`。
+- **产物**：`output/report.md` + `output/citations.json` + `visualizations/endpoint-bar-1.json`。**无 timeline** —— 两个 esid 属不同试验，规则「同试验 + ≥2 个证据状态才画时间轴」被正确执行。`citations.json` 两条均有真实标题与日期（`2018-12-19` / `2022-11-08`，与 R7 **逐字节相同**）。
+- **部署字节**：deployed sys = 本地 43,701 ch + 平台尾 18,543 ch（deck sha `1a9ff3d209ec`）、skill 正文 19,580 ch、18 个支持文件全等。
+- **T3（`409` 幂等）**：重发同一 `(thread_id, turn_id)` 的 `POST /api/chat` → **HTTP 409 `{"detail":"Turn already exists"}`，0.2 s 返回、零执行**（源码 `chat_service.py:1502` `turn_exists(turn_id, thread_id, user_id)`）→ 「超时后重发会double-execute」的担心可以排除。另：`--resume` 复测只**重采集、完全不 POST**（比方案更保守），0.2 s 内判定 `completed`。
+- **P7 现场证据**：同一 turn，`/info.status` 已 `completed`，而 `/timing` 里该 turn 仍 `completed:false`、`latency_ms` 从 204 s 一路涨到 **350 s**（+146 s）→ `/timing` 的 latency 是**现算的活计数**。**连带查出一处我们自己的错标**（记为 O10）。
+- **P8 未测**：本轮没做「有意超时/中断」实验；仅确认终态在关掉的 **5.8 分钟内**都能从 `/info.status` 读到 `completed`（与源码推出的 300–360 s 窗口一致）。故 P8 维持**暂缓上报**。
+
 ## 3. 我们自己能改的
 
 | # | 现象（证据） | 改法 | 状态 |
@@ -190,7 +225,9 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 | O5 | 小样本不便宜：1 个 esid 也要 21 次调用 / 173 s / 26k reasoning tokens（14 个 esid 是 50 次 / 299 s / 32k）；成本由"读 skill + 套模板"主导，不随结果数线性 | 暂不改。若体感贵，可考虑给"单结果解读"一条更轻的模板路径 | **待样本** |
 | O6 | 台账里写的本地产物路径（`/tmp/toolsmith-runs/...`）全部失效：`/tmp` 被系统清空，早期的 `R1/R2` 产物离线后无法复核（只剩平台侧 thread id 能回捞） | `toolsmith-publish` 的 `WORK` / `RUNS` 改到 `~/.local/state/toolsmith-publish` 与 `~/.local/state/toolsmith-runs`（不用 `/tmp`）；`run --out` 仍可覆盖 | **已落地**（2026-09-14，R3 起生效） |
 | O7 | 无效 esid 导致空转：R3 里我把 `24_1_45608045`（库中无数据）和有效 esid 一起给，模型对**同一个输入换了 8 种写法**（`extra_esids:["24_1_45608045"]` → `["45608045"]` → 改 `trial_id:"NCT02729025"` …）共 **8 次** params 调用，最后仍产出 `ref_2` 为**全空**（`title`/`link`/`paper_release_time_str` 均 `""`），而 13 项断言全过（断言只管「有对应条目」，不管条目是否为空） | 改法：① 一次批量拉取 + **至多一次**确认，同一 esid 连续空即停手，**不许换写法反复重试**（已写入 sys / `input-contract.md` / `citation-and-ref.md` / `SKILL.md`）；② 未返回的 esid **不分配 `{{ref_n}}`、不写 citation key**，**禁止空 `title` 条目**，keys 在「实际返回的记录」上连续；③ 可用记录 < 2 → **拒绝产出**并回 chat 说明（新增 `run --expect refusal` 断言框）；④ 断言第 11 项加「`title` 非空」 | **已落地**（2026-09-14；证据：R3 旧行为 8 次重试 + 空壳引用 vs **R5/R6 同输入 2 次调用、零产物、回复点名说明**；R7 两个条目均有真实标题/日期） |
+| O9 | **旧 `parse_stream()` 漏事件类型 → 假 PASS**：R7（a2 真跑）里模型实际发 **41** 次调用，其中 1 次把 `execute` 的 `shell_command` 写成 `command` 被 schema 拒、框架重新提示后重发；SSE 计数 `tool-input-start=41 / tool-input-available=40 / tool-input-error=1`，而 v1 只认后两者 → 台账记成「40 次调用、0 工具报错」，第 10 项断言「无工具报错」是**假绿**（同类问题也会让真报错漏判） | 工具侧：调用链改从 `/debug/history` 的持久化消息重建（`tool_chain_from_history()`），被拒调用（有匹配 `retry-prompt` 的 `tool_call_id`）单列 `rejected` 并给 WARN/INFO、不计入 `errors`；新增「每个 tool-call 要么有 return 要么被 schema 拒」断言。`parse_stream()` 降级为 legacy 对账 oracle | **已落地**（2026-09-16；证据：5 run 重放门禁 PASS，其中 a2 的 41=40+1 被正确拆出） |
 | O8 | 同输入重复确认：R5 里规则已写「至多一次确认」，实际 params 调了 3 次——第 2、3 次**参数完全相同**（同一个 `24_1_45608045` 再查一遍） | `input-contract.md` + sys 加一句：**参数不变的确认不得重复**（同一 esid + 同一 `selected_fields` 空两次就是真的不在）；同时明确「不同用途的第二次调用（如补字段）不是确认、仍允许」，以免误伤 R4 那种合理的补字段调用 | **已落地**（2026-09-14；证据：R6 同输入 params **恰好 2 次**） |
+| O10 | **量具自己的两处错**（R8 真跑时暴露）：① `verification` 里 `[PASS] no tool errors` **打印两遍**（一处遗留的重复 `add()`）；② `wall clock: … server (permanent)` 把 `/timing.turns[].latency_ms` 当永久值，而它其实是**现算活计数**（同一 turn 204 s → 350 s 还在涨，见 P7） → 台账里可能记下一个偏小的服务端耗时 | ① 删掉重复断言；② `turn_completed_ms()` 改为**优先 `completed_at - started_at`**，无 `completed_at` 时回退 `latency_ms` 并在输出里明写「live `/timing` counter … keeps rising」 | **已落地**（2026-09-16，`py_compile` + `--resume` 复测：新文案与 17 项断言均正常） |
 
 ## 4. 平台侧（转开发）
 
