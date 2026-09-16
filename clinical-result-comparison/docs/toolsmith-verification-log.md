@@ -212,7 +212,31 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 - **部署字节**：deployed sys = 本地 43,701 ch + 平台尾 18,543 ch（deck sha `1a9ff3d209ec`）、skill 正文 19,580 ch、18 个支持文件全等。
 - **T3（`409` 幂等）**：重发同一 `(thread_id, turn_id)` 的 `POST /api/chat` → **HTTP 409 `{"detail":"Turn already exists"}`，0.2 s 返回、零执行**（源码 `chat_service.py:1502` `turn_exists(turn_id, thread_id, user_id)`）→ 「超时后重发会double-execute」的担心可以排除。另：`--resume` 复测只**重采集、完全不 POST**（比方案更保守），0.2 s 内判定 `completed`。
 - **P7 现场证据**：同一 turn，`/info.status` 已 `completed`，而 `/timing` 里该 turn 仍 `completed:false`、`latency_ms` 从 204 s 一路涨到 **350 s**（+146 s）→ `/timing` 的 latency 是**现算的活计数**。**连带查出一处我们自己的错标**（记为 O10）。
-- **P8 未测**：本轮没做「有意超时/中断」实验；仅确认终态在关掉的 **5.8 分钟内**都能从 `/info.status` 读到 `completed`（与源码推出的 300–360 s 窗口一致）。故 P8 维持**暂缓上报**（实验设计已定稿，见 `docs/toolsmith-run-v2-polling-plan.md` §8.1）。
+- **P8 未测（当时）**：本轮没做「有意超时/中断」实验；仅确认终态在关掉的 **5.8 分钟内**都能从 `/info.status` 读到 `completed`（与源码推出的 300–360 s 窗口一致）。→ **已于 2026-09-16 补齐，见 R9 / P8**。
+- **后续更正（R9 复读时发现）**：本行里的 “350 s” 是**活计数误读** —— `/timing` 在内存期为**临时行**，
+  `latency_ms` 现算且**大幅高估**；R9 完成后回读本 thread，`latency_ms` **冻结在 202,049 ms** = 真实服务端耗时
+  **202.0 s**（与 `completed_at - started_at` 逐毫秒相等）。O10 的量具修复已按这个口径落地。
+
+### R9 / P8 — 2026-09-16，2 个 esid（客户端被 `kill -9` 的一轮；P8 实验的写动作那一半）
+
+- 源码与目标：回答 `docs/toolsmith-run-v2-polling-plan.md` §8 的 P8（错过 300–360 s 终态窗口后还能不能拿回结局与内容）。
+  执行方式与设计略有不同：**E-P8-1 与 E-P8-3 合并** —— 用 `kill -9` 客户端（比 `--timeout` 主动放弃更狠）代替提前退出。
+- 本轮：`run --prompt-file ask.txt --tag p8-kill`，thread `1d8f2104-5a3f-46d3-b382-d8626eaec39b` /
+  turn `d67e8c37-1491-4d24-825c-05af7db66c10`，产物 `~/.local/state/toolsmith-runs/20260916-112352-p8-kill/`。
+- **硬杀不取消 run**：客户端在第 3 次轮询（**40.5 s**，`status=running`）被 `kill -9` → 同一 turn 照跑到 `completed`
+  （服务端 11:23:53 → 11:26:44，真实 **171.1 s**）。比 R8 的 T2（断 socket）更强。
+- **resume 完整自愈**：`run --resume`（只重采集、完全不 POST）在窗口内补齐 → **17/17 PASS / exit 0**；
+  27 次工具调用（27 returned + 0 schema-rejected；`read_file`×11 / `execute`×9 / `edit_file`×3 / `load_skill`×1 /
+  params×1 / `write_file`×1 / `present_artifact`×1）；turn tokens `in=1,448,663 out=31,718 reasoning=21,648`；
+  产物 `report.md` + `citations.json` + `endpoint-bar-1.json`（无 timeline 是正确的：两个 esid 属不同试验）。
+- **事实清单第二份独立样本**：同一场景 A 的新产物 → `SCORE scenario=a facts 30/30 warn 1/1 -> PASS`（修正打分器句切后；修正前 29/30 是 O12 假 FAIL）。
+- **P7 的描述被实测修正**：活窗口内 `/timing` 是**临时行**（`completed_at=null`、`completed=false`、`latency_ms` 现算递增），
+  实测被读到的序列 190,000 → 350,200 → 429,651 → 443,488 ms；窗口过期后换成**持久化行**（三者同时变正确，
+  `latency_ms` 冻结在 171,141＝真实耗时）。⇒ 活窗口的 `latency_ms` 不只是滞后，而是**大幅高估**；
+  R8 的真实服务端耗时因此更正为 **202.0 s**（此前记的 “350.2 s server” 是活计数误读，O10 已修）。
+- **P8 判定**：`>10 min` 后 `completed_at` + `/thread-turns/validate`（`exist: true`）仍可拿回结局与全量内容
+  （`/messages` 23 条、`/debug/history` 4.26 MB、`/artifacts/archive` 19 KB）⇒ **体验问题，不报开发**；
+  我们侧只需把「窗口过期后靠 `completed_at` 直接收尾」写进 `run`（连同 O13）。
 
 ### F1 — 事实清单基线 + 负向对照（2026-09-16，**离线，零新 run**）
 
@@ -220,8 +244,9 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 - **清单基线**（直接打 R8 产物，未重跑）：`SCORE scenario=a facts 30/30 warn 1/1 -> PASS`（exit 0）、
   `SCORE scenario=b facts 12/12 warn 1/1 -> PASS`（exit 0，B 打的是 R6 拒产 run）。
 - **负向对照（证明清单有牙）**：`python3 evals/fact-check/mutations.py` → **GATE PASS**：
-  arm A 14 个变异翻天 30/30 条 fail 级条目；arm B 11 个变异翻天 12/12 条；每个变异都令退出码变 **3**。
-  基线（未变异）两份清单必须全 PASS，否则视为清单自身写错。
+  arm A **15** 个变异翻天 30/30 条 fail 级条目（M05 改引注、M15 表格单元格跨记录归属）；arm B **11** 个变异翻天 12/12 条；
+  每个变异都令退出码变 **3**，且必须命中**预期 item id**（只判 `rc==3` 不够）。基线（未变异）两份清单必须全 PASS。
+- **第二份独立样本**：R9（同一场景 A 的新产物）→ `SCORE scenario=a facts 30/30 -> PASS`（修正 O12 的句切后）。
 - **意义**：质量层从「布尔门」升级为 `facts_ok/facts_total` 标量（`docs/autoresearch-iteration-plan.md` §9），
   后续 keep/discard 先看事实分不掉。
 
@@ -240,6 +265,9 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 | O8 | 同输入重复确认：R5 里规则已写「至多一次确认」，实际 params 调了 3 次——第 2、3 次**参数完全相同**（同一个 `24_1_45608045` 再查一遍） | `input-contract.md` + sys 加一句：**参数不变的确认不得重复**（同一 esid + 同一 `selected_fields` 空两次就是真的不在）；同时明确「不同用途的第二次调用（如补字段）不是确认、仍允许」，以免误伤 R4 那种合理的补字段调用 | **已落地**（2026-09-14；证据：R6 同输入 params **恰好 2 次**） |
 | O10 | **量具自己的两处错**（R8 真跑时暴露）：① `verification` 里 `[PASS] no tool errors` **打印两遍**（一处遗留的重复 `add()`）；② `wall clock: … server (permanent)` 把 `/timing.turns[].latency_ms` 当永久值，而它其实是**现算活计数**（同一 turn 204 s → 350 s 还在涨，见 P7） → 台账里可能记下一个偏小的服务端耗时 | ① 删掉重复断言；② `turn_completed_ms()` 改为**优先 `completed_at - started_at`**，无 `completed_at` 时回退 `latency_ms` 并在输出里明写「live `/timing` counter … keeps rising」 | **已落地**（2026-09-16，`py_compile` + `--resume` 复测：新文案与 17 项断言均正常） |
 | O11 | **事实清单打分器自身的三处缺陷**（全部由负向对照暴露，否则会带着假绿上路）：① 用 `edit` 插入 `op_artifact_absent` 时**误删了 `def op_glob_count` 的头行** → `NameError`；② 归因规则原本按**整行**判（report 行内同时出现 A/B 两条记录的元素），把 B 的药名写成 A 的药**逃过检查**（变异 M06）；③ 改成句粒度后又误伤**表格行**——表格行的引注按单元格分布，按 `；` 切句会把「引注在最后一格」的数值单元格判成无人认领（R8 报告里一行对比表即触发假 FAIL） | ① 补回 def 并立规矩：插入后立即 `py_compile`；② 归因单元改为「散文按 `。；` 切句 / 表格行按 `|` 切单元格，无引注的单元格继承该行引注」；③ 另加 `line` 类条目 `A-T1-title-names-both` 补上「标题无引注、不受归因规则保护」这个缺口 | **已落地**（2026-09-16；判据：`mutations.py` 双盲 GATE PASS，A 30/30 / B 12/12） |
+| O12 | **打分器把括号内的 `；` 当句边界**：`（-70.5% 至 -101.1%，第 36 周{{ref_2}}；对应 -13.9%，第 16 周{{ref_1}}）` 被切成两半，每半只剩一条记录的引注 → **R9 那份正确的报告被判 `A-ATTR-misattribution` 假 FAIL（29/30）** | `sentences()` 改为**只在括号/方括号深度 0 处切句**（`（(［[【` / `）)］]】` 计数）；并在 `evals/fact-check/README.md` 写明该规则 | **已落地**（2026-09-16；判据：R8 仍 30/30、R9 由 29/30 → 30/30、`mutations.py` GATE 仍 PASS） |
+| O13 | **变异 harness 把字符串当正则**：`sub()` 用 `re.subn`，而 `| 试验 B {{ref_2}} |` 里的 `|` 是**空分支交替** → 一次替换 **7923 处**，把整份报告改烂，却仍报“变异成功”（翻转 19 条 item，掩盖了真正的定位） | 新增 `sub_lit()`（`re.escape` + `count=1`）用于含 `|`/`{}` 的字面量；`sub()` 加**替换次数上限**断言 `n <= max(200, len(text)//200)` —— 这类“匹配到到处都是”的静默灾难直接 fail-loud | **已落地**（2026-09-16；判据：M15 从“翻转 19 条”收敛为“只翻 `A-ATTR`”，GATE PASS） |
+| O14 | **`run` 的 `not_started` 判定实际从未生效**：取的是 `me(c)['id']`，而 `/api/auth/me` 返回的是 **`user_id`** ⇒ `uid` 恒为 `None` ⇒ `/thread-turns/validate` **根本没被调用** ⇒ `in_db` 永为 `None` ⇒ **任何“状态未知”的 turn 都被无条件报成 `not_started`（exit 4，“the POST never landed”）**。只读实测：真实已完成 turn + 正确 `user_id` → `{"exist": true}`；缺参 → **HTTP 422**；传字串 `None` → `{"exist": false}`（假阴性） | 改 `me(c).get("user_id") or .get("id")`；并在 validate 说 `exist=true` 时先看 `/timing` 的 `completed_at`：有值就直接按已结束收尾（走完断言），不捛到 `--timeout`（默认 2400 s）才报 `timeout` | **待拍板**（P8 顺手查出，已给证据；改工具本体前先备份 + 需用户同意） |
 
 ## 4. 平台侧（转开发）
 
@@ -259,6 +287,17 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
   `/artifacts/content` 的 `content` 外层包装也易踩空。
 - **P6** `POST /api/tools/debug` 的必填字段与 schema 不一致：源码里 `ToolDebugRequest.mcp_server_id: str | None = None`（OpenAPI 呈现为 `anyOf[string,null]`、不在 `required`），但 `origin == "MCP"` 时不传就被 `model_validator` 拦下，422 原文
   `"mcp_server_id is required for MCP tool debug"` —— 调用方只能从报错反推。
+
+**P7 / P8 在 2026-09-16 已由 `docs/toolsmith-run-v2-polling-plan.md` §8.1.1 的三轮实验定案，两项都降为「不报」**：
+
+- **P8（原：终态不落库、错过 300–360 s 窗口就无法区分成功/失败）→ 撤销上报**。实测：窗口过期后 `/info.status` 确实回落
+  `未知`，但 `/timing` 的**持久化行**（`completed_at` / `completed=true` / 冻结的 `latency_ms`）与
+  `/thread-turns/validate`（`exist: true`）都长期可读，`/messages` / `/debug/history` / `/artifacts/archive` 一样在。
+  ⇒ 终态与全量内容可重建，属客户端体验问题，我们自己加 fallback 即可。
+- **P7（原：`/timing.active_turn` 不判状态）→ 描述修正、仍降为不报**。准确描述是：run 仍在内存时 `/timing` 给的是
+  **临时行**（`completed_at=null`、`completed=false`、`latency_ms` **现算递增且大幅高估**，实测 190 s → 350 s → 429 s →
+  443 s，真实只跑了 171 s）；`cleanup_stale` 之后换成**持久化行**（三个字段同时变正确）。
+  结论不变（`/info.status` 为唯一终态判据已足够），但“滞后”这个说法要改成“**临时行不可信**”。
 
 ### 2026-09-14 对照 TS `master` @ `50f048b`（拉最新代码后再核）
 

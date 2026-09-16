@@ -170,8 +170,26 @@ def refs_in(block: str) -> set:
 
 
 def sentences(block: str) -> list:
-    """Sentence-ish units inside a block: a mixed-mode line must still attribute per claim."""
-    return [s for s in re.split(r"(?<=[。；;])", block) if s.strip()]
+    """Sentence-ish units inside a block: a mixed-mode line must still attribute per claim.
+
+    Split points are terminators **at bracket depth 0** only.  A `；` that separates clauses
+    inside a parenthetical (e.g. `（-70.5% 至 -101.1%，第 36 周{{ref_2}}；对应 -13.9%，第 16 周{{ref_1}}）`)
+    must not cut the unit in two: each half would then lose the other record's marker and every
+    number in it would look misattributed (false FAIL on a correct report — seen on the P8 run).
+    """
+    out, buf, depth = [], [], 0
+    for ch in block:
+        if ch in "（(［[【":
+            depth += 1
+        elif ch in "）)］]】":
+            depth = max(0, depth - 1)
+        buf.append(ch)
+        if depth == 0 and ch in "。；;":
+            out.append("".join(buf))
+            buf = []
+    if "".join(buf).strip():
+        out.append("".join(buf))
+    return [s for s in out if s.strip()]
 
 
 def units(block: str) -> list:

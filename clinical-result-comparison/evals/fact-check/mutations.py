@@ -29,6 +29,9 @@ SRC_A = os.environ.get("MUT_RUN_A", os.path.join(RUNS, "20260916-104943-v2-poll"
 SRC_B = os.environ.get("MUT_RUN_B", os.path.join(RUNS, "20260914-174145-b2-refusal"))
 COPY_A = ["messages.json", "transcript.md"]
 COPY_B = ["debug-history.json"]
+MAX_MATCHES = 200   # floor; the real bound is size-relative (see `sub`): M05 legitimately
+                    # rewrites every `{{ref_1}}` (~50 in a 15 KB report) and arm B mutates a
+                    # ~1 MB debug-history.json where a drug name occurs hundreds of times.
 
 
 def fresh(name, src, files, with_artifacts):
@@ -53,8 +56,19 @@ def sub(path, pat, rep, count=0):
     t = open(path, encoding="utf-8").read()
     new, n = re.subn(pat, rep, t, count=count)
     assert n > 0, f"mutation pattern {pat!r} matched nothing in {path}"
+    # A replace-all mutation that fires hundreds of times means the pattern was read as a
+    # regex by accident (e.g. a literal `| a | b |` becomes an alternation with empty
+    # branches and matches at every position) — that corrupts the whole file and silently
+    # turns a targeted mutation into "delete everything".
+    assert n <= max(MAX_MATCHES, len(t) // 200), \
+        f"mutation pattern {pat!r} matched {n} times in {path}"
     open(path, "w", encoding="utf-8").write(new)
     return n
+
+
+def sub_lit(path, literal, rep, count=1):
+    """Replace a literal string (metacharacters escaped) — use for text containing `|` or `{}`."""
+    return sub(path, re.escape(literal), rep, count=count)
 
 
 def score(run_dir, scenario):
@@ -147,6 +161,12 @@ def M14(d, r, c, v):
     return 1
 
 
+def M15(d, r, c, v):  # cross-attribution inside a ref_2-only table row
+    return sub_lit(os.path.join(d, "artifacts/output/report.md"),
+                   "| 试验 B {{ref_2}} |",
+                   "| 试验 B（优于依洛尤单抗）{{ref_2}} |")
+
+
 MUTS_A = [
     ("M01 minus139", M01, "A-C4-primary-A"),
     ("M02 signflip", M02, "A-N2-no-sign-flip"),
@@ -162,6 +182,7 @@ MUTS_A = [
     ("M12 no-report", M12, "A-S1-artifacts"),
     ("M13 chart-envelope", M13, "A-S8-chart-envelope"),
     ("M14 cite-drop-ref", M14, "A-S3-cite-keys"),
+    ("M15 cross-attribution", M15, "A-ATTR-misattribution"),
 ]
 
 # --------------------------------------------------------------- arm B mutations

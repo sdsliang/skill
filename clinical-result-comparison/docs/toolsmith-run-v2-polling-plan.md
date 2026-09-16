@@ -370,7 +370,7 @@ DONE 之后：
 - P7：`/timing.active_turn` 在轮询过程中是否出现"`/info.status` 已终态、而它还在报 `completed=false` + latency 继续涨"——§4 状态机已用 `/info.status` 作唯一终态判据绕过它，这里只是确认绕过是否足够。
 - P8：一次有意超时/中断的运行，看轮询能否在 300 s 窗口内捕获终态；错过窗口时能否靠持久化消息里的 `error_type` 把结局反推出来（§5.6）。若都能，P8 就只是"体验问题"，可以不报。
 
-### 8.1 P8 实验设计（E-P8-1/2/3，**已定稿、未执行**；执行 = 写动作，需用户点头）
+### 8.1 P8 实验设计（E-P8-1/2/3，**2026-09-16 已执行完成 → 见 §12.2 结果**）
 
 **要回答的唯一问题**：错过那 300–360 s 的终态窗口后，我们还能不能把这一次 run 的结局与内容完整拿回来？
 能 → P8 降为「体验问题」，不报；不能 → 升级为功能性缺陷上报开发。
@@ -393,6 +393,28 @@ DONE 之后：
 **成本**：E-P8-1 一轮 ≈ 3.5 min 墙钟（比 R8 的 202 s 略长，因为有意提前放弃后会继续跑完）；E-P8-2 0 成本；
 E-P8-3 复用 E-P8-1 的 run ⇒ **合计 1 次新 run**。执行前需确认：该轮会真实消耗 token（约 1.2 M in / 40 k out，
 与 R8 同量级）。
+
+### 8.1.1 执行结果（2026-09-16，一轮真跑 + 两次只读复读）
+
+**执行方式与设计不同点**：E-P8-1 与 E-P8-3 合并为同一轮 —— 用 `kill -9` 客户端（比「主动放弃」更狠）代替
+`--timeout 60` 提前退出，因此同时回答「客户端消失后 run 是否继续」与「放弃后能否 resume 补齐」。
+
+| 实验 | 实测 | 结论 |
+|---|---|---|
+| **E-P8-3**（硬杀） | `run --tag p8-kill` 起跑，第 3 次轮询（`40.5 s`，`status=running`）时 `kill -9` 客户端 → 同一 turn 随后正常跑到 `completed`（服务端 11:23:53 → 11:26:44） | **`kill -9` 也不取消 run**（比 R8 的 T2「断 socket」更强）；`run` 作为独立 asyncio 任务成立 |
+| **E-P8-1**（resume 补齐） | 杀掉后立即 `run --resume <thread> --tag p8-resume`（只重采集、完全不 POST）→ 在窗口内拿到终态，**17/17 PASS / exit 0**，产物 `report.md` + `citations.json` + `endpoint-bar-1.json` 齐全 | 客户端放弃**可完整自愈** |
+| **E-P8-2**（>10 min 后复读，t+11 min） | `/info.status` 回落到 **`未知`**（窗口到期）；但 `/timing` 的**持久化行**出现：`completed_at=2026-09-16T11:26:44.370178`、`completed=true`、`latency_ms=171141`（**冻结**）；`/thread-turns/validate` → `{"exist": true}`；`/messages` 23 条、`/debug/history` **4.26 MB**、`/artifacts/archive` 19 KB 全部可读；R8 的旧 thread 同样如此 | **终态与全量内容都能拿回来** —— 不靠 `/info.status`，靠 `completed_at` + `validate`（两者都落库）。→ 判定表第二行：**体验问题，不报** |
+
+**顺带纠正两件事**
+
+1. **P7 的准确描述**（原描述只说「不判状态」）：“内存中（`cleanup_stale` 之前）`/timing` 返回**临时行**： `completed_at=null`、
+   `completed=false`、`latency_ms` 现算递增；窗口过期后换成**持久化行**：三者同时变正确。”
+   实测 R9：`latency_ms` 在被读到时依次为 190,000 → 350,200 → 429,651 → 443,488 ms（全程 `completed:false`），
+   窗口过期后冻结为 **171,141 ms**（= 真实服务端墙钟，与 `completed_at - started_at` 逐毫秒相等）。
+   ⇒ **活窗口内的 `latency_ms` 不止滞后，而且大幅高估**（350 s vs 真实 171 s）；它不是“不判状态”这么轻。
+   我们的量具已按 O10 改成「优先 `completed_at - started_at`，无则回退并标注 provisional」，此处结论与 O10 一致。
+2. **R8 的真实服务端耗时** = **202.0 s**（持久化行 `latency_ms=202049`），当时记的 “202.4 s polled” 是对的，
+   “350.2 s server” 是活计数误读（O10 已修）。
 
 ### 8.2 内部的文档坑（**不对外报**，实现时别信文档）
 
@@ -523,7 +545,7 @@ v2 从持久化消息重建，天然看得到（`raw_ui_messages` 里同 id 的 
 **执行状态 / 剩余项**
 
 1. **R8**（§9 第 5 步）——**已于 2026-09-16 执行完毕**，见 §12.1；
-2. P7/P8 顺手排查（§8 排查口径）：**P7 已取得现场证据**（见 §12.1）；**P8 已定稿实验设计（§8.1，E-P8-1/2/3 + 判定表，1 次新 run）但未执行** → 维持暂缓上报；
+2. P7/P8 顺手排查（§8 排查口径）：**P7 已取得现场证据并修正描述**（见 §12.1、§8.1.1）；**P8 已于 2026-09-16 执行完毕**（§8.1.1，三轮臂全答）→ 判定表第二行：**体验问题，**不报****。剩下要做的只是把「窗口过期后靠 `completed_at` 直接收尾」写进 `run`（见 §12.2 待办 2）；
 3. **上游依赖漂移已顺手清掉**：`deps` 报 `pharmcube-query-clinical-result-with-params: schema changed`。
    逐项核对后确认唯一差异是 `selected_fields` 描述里的**序号笔误修正**（`1./1./2.` → `1./2./3.`）；
    18 个参数、73 个 `ALLOWED_FIELD_NAMES`、73 条字段描述**逐字节相同** → **本仓库无需适配**；
@@ -542,9 +564,31 @@ v2 从持久化消息重建，天然看得到（`raw_ui_messages` 里同 id 的 
   另：`--resume` 只重采集、**完全不 POST**（比本文档原方案更保守）。
 - **§8 P7 现场证据**：`/info.status` 已 `completed`，而 `/timing` 中该 turn 仍 `completed:false`、
   `latency_ms` 从 204,066 ms 涨到 **350,200 ms**（+146 s）→ 「`/timing` 不能判活」从源码推论变成实测。
-- **§8 P8 未测**：本轮没做「有意超时/中断」实验；仅确认终态在完成的 **5.8 分钟内**仍能从 `/info.status` 读到
-  （与源码 300–360 s 窗口一致）。
+- **§8 P8 当时未测**：本轮没做「有意超时/中断」实验；仅确认终态在完成的 **5.8 分钟内**仍能从 `/info.status` 读到
+  （与源码 300–360 s 窗口一致）——**P8 已于 2026-09-16 补齐，见 §8.1.1**。
 - **量具自身又发现两处错（已修，仓库台账记作 O10）**：① `verification` 里 `no tool errors` 打印两遍（遗留的重复 `add()`）；
   ② `wall clock … server (permanent)` 把 `latency_ms` 当永久值 —— 实际上账时它是**现算活计数**（P7），
   会记下一个偏小的服务端耗时。已改为**优先 `completed_at - started_at`**，无 `completed_at` 时回退并明写
   「live `/timing` counter — keeps rising」。
+
+### 12.2 R9 / P8：客户端被 `kill -9` 的那一轮（2026-09-16，已执行）
+
+- thread `1d8f2104-5a3f-46d3-b382-d8626eaec39b` / turn `d67e8c37-1491-4d24-825c-05af7db66c10`，
+  输入与 R8 相同（同场景 A），`kill -9` 后 `--resume` 补齐 → **17/17 PASS / exit 0**；
+  服务端真实耗时 **171.1 s**、27 次工具调用（27 returned + 0 schema-rejected）、
+  turn tokens `in=1,448,663 out=31,718 reasoning=21,648`。
+- 事实清单打分（新 run 作为第二份独立样本）：**A 30/30 PASS**（修正打分器句切后）。
+- **P8 三个臂全部回答完**（§8.1.1）：硬杀不取消、resume 能补齐、>10 min 后 `completed_at` + `validate` 仍可拿回结局与全部产物。
+- **本轮又摸到两个我们自己侧的问题（仓库台账 O12/O13）**：
+  1. **O12**：打分器把括号内的 `；` 当句边界，硬生生把 `（…{{ref_2}}；对应 …{{ref_1}}）` 切成两半，
+     于是 R9 那份**正确的**报告被成 `A-ATTR-misattribution` 假 FAIL（29/30）。改为「只在括号/方括号深度 0 处切句」；
+     同时发现了 harness 自己的一颗雷：变异用的字符串被当**正则**（`| 试验 B {{ref_2}} |` 里的 `|` 变成空分支交替，
+     一次替换 **7923** 处、把报告改烂）→ 加 `sub_lit()`（`re.escape`）与「替换次数上限」断言。
+  2. **O13**（**更严重**）：`run` 在「`/info.status` 认不出来」时靠 `/thread-turns/validate` 判 `not_started`，
+     但代码取的是 `me(c)['id']` —— 而 `/api/auth/me` 返回的是 **`user_id`**，`id` 恒为 `None` ⇒ `uid` 为假 ⇒
+     **validate 根本不会被调用** ⇒ `in_db` 永远 `None` ⇒ **任何「状态未知」的 turn 都被无条件报成 `not_started`（exit 4）**。
+     实测（只读）：真实的已完成 turn 带正确 `user_id` 查 validate → `{"exist": true}`，缺参 → **HTTP 422**，
+     传字串 `None` → **`{"exist": false}`**（假阴性）。修法 = 取 `me(c).get("user_id") or .get("id")`，
+     并（建议）在 validate 说 `exist=true` 时先看 `/timing` 的 `completed_at`：有值 → 直接按已结束收尾（走断言），
+     不必捛到 `--timeout`（默认 2400 s）才报 `timeout`。
+     **待用户点头后再改工具本体**（改前先备份）。
