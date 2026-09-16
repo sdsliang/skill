@@ -12,6 +12,12 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 
 ## Housekeeping conventions
 
+- **叫法约定（用户 2026-09-16 要求，硬性）**：本项目涉及 ToolSmith 时只用四个词，**禁用“工具本体”这种含糊说法**：
+  **runner** = 本机 CLI `~/.local/bin/toolsmith-publish`（**我们能改**，改前先备份 + `py_compile` + `python3 /tmp/verify_v2.py` 回归 + 台账 `R<n>`）；
+  **TS 平台** = 远端 ToolSmith 服务与只读参考仓 `~/apps/tool-smith`（**改不了**，只写问题单）；
+  **TS 资产** = 平台上已发布的 prompt / 技能（能改，**每次先问**）；
+  **仓库资产** = `skill/`、`system-prompts/`、`evals/`、`docs/`（能改，`commit`/`push` 本项目免确认）。
+  回答“要不要改 X”时必须点名哪一层 + 具体文件。详见 `/home/xupeipeioo1/AGENTS.md`。
 - 从 NP Clinical 拉取的示例数据（`evals/**/np-clinical-*/`）不入库：`.gitignore` 已忽略，`fetch-np-clinical-attachments.mjs` 可随时重拉。已提交的历史版本也已从跟踪移除（commit 63c031c）。
 
 ## 📌 待办: 报告表格整表复制 / 整表下载 CSV-Excel（2026-09-01，已交产品验证，不改文件）
@@ -126,16 +132,25 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
   ④ **顺手查出旧工具假 PASS（→ 台账 O9）**：`parse_stream()` 不认 `tool-input-error`，把 a2 的 **41 次尝试记成 40 次调用 + 0 报错**；v2 从持久化消息重建时按构造必然捕获（该次是 `execute` 把 `shell_command` 写成 `command`，被 schema 拒后重发）。
   ⑤ **上游漂移已清**：`deps` 报 params 工具 `schema changed`，逐项核对仅为 `selected_fields` 描述里的序号笔误修正（`1./1./2.` → `1./2./3.`），18 参数 / 73 字段名 / 73 字段描述逐字节相同 → **本仓无需适配** → 重生成 `docs/params-tool-schema.md` 镜像 → `deps --accept` → `deps` exit 0。
   ⑥ **本批不改 `skill/` 与 `system-prompts/`** → 不触发 Toolsmith 发布；`status` 复测 **in sync（EXIT=0）**。
-  ⑦ **R8 = 轮询版首次端到端真跑（2026-09-16）**：thread `b1302c80-f1f6-487d-8244-f495a5848490`（2 esid），**17/17 PASS / exit 0**；`POST` 后 **0.1 s 断流**，靠 **11 次轮询**看到 `running`→`completed`（202.4 s）→ **T2 证实**（断流不取消 run）；同 `(thread_id, turn_id)` 重发 → **HTTP 409 `Turn already exists`（0.2 s、零执行）→ T3 证实**；**P7 现场证据**：`/info.status=completed` 而 `/timing` 仍 `completed:false`、`latency_ms` 204 s→350 s。**P8 未测**（需一次有意超时）→ 维持暂缓上报。顺带修了量具自己两处错（重复打印的 `no tool errors`；把 `/timing` 活计数当永久值）→ 台账 **O10**。
-  ⑧ `docs/autoresearch-iteration-plan.md` 的执行队列：**S1.5（必含事实清单 + 离线打分器）已于 2026-09-16 完成** → `evals/fact-check/`（`records/` 2 份 `POST /api/tools/debug` 真实返回 + 场景 A 30 条 / B 12 条 fail 级事实 + `check.py` + `mutations.py` + `README.md`）。基线（打 R8 产物、零新 run）：**A 30/30 PASS、B 12/12 PASS**；负向对照 `mutations.py` → **GATE PASS**（A 14 个变异覆盖 30/30、B 11 个覆盖 12/12，每个变异 rc=3）。质量层自此有 `facts_ok/facts_total` 标量。
+  ⑦ **R8 = 轮询版首次端到端真跑（2026-09-16）**：thread `b1302c80-f1f6-487d-8244-f495a5848490`（2 esid），**16/16 PASS / exit 0**；`POST` 后 **0.1 s 断流**，靠 **11 次轮询**看到 `running`→`completed`（**202.0 s**；当时打印的 202.4 s 是活计数）→ **T2 证实**（断流不取消 run）；同 `(thread_id, turn_id)` 重发 → **HTTP 409 `Turn already exists`（0.2 s、零执行）→ T3 证实**；**P7 现场证据**：`/info.status=completed` 而 `/timing` 仍 `completed:false`、`latency_ms` 204 s→350 s。**P8 当时未测**（需一次有意超时）→ 已于 2026-09-16 补齐并改判，见 ⑨。顺带修了量具自己两处错（重复打印的 `no tool errors`；把 `/timing` 活计数当永久值）→ 台账 **O10**。
+  ⑧ `docs/autoresearch-iteration-plan.md` 的执行队列：**S1.5（必含事实清单 + 离线打分器）已于 2026-09-16 完成** → `evals/fact-check/`（`records/` 2 份 `POST /api/tools/debug` 真实返回 + 场景 A 30 条 / B 12 条 fail 级事实 + `check.py` + `mutations.py` + `README.md`）。基线（打 R8 产物、零新 run）：**A 30/30 PASS、B 12/12 PASS**；负向对照 `mutations.py` → **GATE PASS**（A **15** 个变异覆盖 30/30、B 11 个覆盖 12/12，每个变异 rc=3）。质量层自此有 `facts_ok/facts_total` 标量。
   ⑨ **P8 实验已于 2026-09-16 执行完毕**（`docs/toolsmith-run-v2-polling-plan.md` §8.1.1 / §12.2），**三臂全答**：
   (a) 硬杀客户端（第 3 次轮询 40.5 s、`status=running` 时 `kill -9`）**不会取消 run**，同一 turn 照跑到 `completed`；
-  (b) `run --resume`（只重采集、完全不 POST）在窗口内补齐 → **17/17 PASS / exit 0**（R9，thread `1d8f2104-5a3f-46d3-b382-d8626eaec39b`，真实服务端 171.1 s）；
+  (b) `run --resume`（只重采集、完全不 POST）在窗口内补齐 → **16/16 PASS / exit 0**（R9，thread `1d8f2104-5a3f-46d3-b382-d8626eaec39b`，真实服务端 171.1 s）；
   (c) `>10 min` 后 `/info.status` 回落到 `未知`，但 **`/timing.completed_at` + `/thread-turns/validate`(`exist:true`) 仍可拿回结局与全量产物**
   ⇒ 判定表第二行：**体验问题，不报开发**。附：P7 描述被实测修正（活窗口内的 `latency_ms` 是**临时行**、大幅高估；
   窗口后冻结为真值）—— R8 的服务端耗时因此更正为 **202.0 s**。
   遗留两项待拍板：**O14**（`run` 的 `not_started` 判定实际从未生效：取 `me()['id']` 而非 `user_id` → validate 从未被调用；
   建议同时加「`completed_at` 有值就直接收尾」的 fallback）、场景 C/D 清单。
+  ⑩ **runner 修复（台账 O14 + O15，2026-09-16 经用户同意后落地）** —— 改的只是**本机 CLI** `~/.local/bin/toolsmith-publish`，
+  **不涉 TS 平台、不涉仓库 `skill/`、不涉已发布的 prompt**，因此没有 `publish`：
+  · **O14**：`uid` 改取 `me(c).get("user_id") or .get("id")`（原先恒 `None` → validate 从未被调用 → 任何「状态未知」的 turn 都被误报 `not_started`）；
+    并新增**窗口过期后靠 `/timing.completed_at` 直接收尾**（`kind="completed"` + 标注 `recovered from timing.completed_at`，不再空转到 `--timeout`）。
+  · **O15**：`--resume` 默认写**新 run 目录**（不再就地覆盖原记录；R8 的 `verification.md` 就是这么丢的），只有显式 `--out` 才写指定目录。
+  · **验收（R10，零 POST）**：T1 窗口过期 resume → **exit 0 / 16/16 PASS / 0.2 s**；T2 真 thread + 不存在 turn → `not_started` exit 4 且 `uid_probe: true`；
+    T3 不存在 thread → exit 4；T5 零网络闸门 GATE PASS（v2 run 因 tap 是桩而 SKIP）；T6 `--resume` 不带 `--out` → 原目录 md5 未变；
+    T7 重建 R8 记录 → `…/20260916-115047-resume-r8-recollect/` 16/16 PASS。改前备份 `toolsmith-publish.v2.bak`（85,409 B）。
+  · **附正**：断言总数是 **16**（先前写 17 是数错，已全仓改正）；退出码语义更新：窗口过期的 `--resume` 现在是 **exit 0**，`inconclusive`（exit 5）只留给「活着时看不到终态且 DB 行也没有 `completed_at`」。
 
 - **（2026-09-16，待执行）用 autoresearch 范式规划下一轮迭代**。用户要求「你用对比结果那个 skill 规划试试？先不改动那个 skill 本身」→ 交付 **`docs/autoresearch-iteration-plan.md`**（只读诊断 + 规划，**未改 skill/sys、未发布、未 commit**）。要点：① **`toolsmith-publish` 的 prompt 侧闸门已坏**：平台返回 `current_version_id`（snake_case），工具 5 处读 `currentVersionId`（`~/.local/bin/toolsmith-publish:272/362/787/936/1094`）→ `status` 恒定报 `LOCAL NOT DEPLOYED`（exit 3，**假警报**：线上 v1.6 sha `fa80094e9d41` == 本地 `-v0.15.md`、项目 `resources.prompt` 也 = 该版），且 in-place `publish` 的回读用同一坏键 → **写完再报 `read-back mismatch`**；平台源码佐证 `apps/tool-smith/backend/src/toolsmith/schemas/prompt.py:25`（`current_version_id: str = Field(alias="currentVersionId")`，部署端未走 alias）→ **已于 2026-09-16 修复（S0，`fam_current_version_id()`）**。② 5 个 `20260914-*` run 离线重放得基线：场景 A 两次 **23 vs 41 calls / 18 vs 34 turns / 173 vs 207 s**，但**跨了 17:41 那次发布** → 无干净重复、该批硬化不可归因；拒绝路径跨版本仍极稳（8/7 calls、33/32 s）→ 可当廉价回归闸门；`params` 调用 **2↔8** 波动。③ harness 缺口：params 的 tool-return 是「预览 + `.../tool_results/<tool>/call_*.jsonl for script access` 指针」，而 `artifacts.zip` **不含 `tool_results/**`** → **引用 receipt 目前无法离线核**（现有断言只查键集/日期格式/`title` 非空）。④ 实验队列 E0–E6，其中 **E2 = 删/缩委派段**（该段 6908 B = sys 44516 B 的 **15.5%**，而 5 个 run **从未 `task` 委派**）。执行顺序 S0（修工具）→ S1（harness，0 新 run）→ S2（场景 A×3 取噪声带）→ S3（一次一个变量），每步均需用户授权。
 

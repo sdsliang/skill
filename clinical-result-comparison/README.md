@@ -160,8 +160,11 @@ After touching `skill/` or `system-prompts/`, run one real chat turn through the
 `/artifacts/archive` (whole-workspace zip), `/messages` and `/debug/history`, writing a
 `verification.md` plus a human-readable `transcript.md` into `~/.local/state/toolsmith-runs/<ts>-<tag>/`. A `run.json` with the
 `thread_id`/`turn_id` is written *before* the POST, so `--resume <THREAD_ID>` can pick a run back up; a repeated POST returns `409` and is
-treated as idempotent (never re-POST after a timeout). Exit codes: `0` all assertions passed, `3` ran but something failed,
-`4` the turn never landed in the database (`not_started`), `5` the terminal state was missed (`inconclusive`) or polling timed out.
+treated as idempotent (never re-POST after a timeout). `--resume` writes a **new** run directory by default (the original record stays frozen; pass
+`--out` only if you really mean to overwrite). When `/info` no longer carries the state (its terminal value lives 300-360 s) the run is closed
+from the **durable** `/timing` row instead: `completed_at` present ⇒ `completed` (annotated `recovered from timing.completed_at`).
+Exit codes: `0` all assertions passed, `3` ran but something failed,
+`4` the turn never landed in the database (`not_started`), `5` no live terminal state *and* no `completed_at` in the DB row (`inconclusive`), or polling timed out.
 The tool chain and every error are rebuilt from persisted messages, not from SSE; a call rejected by a tool schema is reported separately
 as `schema-rejected` rather than as a tool error. Assertions cover the deployed bytes (system prompt == local `system-prompts/*-v*.md`; skill body == local
 `SKILL.md`; the supporting-file manifest matches file by file) and the output contract (fixed artifact paths, chart file names,
@@ -171,6 +174,13 @@ no tool errors). Findings are logged in `docs/toolsmith-verification-log.md`
 (one `R<n>` entry per run, plus the two-column list "what we can fix" / "platform issues for the developers").
 Platform issues intended for other people are kept outside this repo (in the user's Obsidian vault).
 A run creates a thread, so it passes the same ownership guard as publishing.
+
+### Offline runner gate (`evals/runner-gate/`)
+
+`python3 evals/runner-gate/verify-run-chain.py` re-reads every recorded run under
+`~/.local/state/toolsmith-runs/` and asserts the chain rebuilt from persisted messages equals the v1 SSE
+chain plus exactly the schema-rejected attempts the tap hides (zero network, zero platform writes).
+It is the regression gate for the `run` client itself; ledger O9 explains why it exists.
 
 ### Offline fact-check scorer (`evals/fact-check/`)
 

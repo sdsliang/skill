@@ -196,17 +196,20 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 
 - **备份**：`~/.local/state/toolsmith-publish/toolsmith-publish.v1.bak`（65,790 B，改前副本）。
 - **S0（`status` 假警报）**：平台返回 snake_case `current_version_id`、工具读 camelCase `currentVersionId`（5 处）→ 新增 helper `fam_current_version_id()`。复测 `status` **EXIT=0**、`prompt deployed == local: True`。
-- **零网络重放闸门**（5 个已录制 run 的 `stream.sse` vs `debug-history.json`）：
+- **零网络重放闸门**（`evals/runner-gate/verify-run-chain.py`，5 个已录制 run 的 `stream.sse` vs `debug-history.json`）：
   `171953-cite-date 21/21`、`173645-a-2valid 23/23`、`173947-b-refusal 8/8`、`174145-b2-refusal 8/8`、`174222-a2-2valid 41=40+1 拒`。
   判据：剔除被拒调用后**逐条等于** v1 链、无未返回调用、`errors` 数与 tap 一致 → **GATE: PASS**。
-- **只读退出码实测**（全 GET，无写动作）：`--resume <已结束 thread>` → `inconclusive` **exit 5**；`--turn-id <不存在>` → `not_started` **exit 4**。
+- **只读退出码实测**（全 GET，无写动作）：`--resume <已结束 thread>` → **当时**判定 `inconclusive` **exit 5**；
+  `--turn-id <不存在>` → `not_started` **exit 4**。**两者的正确性后来都被推翻了一半**，见 R10 / O14：
+  已结束的 turn 应靠 `completed_at` 直接收尾（exit 0 + 跑完断言）；而当时的 `not_started` 是**空判**（probe 没被调用过）。
 - **上游漂移顺手清掉**：`deps` 报 `pharmcube-query-clinical-result-with-params: schema changed`，逐项核对为 `selected_fields` 描述里的**序号笔误修正**（`1./1./2.` → `1./2./3.`），18 参数 / 73 字段名 / 73 字段描述**逐字节相同** → **本仓无需适配** → 重生成 `docs/params-tool-schema.md` 镜像 → `deps --accept` → `deps` exit 0。
-- **R8 已完成**（轮询版首次端到端真跑，见下节）：`17/17 PASS`、exit 0；**T2/T3 均已证实**。
+- **R8 已完成**（轮询版首次端到端真跑，见下节）：`16/16 PASS`、exit 0；**T2/T3 均已证实**。
+  （断言总数是 **16**，先前台账写 17 是数错了 —— 已全仓改正；见 O15 的附注。）
 
 ### R8 — 2026-09-16，2 个 esid（**轮询版 `run` 的首次端到端真跑**，输入与 R3/R7 相同）
 
 - thread `b1302c80-f1f6-487d-8244-f495a5848490`，turn `5506e105-9396-421f-a559-0d6e85c7962f`，产物 `~/.local/state/toolsmith-runs/20260916-104943-v2-poll/`，`DeepSeek Flash`。
-- **17/17 PASS，exit 0**。`POST` 后 **0.1 s 就断流**（`stream.tap` 141 B / 1 个事件），其后 **11 次轮询 / 20 s 间隔**看到 `running` → `completed`（202.4 s）→ **T2 证实：客户端断流不取消 run**。
+- **16/16 PASS，exit 0**。`POST` 后 **0.1 s 就断流**（`stream.tap` 141 B / 1 个事件），其后 **11 次轮询 / 20 s 间隔**看到 `running` → `completed`（202.0 s，真值；当时打印的 202.4 s 是活计数）→ **T2 证实：客户端断流不取消 run**。
 - 22 attempts = 22 returned + 0 schema-rejected（`execute×10 / read_file×6 / write_file×2 / load_skill×1 / params×1 / edit_file×1 / present_artifact×1`）；`in=1,253,918 out=39,699 reasoning=24,979 cached=1,212,032`；context `sys=20,701 mcp=5,919 tools=50,127 skill=17,201 conv=3,502`。
 - **产物**：`output/report.md` + `output/citations.json` + `visualizations/endpoint-bar-1.json`。**无 timeline** —— 两个 esid 属不同试验，规则「同试验 + ≥2 个证据状态才画时间轴」被正确执行。`citations.json` 两条均有真实标题与日期（`2018-12-19` / `2022-11-08`，与 R7 **逐字节相同**）。
 - **部署字节**：deployed sys = 本地 43,701 ch + 平台尾 18,543 ch（deck sha `1a9ff3d209ec`）、skill 正文 19,580 ch、18 个支持文件全等。
@@ -215,7 +218,11 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 - **P8 未测（当时）**：本轮没做「有意超时/中断」实验；仅确认终态在关掉的 **5.8 分钟内**都能从 `/info.status` 读到 `completed`（与源码推出的 300–360 s 窗口一致）。→ **已于 2026-09-16 补齐，见 R9 / P8**。
 - **后续更正（R9 复读时发现）**：本行里的 “350 s” 是**活计数误读** —— `/timing` 在内存期为**临时行**，
   `latency_ms` 现算且**大幅高估**；R9 完成后回读本 thread，`latency_ms` **冻结在 202,049 ms** = 真实服务端耗时
-  **202.0 s**（与 `completed_at - started_at` 逐毫秒相等）。O10 的量具修复已按这个口径落地。
+  **16/16 PASS，exit 0**（与 `completed_at - started_at` 逐毫秒相等）。O10 的量具修复已按这个口径落地。
+- **本 run 目录的 `verification.md` 后来被 O15 那段 bug 覆盖过**（早先一次 `--resume` 未带 `--out` 时就地重采集，
+  `Checks` 段被抹成空，只留下“1 poll / 0.2 s”）。**权威重建件**：修 O15/O14 后用
+  `run --resume b1302c80-… --tag r8-recollect` 重新采集到 `~/.local/state/toolsmith-runs/20260916-115047-resume-r8-recollect/`
+  → **16/16 PASS / 0 FAIL**，终态行明写 `recovered from timing.completed_at`。
 
 ### R9 / P8 — 2026-09-16，2 个 esid（客户端被 `kill -9` 的一轮；P8 实验的写动作那一半）
 
@@ -225,7 +232,7 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
   turn `d67e8c37-1491-4d24-825c-05af7db66c10`，产物 `~/.local/state/toolsmith-runs/20260916-112352-p8-kill/`。
 - **硬杀不取消 run**：客户端在第 3 次轮询（**40.5 s**，`status=running`）被 `kill -9` → 同一 turn 照跑到 `completed`
   （服务端 11:23:53 → 11:26:44，真实 **171.1 s**）。比 R8 的 T2（断 socket）更强。
-- **resume 完整自愈**：`run --resume`（只重采集、完全不 POST）在窗口内补齐 → **17/17 PASS / exit 0**；
+- **resume 完整自愈**：`run --resume`（只重采集、完全不 POST）在窗口内补齐 → **16/16 PASS / exit 0**；
   27 次工具调用（27 returned + 0 schema-rejected；`read_file`×11 / `execute`×9 / `edit_file`×3 / `load_skill`×1 /
   params×1 / `write_file`×1 / `present_artifact`×1）；turn tokens `in=1,448,663 out=31,718 reasoning=21,648`；
   产物 `report.md` + `citations.json` + `endpoint-bar-1.json`（无 timeline 是正确的：两个 esid 属不同试验）。
@@ -237,6 +244,24 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 - **P8 判定**：`>10 min` 后 `completed_at` + `/thread-turns/validate`（`exist: true`）仍可拿回结局与全量内容
   （`/messages` 23 条、`/debug/history` 4.26 MB、`/artifacts/archive` 19 KB）⇒ **体验问题，不报开发**；
   我们侧只需把「窗口过期后靠 `completed_at` 直接收尾」写进 `run`（连同 O13）。
+
+### R10 — 2026-09-16，**runner 修复后的只读复测**（O14 + O15，零 POST）
+
+改动对象只有本机 CLI（`~/.local/bin/toolsmith-publish`），**不涉 TS 平台、不涉仓库的 `skill/` 与 `system-prompts/`**，
+因此没有触发 `publish`；但按「改完就要有 `R<n>` 记录」的规矩，仍逐项留证。改前备份
+`~/.local/state/toolsmith-publish/toolsmith-publish.v2.bak`（85,409 B）。
+
+| 测例 | 命令 | 期望 | 实测 |
+|---|---|---|---|
+| **T1** 窗口过期后 resume | `run --resume b1302c80-… --tag o14-recover --out …/o14-t1` | 立刻判定终态 + 跑完断言 | **exit 0，0.2 s 收尾**（旧行为是空转到 `--timeout` 报 exit 5），**16/16 PASS**，`wall clock 202.0s server`（冻结值） |
+| **T2** 真 thread + 不存在的 turn | `run --resume b1302c80-… --turn-id 0000…0000 --grace 5` | `not_started` exit 4，且 probe **确实被调用** | **exit 4**；`run.json` 记 `uid_probe: true`（旧代码恒无 probe） |
+| **T3** 不存在的 thread | `run --resume 0000…dead --turn-id 0000…0001 --grace 5` | `not_started` exit 4 | **exit 4** |
+| **T4** R9 thread 复采集 | `run --resume 1d8f2104-… --tag o14-r9 --out …/o14-t4` | 走恢复路径且断言全过 | **exit 0，16/16 PASS**，0.2 s（服务端 171.1 s） |
+| **T5** 零网络回归闸门 | `python3 evals/runner-gate/verify-run-chain.py` | 5 个 v1 run 逐条等于 SSE 链 | **GATE: PASS**（v2 两个 run 因 tap 是桩、两个 `--resume` run 因没有 tap 而 SKIP，均属预期） |
+| **T6** `--resume` 不带 `--out` | `run --resume 1d8f2104-… --tag t6` | **不得**动原 run 目录 | 新建 `…/20260916-115033-resume-t6/`；R9 原 `verification.md` **md5 未变**（`9eb363896b87035f`） |
+| **T7** R8 记录重建 | `run --resume b1302c80-… --tag r8-recollect` | 补齐被 O15 抹掉的记录 | `…/20260916-115047-resume-r8-recollect/` → 16/16 PASS |
+
+同时把「断言总数 16（不是 17）」在三个文档里改正（先前的 17 是数错；`check_run` 在产出物路径上就是 16 个 `add()`）。
 
 ### F1 — 事实清单基线 + 负向对照（2026-09-16，**离线，零新 run**）
 
@@ -263,11 +288,12 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 | O7 | 无效 esid 导致空转：R3 里我把 `24_1_45608045`（库中无数据）和有效 esid 一起给，模型对**同一个输入换了 8 种写法**（`extra_esids:["24_1_45608045"]` → `["45608045"]` → 改 `trial_id:"NCT02729025"` …）共 **8 次** params 调用，最后仍产出 `ref_2` 为**全空**（`title`/`link`/`paper_release_time_str` 均 `""`），而 13 项断言全过（断言只管「有对应条目」，不管条目是否为空） | 改法：① 一次批量拉取 + **至多一次**确认，同一 esid 连续空即停手，**不许换写法反复重试**（已写入 sys / `input-contract.md` / `citation-and-ref.md` / `SKILL.md`）；② 未返回的 esid **不分配 `{{ref_n}}`、不写 citation key**，**禁止空 `title` 条目**，keys 在「实际返回的记录」上连续；③ 可用记录 < 2 → **拒绝产出**并回 chat 说明（新增 `run --expect refusal` 断言框）；④ 断言第 11 项加「`title` 非空」 | **已落地**（2026-09-14；证据：R3 旧行为 8 次重试 + 空壳引用 vs **R5/R6 同输入 2 次调用、零产物、回复点名说明**；R7 两个条目均有真实标题/日期） |
 | O9 | **旧 `parse_stream()` 漏事件类型 → 假 PASS**：R7（a2 真跑）里模型实际发 **41** 次调用，其中 1 次把 `execute` 的 `shell_command` 写成 `command` 被 schema 拒、框架重新提示后重发；SSE 计数 `tool-input-start=41 / tool-input-available=40 / tool-input-error=1`，而 v1 只认后两者 → 台账记成「40 次调用、0 工具报错」，第 10 项断言「无工具报错」是**假绿**（同类问题也会让真报错漏判） | 工具侧：调用链改从 `/debug/history` 的持久化消息重建（`tool_chain_from_history()`），被拒调用（有匹配 `retry-prompt` 的 `tool_call_id`）单列 `rejected` 并给 WARN/INFO、不计入 `errors`；新增「每个 tool-call 要么有 return 要么被 schema 拒」断言。`parse_stream()` 降级为 legacy 对账 oracle | **已落地**（2026-09-16；证据：5 run 重放门禁 PASS，其中 a2 的 41=40+1 被正确拆出） |
 | O8 | 同输入重复确认：R5 里规则已写「至多一次确认」，实际 params 调了 3 次——第 2、3 次**参数完全相同**（同一个 `24_1_45608045` 再查一遍） | `input-contract.md` + sys 加一句：**参数不变的确认不得重复**（同一 esid + 同一 `selected_fields` 空两次就是真的不在）；同时明确「不同用途的第二次调用（如补字段）不是确认、仍允许」，以免误伤 R4 那种合理的补字段调用 | **已落地**（2026-09-14；证据：R6 同输入 params **恰好 2 次**） |
-| O10 | **量具自己的两处错**（R8 真跑时暴露）：① `verification` 里 `[PASS] no tool errors` **打印两遍**（一处遗留的重复 `add()`）；② `wall clock: … server (permanent)` 把 `/timing.turns[].latency_ms` 当永久值，而它其实是**现算活计数**（同一 turn 204 s → 350 s 还在涨，见 P7） → 台账里可能记下一个偏小的服务端耗时 | ① 删掉重复断言；② `turn_completed_ms()` 改为**优先 `completed_at - started_at`**，无 `completed_at` 时回退 `latency_ms` 并在输出里明写「live `/timing` counter … keeps rising」 | **已落地**（2026-09-16，`py_compile` + `--resume` 复测：新文案与 17 项断言均正常） |
+| O10 | **量具自己的两处错**（R8 真跑时暴露）：① `verification` 里 `[PASS] no tool errors` **打印两遍**（一处遗留的重复 `add()`）；② `wall clock: … server (permanent)` 把 `/timing.turns[].latency_ms` 当永久值，而它其实是**现算活计数**（同一 turn 204 s → 350 s 还在涨，见 P7） → 台账里可能记下一个偏小的服务端耗时 | ① 删掉重复断言；② `turn_completed_ms()` 改为**优先 `completed_at - started_at`**，无 `completed_at` 时回退 `latency_ms` 并在输出里明写「live `/timing` counter … keeps rising」 | **已落地**（2026-09-16，`py_compile` + `--resume` 复测：新文案与 16 项断言均正常） |
 | O11 | **事实清单打分器自身的三处缺陷**（全部由负向对照暴露，否则会带着假绿上路）：① 用 `edit` 插入 `op_artifact_absent` 时**误删了 `def op_glob_count` 的头行** → `NameError`；② 归因规则原本按**整行**判（report 行内同时出现 A/B 两条记录的元素），把 B 的药名写成 A 的药**逃过检查**（变异 M06）；③ 改成句粒度后又误伤**表格行**——表格行的引注按单元格分布，按 `；` 切句会把「引注在最后一格」的数值单元格判成无人认领（R8 报告里一行对比表即触发假 FAIL） | ① 补回 def 并立规矩：插入后立即 `py_compile`；② 归因单元改为「散文按 `。；` 切句 / 表格行按 `|` 切单元格，无引注的单元格继承该行引注」；③ 另加 `line` 类条目 `A-T1-title-names-both` 补上「标题无引注、不受归因规则保护」这个缺口 | **已落地**（2026-09-16；判据：`mutations.py` 双盲 GATE PASS，A 30/30 / B 12/12） |
 | O12 | **打分器把括号内的 `；` 当句边界**：`（-70.5% 至 -101.1%，第 36 周{{ref_2}}；对应 -13.9%，第 16 周{{ref_1}}）` 被切成两半，每半只剩一条记录的引注 → **R9 那份正确的报告被判 `A-ATTR-misattribution` 假 FAIL（29/30）** | `sentences()` 改为**只在括号/方括号深度 0 处切句**（`（(［[【` / `）)］]】` 计数）；并在 `evals/fact-check/README.md` 写明该规则 | **已落地**（2026-09-16；判据：R8 仍 30/30、R9 由 29/30 → 30/30、`mutations.py` GATE 仍 PASS） |
 | O13 | **变异 harness 把字符串当正则**：`sub()` 用 `re.subn`，而 `| 试验 B {{ref_2}} |` 里的 `|` 是**空分支交替** → 一次替换 **7923 处**，把整份报告改烂，却仍报“变异成功”（翻转 19 条 item，掩盖了真正的定位） | 新增 `sub_lit()`（`re.escape` + `count=1`）用于含 `|`/`{}` 的字面量；`sub()` 加**替换次数上限**断言 `n <= max(200, len(text)//200)` —— 这类“匹配到到处都是”的静默灾难直接 fail-loud | **已落地**（2026-09-16；判据：M15 从“翻转 19 条”收敛为“只翻 `A-ATTR`”，GATE PASS） |
-| O14 | **`run` 的 `not_started` 判定实际从未生效**：取的是 `me(c)['id']`，而 `/api/auth/me` 返回的是 **`user_id`** ⇒ `uid` 恒为 `None` ⇒ `/thread-turns/validate` **根本没被调用** ⇒ `in_db` 永为 `None` ⇒ **任何“状态未知”的 turn 都被无条件报成 `not_started`（exit 4，“the POST never landed”）**。只读实测：真实已完成 turn + 正确 `user_id` → `{"exist": true}`；缺参 → **HTTP 422**；传字串 `None` → `{"exist": false}`（假阴性） | 改 `me(c).get("user_id") or .get("id")`；并在 validate 说 `exist=true` 时先看 `/timing` 的 `completed_at`：有值就直接按已结束收尾（走完断言），不捛到 `--timeout`（默认 2400 s）才报 `timeout` | **待拍板**（P8 顺手查出，已给证据；改工具本体前先备份 + 需用户同意） |
+| O14 | **`run` 的 `not_started` 判定实际从未生效**：取的是 `me(c)['id']`，而 `/api/auth/me` 返回的是 **`user_id`** ⇒ `uid` 恒为 `None` ⇒ `/thread-turns/validate` **根本没被调用** ⇒ `in_db` 永为 `None` ⇒ **任何“状态未知”的 turn 都被无条件报成 `not_started`（exit 4，“the POST never landed”）**。只读实测：真实已完成 turn + 正确 `user_id` → `{"exist": true}`；缺参 → **HTTP 422**；传字串 `None` → `{"exist": false}`（假阴性） | 改 `me(c).get("user_id") or .get("id")`；并在 validate 说 `exist=true` 时先看 `/timing` 的 `completed_at`：有值就直接按已结束收尾（走完断言），不捛到 `--timeout`（默认 2400 s）才报 `timeout` | **已落地**（2026-09-16，用户先点头后才改；改前备份 `toolsmith-publish.v2.bak`，85,409 B）→ R10 |
+| O15 | **`--resume` 不带 `--out` 就地重采集，把原 run 目录的 `verification.md` / `run.json` 覆盖掉**（`Checks` 段被抹空）—— R8 那份记录就是这么丢的；而原 run 目录常是那次验证**唯一**的证据副本 | `--resume` 默认写**新目录**（`<stamp>-resume-<tag>`，并打印原目录位置）；只有显式 `--out` 才写指定目录（已存在记录时先 warning）；同时给 resume 目录补写自描述的 `run.json` + `prompt.txt` | **已落地**（2026-09-16）→ R10 的 T6/T7 |
 
 ## 4. 平台侧（转开发）
 

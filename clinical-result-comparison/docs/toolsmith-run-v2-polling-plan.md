@@ -402,7 +402,7 @@ E-P8-3 复用 E-P8-1 的 run ⇒ **合计 1 次新 run**。执行前需确认：
 | 实验 | 实测 | 结论 |
 |---|---|---|
 | **E-P8-3**（硬杀） | `run --tag p8-kill` 起跑，第 3 次轮询（`40.5 s`，`status=running`）时 `kill -9` 客户端 → 同一 turn 随后正常跑到 `completed`（服务端 11:23:53 → 11:26:44） | **`kill -9` 也不取消 run**（比 R8 的 T2「断 socket」更强）；`run` 作为独立 asyncio 任务成立 |
-| **E-P8-1**（resume 补齐） | 杀掉后立即 `run --resume <thread> --tag p8-resume`（只重采集、完全不 POST）→ 在窗口内拿到终态，**17/17 PASS / exit 0**，产物 `report.md` + `citations.json` + `endpoint-bar-1.json` 齐全 | 客户端放弃**可完整自愈** |
+| **E-P8-1**（resume 补齐） | 杀掉后立即 `run --resume <thread> --tag p8-resume`（只重采集、完全不 POST）→ 在窗口内拿到终态，**16/16 PASS / exit 0**，产物 `report.md` + `citations.json` + `endpoint-bar-1.json` 齐全 | 客户端放弃**可完整自愈** |
 | **E-P8-2**（>10 min 后复读，t+11 min） | `/info.status` 回落到 **`未知`**（窗口到期）；但 `/timing` 的**持久化行**出现：`completed_at=2026-09-16T11:26:44.370178`、`completed=true`、`latency_ms=171141`（**冻结**）；`/thread-turns/validate` → `{"exist": true}`；`/messages` 23 条、`/debug/history` **4.26 MB**、`/artifacts/archive` 19 KB 全部可读；R8 的旧 thread 同样如此 | **终态与全量内容都能拿回来** —— 不靠 `/info.status`，靠 `completed_at` + `validate`（两者都落库）。→ 判定表第二行：**体验问题，不报** |
 
 **顺带纠正两件事**
@@ -508,15 +508,17 @@ EOF
 |---|---|
 | S0 | `status` 假警报根因 = 平台返回 snake_case `current_version_id`、工具读 camelCase `currentVersionId`（5 处）。新增 helper `fam_current_version_id(fam)`（读两种拼法），替换 5 个调用点。复测 `status` **EXIT=0**、`prompt deployed == local: True` |
 | 主通道 | `cmd_run` 不再消费 SSE：`POST /api/chat` 只读到 `data-turn-start`（≤ `TAP_MAX_SECONDS` 20 s）即断连，改为轮询 `GET /api/threads/{tid}/info` 的 `status` 判终态（间隔 ≤ `POLL_MAX_INTERVAL` 60 s，默认 20 s） |
-| 状态机 | `完成/失败/取消` → 终态；`未知` 时用 `/timing` 行 + `GET /api/thread-turns/validate`（DB 持久）区分 `not_started`（exit 4）与 `inconclusive`（exit 5）。**超时绝不重发 POST**，只允许 `--resume` |
+| 状态机 | `完成/失败/取消` → 终态；`未知` 时按顺序看：① `/timing` 行有 **`completed_at`** → **终态（`completed`，标注 `recovered from timing.completed_at`）**；② 行的 `completed=true`（无时间戳）→ `inconclusive`；③ 两者皆无且过了 `--grace` → `GET /api/thread-turns/validate`（DB 持久）→ `exist=true` 继续等、否则 `not_started`（exit 4）。**超时绝不重发 POST**，只允许 `--resume`（见 §12.2 / R10） |
 | 证据源 | 调用链改由 `tool_chain_from_history()` 从 `/debug/history` 的持久化消息重建；`parse_stream()` **降级为 legacy 离线对账用的 oracle**，运行期不读 SSE |
 | 幂等 | `turn_id = uuid4()` **在 POST 之前**写进 `run.json`；body 同时带 `id`/`threadId`/`thread_id`/`turnId`/`turn_id`；重复 POST 收到 **409** 视为幂等提示而非失败 |
 | 新断言 | ① 终态必须 `completed`；② 每个 tool-call 要么有 tool-return 要么被 schema 拒（WARN 级，只有 FAIL 计入 exit 3）；③ `retry-prompt`（参数被工具 schema 拒绝）单独记账，不再混入 tool error | 
 | 产物 | 每次运行落 `run.json`（thread/turn/repo/model/tag/prompt 长度，**POST 前**）、`prompt.txt`、`stream.tap`（有界 tap）、`info.json`/`timing.json`/`usage.json`、`debug-history.json`、`artifacts.zip` + 解包、`verification.md`（含轮询日志 + 分级断言）、**新增 `transcript.md`** |
 | CLI | 新增 `--resume THREAD_ID`、`--turn-id`、`--poll-interval`、`--grace`、`--no-tap`；`--timeout` 语义改为"停止轮询"（默认 2400 s） |
-| 退出码 | 0 全过 / 3 断言失败或工具报错 / **4 `not_started`（turn 从未进库）** / **5 `inconclusive`（错过 300–360 s 终态窗口）或 `timeout`** |
+| 退出码 | 0 全过 / 3 断言失败或工具报错 / **4 `not_started`（turn 从未进库）** / **5 `inconclusive`（活着时看不到终态、且 DB 行也没有 `completed_at`）或 `timeout`** |
+| 恢复 | 窗口过期后的 `--resume` **不再算 `inconclusive`**：`completed_at` 在就按已结束收尾、跑完全套断言 → **exit 0**（实测 0.2 s vs 旧行为空转到 2400 s）。另：`--resume` 默认写**新目录**，不再就地覆盖原 run 记录（台账 O15） |
 
-**零网络回归闸门（§9 第 3 步）** —— `/tmp/verify_v2.py`，对 5 个已录制的 run：
+**零网络回归闸门（§9 第 3 步）** —— `python3 evals/runner-gate/verify-run-chain.py`
+（落仓前的临时副本是 `/tmp/verify_v2.py`；`/tmp` 会被清，以仓库里这份为准），对已录制的 run：
 
 ```
 20260914-171953-cite-date  attempts=21 returned=21 rejected=0 errors=0 -> OK
@@ -524,8 +526,13 @@ EOF
 20260914-173947-b-refusal  attempts=8  returned=8  rejected=0 errors=0 -> OK
 20260914-174145-b2-refusal attempts=8  returned=8  rejected=0 errors=0 -> OK
 20260914-174222-a2-2valid  attempts=41 returned=40 rejected=1 errors=0 -> OK
+20260916-104943-v2-poll    SKIP (v2 run: tap 是桩，无 tool 事件可比)  history_attempts=22
+20260916-112352-p8-kill    SKIP (同上)                              history_attempts=27
 GATE: PASS — v2 history extraction == v1 SSE chain + schema-rejected attempts
 ```
+
+（v2 的 run 必须 SKIP：它的 `stream.tap` 只有 141 B / 1 个 `data-turn-start`，没有链可比 —— 持久化消息本身就是链。
+早先这个闸门因为没处理 `stream.tap` 而报 `FileNotFoundError` / `MISMATCH`，已补上。）
 
 判据（比 §9 第 3 步更严）：把 v2 链里被拒的那次调用剔掉，必须**逐条等于** v1 链；
 `extra ids == rejected`；`attempts == 旧调用数 + 拒绝数`；无未返回调用；`errors` 数与 tap 的 `tool-output-error` 一致。
@@ -538,9 +545,12 @@ v2 从持久化消息重建，天然看得到（`raw_ui_messages` 里同 id 的 
 
 **已做的只读退出码实测（§9 第 1 步的只读部分）**
 
-- `run --resume <已结束 thread>` → `status=未知` 1 次轮询后由 `/timing` 判 `completed` → **inconclusive / EXIT=5**（16 PASS + 1 FAIL，FAIL 就是"没有活着观察到的终态"，符合预期）
+- **当时**：`run --resume <已结束 thread>` → `status=未知` 1 次轮询后由 `/timing` 判 `completed` → **inconclusive / EXIT=5**
+  （16 PASS + 1 FAIL，FAIL 就是“没有活着观察到的终态”）。
+- **现在（R10 后）**：同一命令 → **`completed` / exit 0**，16/16 PASS，0.2 s 收尾 —— `completed_at` 足以证明终态，
+  没必要因为“没活着看到”而扣分（§12.2 / O14）。
 - `run --resume <thread> --turn-id 0000…` → `/thread-turns/validate` 返回 `exist=false` → **not_started / EXIT=4**
-- 两条都是 GET，**没有产生任何平台写动作**，也没有创建新 turn。
+- 三条都是 GET，**没有产生任何平台写动作**，也没有创建新 turn。
 
 **执行状态 / 剩余项**
 
@@ -556,7 +566,7 @@ v2 从持久化消息重建，天然看得到（`raw_ui_messages` 里同 id 的 
 
 - 输入与 R3/R7 相同（`解读这几个结果 24_1_30561610 24_1_36342163`，`DeepSeek Flash`），
   thread `b1302c80-f1f6-487d-8244-f495a5848490` / turn `5506e105-9396-421f-a559-0d6e85c7962f`，
-  产物 `~/.local/state/toolsmith-runs/20260916-104943-v2-poll/` → **17/17 PASS，exit 0**。
+  产物 `~/.local/state/toolsmith-runs/20260916-104943-v2-poll/` → **16/16 PASS，exit 0**。
 - **§9 T2「断流不取消 run」证实**：`POST` 后 **0.1 s** 就读到 `data-turn-start` 并断开（`stream.tap` 141 B / 1 事件），
   然后 11 次轮询（20 s 间隔）看到 `running` → `completed`（202.4 s）→ **主通道成立，不需要 SSE**。
 - **§9 T3「`409` 幂等」证实**：对同一 `(thread_id, turn_id)` 重发 `POST /api/chat` →
@@ -574,21 +584,30 @@ v2 从持久化消息重建，天然看得到（`raw_ui_messages` 里同 id 的 
 ### 12.2 R9 / P8：客户端被 `kill -9` 的那一轮（2026-09-16，已执行）
 
 - thread `1d8f2104-5a3f-46d3-b382-d8626eaec39b` / turn `d67e8c37-1491-4d24-825c-05af7db66c10`，
-  输入与 R8 相同（同场景 A），`kill -9` 后 `--resume` 补齐 → **17/17 PASS / exit 0**；
+  输入与 R8 相同（同场景 A），`kill -9` 后 `--resume` 补齐 → **16/16 PASS / exit 0**；
   服务端真实耗时 **171.1 s**、27 次工具调用（27 returned + 0 schema-rejected）、
   turn tokens `in=1,448,663 out=31,718 reasoning=21,648`。
 - 事实清单打分（新 run 作为第二份独立样本）：**A 30/30 PASS**（修正打分器句切后）。
 - **P8 三个臂全部回答完**（§8.1.1）：硬杀不取消、resume 能补齐、>10 min 后 `completed_at` + `validate` 仍可拿回结局与全部产物。
-- **本轮又摸到两个我们自己侧的问题（仓库台账 O12/O13）**：
+- **本轮又摸到三个我们自己侧的问题（仓库台账 O12/O13/O15）**：
   1. **O12**：打分器把括号内的 `；` 当句边界，硬生生把 `（…{{ref_2}}；对应 …{{ref_1}}）` 切成两半，
      于是 R9 那份**正确的**报告被成 `A-ATTR-misattribution` 假 FAIL（29/30）。改为「只在括号/方括号深度 0 处切句」；
      同时发现了 harness 自己的一颗雷：变异用的字符串被当**正则**（`| 试验 B {{ref_2}} |` 里的 `|` 变成空分支交替，
      一次替换 **7923** 处、把报告改烂）→ 加 `sub_lit()`（`re.escape`）与「替换次数上限」断言。
-  2. **O13**（**更严重**）：`run` 在「`/info.status` 认不出来」时靠 `/thread-turns/validate` 判 `not_started`，
+  2. **O14**（**更严重**）：`run` 在「`/info.status` 认不出来」时靠 `/thread-turns/validate` 判 `not_started`，
      但代码取的是 `me(c)['id']` —— 而 `/api/auth/me` 返回的是 **`user_id`**，`id` 恒为 `None` ⇒ `uid` 为假 ⇒
      **validate 根本不会被调用** ⇒ `in_db` 永远 `None` ⇒ **任何「状态未知」的 turn 都被无条件报成 `not_started`（exit 4）**。
      实测（只读）：真实的已完成 turn 带正确 `user_id` 查 validate → `{"exist": true}`，缺参 → **HTTP 422**，
      传字串 `None` → **`{"exist": false}`**（假阴性）。修法 = 取 `me(c).get("user_id") or .get("id")`，
      并（建议）在 validate 说 `exist=true` 时先看 `/timing` 的 `completed_at`：有值 → 直接按已结束收尾（走断言），
      不必捛到 `--timeout`（默认 2400 s）才报 `timeout`。
-     **待用户点头后再改工具本体**（改前先备份）。
+     **2026-09-16 已落地**（用户先点头、改前备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v2.bak`）：
+     取 `user_id`，并且**在窗口过期后靠 `completed_at` 直接收尾**（不再空转到 `--timeout`）。
+  3. **O15**：`--resume` 不带 `--out` 时会**就地覆盖原 run 目录**（`verification.md` 的 `Checks` 段被抹空）——
+     R8 那份记录就是这么丢的。现改为默认写新目录（`<stamp>-resume-<tag>`，并打印原目录位置），
+     只有显式 `--out` 才写指定目录（已存在记录时先 warning）；resume 目录也补写自描述的 `run.json` + `prompt.txt`。
+- **R10 = runner 修复后的只读复测**（T1–T7，零 POST）：窗口过期 resume → **exit 0 / 16/16 PASS / 0.2 s**；
+  真 thread + 不存在 turn → `not_started` exit 4 且 `uid_probe: true`；不存在 thread → exit 4；
+  零网络闸门 PASS；`--resume` 不带 `--out` 不动原目录（md5 未变）；
+  R8 记录重建件 `~/.local/state/toolsmith-runs/20260916-115047-resume-r8-recollect/` → 16/16 PASS。
+  **附带改正**：断言总数是 **16**（此前台账写 17 是数错）。
