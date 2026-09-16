@@ -115,6 +115,8 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - **待拍板**：只有 O4（正文句子级 `s.replace()` 就地改脚本，8 次）、O5（1 个 esid 也要 21 次调用 /173 s）继续攒样本；**O2 / O3 / O6 / O7 / O8 均已落地**（sys 与 skill 改完 → 已重新发布 + `R3`…`R7` 验证）。
 - **本批改了 skill/sys 运行内容**（`citation-and-ref.md`、`input-contract.md`、`input-and-extraction.md`、`file-delivery.md`、`entity-inline-reference.md`、`SKILL.md`、`templates/unified-evidence-report.md`、sys v0.15），故 `dist` 重打 → `de73…`（`de7c16b44910` / 73,385 B / 19 entries），并已 **in-place** `publish` 到 prompt `v1.6` / skill `v1.0.7`（`status` in sync）+ R4–R7 验证通过。
 
+- **（2026-09-14，待执行）`toolsmith-publish run` v2：SSE 消费 → 线程状态轮询**。开发两次反馈「你怎么还要消费 SSE 啊，不是应该调一次就直接用 TS 的前端看吗」+「非流式要不就用 webhook，要不就轮训 thread 状态」；复核上游源码后确认**开发是对的**：run 与客户端连接解耦（`run_manager.py:229-233` / `445-468`）、终态只能认 `/info.status` 且只留 300–360 s（`chat_routes.py:352-353` + `run_manager.py:470-480`）、`/timing.active_turn` 不判状态且 `latency_ms` 现算（`chat_service.py:859-874`）、`turn_id` 撞车 409 可当幂等（`chat_service.py:1502-1505`）、webhook 是项目级且失效静默（`schemas/webhook.py:70-84`）。方案全文（修订对照 / 新判定状态机 / 改动清单 / 13 项断言重映射 / 平台缺口 P7+P8 / 待验证项 T1–T4 / 执行闸门）见 **`docs/toolsmith-run-v2-polling-plan.md`**。**口径（用户 2026-09-14 定）：以代码为准，平台文档缺口不再上报**，只报功能性缺陷（原拟报的 P9 已撑回为内部存档）；后续「轮询式 `run`」按此方案交接给下一个 session 执行。顺带新发现：持久化消息里的 `retry-prompt` 能看到 SSE 看不见的**模型工具参数返工**（5 次运行 1 次，`a2-2valid` 把 `shell_command` 写成 `command`）。**本轮未动代码、未真跑、未 commit。**
+
 ## 上游平台代码拉新：TS `master` → `50f048b`（2026-09-14）
 
 - **动作**：`/home/xupeipeioo1/apps/tool-smith` 工作区无未提交改动 → `git pull --ff-only origin master`，从 `f1fdd58` 快进到 `50f048b`（**33 个新提交**，2026-09-07 → 2026-09-14）。属只读性质上拉，但改动了工作区，已获用户明确指令（“升级啊，你升级到最新版”）。
