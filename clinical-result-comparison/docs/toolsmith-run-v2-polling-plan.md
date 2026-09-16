@@ -68,7 +68,7 @@ if runtime is not None:
   **`turns[<turn_id>].completed` 恒为 `false`**，"用 completed 判终态"这个写法在窗口内读不到。
 - `turns[]` 本身来自 DB 的 user 消息行（`_build_turn_timing_map`，`chat_service.py:3115-3132`，`completed = timing_completed_at is not None`），
   永久可读，但**只有耗时、没有结局**（成功/失败/取消不落库）。
-- 文档 `chat-api.mdx` 写"活动 run 的 `latency_ms` 是实时值，**完成后冻结**" → **与代码不符**（见 §8.1）。
+- 文档 `chat-api.mdx` 写"活动 run 的 `latency_ms` 是实时值，**完成后冻结**" → **与代码不符**（见 §8.2）。
 - 实测：一个 run 的服务端 `completed_at` 已落库，53 s 后拉 `/timing` 仍返回 `completed:false` 且 latency 更大。
 
 ### 1.4 幂等：自己生成 `turn_id`，撞车吃 409
@@ -353,7 +353,7 @@ DONE 之后：
 ## 8. 平台侧缺口（P7 / P8，**已写草稿、暂缓上报**，仓库只留摘要）
 
 > **口径（用户 2026-09-14 定）：以代码为准。后续发现的平台文档/文档缺口一律不上报**，只留内部存档。
-> 只报会直接影响"我们能算/能跑"的功能性缺陷 —— P7、P8 属此类；原拟报的 P9（纯文档不一致）**已撑回**，移到 §8.1 存档防踩坑。
+> 只报会直接影响"我们能算/能跑"的功能性缺陷 —— P7、P8 属此类；原拟报的 P9（纯文档不一致）**已撑回**，移到 §8.2 存档防踩坑。
 > **但上报时机也由用户定：P7/P8 先不报**（用户 2026-09-14：「p7-8 我先不报告，我们待会转接用新流程跑的时候再排查一下吧」）。
 
 | # | 现象（有源码/实测依据） | 影响 | 建议 |
@@ -370,7 +370,31 @@ DONE 之后：
 - P7：`/timing.active_turn` 在轮询过程中是否出现"`/info.status` 已终态、而它还在报 `completed=false` + latency 继续涨"——§4 状态机已用 `/info.status` 作唯一终态判据绕过它，这里只是确认绕过是否足够。
 - P8：一次有意超时/中断的运行，看轮询能否在 300 s 窗口内捕获终态；错过窗口时能否靠持久化消息里的 `error_type` 把结局反推出来（§5.6）。若都能，P8 就只是"体验问题"，可以不报。
 
-### 8.1 内部的文档坑（**不对外报**，实现时别信文档）
+### 8.1 P8 实验设计（E-P8-1/2/3，**已定稿、未执行**；执行 = 写动作，需用户点头）
+
+**要回答的唯一问题**：错过那 300–360 s 的终态窗口后，我们还能不能把这一次 run 的结局与内容完整拿回来？
+能 → P8 降为「体验问题」，不报；不能 → 升级为功能性缺陷上报开发。
+**只读 vs 写动作**：E-P8-1 会创建新 thread/turn（写）；E-P8-2/3 纯 GET（读）。
+
+| 实验 | 做法 | 看什么 | 判定 |
+|---|---|---|---|
+| **E-P8-1** | `run --prompt-file <场景A话术> --timeout 60 --tag p8-cutoff` → 预期出口 **exit 5 `inconclusive`**（客户端主动放弃，run 仍在跑） | `run.json` 是否落下 `turn_id`；接着 `run --resume <thread> --tag p8-resume` 能否在窗口内把终态与产物补齐 | resume 能补齐 = 客户端放弃可恢复；resume 报 `inconclusive` = 只能等下一次窗口 |
+| **E-P8-2** | E-P8-1 结束 **>10 min** 后再读同一 thread：`/info`、`/timing`、`/debug/history`、`/messages`、`/artifacts/archive` | `/info.status` 是否已回落到 `未知`；终态能否从持久化消息（`error_type` / 最后一条 assistant 消息 / 产物是否存在）反推 | 能反推 = P8 非阻断；全为空 = 必须上报 |
+| **E-P8-3** | 起一个 `run`，在其 `running` 期间 `kill -9` 客户端进程（不是 Ctrl-C），再重新查询 | run 是否继续到 `completed`；产物是否齐全 | 与 T2 同构，但确认 **硬杀** 也不取消（T2 只证明了断 socket） |
+
+**判定表**
+
+| E-P8-1/2 结果 | 结论 | 动作 |
+|---|---|---|
+| 两臂都能补齐 | 客户端侧可自愈 | P8 留在 §8 表格「已缓解」，**不报** |
+| 能补齐但要手工拼 | 体验问题 | 在 `toolsmith-publish run` 里加「终态缺失时从持久化消息反推」的 fallback，**不报** |
+| 丢结果 / 完全无法反推 | 功能缺陷 | 按 §8 表格的建议上报开发（终态 + `termination_reason` 落库） |
+
+**成本**：E-P8-1 一轮 ≈ 3.5 min 墙钟（比 R8 的 202 s 略长，因为有意提前放弃后会继续跑完）；E-P8-2 0 成本；
+E-P8-3 复用 E-P8-1 的 run ⇒ **合计 1 次新 run**。执行前需确认：该轮会真实消耗 token（约 1.2 M in / 40 k out，
+与 R8 同量级）。
+
+### 8.2 内部的文档坑（**不对外报**，实现时别信文档）
 
 - `chat-api.mdx` 说"活动 run 的 `latency_ms` 完成后冻结"→ 实际要等 `cleanup_stale`（约 300 s）才冻结（§1.3 坑 B）。
 - `streaming.mdx` 没写重连接口（实为 `GET /api/chat/{thread_id}/stream`），且**只在 `running` 有效、其余一律 204**（`chat_routes.py:895-905`）；
@@ -388,7 +412,7 @@ DONE 之后：
    调用链（用 `~/.local/state/toolsmith-runs/20260914-171953-cite-date/` 做对照：
    期望 `load_skill×1, pharmcube-query-…×8, execute×8, read_file×3, present_artifact×1`，共 21 次）。
    这一步**不需要任何网络**，是最便宜的回归闸门。
-4. ⏸（2026-09-14）P7/P8 已写入 Obsidian **草稿区**，**按用户决定暂缓上报**（合到第 5 步 `R8` 真跑时一起排查，见 §8 排查口径）；文档缺口不再上报（P9 降级为 §8.1 内部存档）。
+4. ⏸（2026-09-14）P7/P8 已写入 Obsidian **草稿区**，**按用户决定暂缓上报**（合到第 5 步 `R8` 真跑时一起排查，见 §8 排查口径）；文档缺口不再上报（P9 降级为 §8.2 内部存档）。
 5. 一次真跑验证 v2（写动作，**需用户同意**）：`toolsmith-publish run --prompt-file … --tag v2-poll`，
    期望 `transcript.md` / `run.json` / 无 `stream.sse` / 轮询次数在 10–15 次 / 13 项断言与 v1 结论一致。
 6. 更新 `docs/toolsmith-verification-log.md`（新增 `R8` 记录 + 两栏台账）与 `PROJECT_STATE.md`。
@@ -499,7 +523,7 @@ v2 从持久化消息重建，天然看得到（`raw_ui_messages` 里同 id 的 
 **执行状态 / 剩余项**
 
 1. **R8**（§9 第 5 步）——**已于 2026-09-16 执行完毕**，见 §12.1；
-2. P7/P8 顺手排查（§8 排查口径）：**P7 已取得现场证据**（见 §12.1）；**P8 仍未测**（需一次「有意超时/中断」）→ 维持暂缓上报；
+2. P7/P8 顺手排查（§8 排查口径）：**P7 已取得现场证据**（见 §12.1）；**P8 已定稿实验设计（§8.1，E-P8-1/2/3 + 判定表，1 次新 run）但未执行** → 维持暂缓上报；
 3. **上游依赖漂移已顺手清掉**：`deps` 报 `pharmcube-query-clinical-result-with-params: schema changed`。
    逐项核对后确认唯一差异是 `selected_fields` 描述里的**序号笔误修正**（`1./1./2.` → `1./2./3.`）；
    18 个参数、73 个 `ALLOWED_FIELD_NAMES`、73 条字段描述**逐字节相同** → **本仓库无需适配**；

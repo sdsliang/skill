@@ -26,6 +26,7 @@
 | 6 | **现在无法离线核「引用真的来自拉取结果」**：params 的 tool-return 是「预览 + 落盘指针」，`artifacts.zip` **不含 `tool_results/**`** | §7 |
 | 7 | sys prompt 44516 B 里涉委派/子代理段落 **2 段 = 6908 B = 15.5%**，而 5 个 run **一次都没委派** → 可做「删段实验」 | §6/§10 E2 |
 | 8 | 真正的结构性差距只有一条：autoresearch 有 `val_bpb`，我们**只有 13 项布尔断言 + 人工读产物** → 只能判「契约破没破」，判不了「这轮改动值不值得 keep」 | §5 映射表 |
+| 9 | **差距已部分补上（S1.5，2026-09-16）**：`evals/fact-check/` = 必含事实清单 + 离线打分器，输出 `facts_ok/facts_total`；基线 A 30/30、B 12/12，负向对照 GATE PASS（每条都能翻 FAIL） | `evals/fact-check/README.md` |
 
 ---
 
@@ -181,10 +182,14 @@ receipt 类断言一律从**工具返回真值**取，不从产物自述取。
 
 | 场景 | 输入（用户话术） | 期望 | 用途 |
 |---|---|---|---|
-| **A** | `解读这几个结果 24_1_30561610 24_1_36342163` | 出 `report.md` + 1 图 + `citations.json` | 主战场，**需 3 次重复**取噪声带 |
-| **B** | `解读这几个结果 24_1_30561610 24_1_45608045` | **拒绝产出**（1 有效 1 无效） | 廉价回归闸门（~30 s） |
-| **C** | 18 esid 跨试验 | 多图 + 分组契约 | 只在改图表/委派时跑（贵） |
-| **D** | 4 esid 同试验 | 时间轴图 ≤1 且稳定 | 只测「图数是否被规则钉住」 |
+| **A** | `解读这几个结果 24_1_30561610 24_1_36342163` | 出 `report.md` + 1 图 + `citations.json` | 主战场，**需 3 次重复**取噪声带；判分 `check.py --scenario a`（30 条 fail 级事实） |
+| **B** | `解读这几个结果 24_1_30561610 24_1_45608045` | **拒绝产出**（1 有效 1 无效） | 廉价回归闸门（~30 s）；判分 `check.py --scenario b`（12 条 fail 级事实） |
+| **C** | 18 esid 跨试验 | 多图 + 分组契约 | 只在改图表/委派时跑（贵）；**尚无清单** |
+| **D** | 4 esid 同试验 | 时间轴图 ≤1 且稳定 | 只测「图数是否被规则钉住」；**尚无清单** |
+
+**事实清单（S1.5，已落地）**：`evals/fact-check/` —— ground truth 来自 `POST /api/tools/debug` 的真实返回
+（`records/*.json`），清单先于产物撰写，`check.py` 离线判分并输出 `SCORE scenario=<a|b> facts <ok>/<total>`；
+`mutations.py` 用负向对照证明每条都能翻 FAIL（当前 A 30/30、B 12/12）。用法见 `evals/fact-check/README.md`。
 
 ### 8.2 一轮 = 一个假设（硬纪律；A 组六项一起改就是反例）
 
@@ -194,11 +199,13 @@ receipt 类断言一律从**工具返回真值**取，不从产物自述取。
 4. `toolsmith-publish run --prompt-file … --tag r<n>`（场景 A；质量可疑时 A×3）。
 5. 读 harness 分数 → **keep**（前进）或 **discard**（`git revert` 该改动 + in-place 重发上一版）。
 6. 在 `docs/toolsmith-verification-log.md` 记一条 `R<n>` + 一行 TSV。
+7. **再跑一遍事实清单**（`check.py --scenario a`；动了拒产路径则加 `--scenario b`），把 `facts_ok/facts_total`
+   记进同一条 `R<n>`：成本层降了但事实分掉了 = discard，成本层不动而事实分升了 = keep。
 
 ### 8.3 `results.tsv`（我们版；tab 分隔，**不入库**）
 
 ```
-r  commit  deployed_sys_sha  scenario  turns  calls  wall_s  params_calls  execute  edit_file  thinking_chars  gate_pass  status  description
+r  commit  deployed_sys_sha  scenario  turns  calls  wall_s  params_calls  execute  edit_file  thinking_chars  gate_pass  facts_ok  facts_total  status  description
 ```
 
 全部字段可从 `debug-history.json` 离线抽（§13.1）。§6 的 5 行可直接回填（**零新 run**）。
@@ -210,6 +217,10 @@ r  commit  deployed_sys_sha  scenario  turns  calls  wall_s  params_calls  execu
 - **成本层（唯一「可比的数」）**：`calls`（辅助 `turns`、`wall_s`）—— 在质量门不掉的前提下越低越好。
   它扮演 `val_bpb` 的角色，但**只在成本维度**。
 - **质量层（gate，布尔，不进总分）**：现有 13 项断言 + 新增 receipt 类（§7）。
+- **质量层现在另有一个离线标量（S1.5，已落地）**：`evals/fact-check` 的 `facts_ok/facts_total`。它不同于
+  `val_bpb`：只衡量「清单里写明的事实说对了多少条」，不含任何与成本无关的加权；用途是给 keep/discard 提供一个
+  不随 run 抖动的下界（同样两段报告，一条把 `−13.9%` 写成 `−19.9%`，只有它会掉分）。**成本层仍不能拿它换**：
+  命中率相同不等于报告一样好，漏掉清单没写的事照样 PASS（README 已明写这条缺口）。
 - **为什么拒绝单一标量**：autoresearch 的 `val_bpb` 被 gaming（该仓 issue #599：agent 拥有 `train.py`，
   可以不调 `optimizer.step()`、可以包一层 `evaluate_bpb`，照样打出 `KEEP`）；我们这里的等价作弊是
   「临床判断写错但引用齐全，分数照样好看」。质量永远当 gate，不当分数。
@@ -220,6 +231,7 @@ r  commit  deployed_sys_sha  scenario  turns  calls  wall_s  params_calls  execu
 ## 10. 反 gaming 三条硬约束（issue #599 的直接移植）
 
 1. **来源类断言必须从工具返回取真值**，不读产物自述 → 前置：补齐 §7 的 `tool_results` 归档。
+   *（S1.5 已部分取代这条：事实清单的真值直接取自 `POST /api/tools/debug` 的 record，与产物完全解耦。）*
 2. **评测面冻结**：场景集 + fixtures + 断言脚本不可被被评测方改；改 = 开新基线，不许原地调参。
 3. **产物不自证**：分数由 harness 计算并追加，不由产出方写。
    附带一问（把 2026-09-14 的教训泛化）：**这条断言能被空产物糊过吗？能被「不调工具」糊过吗？能被「改自己」糊过吗？**
@@ -237,6 +249,7 @@ r  commit  deployed_sys_sha  scenario  turns  calls  wall_s  params_calls  execu
 | **E4** | `params` 调用纪律可收敛到 ≤2 | 同版内 2 ↔ 8；`cite-date` 8 次只拉 2 个 esid | 现有「最多再一次批调用」硬化 | **`params_calls ≤ 2` 可硬断言** | 1 publish + 3 run | 误伤「确认缺失」合法路径 |
 | **E5** | 图表张数受规则钉住 | 场景 A 两次都是 1 张 bar；A7 上限规则只观测 1 次 | 无（复用 E1 的 run 观测） | 图数方差 | 0（搭 E1） | 无 |
 | **E6** | B8–B10 对外沟通项（bar 负值问题单 / `{{ref_n}}` 前端报备 / CLI 路径口径） | 用户已拍板「攒着」 | — | — | — | **不做** |
+| **E7** | **删规则也能赢**：在事实清单不掉分的前提下压 `calls` | S1.5 基线分已拿到（A 30/30、B 12/12） | sys/skill 各一段 | `facts_ok` 不掉 + `calls` 降 | 1 publish + 3 run + 0 新 run 判分 | 事实分掉了就 revert（这正是清单存在的意义） |
 
 ---
 
@@ -255,6 +268,7 @@ r  commit  deployed_sys_sha  scenario  turns  calls  wall_s  params_calls  execu
 |---|---|---|---|---|
 | **S0** | 修 `toolsmith-publish` 5 处键名 → `status` 应 exit 0 | 改工具本体 | 需用户点头 | 分钟级 |
 | **S1** | harness 骨架 + §6 五行离线回填 TSV；补 `tool_results/**` 归档 → 跑 E0 receipts 回测 | 新增脚本（**不动 skill**） | 需点头 | 0 新 run |
+| ~~**S1.5**~~ | ✅ **已完成 2026-09-16**：必含事实清单 + 离线打分器 + 负向对照 → `evals/fact-check/`（A 30 条 / B 12 条，基线全 PASS，`mutations.py` GATE PASS） | 新增 eval 资产（**不动 skill/sys**） | 已执行 | 0 新 run |
 | **S2** | 场景 A ×3 取噪声带（E1）；顺带白拿 E5 图数方差 | 3 次 `run`（创建线程） | 需点头 | ~10 min 墙钟 |
 | **S3** | 按噪声带选 2 个最稳实验（建议 E2 删段 + E3 返工），一次一个变量 | publish ×2 + run 若干 | 每次 publish/run 前确认 | 半天内 |
 | **S4** | 把「冻结面 + 场景集 + TSV 列」写进 `AGENTS.md`/`PROJECT_STATE.md`，形成常驻 program.md | 文档 | 需点头 | 分钟级 |

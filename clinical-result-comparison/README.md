@@ -171,3 +171,20 @@ no tool errors). Findings are logged in `docs/toolsmith-verification-log.md`
 (one `R<n>` entry per run, plus the two-column list "what we can fix" / "platform issues for the developers").
 Platform issues intended for other people are kept outside this repo (in the user's Obsidian vault).
 A run creates a thread, so it passes the same ownership guard as publishing.
+
+### Offline fact-check scorer (`evals/fact-check/`)
+
+`run` only proves the contract holds; it cannot tell a good report from an empty-but-well-formed one. `evals/fact-check/` adds the
+missing quality scalar: `records/*.json` hold the ground truth captured from `POST /api/tools/debug`, `scenario-{a,b}.facts.json` list the
+facts a run must state (30 + 12 `fail`-level items, one `warn`-level each), and `check.py` scores a run directory completely offline:
+
+```bash
+python3 evals/fact-check/check.py --run ~/.local/state/toolsmith-runs/<ts>-<tag> --scenario a
+# SCORE scenario=a facts 30/30 warn 1/1 -> PASS          (exit 0 pass / 3 fail / 4 unusable input)
+python3 evals/fact-check/mutations.py                    # negative control: proves every item can go FAIL
+```
+
+Checklists are written from the recorded tool responses *before* any product is inspected, so a report can never certify itself;
+`mutations.py` mutates a real run directory (14 mutations for A, 11 for B) and requires each one to exit `3` and flip its expected item.
+See `evals/fact-check/README.md` for the item kinds and the known gaps (the deployed-vs-online `iframe_template` equality is only
+checked by the online `run`, and v1 SSE run directories are reconstructed from `debug-history.json`).

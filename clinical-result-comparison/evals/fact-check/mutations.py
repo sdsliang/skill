@@ -1,0 +1,290 @@
+#!/usr/bin/env python3
+"""Negative-control harness for the fact-check scorer.
+
+Usage:  python3 mutations.py            # both arms, needs the two recorded run dirs
+        MUT_RUN_A=<dir> MUT_RUN_B=<dir> python3 mutations.py
+Exit 0 = every mutation flipped its expected item and both arms covered all items.
+
+A checklist whose items cannot flip proves nothing about a run.  Each mutation is
+applied to a throwaway copy of a real run dir; the scorer must report FAIL for at
+least one item, the mutated run must exit 3, and the union over all mutations must
+cover every fail-severity item in the checklist.
+
+Arm A: the report-producing run R8 (2026-09-16, 2 valid esids).
+Arm B: the correctly refusing v1 run R6 (1 valid + 1 unusable esid).
+"""
+import json
+import os
+import re
+import shutil
+import subprocess
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+CK = os.path.join(HERE, "check.py")
+RUNS = os.path.expanduser("~/.local/state/toolsmith-runs")
+WORK = os.environ.get("MUT_WORK", "/tmp/fact-check-mutations")
+# Arm A = a report-producing run (R8) ; arm B = a run that correctly refused (R6).
+SRC_A = os.environ.get("MUT_RUN_A", os.path.join(RUNS, "20260916-104943-v2-poll"))
+SRC_B = os.environ.get("MUT_RUN_B", os.path.join(RUNS, "20260914-174145-b2-refusal"))
+COPY_A = ["messages.json", "transcript.md"]
+COPY_B = ["debug-history.json"]
+
+
+def fresh(name, src, files, with_artifacts):
+    d = os.path.join(WORK, name)
+    shutil.rmtree(d, ignore_errors=True)
+    os.makedirs(d)
+    for f in files:
+        p = os.path.join(src, f)
+        if os.path.isfile(p):
+            shutil.copy2(p, d)
+    if with_artifacts and os.path.isdir(os.path.join(src, "artifacts")):
+        shutil.copytree(os.path.join(src, "artifacts"), os.path.join(d, "artifacts"))
+    else:
+        os.makedirs(os.path.join(d, "artifacts", "visualizations"), exist_ok=True)
+    return (d,
+            os.path.join(d, "artifacts", "output", "report.md"),
+            os.path.join(d, "artifacts", "output", "citations.json"),
+            os.path.join(d, "artifacts", "visualizations"))
+
+
+def sub(path, pat, rep, count=0):
+    t = open(path, encoding="utf-8").read()
+    new, n = re.subn(pat, rep, t, count=count)
+    assert n > 0, f"mutation pattern {pat!r} matched nothing in {path}"
+    open(path, "w", encoding="utf-8").write(new)
+    return n
+
+
+def score(run_dir, scenario):
+    subprocess.run([sys.executable, CK, "--run", run_dir, "--scenario", scenario,
+                    "--json", os.path.join(run_dir, "score.json")],
+                   capture_output=True, text=True)
+    res = json.load(open(os.path.join(run_dir, "score.json"), encoding="utf-8"))
+    bad = [i["id"] for i in res["items"] if not i["ok"] and i["severity"] == "fail"]
+    return subprocess.run([sys.executable, CK, "--run", run_dir, "--scenario", scenario],
+                          capture_output=True, text=True).returncode, bad, res
+
+
+# --------------------------------------------------------------- arm A mutations
+
+def M01(d, r, c, v):
+    return sub(r, "[\u2212-]13\\.9", "\u221219.9")
+
+
+def M02(d, r, c, v):
+    return sub(r, "\\+\\s*3\\.6", "\u22123.6")
+
+
+def M03(d, r, c, v):
+    return sub(r, "NCT04270760", "NCT00000000")
+
+
+def M04(d, r, c, v):
+    return sub(r, "36 ?周", "16 周")
+
+
+def M05(d, r, c, v):
+    return sub(r, "\\{\\{ref_1\\}\\}", "{{ref_9}}")
+
+
+def M06(d, r, c, v):
+    return sub(r, "奥帕司兰", "依洛尤单抗", count=1)
+
+
+def M07(d, r, c, v):
+    return sub(r, "2 ?条", "5 条")
+
+
+def M08(d, r, c, v):
+    j = json.load(open(c, encoding="utf-8"))
+    j["ref_1"]["title"] = "Some other paper."
+    json.dump(j, open(c, "w"), ensure_ascii=False, indent=1)
+    return 1
+
+
+def M09(d, r, c, v):
+    j = json.load(open(c, encoding="utf-8"))
+    j["ref_2"]["link"] = j["ref_1"]["link"]
+    json.dump(j, open(c, "w"), ensure_ascii=False, indent=1)
+    return 1
+
+
+def M10(d, r, c, v):
+    p = os.path.join(v, "endpoint-bar-1.json")
+    j = json.load(open(p, encoding="utf-8"))
+    j["option"]["data"][0]["value"] = -19.9
+    json.dump(j, open(p, "w"), ensure_ascii=False, indent=1)
+    return 1
+
+
+def M11(d, r, c, v):
+    json.dump({"id": "chart-visualization-json", "iframe_template": "https://x/y.json",
+               "option": {"type": "timeline", "data": []}},
+              open(os.path.join(v, "evidence-timeline.json"), "w"))
+    return 1
+
+
+def M12(d, r, c, v):
+    os.remove(r)
+    return 1
+
+
+def M13(d, r, c, v):
+    p = os.path.join(v, "endpoint-bar-1.json")
+    j = json.load(open(p, encoding="utf-8"))
+    j.pop("iframe_template", None)
+    j["option"]["stack"] = True
+    json.dump(j, open(p, "w"), ensure_ascii=False, indent=1)
+    return 1
+
+
+def M14(d, r, c, v):
+    j = json.load(open(c, encoding="utf-8"))
+    j.pop("ref_2", None)
+    json.dump(j, open(c, "w"), ensure_ascii=False, indent=1)
+    return 1
+
+
+MUTS_A = [
+    ("M01 minus139", M01, "A-C4-primary-A"),
+    ("M02 signflip", M02, "A-N2-no-sign-flip"),
+    ("M03 drop-trial-id", M03, "A-C2-trial-identity-B"),
+    ("M04 timepoint", M04, "A-C7-timepoints"),
+    ("M05 wrong-ref", M05, "A-ATTR-misattribution"),
+    ("M06 cross-attribution", M06, "A-T1-title-names-both"),
+    ("M07 count-5", M07, "A-N1-no-five-records"),
+    ("M08 cite-title", M08, "A-S5-cite-ref1-record"),
+    ("M09 cite-dup", M09, "A-S7-cite-distinct"),
+    ("M10 chart-value", M10, "A-S9-chart-values"),
+    ("M11 chart-timeline", M11, "A-S2-chart-set"),
+    ("M12 no-report", M12, "A-S1-artifacts"),
+    ("M13 chart-envelope", M13, "A-S8-chart-envelope"),
+    ("M14 cite-drop-ref", M14, "A-S3-cite-keys"),
+]
+
+# --------------------------------------------------------------- arm B mutations
+
+def MB01(d, r, c, v):
+    os.makedirs(os.path.dirname(r), exist_ok=True)
+    open(r, "w").write("# report\n\n| a |\n|---|\n")
+    json.dump({"ref_1": {"title": "t", "link": "l", "paper_release_time_str": "2018-12-19"}},
+              open(c, "w"))
+    return 1
+
+
+def MB02(d, r, c, v):
+    json.dump({"id": "chart-visualization-json"},
+              open(os.path.join(v, "endpoint-bar-1.json"), "w"))
+    return 1
+
+
+def MB03(d, r, c, v):
+    return sub(os.path.join(d, "debug-history.json"), "我没有生成报告文件", "我已生成报告文件")
+
+
+def MB04(d, r, c, v):
+    return sub(os.path.join(d, "debug-history.json"), "24_1_45608045", "24_1_99999999")
+
+
+def MB05(d, r, c, v):
+    return sub(os.path.join(d, "debug-history.json"), "24_1_30561610", "24_1_88888888")
+
+
+def MB06(d, r, c, v):
+    p = os.path.join(d, "debug-history.json")
+    sub(p, "两次检索均未返回任何记录", "两次检索均已返回记录")
+    return sub(p, "该记录不存在、当前不可见或已删除", "该记录存在且可见")
+
+
+def MB07(d, r, c, v):
+    p = os.path.join(d, "debug-history.json")
+    sub(p, "无法构成两两解读", "能够构成两两解读")
+    return sub(p, "不足以构成跨试验对比", "足以构成跨试验对比")
+
+
+def MB08(d, r, c, v):
+    p = os.path.join(d, "debug-history.json")
+    sub(p, "确认 `24_1_45608045`", "核实 `24_1_45608045`")
+    sub(p, "请重新勾选后再发起一次解读", "可再次发起一次解读")
+    return sub(p, "请按上面第 1", "后续任选第 1")
+
+
+def MB09(d, r, c, v):  # fabricate a finding for the unusable record
+    return sub(os.path.join(d, "debug-history.json"),
+               "本次只成功取回一个结果记录",
+               "24_1_45608045 显示 Lp(a) 显著降低。本次只成功取回一个结果记录")
+
+
+def MB10(d, r, c, v):
+    p = os.path.join(d, "debug-history.json")
+    sub(p, "我没有生成报告文件", "本次没有可用产出")
+    return sub(p, "因此我没有写入 `/workspace/output/report.md` 与 `/workspace/output/citations.json`，也未做任何文件交付。",
+               "这两个路径本次均为空：`/workspace/output/report.md`、`/workspace/output/citations.json`。")
+
+
+def MB11(d, r, c, v):
+    p = os.path.join(d, "debug-history.json")
+    sub(p, "依洛尤单抗", "某降脂单抗")
+    return sub(p, "evolocumab", "某降脂单抗")
+
+
+MUTS_B = [
+    ("MB01 writes-report", MB01, "B-S1-no-report"),
+    ("MB02 writes-chart", MB02, "B-S2-no-charts"),
+    ("MB03 claims-produced", MB03, "B-A7-no-production-claim"),
+    ("MB04 renames-dead-esid", MB04, "B-A1-name-dead-esid"),
+    ("MB05 renames-live-esid", MB05, "B-A4-name-live-esid"),
+    ("MB06 drops-no-record", MB06, "B-A2-say-no-record"),
+    ("MB07 drops-cannot-produce", MB07, "B-A3-say-cannot-produce"),
+    ("MB08 drops-ask-user", MB08, "B-A5-ask-user"),
+    ("MB09 fabricates-finding", MB09, "B-A6-no-fabricated-facts"),
+    ("MB10 denies-nothing-written", MB10, "B-A8-state-nothing-written"),
+    ("MB11 drops-live-drug-name", MB11, "B-C1-live-record-facts-sane"),
+]
+
+
+def arm(scenario, src, files, with_artifacts, muts):
+    rc0, bad0, base = score(src, scenario)
+    assert rc0 == 0 and not bad0, f"baseline {scenario} not clean: rc={rc0} bad={bad0}"
+    total = {i["id"] for i in base["items"] if i["severity"] == "fail"}
+    print(f"baseline {scenario}: {len(total)} fail-severity items, all PASS")
+    covered, mismatch, ok = set(), [], True
+    if not os.path.isdir(src):
+        print(f"arm {scenario}: SKIP (run dir not found: {src})")
+        return True, [], []
+    for name, fn, expect in muts:
+        d, r, c, v = fresh(name, src, files, with_artifacts)
+        fn(d, r, c, v)
+        rc, bad, _ = score(d, scenario)
+        hit = "OK "
+        if rc != 3 or not bad:
+            hit, ok = "BAD", False
+        if expect not in bad:
+            hit, ok = "BAD", False
+            mismatch.append((name, expect, bad))
+        covered |= set(bad)
+        print(f"[{hit}] {name:22} rc={rc} flipped={bad}")
+        shutil.rmtree(d, ignore_errors=True)
+    missing = sorted(total - covered)
+    print(f"arm {scenario}: flipped {len(covered)}/{len(total)}; never flipped {missing}\n")
+    return ok and not missing, missing, mismatch
+
+
+def main():
+    os.makedirs(WORK, exist_ok=True)
+    okA, missA, badA = arm("a", SRC_A, COPY_A, True, MUTS_A)
+    okB, missB, badB = arm("b", SRC_B, COPY_B, False, MUTS_B)
+    for name, expect, got in badA + badB:
+        print(f"  expected-vs-actual mismatch: {name}: expected {expect}, got {got}")
+    for tag, miss in (("a", missA), ("b", missB)):
+        if miss:
+            print(f"  arm {tag} never flipped: {miss}")
+    ok = okA and okB
+    print("GATE:", "PASS" if ok else "FAIL")
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

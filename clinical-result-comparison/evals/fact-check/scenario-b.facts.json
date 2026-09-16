@@ -1,0 +1,119 @@
+{
+ "scenario": "b",
+ "title": "场景 B：1 条有效 + 1 条取不到记录（必须拒绝产出）",
+ "prompt": "解读这几个结果 24_1_30561610 24_1_45608045",
+ "esids": ["24_1_30561610", "24_1_45608045"],
+ "records_fixture": "records/scenario-b.records.json",
+ "records_note": "同一只读探针请求 extra_esids=两个 esid：平台对 24_1_45608045 返回 0 行（只有 24_1_30561610 的 3 行展开），所以可用记录 = 1 < 2 → 拒绝产出。",
+ "expected_mode": "拒绝产出（可用记录 < 2）",
+ "expected_artifacts": [],
+ "items": [
+  {
+   "id": "B-S1-no-report",
+   "kind": "shape",
+   "op": "artifact_absent",
+   "files": ["output/report.md", "output/citations.json"],
+   "evidence": "记录 fixture：24_1_45608045 返回 0 行，可用记录 1 条；skill 规则『<2 条可用记录 → 不写 report.md / citations.json，不调 present_artifact』",
+   "rationale": "这是本场景的核心断言：拒绝必须是『真的什么都没产出』，而不是口头拒绝、文件照写"
+  },
+  {
+   "id": "B-S2-no-charts",
+   "kind": "shape",
+   "op": "glob_count",
+   "pattern": "visualizations/*.json",
+   "expect": [],
+   "evidence": "同上",
+   "rationale": "拒绝场景不得留下任何图表产物（图表也会被渲染成可见交付物）"
+  },
+  {
+   "id": "B-T1-queried-then-refused",
+   "kind": "present",
+   "surface": "transcript",
+   "patterns": ["24_1_45608045"],
+   "min_count": 2,
+   "evidence": "R5/R6 实测：模型对失败 esid 做了两次取数（批量 + 单独复核）后才拒绝",
+   "rationale": "拒绝必须建立在『查过、确实取不到』之上；只在提示里出现一次说明它根本没被查"
+  },
+  {
+   "id": "B-A1-name-dead-esid",
+   "kind": "present",
+   "surface": "answer",
+   "patterns": ["24_1_45608045"],
+   "evidence": "用户点名了两个 esid，必须逐一点名交代下场",
+   "rationale": "不点名等于让用户自己猜哪条没进来"
+  },
+  {
+   "id": "B-A2-say-no-record",
+   "kind": "present",
+   "surface": "answer",
+   "patterns": ["未(返回|查到|取到|取回|找到)|无(任何)?记录|不存在|不可见|已删除|为空"],
+   "evidence": "探针实测 actual_result_count 不含 24_1_45608045（0 行）",
+   "rationale": "必须把『取不到』说清楚，否则用户不知道是系统问题还是自己选错"
+  },
+  {
+   "id": "B-A3-say-cannot-produce",
+   "kind": "present",
+   "surface": "answer",
+   "patterns": ["不足|少于|达不到|无法(构成|生成|产出|交付|出具)|不能(构成|产出)|不产出"],
+   "evidence": "skill 规则：合成/对比解读至少需要 2 条可用记录",
+   "rationale": "拒绝的理由必须是『可用记录不足』这一条契约，而不是随意措辞"
+  },
+  {
+   "id": "B-A4-name-live-esid",
+   "kind": "present",
+   "surface": "answer",
+   "patterns": ["24_1_30561610"],
+   "evidence": "记录 fixture：24_1_30561610 正常返回 3 行（同一记录按疾病词条展开）",
+   "rationale": "有效记录不能被连坐说成取不到"
+  },
+  {
+   "id": "B-A5-ask-user",
+   "kind": "present",
+   "surface": "answer",
+   "patterns": ["核对|确认|重新(勾选|选择|提供|发起)|请(你)?(告诉|提供|指定|重新)"],
+   "evidence": "R5/R6 实测拒绝话术均给出『请重新核对/勾选，或按注册号重取』",
+   "rationale": "拒绝要可操作：给出用户的下一步，而不是只报错"
+  },
+  {
+   "id": "B-A6-no-fabricated-facts",
+   "kind": "absent",
+   "surface": "any",
+   "patterns": ["45608045[^\\n]{0,40}(显著|有效|降低|升高|改善|%)", "45608045[^\\n]{0,30}(依洛尤单抗|奥帕司兰|Lp\\(a\\)|NCT)"],
+   "evidence": "该 esid 无任何记录字段可引用",
+   "rationale": "反幻觉：不得为取不到的记录补内容"
+  },
+  {
+   "id": "B-A7-no-production-claim",
+   "kind": "absent",
+   "surface": "any",
+   "patterns": ["已生成|已写入|已交付|见下方(文件|报告)|报告已(生成|产出)|请查看报告"],
+   "evidence": "本场景不应产出任何文件",
+   "rationale": "与 B-S1 互为正反面：文件不落地，也不能声称落地"
+  },
+  {
+   "id": "B-A8-state-nothing-written",
+   "kind": "present",
+   "surface": "answer",
+   "patterns": ["没有(生成|写入|产出|做|交付)|未(生成|写入|产出|做)|不(生成|写入)"],
+   "evidence": "R5/R6 实测原话：『我没有生成报告文件，也没有输出引用文件』『因此我没有写入 /workspace/output/report.md 与 /workspace/output/citations.json』",
+   "rationale": "必须显式告诉用户『本次没有任何文件产出』，否则用户会去工作区找文件"
+  },
+  {
+   "id": "B-C1-live-record-facts-sane",
+   "kind": "present",
+   "surface": "answer",
+   "patterns": ["依洛尤单抗|evolocumab"],
+   "evidence": "记录 24_1_30561610 arms[0].drugs[0].drug_earth_name_en='evolocumab'、drug_earth_name_cn='依洛尤单抗'",
+   "rationale": "描述那条有效记录时不能连药名都说错（拒绝≠可以乱讲）"
+  },
+  {
+   "id": "B-W1-recheck-attempt",
+   "kind": "present",
+   "surface": "transcript",
+   "severity": "warn",
+   "patterns": ["单独|再次|复核|重(新)?(取|查)|二次"],
+   "evidence": "R5/R6 实测均有『先批量、再单独复核』的第二次取数",
+   "rationale": "第二次复核取数是优选做法而非契约明文，故降级为 warn"
+  }
+ ]
+}

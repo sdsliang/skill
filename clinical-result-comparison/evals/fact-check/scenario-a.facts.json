@@ -1,0 +1,294 @@
+{
+ "scenario": "a",
+ "title": "场景 A：2 条有效记录、同一主问题组、分属两项不同试验（跨试验对比）",
+ "prompt": "解读这几个结果 24_1_30561610 24_1_36342163",
+ "esids": ["24_1_30561610", "24_1_36342163"],
+ "records_fixture": "records/scenario-a.records.json",
+ "records_note": "真值来自 POST /api/tools/debug（只读）调用 pharmcube-query-clinical-result-with-params，extra_esids=两个 esid；平台返回 5 行（24_1_30561610 x3、24_1_36342163 x2，同一结果因关联项目重复），故『2 条结果』而不是 5 条。",
+ "expected_mode": "跨试验（cross-trial），无头对头",
+ "expected_artifacts": ["output/report.md", "output/citations.json", "visualizations/endpoint-bar-1.json"],
+ "items": [
+  {
+   "id": "A-S1-artifacts",
+   "kind": "shape",
+   "op": "artifact_present",
+   "files": {"output/report.md": true, "output/citations.json": true},
+   "evidence": "skill 的输出命名契约：/workspace/output/report.md + /workspace/output/citations.json",
+   "rationale": "两条有效记录 >= 2，必须产出报告与引用文件；缺失即拒绝产出被误用"
+  },
+  {
+   "id": "A-S2-chart-set",
+   "kind": "shape",
+   "op": "glob_count",
+   "pattern": "visualizations/*.json",
+   "expect": ["endpoint-bar-1.json"],
+   "evidence": "两 esid 分属不同试验 → evidence-timeline 的前置条件（同一试验 且 >=2 个不同证据状态）不成立；余下只有定量主图",
+   "rationale": "图表集合必须与『最多两张、timeline 有条件』的规则一致；多出 timeline 或数量图都说明模式判定错了"
+  },
+  {
+   "id": "A-S3-cite-keys",
+   "kind": "shape",
+   "op": "citations_keys_exact",
+   "keys": ["ref_1", "ref_2"],
+   "evidence": "每条所选结果一个 ref，共 2 条；R7/R8 实测 citations.json 恰为 ref_1/ref_2",
+   "rationale": "引用条数必须等于可用记录数，且编号连续无空洞（曾出现 ref_2 全空的缺陷）"
+  },
+  {
+   "id": "A-S4-cite-entry-keys",
+   "kind": "shape",
+   "op": "citations_entry_key_set",
+   "refs": ["ref_1", "ref_2"],
+   "keys": ["title", "link", "paper_release_time_str"],
+   "evidence": "references/citation-and-ref.md 定死的三键契约",
+   "rationale": "键集或空值偏差会直接破坏渲染端的 ref 解析"
+  },
+  {
+   "id": "A-S5-cite-ref1-record",
+   "kind": "shape",
+   "op": "citations_matches_record",
+   "ref": "ref_1",
+   "esid": "24_1_30561610",
+   "map": {"title": "clinical_result_paper_title", "link": "clinical_result_full_article_link", "date": "clinical_result_paper_release_time"},
+   "evidence": "记录 24_1_30561610：paper_title='Persistent arterial wall inflammation … type 9 antibody treatment.'；full_article_link='https://pubmed.ncbi.nlm.nih.gov/30561610'；paper_release_time='2018-12-19 00:00:00'",
+   "rationale": "引用必须逐字回抄记录字段，且日期裁成 YYYY-MM-DD；错配=把 A 的文献挂到 B 上"
+  },
+  {
+   "id": "A-S6-cite-ref2-record",
+   "kind": "shape",
+   "op": "citations_matches_record",
+   "ref": "ref_2",
+   "esid": "24_1_36342163",
+   "map": {"title": "clinical_result_paper_title", "link": "clinical_result_full_article_link", "date": "clinical_result_paper_release_time"},
+   "evidence": "记录 24_1_36342163：paper_title='Small Interfering RNA to Reduce Lipoprotein(a) in Cardiovascular Disease.'；full_article_link='https://pubmed.ncbi.nlm.nih.gov/36342163'；paper_release_time='2022-11-08 06:00:00'",
+   "rationale": "同 A-S5，覆盖第二条引用"
+  },
+  {
+   "id": "A-S7-cite-distinct",
+   "kind": "shape",
+   "op": "citations_distinct",
+   "refs": ["ref_1", "ref_2"],
+   "field": "link",
+   "evidence": "两条记录来自不同文献（PMID 30561610 / 36342163）",
+   "rationale": "防复制粘贴导致两条引用指向同一文献"
+  },
+  {
+   "id": "A-S8-chart-envelope",
+   "kind": "shape",
+   "op": "chart_envelope",
+   "file": "endpoint-bar-1.json",
+   "expect": {
+    "id": "chart-visualization-json",
+    "iframe_template_regex": "^https://\\S+$",
+    "option": {"type": "bar", "group": false, "stack": false},
+    "data_len": 5
+   },
+   "evidence": "chart-visualization-json 协议 envelope：{id, iframe_template, option}；5 条数据 = 依洛尤单抗 1 组 + 奥帕司兰 4 个剂量组",
+   "rationale": "envelope 缺失/类型错会静默渲染失败；label 为空说明数据行没填"
+  },
+  {
+   "id": "A-S9-chart-values",
+   "kind": "shape",
+   "op": "chart_values",
+   "file": "endpoint-bar-1.json",
+   "values": [-13.9, -70.5, -97.4, -101.1, -100.5],
+   "evidence": "abstract_text：Lp(a) 降 13.9%（试验 A）；-70.5%（10 mg q12w）/ -97.4%（75 mg q12w）/ -101.1%（225 mg q12w）/ -100.5%（225 mg q24w）（试验 B）",
+   "rationale": "图上数值必须逐值与记录一致：图是唯一可直接被读者当作数据的产物"
+  },
+  {
+   "id": "A-T1-title-names-both",
+   "kind": "line",
+   "surface": "report",
+   "line_regex": "^#\\s",
+   "patterns": ["依洛尤单抗|evolocumab", "奥帕司兰|olpasiran"],
+   "evidence": "H1 标题必须指向两条记录：记录 A drugs[0].drug_earth_name_cn='依洛尤单抗'，记录 B drugs[0].drug_earth_name_cn='奥帕司兰'",
+   "rationale": "标题是唯一被引注规则豁免的位置（无 {{ref_n}}），所以必须单独断言它把两个字名都写对、没有写成同一个药"
+  },
+  {
+   "id": "A-C1-trial-identity-A",
+   "kind": "present",
+   "surface": "report",
+   "anchors": ["ref_1"],
+   "patterns": ["NCT02729025", "依洛尤单抗"],
+   "evidence": "记录 24_1_30561610：projects[0].associate_ids=['NCT02729025','EudraCT2015-003731-35','PMCT00652711']；arms[0].drugs[0].drug_earth_name_en='evolocumab'（依洛尤单抗）",
+   "rationale": "报告必须交代『这条记录是什么试验、什么药』，否则读者无法定位证据"
+  },
+  {
+   "id": "A-C2-trial-identity-B",
+   "kind": "present",
+   "surface": "report",
+   "anchors": ["ref_2"],
+   "patterns": ["OCEAN\\(a\\)-DOSE", "NCT04270760", "奥帕司兰"],
+   "evidence": "记录 24_1_36342163：trial_abbreviation=['OCEAN(a)-DOSE']；projects[0].associate_ids 含 'NCT04270760'；arms[1].drugs[0].drug_earth_name_cn='奥帕司兰'",
+   "rationale": "同 A-C1；两试验身份必须分别落到各自的引用锚点上"
+  },
+  {
+   "id": "A-C3-mechanism",
+   "kind": "present",
+   "surface": "report",
+   "patterns": ["PCSK9", "siRNA|小干扰 ?RNA"],
+   "evidence": "记录 A：abstract 'proprotein convertase subtilisin/kexin type 9 antibody treatment'、drugs[0].target_name=['PCSK9']；记录 B：abstract 'Olpasiran is a small interfering RNA that reduces lipoprotein(a) synthesis'",
+   "rationale": "机制差异是『跨试验不可直接对齐』的主要理由，报告必须显式写出"
+  },
+  {
+   "id": "A-C4-primary-A",
+   "kind": "present",
+   "surface": "report",
+   "anchors": ["ref_1"],
+   "patterns": ["-13\\.9", "19\\.3", "8\\.5"],
+   "evidence": "记录 A study_results：Lipoprotein(a) | percentage change; Week 16 的相对行 compare_result='-13.9'、compare_result_ci='95%CI -19.3 to -8.5'（abstract 同值）",
+   "rationale": "试验 A 唯一可用于跨试验对齐的疗效数字；漏掉或漏掉区间都削弱可核查性"
+  },
+  {
+   "id": "A-C5-primary-B-4doses",
+   "kind": "present",
+   "surface": "report",
+   "anchors": ["ref_2"],
+   "patterns": ["-70\\.5", "-97\\.4", "-101\\.1", "-100\\.5"],
+   "evidence": "记录 B study_results 四条主要终点行：-70.5 / -97.4 / -101.1 / -100.5（%）；abstract 对应 10/75/225 mg q12w、225 mg q24w 四个剂量",
+   "rationale": "剂量依赖性降幅是试验 B 的核心结论，只报一个数会失真"
+  },
+  {
+   "id": "A-C6-primary-B-placebo",
+   "kind": "present",
+   "surface": "report",
+   "anchors": ["ref_2"],
+   "patterns": ["3\\.6", "<0?\\.001|P ?< ?0\\.001|＜0\\.001"],
+   "evidence": "记录 B study_results：安慰剂组 3.6%（主要终点 single 行）、相对行 p_value='＜0.001'；abstract 'increased by a mean of 3.6% in the placebo group … (P<0.001 …)'",
+   "rationale": "降幅必须与对照和显著性一起读，否则无法判断效应量级；也防止把 +3.6% 写成下降"
+  },
+  {
+   "id": "A-C7-timepoints",
+   "kind": "present",
+   "surface": "report",
+   "patterns": ["第 ?16 ?周", "第 ?36 ?周"],
+   "evidence": "记录 A 终点行 endpoint_label 含 'Week 16'；记录 B endpoint_label='36-week'",
+   "rationale": "时点不同是硬性可比性限制，两个时点都必须出现"
+  },
+  {
+   "id": "A-C8-not-head-to-head",
+   "kind": "present",
+   "surface": "report",
+   "patterns": ["非头对头|不是头对头|无头对头", "不(等于|构成|是)\\S{0,6}优效证明|优效证明"],
+   "evidence": "两条记录分属不同试验、无共同随机化：记录 A projects[0].associate_ids=['NCT02729025'…]、记录 B projects[0].associate_ids=['NCT04270760'…]",
+   "rationale": "跨试验并列最危险的错误是给出头对头优效结论；这条是反 gaming 的核心护栏"
+  },
+  {
+   "id": "A-C9-mds-tbr-A",
+   "kind": "present",
+   "surface": "report",
+   "anchors": ["ref_1"],
+   "patterns": ["-8\\.3", "-5\\.3", "-3\\.0", "0\\.18"],
+   "evidence": "记录 A study_results：MDS TBR percentage change Week 16 → 试验组 -8.3、安慰剂 -5.3、相对行 compare_result '-3.0' + compare_result_ci '95%CI -7.4 to 1.4' + p_value '=0.18'（abstract 同）",
+   "rationale": "『血管炎症未被削弱』的全部证据都在这四个数上，漏掉 p 值会变成没有边界的阴性结论"
+  },
+  {
+   "id": "A-C10-mds-tbr-B-absent",
+   "kind": "present",
+   "surface": "report",
+   "anchors": ["ref_2"],
+   "patterns": ["未评估|未报告|未提供"],
+   "evidence": "记录 B 无 MDS TBR / 影像学炎症字段（study_results 只有 Lp(a) 与未命名次要终点行；abstract 未提及）",
+   "rationale": "『B 没做该终点』必须写成缺测，而不是留空让读者以为可比"
+  },
+  {
+   "id": "A-C11-sample-size",
+   "kind": "present",
+   "surface": "report",
+   "anchors": ["ref_1"],
+   "patterns": ["129"],
+   "evidence": "记录 A abstract '129 patients … were randomized'；group_count='129'",
+   "rationale": "样本量是可比性的基本维度"
+  },
+  {
+   "id": "A-C11b-sample-size-B",
+   "kind": "present",
+   "surface": "report",
+   "anchors": ["ref_2"],
+   "patterns": ["281"],
+   "evidence": "记录 B abstract 'Among the 281 enrolled patients'；arms: 安慰剂 54 例、奥帕司兰 58/58/56/55 例（合计 281）",
+   "rationale": "同上"
+  },
+  {
+   "id": "A-C12-two-records-not-five",
+   "kind": "present",
+   "surface": "report",
+   "patterns": ["2 ?条"],
+   "evidence": "请求 2 个 esid；平台实际返回 5 行（同一结果因关联项目重复），真值是 2 条结果",
+   "rationale": "把重复行当独立结果会虚增证据数（本次记录 5 行的真实陷阱）"
+  },
+  {
+   "id": "A-N1-no-five-records",
+   "kind": "absent",
+   "surface": "report",
+   "patterns": ["5 ?条(临床)?结果", "5 项结果", "5 条记录"],
+   "evidence": "同 A-C12",
+   "rationale": "重复行不得被叙述成 5 条结果"
+  },
+  {
+   "id": "A-N2-no-sign-flip",
+   "kind": "absent",
+   "surface": "report",
+   "patterns": ["-3\\.6"],
+   "evidence": "记录 B 安慰剂组为 '3.6'（升高 3.6%，abstract 'increased by a mean of 3.6%'）",
+   "rationale": "安慰剂组写成 -3.6% 会让方向性结论整体失真"
+  },
+  {
+   "id": "A-C13-safety",
+   "kind": "present",
+   "surface": "report",
+   "anchors": ["ref_2"],
+   "patterns": ["注射部位反应|注射部位"],
+   "evidence": "记录 B abstract 'The most common olpasiran-related adverse events were injection-site reactions, primarily pain.'；'The overall incidence of adverse events was similar across the trial groups.'",
+   "rationale": "安全性域唯一有内容的证据不能丢"
+  },
+  {
+   "id": "A-C14-safety-gap-A",
+   "kind": "present",
+   "surface": "report",
+   "anchors": ["ref_1"],
+   "patterns": ["未报告|未提供|未评估|缺失"],
+   "evidence": "记录 A 无安全性字段（abstract 只报疗效影像；无 AE 数值）",
+   "rationale": "缺测必须显式写出，避免读者误认为该试验安全无毒"
+  },
+  {
+   "id": "A-C15-pkpd-pro-gap",
+   "kind": "present",
+   "surface": "report",
+   "patterns": ["PK/PD", "PRO", "未报告|信息缺口|缺失"],
+   "evidence": "两条记录均无 PK/PD 与 PRO 字段（requested fields 全部为 null / 未返回）",
+   "rationale": "域级缺口是报告的组成部分，不能靠沉默处理"
+  },
+  {
+   "id": "A-C16-hard-outcome-gap",
+   "kind": "present",
+   "surface": "report",
+   "patterns": ["硬结局|心血管事件", "未报告|无.{0,6}(硬结局|结局)数据|没有"],
+   "evidence": "记录 A abstract 无事件数据（随访至第 16 周）；记录 B abstract 'Longer and larger trials will be necessary to determine the effect of olpasiran therapy on cardiovascular disease.'",
+   "rationale": "替代终点不得外推为临床获益，这是本 skill 的红线之一"
+  },
+  {
+   "id": "A-ATTR-misattribution",
+   "kind": "attribution",
+   "pairs": [
+    {"token": "奥帕司兰", "owner": "ref_2"},
+    {"token": "依洛尤单抗", "owner": "ref_1"},
+    {"token": "NCT04270760|OCEAN\\(a\\)-DOSE", "owner": "ref_2"},
+    {"token": "NCT02729025", "owner": "ref_1"},
+    {"token": "-70\\.5|-97\\.4|-101\\.1|-100\\.5", "owner": "ref_2"},
+    {"token": "-13\\.9|-8\\.3|-5\\.3", "owner": "ref_1"}
+   ],
+   "evidence": "两试验各自的药/试验号/数值见记录（见 A-C1…A-C9 的 evidence）",
+   "rationale": "带引注的行必须只讲它引的那条记录：把 B 的数字挂在 ref_1 上是本清单最想抓的错配（单看数字无法发现，故用引注锚点做归属校验）"
+  },
+  {
+   "id": "A-W1-dose-mapping",
+   "kind": "present",
+   "surface": "report",
+   "severity": "warn",
+   "anchors": ["ref_2"],
+   "patterns": ["10 ?mg", "75 ?mg", "225 ?mg"],
+   "evidence": "剂量名在 abstract 中与降幅成对给出；但记录里 arm 与剂量的绑定只能靠 arms 顺序 + arm_count(58/58/56/55) 与 study_results 臂顺序推得，记录本身未直接给出 arm_id↔剂量",
+   "rationale": "推断性事实，不计入 keep/discard；只提醒读者这条映射是推理而非字段直读"
+  }
+ ]
+}

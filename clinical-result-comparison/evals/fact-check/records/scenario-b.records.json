@@ -1,0 +1,1299 @@
+{
+ "probe": {
+  "endpoint": "POST /api/tools/debug",
+  "read_only": true,
+  "captured_at": "2026-09-16",
+  "request": {
+   "name": "pharmcube-query-clinical-result-with-params",
+   "mcp_server_id": "pharmcube",
+   "arguments": {
+    "extra_esids": [
+     "24_1_30561610",
+     "24_1_45608045"
+    ],
+    "selected_fields": [
+     "clinical_result.extra_esid",
+     "clinical_result.paper_title",
+     "clinical_result.paper_release_time",
+     "clinical_result.doi",
+     "clinical_result.pm_id",
+     "clinical_result.full_article_link",
+     "clinical_result.journal",
+     "clinical_result.abbreviation_label",
+     "clinical_result.trial_abbreviation",
+     "clinical_result.summary",
+     "clinical_result.key_evidence",
+     "clinical_result.study_results",
+     "clinical_result.abstract_text",
+     "clinical_result.evaluation",
+     "clinical_result.evidence_source",
+     "clinical_result.clinical_stage_cn",
+     "clinical_result.clinical_stage_en",
+     "clinical_result.indication_name",
+     "clinical_result.indication_name_en",
+     "clinical_result.indication_detail",
+     "clinical_result.indication_type_cn",
+     "clinical_result.pathology_cn",
+     "clinical_result.biomarker_cn",
+     "clinical_result.therapy_line_cn",
+     "clinical_result.precision_medicine_cn",
+     "clinical_result.primary_endpoint_all_name",
+     "clinical_result.primary_endpoint_cn",
+     "clinical_result.primary_endpoint_en",
+     "clinical_result.arms",
+     "clinical_result.group_count",
+     "clinical_result.random_ratio",
+     "clinical_result.blinded",
+     "clinical_result.multi_center",
+     "clinical_result.randomized",
+     "clinical_result.trial_control",
+     "clinical_result.positive_placebo_control",
+     "clinical_result.layer_factor",
+     "clinical_result.lba",
+     "clinical_result.inclusion_criteria",
+     "clinical_result.participant_flow",
+     "clinical_result.patient_baseline_cn",
+     "clinical_result.baseline_characteristics",
+     "clinical_result.projects",
+     "company.short_name",
+     "company.company_type",
+     "company.company_category",
+     "company.is_ct",
+     "company.is_important_corp",
+     "target.name_short",
+     "target.parent_target",
+     "indication.name",
+     "indication.name_en",
+     "indication.parent_indication",
+     "biomarker.name",
+     "clinical_stage.stage",
+     "clinical_stage.stage_en",
+     "therapy_label.name",
+     "clinical_endpoint.endpoint",
+     "clinical_endpoint.endpoint_attr",
+     "clinical_endpoint.endpoint_short",
+     "modality.name",
+     "modality.parent_moa"
+    ]
+   }
+  },
+  "note": "mcp_server_id=pharmcube；selected_fields 为 62 个字段名（本清单真值来源字段）；__data_parts__（SQL 回显 + UI 表格）已在落盘时剔除，不影响任何事实"
+ },
+ "response": {
+  "is_error": false,
+  "result": {
+   "ok": true,
+   "data": [
+    {
+     "clinical_result_journal": "Eur Heart J",
+     "clinical_result_projects": [
+      {
+       "company_ids": [
+        "256"
+       ],
+       "company_all_name": [
+        "アムジェン株式会社",
+        "amgen inc.",
+        "amgen inc",
+        "安进有限公司",
+        "amgen, inc.",
+        "amgen",
+        "amgen canada",
+        "amgen business development",
+        "安进",
+        "ehmdzhen ink",
+        "amgen massachusetts",
+        "安进公司",
+        "applied molecular genetics inc",
+        "amgen biosimilars"
+       ],
+       "guideline_support": null,
+       "co_all_name": null,
+       "country_names": [
+        "美国",
+        "荷兰",
+        "加拿大"
+       ],
+       "sponsor_ids": [
+        "256"
+       ],
+       "co_name_cn": null,
+       "co_name_en": null,
+       "associate_ids": [
+        "NCT02729025",
+        "EudraCT2015-003731-35",
+        "PMCT00652711"
+       ],
+       "pivotal_ids": null,
+       "group_id": "PMCT00652711",
+       "ma_indication": null,
+       "company_name_cn": [
+        "Amgen"
+       ],
+       "company_area": [
+        "美国"
+       ],
+       "company_name_en": [
+        "Amgen"
+       ],
+       "co_ids": null,
+       "initiation_type": "IST"
+      }
+     ],
+     "target_id": null,
+     "clinical_result_clinical_stage_cn": null,
+     "clinical_result_biomarker_cn": null,
+     "target_name_short": null,
+     "therapy_label_name": null,
+     "disease_id": "5194",
+     "clinical_result_indication_detail": [
+      "The study enrolled patients with elevated lipoprotein(a) (median 200.0 nmol/L), a median age of 60.0 years, and a mean LDL-C of 3.7 mmol/L, including those classified as National Cholesterol Education Program high risk."
+     ],
+     "clinical_result_blinded": [
+      "三盲"
+     ],
+     "clinical_result_group_count": "129",
+     "clinical_result_lba": null,
+     "company_company_type": null,
+     "clinical_endpoint_endpoint": null,
+     "clinical_result_paper_release_time": "2018-12-19 00:00:00",
+     "modality_name": null,
+     "clinical_result_abbreviation_label": [],
+     "company_short_name": null,
+     "clinical_result_positive_placebo_control": "安慰剂/空白对照",
+     "biomarker_name": null,
+     "clinical_result_extra_esid": "24_1_30561610",
+     "clinical_result_key_evidence": "是",
+     "clinical_result_randomized": [
+      "随机化"
+     ],
+     "clinical_result_inclusion_criteria": null,
+     "clinical_result_pathology_cn": null,
+     "company_id": null,
+     "clinical_result_primary_endpoint_en": null,
+     "clinical_result_paper_title": "Persistent arterial wall inflammation in patients with elevated lipoprotein(a) despite strong low-density lipoprotein cholesterol reduction by proprotein convertase subtilisin/kexin type 9 antibody treatment.",
+     "clinical_endpoint_endpoint_attr": null,
+     "modality_parent_moa": null,
+     "clinical_result_trial_abbreviation": [],
+     "clinical_result__id": "24_1_30561610",
+     "clinical_result_indication_type_cn": [
+      "心脑血管领域",
+      "免疫领域"
+     ],
+     "clinical_result_multi_center": [
+      "境外多中心"
+     ],
+     "company_is_important_corp": null,
+     "target_parent_target": null,
+     "indication_name_en": "inflammatory (not otherwise specified)",
+     "clinical_stage_stage_en": null,
+     "clinical_result_abstract_text": "AIMS: Subjects with lipoprotein(a) [Lp(a)] elevation have increased arterial wall inflammation and cardiovascular risk. In patients at increased cardiovascular risk, arterial wall inflammation is reduced following lipid-lowering therapy by statin treatment or lipoprotein apheresis. However, it is unknown whether lipid-lowering treatment in elevated Lp(a) subjects alters arterial wall inflammation. We evaluated whether evolocumab, which lowers both low-density lipoprotein cholesterol (LDL-C) and Lp(a), attenuates arterial wall inflammation in patients with elevated Lp(a).\nMETHODS AND RESULTS: In this multicentre, randomized, double-blind, placebo-controlled study, 129 patients {median [interquartile range (IQR)]: age 60.0 [54.0-67.0] years, Lp(a) 200.0 [155.5-301.5] nmol/L [80.0 (62.5-121.0) mg/dL]; mean [standard deviation (SD)] LDL-C 3.7 [1.0] mmol/L [144.0 (39.7) mg/dL]; National Cholesterol Education Program high risk, 25.6%} were randomized to monthly subcutaneous evolocumab 420 mg or placebo. Compared with placebo, evolocumab reduced LDL-C by 60.7% [95% confidence interval (CI) 65.8-55.5] and Lp(a) by 13.9% (95% CI 19.3-8.5). Among evolocumab-treated patients, the Week 16 mean (SD) LDL-C level was 1.6 (0.7) mmol/L [60.1 (28.1) mg/dL], and the median (IQR) Lp(a) level was 188.0 (140.0-268.0) nmol/L [75.2 (56.0-107.2) mg/dL]. Arterial wall inflammation [most diseased segment target-to-background ratio (MDS TBR)] in the index vessel (left carotid, right carotid, or thoracic aorta) was assessed by 18F-fluoro-deoxyglucose positron-emission tomography/computed tomography. Week 16 index vessel MDS TBR was not significantly altered with evolocumab (-8.3%) vs. placebo (-5.3%) [treatment difference -3.0% (95% CI -7.4% to 1.4%); P = 0.18].\nCONCLUSION: Evolocumab treatment in patients with median baseline Lp(a) 200.0 nmol/L led to a large reduction in LDL-C and a small reduction in Lp(a), resulting in persistent elevated Lp(a) levels. The latter may have contributed to the unaltered arterial wall inflammation.",
+     "clinical_result_primary_endpoint_cn": null,
+     "clinical_result_indication_name": [
+      "高低密度脂蛋白胆固醇血症",
+      "脂蛋白(a)增高",
+      "炎症(未指明)"
+     ],
+     "clinical_result_random_ratio": "",
+     "indication_parent_indication": [
+      "538"
+     ],
+     "clinical_result_baseline_characteristics": null,
+     "clinical_result_pm_id": "30561610",
+     "indication_name": "炎症(未指明)",
+     "clinical_result_participant_flow": null,
+     "clinical_stage_stage": null,
+     "clinical_result_evidence_source": [
+      "前瞻性研究"
+     ],
+     "clinical_result_patient_baseline_cn": null,
+     "clinical_result_arms": [
+      {
+       "arm_id": "41d4b82c938d260b",
+       "therapeutic_schedule_text_en": null,
+       "therapeutic_schedule_name_cn": [
+        "依洛尤单抗"
+       ],
+       "type_1": "all",
+       "regimen_label": "Monthly subcutaneous evolocumab 420 mg",
+       "therapeutic_schedule_text_cn": null,
+       "arm_label_bio_id": [],
+       "is_new": "是",
+       "drug_earth_ids": [
+        "3128"
+       ],
+       "drugs": [
+        {
+         "drug_tag": null,
+         "research_institute_names_en": [
+          "Amgen",
+          "Astellas Pharma"
+         ],
+         "drug_type_1": "创新药",
+         "drug_type_3": [
+          "抗体"
+         ],
+         "research_institute_ids": [
+          "256",
+          "320"
+         ],
+         "target_name": [
+          "PCSK9"
+         ],
+         "drug_type_2": "生物",
+         "moa_name_en": [
+          "mAb"
+         ],
+         "moa_name_cn": [
+          "单抗"
+         ],
+         "drug_earth_name_en": "evolocumab",
+         "latest_phase_cn": "批准上市",
+         "drug_earth_name_cn": "依洛尤单抗",
+         "target_ids": [
+          "1070"
+         ],
+         "moa_ids": [
+          "197"
+         ],
+         "target_all_name": [
+          "proprotein convertase subtilisin/kexin type 9",
+          "proproteinconvertasesubtilisin/kexintype9PCSK9",
+          "proproteinconvertasesubtilisin/kexin9",
+          "proprotein convertase subtilisin/kexin 9",
+          "PCSK9",
+          "前蛋白转化酶枯草溶菌素9",
+          "PCSK-9",
+          "proproteinconvertasesubtilisin/kexintype9",
+          "proprotein convertase subtilisin/kexin type 9 (PCSK9)"
+         ],
+         "target_count": 1,
+         "latest_phase": "批准上市",
+         "drug_earth_all_name": [
+          "HLX16",
+          "evolocumab",
+          "依洛尤单抗生物类似药 (石四药)",
+          "依洛尤单抗 (Enzene)",
+          "依洛尤单抗",
+          "瑞百安",
+          "依洛尤单抗生物类似药石四药",
+          "evolocumab biosimilar",
+          "Repatha",
+          "依洛尤单抗Enzene",
+          "evolocumabbiosimilar",
+          "AMG145",
+          "AMG 145"
+         ],
+         "research_institute_all_names": [
+          "アムジェン株式会社",
+          "astellas pharma inc.",
+          "amgen inc.",
+          "安斯泰来制药株式会社",
+          "日本安斯泰来制药有限公司",
+          "amgen inc",
+          "安进有限公司",
+          "amgen, inc.",
+          "安斯泰来制药有限公司",
+          "amgen",
+          "amgen canada",
+          "astellas pharma, inc.",
+          "amgen business development",
+          "アステラス製薬株式会社",
+          "安进",
+          "ehmdzhen ink",
+          "amgen massachusetts",
+          "astellas pharma",
+          "安进公司",
+          "安斯泰来",
+          "applied molecular genetics inc",
+          "amgen biosimilars"
+         ],
+         "research_institute_area": [
+          "美国",
+          "日本"
+         ],
+         "drug_earth_id": "3128",
+         "research_institute_names_cn": [
+          "Amgen",
+          "Astellas Pharma"
+         ]
+        }
+       ],
+       "arm_label": [],
+       "drug_count": 1,
+       "arm_label_stage_id": [],
+       "therapeutic_schedule_name_en": [
+        "evolocumab"
+       ],
+       "therapeutic_schedule_id": [
+        "3128"
+       ],
+       "mono_or_combo": "单药治疗",
+       "arm_label_indication_id": [],
+       "arm_count": null,
+       "group_label": "",
+       "arm_label_character_id": [],
+       "arm_label_pathology_id": [],
+       "type_revised": "试验组",
+       "combine": ""
+      },
+      {
+       "arm_id": "c064c3cf8715215b",
+       "therapeutic_schedule_text_en": null,
+       "therapeutic_schedule_name_cn": [
+        "安慰剂"
+       ],
+       "type_1": "all",
+       "regimen_label": "Monthly subcutaneous placebo",
+       "therapeutic_schedule_text_cn": null,
+       "arm_label_bio_id": [],
+       "is_new": "是",
+       "drug_earth_ids": null,
+       "drugs": null,
+       "arm_label": [],
+       "drug_count": null,
+       "arm_label_stage_id": [],
+       "therapeutic_schedule_name_en": [
+        "placebo"
+       ],
+       "therapeutic_schedule_id": [
+        "0215d65e80204afa95d466afeb2f3f95"
+       ],
+       "mono_or_combo": null,
+       "arm_label_indication_id": [],
+       "arm_count": null,
+       "group_label": "",
+       "arm_label_character_id": [],
+       "arm_label_pathology_id": [],
+       "type_revised": "对照组",
+       "combine": ""
+      }
+     ],
+     "company_is_ct": null,
+     "clinical_result_therapy_line_cn": [
+      ""
+     ],
+     "clinical_result_summary": "In patients with elevated lipoprotein(a), treatment with evolocumab led to a significant reduction in LDL-C but only a modest reduction in Lp(a). Consequently, there was no significant attenuation of arterial wall inflammation compared to placebo, likely due to persistent Lp(a) elevation.",
+     "company_company_category": null,
+     "clinical_endpoint_endpoint_short": null,
+     "clinical_result_primary_endpoint_all_name": null,
+     "clinical_result_indication_name_en": [
+      "High LDL Cholesterol",
+      "elevated lipoprotein(a)",
+      "inflammatory (not otherwise specified)"
+     ],
+     "clinical_result_precision_medicine_cn": null,
+     "clinical_result_clinical_stage_en": null,
+     "clinical_result_doi": "10.1093/eurheartj/ehy862",
+     "clinical_result_evaluation": "不佳",
+     "clinical_result_study_results": [
+      {
+       "result": "-8.3",
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "endpoint_label": "Arterial Wall Inflammation – MDS TBR | percentage change; Most-diseased-segment target-to-background ratio (MDS TBR); Week 16",
+       "arm_type": "single",
+       "outcome_p_value": "",
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "outcome_ci": "",
+       "result_unit": "%"
+      },
+      {
+       "result": "-5.3",
+       "arm_id": "c064c3cf8715215b",
+       "endpoint_type": "",
+       "endpoint_label": "Arterial Wall Inflammation – MDS TBR | percentage change; Most-diseased-segment target-to-background ratio (MDS TBR); Week 16",
+       "arm_type": "single",
+       "outcome_p_value": "",
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "outcome_ci": "",
+       "result_unit": "%"
+      },
+      {
+       "result": "",
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "endpoint_label": "Low-Density Lipoprotein Cholesterol | percentage change; Week 16",
+       "arm_type": "single",
+       "outcome_p_value": "",
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "outcome_ci": ""
+      },
+      {
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "compare_result_ci": "95%CI -65.8 to -55.5",
+       "endpoint_label": "Low-Density Lipoprotein Cholesterol | percentage change; Week 16",
+       "arm_type": "relative",
+       "arm_ids": [
+        "41d4b82c938d260b",
+        "c064c3cf8715215b"
+       ],
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "result_unit": "%",
+       "compare_result": "-60.7"
+      },
+      {
+       "result": "",
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "endpoint_label": "Lipoprotein(a) | percentage change; Week 16",
+       "arm_type": "single",
+       "outcome_p_value": "",
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "outcome_ci": ""
+      },
+      {
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "compare_result_ci": "95%CI -19.3 to -8.5",
+       "endpoint_label": "Lipoprotein(a) | percentage change; Week 16",
+       "arm_type": "relative",
+       "arm_ids": [
+        "41d4b82c938d260b",
+        "c064c3cf8715215b"
+       ],
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "result_unit": "%",
+       "compare_result": "-13.9"
+      },
+      {
+       "p_value": "=0.18",
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "compare_result_ci": "95%CI -7.4 to 1.4",
+       "endpoint_label": "Arterial Wall Inflammation – MDS TBR | percentage change; Most-diseased-segment target-to-background ratio (MDS TBR); Week 16",
+       "arm_type": "relative",
+       "arm_ids": [
+        "41d4b82c938d260b",
+        "c064c3cf8715215b"
+       ],
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "result_unit": "%",
+       "compare_result": "-3.0"
+      }
+     ],
+     "clinical_result_trial_control": [
+      "平行分组"
+     ],
+     "clinical_result_layer_factor": [],
+     "clinical_result_full_article_link": "https://pubmed.ncbi.nlm.nih.gov/30561610"
+    },
+    {
+     "clinical_result_journal": "Eur Heart J",
+     "clinical_result_projects": [
+      {
+       "company_ids": [
+        "256"
+       ],
+       "company_all_name": [
+        "アムジェン株式会社",
+        "amgen inc.",
+        "amgen inc",
+        "安进有限公司",
+        "amgen, inc.",
+        "amgen",
+        "amgen canada",
+        "amgen business development",
+        "安进",
+        "ehmdzhen ink",
+        "amgen massachusetts",
+        "安进公司",
+        "applied molecular genetics inc",
+        "amgen biosimilars"
+       ],
+       "guideline_support": null,
+       "co_all_name": null,
+       "country_names": [
+        "美国",
+        "荷兰",
+        "加拿大"
+       ],
+       "sponsor_ids": [
+        "256"
+       ],
+       "co_name_cn": null,
+       "co_name_en": null,
+       "associate_ids": [
+        "NCT02729025",
+        "EudraCT2015-003731-35",
+        "PMCT00652711"
+       ],
+       "pivotal_ids": null,
+       "group_id": "PMCT00652711",
+       "ma_indication": null,
+       "company_name_cn": [
+        "Amgen"
+       ],
+       "company_area": [
+        "美国"
+       ],
+       "company_name_en": [
+        "Amgen"
+       ],
+       "co_ids": null,
+       "initiation_type": "IST"
+      }
+     ],
+     "target_id": null,
+     "clinical_result_clinical_stage_cn": null,
+     "clinical_result_biomarker_cn": null,
+     "target_name_short": null,
+     "therapy_label_name": null,
+     "disease_id": "1403",
+     "clinical_result_indication_detail": [
+      "The study enrolled patients with elevated lipoprotein(a) (median 200.0 nmol/L), a median age of 60.0 years, and a mean LDL-C of 3.7 mmol/L, including those classified as National Cholesterol Education Program high risk."
+     ],
+     "clinical_result_blinded": [
+      "三盲"
+     ],
+     "clinical_result_group_count": "129",
+     "clinical_result_lba": null,
+     "company_company_type": null,
+     "clinical_endpoint_endpoint": null,
+     "clinical_result_paper_release_time": "2018-12-19 00:00:00",
+     "modality_name": null,
+     "clinical_result_abbreviation_label": [],
+     "company_short_name": null,
+     "clinical_result_positive_placebo_control": "安慰剂/空白对照",
+     "biomarker_name": null,
+     "clinical_result_extra_esid": "24_1_30561610",
+     "clinical_result_key_evidence": "是",
+     "clinical_result_randomized": [
+      "随机化"
+     ],
+     "clinical_result_inclusion_criteria": null,
+     "clinical_result_pathology_cn": null,
+     "company_id": null,
+     "clinical_result_primary_endpoint_en": null,
+     "clinical_result_paper_title": "Persistent arterial wall inflammation in patients with elevated lipoprotein(a) despite strong low-density lipoprotein cholesterol reduction by proprotein convertase subtilisin/kexin type 9 antibody treatment.",
+     "clinical_endpoint_endpoint_attr": null,
+     "modality_parent_moa": null,
+     "clinical_result_trial_abbreviation": [],
+     "clinical_result__id": "24_1_30561610",
+     "clinical_result_indication_type_cn": [
+      "心脑血管领域",
+      "免疫领域"
+     ],
+     "clinical_result_multi_center": [
+      "境外多中心"
+     ],
+     "company_is_important_corp": null,
+     "target_parent_target": null,
+     "indication_name_en": "elevated lipoprotein(a)",
+     "clinical_stage_stage_en": null,
+     "clinical_result_abstract_text": "AIMS: Subjects with lipoprotein(a) [Lp(a)] elevation have increased arterial wall inflammation and cardiovascular risk. In patients at increased cardiovascular risk, arterial wall inflammation is reduced following lipid-lowering therapy by statin treatment or lipoprotein apheresis. However, it is unknown whether lipid-lowering treatment in elevated Lp(a) subjects alters arterial wall inflammation. We evaluated whether evolocumab, which lowers both low-density lipoprotein cholesterol (LDL-C) and Lp(a), attenuates arterial wall inflammation in patients with elevated Lp(a).\nMETHODS AND RESULTS: In this multicentre, randomized, double-blind, placebo-controlled study, 129 patients {median [interquartile range (IQR)]: age 60.0 [54.0-67.0] years, Lp(a) 200.0 [155.5-301.5] nmol/L [80.0 (62.5-121.0) mg/dL]; mean [standard deviation (SD)] LDL-C 3.7 [1.0] mmol/L [144.0 (39.7) mg/dL]; National Cholesterol Education Program high risk, 25.6%} were randomized to monthly subcutaneous evolocumab 420 mg or placebo. Compared with placebo, evolocumab reduced LDL-C by 60.7% [95% confidence interval (CI) 65.8-55.5] and Lp(a) by 13.9% (95% CI 19.3-8.5). Among evolocumab-treated patients, the Week 16 mean (SD) LDL-C level was 1.6 (0.7) mmol/L [60.1 (28.1) mg/dL], and the median (IQR) Lp(a) level was 188.0 (140.0-268.0) nmol/L [75.2 (56.0-107.2) mg/dL]. Arterial wall inflammation [most diseased segment target-to-background ratio (MDS TBR)] in the index vessel (left carotid, right carotid, or thoracic aorta) was assessed by 18F-fluoro-deoxyglucose positron-emission tomography/computed tomography. Week 16 index vessel MDS TBR was not significantly altered with evolocumab (-8.3%) vs. placebo (-5.3%) [treatment difference -3.0% (95% CI -7.4% to 1.4%); P = 0.18].\nCONCLUSION: Evolocumab treatment in patients with median baseline Lp(a) 200.0 nmol/L led to a large reduction in LDL-C and a small reduction in Lp(a), resulting in persistent elevated Lp(a) levels. The latter may have contributed to the unaltered arterial wall inflammation.",
+     "clinical_result_primary_endpoint_cn": null,
+     "clinical_result_indication_name": [
+      "高低密度脂蛋白胆固醇血症",
+      "脂蛋白(a)增高",
+      "炎症(未指明)"
+     ],
+     "clinical_result_random_ratio": "",
+     "indication_parent_indication": [
+      "391"
+     ],
+     "clinical_result_baseline_characteristics": null,
+     "clinical_result_pm_id": "30561610",
+     "indication_name": "脂蛋白(a)增高",
+     "clinical_result_participant_flow": null,
+     "clinical_stage_stage": null,
+     "clinical_result_evidence_source": [
+      "前瞻性研究"
+     ],
+     "clinical_result_patient_baseline_cn": null,
+     "clinical_result_arms": [
+      {
+       "arm_id": "41d4b82c938d260b",
+       "therapeutic_schedule_text_en": null,
+       "therapeutic_schedule_name_cn": [
+        "依洛尤单抗"
+       ],
+       "type_1": "all",
+       "regimen_label": "Monthly subcutaneous evolocumab 420 mg",
+       "therapeutic_schedule_text_cn": null,
+       "arm_label_bio_id": [],
+       "is_new": "是",
+       "drug_earth_ids": [
+        "3128"
+       ],
+       "drugs": [
+        {
+         "drug_tag": null,
+         "research_institute_names_en": [
+          "Amgen",
+          "Astellas Pharma"
+         ],
+         "drug_type_1": "创新药",
+         "drug_type_3": [
+          "抗体"
+         ],
+         "research_institute_ids": [
+          "256",
+          "320"
+         ],
+         "target_name": [
+          "PCSK9"
+         ],
+         "drug_type_2": "生物",
+         "moa_name_en": [
+          "mAb"
+         ],
+         "moa_name_cn": [
+          "单抗"
+         ],
+         "drug_earth_name_en": "evolocumab",
+         "latest_phase_cn": "批准上市",
+         "drug_earth_name_cn": "依洛尤单抗",
+         "target_ids": [
+          "1070"
+         ],
+         "moa_ids": [
+          "197"
+         ],
+         "target_all_name": [
+          "proprotein convertase subtilisin/kexin type 9",
+          "proproteinconvertasesubtilisin/kexintype9PCSK9",
+          "proproteinconvertasesubtilisin/kexin9",
+          "proprotein convertase subtilisin/kexin 9",
+          "PCSK9",
+          "前蛋白转化酶枯草溶菌素9",
+          "PCSK-9",
+          "proproteinconvertasesubtilisin/kexintype9",
+          "proprotein convertase subtilisin/kexin type 9 (PCSK9)"
+         ],
+         "target_count": 1,
+         "latest_phase": "批准上市",
+         "drug_earth_all_name": [
+          "HLX16",
+          "evolocumab",
+          "依洛尤单抗生物类似药 (石四药)",
+          "依洛尤单抗 (Enzene)",
+          "依洛尤单抗",
+          "瑞百安",
+          "依洛尤单抗生物类似药石四药",
+          "evolocumab biosimilar",
+          "Repatha",
+          "依洛尤单抗Enzene",
+          "evolocumabbiosimilar",
+          "AMG145",
+          "AMG 145"
+         ],
+         "research_institute_all_names": [
+          "アムジェン株式会社",
+          "astellas pharma inc.",
+          "amgen inc.",
+          "安斯泰来制药株式会社",
+          "日本安斯泰来制药有限公司",
+          "amgen inc",
+          "安进有限公司",
+          "amgen, inc.",
+          "安斯泰来制药有限公司",
+          "amgen",
+          "amgen canada",
+          "astellas pharma, inc.",
+          "amgen business development",
+          "アステラス製薬株式会社",
+          "安进",
+          "ehmdzhen ink",
+          "amgen massachusetts",
+          "astellas pharma",
+          "安进公司",
+          "安斯泰来",
+          "applied molecular genetics inc",
+          "amgen biosimilars"
+         ],
+         "research_institute_area": [
+          "美国",
+          "日本"
+         ],
+         "drug_earth_id": "3128",
+         "research_institute_names_cn": [
+          "Amgen",
+          "Astellas Pharma"
+         ]
+        }
+       ],
+       "arm_label": [],
+       "drug_count": 1,
+       "arm_label_stage_id": [],
+       "therapeutic_schedule_name_en": [
+        "evolocumab"
+       ],
+       "therapeutic_schedule_id": [
+        "3128"
+       ],
+       "mono_or_combo": "单药治疗",
+       "arm_label_indication_id": [],
+       "arm_count": null,
+       "group_label": "",
+       "arm_label_character_id": [],
+       "arm_label_pathology_id": [],
+       "type_revised": "试验组",
+       "combine": ""
+      },
+      {
+       "arm_id": "c064c3cf8715215b",
+       "therapeutic_schedule_text_en": null,
+       "therapeutic_schedule_name_cn": [
+        "安慰剂"
+       ],
+       "type_1": "all",
+       "regimen_label": "Monthly subcutaneous placebo",
+       "therapeutic_schedule_text_cn": null,
+       "arm_label_bio_id": [],
+       "is_new": "是",
+       "drug_earth_ids": null,
+       "drugs": null,
+       "arm_label": [],
+       "drug_count": null,
+       "arm_label_stage_id": [],
+       "therapeutic_schedule_name_en": [
+        "placebo"
+       ],
+       "therapeutic_schedule_id": [
+        "0215d65e80204afa95d466afeb2f3f95"
+       ],
+       "mono_or_combo": null,
+       "arm_label_indication_id": [],
+       "arm_count": null,
+       "group_label": "",
+       "arm_label_character_id": [],
+       "arm_label_pathology_id": [],
+       "type_revised": "对照组",
+       "combine": ""
+      }
+     ],
+     "company_is_ct": null,
+     "clinical_result_therapy_line_cn": [
+      ""
+     ],
+     "clinical_result_summary": "In patients with elevated lipoprotein(a), treatment with evolocumab led to a significant reduction in LDL-C but only a modest reduction in Lp(a). Consequently, there was no significant attenuation of arterial wall inflammation compared to placebo, likely due to persistent Lp(a) elevation.",
+     "company_company_category": null,
+     "clinical_endpoint_endpoint_short": null,
+     "clinical_result_primary_endpoint_all_name": null,
+     "clinical_result_indication_name_en": [
+      "High LDL Cholesterol",
+      "elevated lipoprotein(a)",
+      "inflammatory (not otherwise specified)"
+     ],
+     "clinical_result_precision_medicine_cn": null,
+     "clinical_result_clinical_stage_en": null,
+     "clinical_result_doi": "10.1093/eurheartj/ehy862",
+     "clinical_result_evaluation": "不佳",
+     "clinical_result_study_results": [
+      {
+       "result": "-8.3",
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "endpoint_label": "Arterial Wall Inflammation – MDS TBR | percentage change; Most-diseased-segment target-to-background ratio (MDS TBR); Week 16",
+       "arm_type": "single",
+       "outcome_p_value": "",
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "outcome_ci": "",
+       "result_unit": "%"
+      },
+      {
+       "result": "-5.3",
+       "arm_id": "c064c3cf8715215b",
+       "endpoint_type": "",
+       "endpoint_label": "Arterial Wall Inflammation – MDS TBR | percentage change; Most-diseased-segment target-to-background ratio (MDS TBR); Week 16",
+       "arm_type": "single",
+       "outcome_p_value": "",
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "outcome_ci": "",
+       "result_unit": "%"
+      },
+      {
+       "result": "",
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "endpoint_label": "Low-Density Lipoprotein Cholesterol | percentage change; Week 16",
+       "arm_type": "single",
+       "outcome_p_value": "",
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "outcome_ci": ""
+      },
+      {
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "compare_result_ci": "95%CI -65.8 to -55.5",
+       "endpoint_label": "Low-Density Lipoprotein Cholesterol | percentage change; Week 16",
+       "arm_type": "relative",
+       "arm_ids": [
+        "41d4b82c938d260b",
+        "c064c3cf8715215b"
+       ],
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "result_unit": "%",
+       "compare_result": "-60.7"
+      },
+      {
+       "result": "",
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "endpoint_label": "Lipoprotein(a) | percentage change; Week 16",
+       "arm_type": "single",
+       "outcome_p_value": "",
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "outcome_ci": ""
+      },
+      {
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "compare_result_ci": "95%CI -19.3 to -8.5",
+       "endpoint_label": "Lipoprotein(a) | percentage change; Week 16",
+       "arm_type": "relative",
+       "arm_ids": [
+        "41d4b82c938d260b",
+        "c064c3cf8715215b"
+       ],
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "result_unit": "%",
+       "compare_result": "-13.9"
+      },
+      {
+       "p_value": "=0.18",
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "compare_result_ci": "95%CI -7.4 to 1.4",
+       "endpoint_label": "Arterial Wall Inflammation – MDS TBR | percentage change; Most-diseased-segment target-to-background ratio (MDS TBR); Week 16",
+       "arm_type": "relative",
+       "arm_ids": [
+        "41d4b82c938d260b",
+        "c064c3cf8715215b"
+       ],
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "result_unit": "%",
+       "compare_result": "-3.0"
+      }
+     ],
+     "clinical_result_trial_control": [
+      "平行分组"
+     ],
+     "clinical_result_layer_factor": [],
+     "clinical_result_full_article_link": "https://pubmed.ncbi.nlm.nih.gov/30561610"
+    },
+    {
+     "clinical_result_journal": "Eur Heart J",
+     "clinical_result_projects": [
+      {
+       "company_ids": [
+        "256"
+       ],
+       "company_all_name": [
+        "アムジェン株式会社",
+        "amgen inc.",
+        "amgen inc",
+        "安进有限公司",
+        "amgen, inc.",
+        "amgen",
+        "amgen canada",
+        "amgen business development",
+        "安进",
+        "ehmdzhen ink",
+        "amgen massachusetts",
+        "安进公司",
+        "applied molecular genetics inc",
+        "amgen biosimilars"
+       ],
+       "guideline_support": null,
+       "co_all_name": null,
+       "country_names": [
+        "美国",
+        "荷兰",
+        "加拿大"
+       ],
+       "sponsor_ids": [
+        "256"
+       ],
+       "co_name_cn": null,
+       "co_name_en": null,
+       "associate_ids": [
+        "NCT02729025",
+        "EudraCT2015-003731-35",
+        "PMCT00652711"
+       ],
+       "pivotal_ids": null,
+       "group_id": "PMCT00652711",
+       "ma_indication": null,
+       "company_name_cn": [
+        "Amgen"
+       ],
+       "company_area": [
+        "美国"
+       ],
+       "company_name_en": [
+        "Amgen"
+       ],
+       "co_ids": null,
+       "initiation_type": "IST"
+      }
+     ],
+     "target_id": null,
+     "clinical_result_clinical_stage_cn": null,
+     "clinical_result_biomarker_cn": null,
+     "target_name_short": null,
+     "therapy_label_name": null,
+     "disease_id": "10000",
+     "clinical_result_indication_detail": [
+      "The study enrolled patients with elevated lipoprotein(a) (median 200.0 nmol/L), a median age of 60.0 years, and a mean LDL-C of 3.7 mmol/L, including those classified as National Cholesterol Education Program high risk."
+     ],
+     "clinical_result_blinded": [
+      "三盲"
+     ],
+     "clinical_result_group_count": "129",
+     "clinical_result_lba": null,
+     "company_company_type": null,
+     "clinical_endpoint_endpoint": null,
+     "clinical_result_paper_release_time": "2018-12-19 00:00:00",
+     "modality_name": null,
+     "clinical_result_abbreviation_label": [],
+     "company_short_name": null,
+     "clinical_result_positive_placebo_control": "安慰剂/空白对照",
+     "biomarker_name": null,
+     "clinical_result_extra_esid": "24_1_30561610",
+     "clinical_result_key_evidence": "是",
+     "clinical_result_randomized": [
+      "随机化"
+     ],
+     "clinical_result_inclusion_criteria": null,
+     "clinical_result_pathology_cn": null,
+     "company_id": null,
+     "clinical_result_primary_endpoint_en": null,
+     "clinical_result_paper_title": "Persistent arterial wall inflammation in patients with elevated lipoprotein(a) despite strong low-density lipoprotein cholesterol reduction by proprotein convertase subtilisin/kexin type 9 antibody treatment.",
+     "clinical_endpoint_endpoint_attr": null,
+     "modality_parent_moa": null,
+     "clinical_result_trial_abbreviation": [],
+     "clinical_result__id": "24_1_30561610",
+     "clinical_result_indication_type_cn": [
+      "心脑血管领域",
+      "免疫领域"
+     ],
+     "clinical_result_multi_center": [
+      "境外多中心"
+     ],
+     "company_is_important_corp": null,
+     "target_parent_target": null,
+     "indication_name_en": "High LDL Cholesterol",
+     "clinical_stage_stage_en": null,
+     "clinical_result_abstract_text": "AIMS: Subjects with lipoprotein(a) [Lp(a)] elevation have increased arterial wall inflammation and cardiovascular risk. In patients at increased cardiovascular risk, arterial wall inflammation is reduced following lipid-lowering therapy by statin treatment or lipoprotein apheresis. However, it is unknown whether lipid-lowering treatment in elevated Lp(a) subjects alters arterial wall inflammation. We evaluated whether evolocumab, which lowers both low-density lipoprotein cholesterol (LDL-C) and Lp(a), attenuates arterial wall inflammation in patients with elevated Lp(a).\nMETHODS AND RESULTS: In this multicentre, randomized, double-blind, placebo-controlled study, 129 patients {median [interquartile range (IQR)]: age 60.0 [54.0-67.0] years, Lp(a) 200.0 [155.5-301.5] nmol/L [80.0 (62.5-121.0) mg/dL]; mean [standard deviation (SD)] LDL-C 3.7 [1.0] mmol/L [144.0 (39.7) mg/dL]; National Cholesterol Education Program high risk, 25.6%} were randomized to monthly subcutaneous evolocumab 420 mg or placebo. Compared with placebo, evolocumab reduced LDL-C by 60.7% [95% confidence interval (CI) 65.8-55.5] and Lp(a) by 13.9% (95% CI 19.3-8.5). Among evolocumab-treated patients, the Week 16 mean (SD) LDL-C level was 1.6 (0.7) mmol/L [60.1 (28.1) mg/dL], and the median (IQR) Lp(a) level was 188.0 (140.0-268.0) nmol/L [75.2 (56.0-107.2) mg/dL]. Arterial wall inflammation [most diseased segment target-to-background ratio (MDS TBR)] in the index vessel (left carotid, right carotid, or thoracic aorta) was assessed by 18F-fluoro-deoxyglucose positron-emission tomography/computed tomography. Week 16 index vessel MDS TBR was not significantly altered with evolocumab (-8.3%) vs. placebo (-5.3%) [treatment difference -3.0% (95% CI -7.4% to 1.4%); P = 0.18].\nCONCLUSION: Evolocumab treatment in patients with median baseline Lp(a) 200.0 nmol/L led to a large reduction in LDL-C and a small reduction in Lp(a), resulting in persistent elevated Lp(a) levels. The latter may have contributed to the unaltered arterial wall inflammation.",
+     "clinical_result_primary_endpoint_cn": null,
+     "clinical_result_indication_name": [
+      "高低密度脂蛋白胆固醇血症",
+      "脂蛋白(a)增高",
+      "炎症(未指明)"
+     ],
+     "clinical_result_random_ratio": "",
+     "indication_parent_indication": [
+      "391"
+     ],
+     "clinical_result_baseline_characteristics": null,
+     "clinical_result_pm_id": "30561610",
+     "indication_name": "高低密度脂蛋白胆固醇血症",
+     "clinical_result_participant_flow": null,
+     "clinical_stage_stage": null,
+     "clinical_result_evidence_source": [
+      "前瞻性研究"
+     ],
+     "clinical_result_patient_baseline_cn": null,
+     "clinical_result_arms": [
+      {
+       "arm_id": "41d4b82c938d260b",
+       "therapeutic_schedule_text_en": null,
+       "therapeutic_schedule_name_cn": [
+        "依洛尤单抗"
+       ],
+       "type_1": "all",
+       "regimen_label": "Monthly subcutaneous evolocumab 420 mg",
+       "therapeutic_schedule_text_cn": null,
+       "arm_label_bio_id": [],
+       "is_new": "是",
+       "drug_earth_ids": [
+        "3128"
+       ],
+       "drugs": [
+        {
+         "drug_tag": null,
+         "research_institute_names_en": [
+          "Amgen",
+          "Astellas Pharma"
+         ],
+         "drug_type_1": "创新药",
+         "drug_type_3": [
+          "抗体"
+         ],
+         "research_institute_ids": [
+          "256",
+          "320"
+         ],
+         "target_name": [
+          "PCSK9"
+         ],
+         "drug_type_2": "生物",
+         "moa_name_en": [
+          "mAb"
+         ],
+         "moa_name_cn": [
+          "单抗"
+         ],
+         "drug_earth_name_en": "evolocumab",
+         "latest_phase_cn": "批准上市",
+         "drug_earth_name_cn": "依洛尤单抗",
+         "target_ids": [
+          "1070"
+         ],
+         "moa_ids": [
+          "197"
+         ],
+         "target_all_name": [
+          "proprotein convertase subtilisin/kexin type 9",
+          "proproteinconvertasesubtilisin/kexintype9PCSK9",
+          "proproteinconvertasesubtilisin/kexin9",
+          "proprotein convertase subtilisin/kexin 9",
+          "PCSK9",
+          "前蛋白转化酶枯草溶菌素9",
+          "PCSK-9",
+          "proproteinconvertasesubtilisin/kexintype9",
+          "proprotein convertase subtilisin/kexin type 9 (PCSK9)"
+         ],
+         "target_count": 1,
+         "latest_phase": "批准上市",
+         "drug_earth_all_name": [
+          "HLX16",
+          "evolocumab",
+          "依洛尤单抗生物类似药 (石四药)",
+          "依洛尤单抗 (Enzene)",
+          "依洛尤单抗",
+          "瑞百安",
+          "依洛尤单抗生物类似药石四药",
+          "evolocumab biosimilar",
+          "Repatha",
+          "依洛尤单抗Enzene",
+          "evolocumabbiosimilar",
+          "AMG145",
+          "AMG 145"
+         ],
+         "research_institute_all_names": [
+          "アムジェン株式会社",
+          "astellas pharma inc.",
+          "amgen inc.",
+          "安斯泰来制药株式会社",
+          "日本安斯泰来制药有限公司",
+          "amgen inc",
+          "安进有限公司",
+          "amgen, inc.",
+          "安斯泰来制药有限公司",
+          "amgen",
+          "amgen canada",
+          "astellas pharma, inc.",
+          "amgen business development",
+          "アステラス製薬株式会社",
+          "安进",
+          "ehmdzhen ink",
+          "amgen massachusetts",
+          "astellas pharma",
+          "安进公司",
+          "安斯泰来",
+          "applied molecular genetics inc",
+          "amgen biosimilars"
+         ],
+         "research_institute_area": [
+          "美国",
+          "日本"
+         ],
+         "drug_earth_id": "3128",
+         "research_institute_names_cn": [
+          "Amgen",
+          "Astellas Pharma"
+         ]
+        }
+       ],
+       "arm_label": [],
+       "drug_count": 1,
+       "arm_label_stage_id": [],
+       "therapeutic_schedule_name_en": [
+        "evolocumab"
+       ],
+       "therapeutic_schedule_id": [
+        "3128"
+       ],
+       "mono_or_combo": "单药治疗",
+       "arm_label_indication_id": [],
+       "arm_count": null,
+       "group_label": "",
+       "arm_label_character_id": [],
+       "arm_label_pathology_id": [],
+       "type_revised": "试验组",
+       "combine": ""
+      },
+      {
+       "arm_id": "c064c3cf8715215b",
+       "therapeutic_schedule_text_en": null,
+       "therapeutic_schedule_name_cn": [
+        "安慰剂"
+       ],
+       "type_1": "all",
+       "regimen_label": "Monthly subcutaneous placebo",
+       "therapeutic_schedule_text_cn": null,
+       "arm_label_bio_id": [],
+       "is_new": "是",
+       "drug_earth_ids": null,
+       "drugs": null,
+       "arm_label": [],
+       "drug_count": null,
+       "arm_label_stage_id": [],
+       "therapeutic_schedule_name_en": [
+        "placebo"
+       ],
+       "therapeutic_schedule_id": [
+        "0215d65e80204afa95d466afeb2f3f95"
+       ],
+       "mono_or_combo": null,
+       "arm_label_indication_id": [],
+       "arm_count": null,
+       "group_label": "",
+       "arm_label_character_id": [],
+       "arm_label_pathology_id": [],
+       "type_revised": "对照组",
+       "combine": ""
+      }
+     ],
+     "company_is_ct": null,
+     "clinical_result_therapy_line_cn": [
+      ""
+     ],
+     "clinical_result_summary": "In patients with elevated lipoprotein(a), treatment with evolocumab led to a significant reduction in LDL-C but only a modest reduction in Lp(a). Consequently, there was no significant attenuation of arterial wall inflammation compared to placebo, likely due to persistent Lp(a) elevation.",
+     "company_company_category": null,
+     "clinical_endpoint_endpoint_short": null,
+     "clinical_result_primary_endpoint_all_name": null,
+     "clinical_result_indication_name_en": [
+      "High LDL Cholesterol",
+      "elevated lipoprotein(a)",
+      "inflammatory (not otherwise specified)"
+     ],
+     "clinical_result_precision_medicine_cn": null,
+     "clinical_result_clinical_stage_en": null,
+     "clinical_result_doi": "10.1093/eurheartj/ehy862",
+     "clinical_result_evaluation": "不佳",
+     "clinical_result_study_results": [
+      {
+       "result": "-8.3",
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "endpoint_label": "Arterial Wall Inflammation – MDS TBR | percentage change; Most-diseased-segment target-to-background ratio (MDS TBR); Week 16",
+       "arm_type": "single",
+       "outcome_p_value": "",
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "outcome_ci": "",
+       "result_unit": "%"
+      },
+      {
+       "result": "-5.3",
+       "arm_id": "c064c3cf8715215b",
+       "endpoint_type": "",
+       "endpoint_label": "Arterial Wall Inflammation – MDS TBR | percentage change; Most-diseased-segment target-to-background ratio (MDS TBR); Week 16",
+       "arm_type": "single",
+       "outcome_p_value": "",
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "outcome_ci": "",
+       "result_unit": "%"
+      },
+      {
+       "result": "",
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "endpoint_label": "Low-Density Lipoprotein Cholesterol | percentage change; Week 16",
+       "arm_type": "single",
+       "outcome_p_value": "",
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "outcome_ci": ""
+      },
+      {
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "compare_result_ci": "95%CI -65.8 to -55.5",
+       "endpoint_label": "Low-Density Lipoprotein Cholesterol | percentage change; Week 16",
+       "arm_type": "relative",
+       "arm_ids": [
+        "41d4b82c938d260b",
+        "c064c3cf8715215b"
+       ],
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "result_unit": "%",
+       "compare_result": "-60.7"
+      },
+      {
+       "result": "",
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "endpoint_label": "Lipoprotein(a) | percentage change; Week 16",
+       "arm_type": "single",
+       "outcome_p_value": "",
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "outcome_ci": ""
+      },
+      {
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "compare_result_ci": "95%CI -19.3 to -8.5",
+       "endpoint_label": "Lipoprotein(a) | percentage change; Week 16",
+       "arm_type": "relative",
+       "arm_ids": [
+        "41d4b82c938d260b",
+        "c064c3cf8715215b"
+       ],
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "result_unit": "%",
+       "compare_result": "-13.9"
+      },
+      {
+       "p_value": "=0.18",
+       "arm_id": "41d4b82c938d260b",
+       "endpoint_type": "",
+       "compare_result_ci": "95%CI -7.4 to 1.4",
+       "endpoint_label": "Arterial Wall Inflammation – MDS TBR | percentage change; Most-diseased-segment target-to-background ratio (MDS TBR); Week 16",
+       "arm_type": "relative",
+       "arm_ids": [
+        "41d4b82c938d260b",
+        "c064c3cf8715215b"
+       ],
+       "endpoint_id": "6a85bc55-1964-4241-8647-67270b38f2ed",
+       "endpoint_attribute": "有效性",
+       "result_unit": "%",
+       "compare_result": "-3.0"
+      }
+     ],
+     "clinical_result_trial_control": [
+      "平行分组"
+     ],
+     "clinical_result_layer_factor": [],
+     "clinical_result_full_article_link": "https://pubmed.ncbi.nlm.nih.gov/30561610"
+    }
+   ],
+   "actual_result_count": 3,
+   "total_result_count": 3,
+   "error": null
+  }
+ }
+}
