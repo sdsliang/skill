@@ -355,6 +355,23 @@ Recommended `selected_fields` 收尾一句；② `SKILL.md` 输入契约段加�
 
 **下一步**：发布授权 → `publish`（原地更新 prompt v1.6 + skill 1.0.7）→ 同输入重跑 → 新记录（预期 17/17 PASS，并把事实分与调用数与本次基线对比）。
 
+### W2 — 2026-09-17，`run --web` 的两次 **egress 探针**：路线 C（抓原文 URL）可行性实测
+
+背景：A2 追问「字段是不是 agent 自己选」「想让它优先读 `abstract_text`（预存全文）、再访问 `full_article_link` 取全文，怎么约束」。
+先用 `run --web`（W1 新增的能力）探清「第二级到底能不能抓」。
+
+| # | 探针 | URL | `web_fetch` 实测返回 | 结论 |
+|---|---|---|---|---|
+| W2-a | 人读页面 | `https://pubmed.ncbi.nlm.nih.gov/30561610` | `Cookies must be enabled … reload this page to continue.`（反爬拦截页，零内容） | 论文类**不可用** |
+| W2-a | 人读页面 | `https://clinicaltrials.gov/study/NCT06618118?tab=results` | 站点骨架（`Show glossary` / `Study record managers: …`），零试验内容（正文靠 JS 渲染） | 登记平台类**不可用** |
+| W2-b | 登记平台 API | `https://clinicaltrials.gov/api/v2/studies/NCT06618118` | **完整协议 JSON**（`protocolSection.identificationModule.nctId=NCT06618118`、`orgStudyIdInfo.id=M24-840`、`statusModule.overallStatus=TERMINATED`、申办方 AbbVie…，共 ~7.4 k 字符） | **可用** |
+| W2-b | 文献 API | `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:30561610&resultType=core&format=json` | **Europe PMC JSON**：`pmcid=PMC6933872`、`abstractText`（带 `<h4>` 小标题的摘要全文）、`isOpenAccess="N"`、`hasPDF="Y"`、`citedByCount=110` | **可用** |
+| W2-b | 文献 API | `https://api.crossref.org/works/10.1056/NEJMoa2211023` | 抓取成功，但返回体被平台落盘（`too large to keep inline`），对话里**未展开内容** | 可达，内容未核 |
+
+- 两个探针共 2 次 run（`20260917-193854-webprobe-egress`、`20260917-194022-webprobe-api`），均 `enable_web=true`、断言全绿、`web_fetch` 分别 2 次 / 3 次。
+- **附带事实**：沙箱自身无外网（模型试 `curl` → `Could not resolve host: pubmed.ncbi.nlm.nih.gov`、`HTTP_STATUS:000`），`web_fetch` 是**平台侧代抓**；它**不返回 HTTP 状态码**。
+- **设计含义**：路线 C 不是“不可行”，而是**必须走 API 端点而不是人读页面**；且 API 端点需要**由返回的 `pm_id`/`doi`/登记号拼出**，与现有规则「URL 只逐字使用、不得构造」相矛盾 → 要改规则必须先定白名单模版（见下文 §3）。
+
 ### W1 — 2026-09-17，runner 新增 `run --web`（只改 runner，零线上改动；台账 O18）
 
 **背景**：平台把 Web 工具挂在**「项目能力 + 请求级 `enable_web`」两道开关**上（`capabilities/web.py:140`
@@ -410,6 +427,7 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O18 | **`run` 无法进入「联网状态」**：`post_turn` 把请求级 `enable_web` 硬编码为 `False`，而平台只在「项目能力 + 请求级开关」双开时才注入 `web_search`/`web_fetch`（`capabilities/web.py:140`）—— 项目能力本项目已开（`/api/agent/info?…&enable_web=true` 注入 `## Web Tools`），所以唯一的闸门正好是本机验证器碰不到的那一个；后果是无法用 `run` 验证「联网时 skill 行为」（路线 C 的前置条件），之前只能靠临时探针脚本 `/tmp/webtest.py` | `run` 新增全局 `--web`（写进请求体 `enable_web`，`run.json` 与 `verification.md` 均留痕；`--resume` 打印无效提示），CLI docstring 与 plan doc 同步 | **已落地**（2026-09-17，用户先点头后才改；改前备份 `.v4.bak`，92,618 B）→ 证据见 **W1** |
 | O19 | **打分器在「一句多 marker」上假阳性**：R12 报告里 `… NCT02729025 的机制终点未达显著{{ref_1}}，其结论不能外推至 OCEAN(a)-DOSE{{ref_2}}` 被判 `A-ATTR-misattribution` FAIL（`'NCT02729025' in unit citing ['ref_2']`）——而 sys 明文允许「一句确实混用多来源时可挂多个 marker」（`system-prompts/…-v0.15.md:203`）。判分器只看「token 的 owner 是否等于该 unit 的**唯一** ref」，与契约文本冲突 | `eval_attribution`：unit 的 refs 集合 **>1** 时，只在 token 的 owner **不在**该集合里才 FAIL（多来源共处合法）；单 ref 的 unit 维持严格归因 | **待用户点头**（2026-09-17 R12 暴露；未改，避免“刚跑完就放宽清单”的嫌疑） |
 | O20 | **清单条目 `A-T1-title-names-both` 期望过窄**：R12 的 H1 是主题式标题「Lp(a) 升高人群降 Lp(a) 治疗：跨试验对比报告」→ FAIL；但两个药名都在正文锚点里（`A-C1/C2` PASS）。该条的理由是「标题无引注、不受归因保护」，真正要防的是**两药混成一个**；而「H1 必须点名两个药」是从 R8 那份标题倒推的写法偏好（与 O17 同类基线污染） | 改为条件式：**标题若点名药物，则必须两个都点名且不混；纯主题式标题不算违规**（或降为 warn） | **待判**（2026-09-17 R12 暴露；证据仅 1 份产物，按「我方能改的先给证据再改」记待样本） |
+| O21 | **A2 追问的实现路径（待拍板，未改任何文件）**：① **`source_full_link` 字段不存在** —— 那是 v0.11 附件契约的名字（`source_url`/`source_full_text`），现行 params 工具里只有 `clinical_result.full_article_link`（描述「临床结果论文的URL」）；写错名字的后果是整次取数 `INVALID_INPUT`。② 用户要的「优先 `abstract_text` → 再访问 `full_article_link`」ladder **与现行 sys 直接冲突**：sys:50 明文规定 `full_article_link` 是「citation metadata only and may never add clinical facts」。③ 且第二级对人读地址实测不可用（见 W2），只有 API 端点可用 —— 而 API 端点必须由 `pm_id`/`doi`/登记号**拼 URL**，与「URL 只逐字用、不得构造」冲突 | 待用户拍三个开关：**(a)** 政策（允不允许联网抓外部内容并写进报告）；**(b)** 可追溯性承载（`citations.json` 严格 3 键、加键会让 `A-S4` FAIL → 正文标注 / 旁路文件 / 禁止外部事实三选一）；**(c)** 冲突与降级语义（库内 vs 外抓冲突以谁为准；抓不到是否必须写明） | **待拍板**（2026-09-17；证据 W2 + 字段实测） |
 
 ## 4. 平台侧（转开发）
 
@@ -429,6 +447,10 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
   `/artifacts/content` 的 `content` 外层包装也易踩空。
 - **P6** `POST /api/tools/debug` 的必填字段与 schema 不一致：源码里 `ToolDebugRequest.mcp_server_id: str | None = None`（OpenAPI 呈现为 `anyOf[string,null]`、不在 `required`），但 `origin == "MCP"` 时不传就被 `model_validator` 拦下，422 原文
   `"mcp_server_id is required for MCP tool debug"` —— 调用方只能从报错反推。
+
+- **P10（新，2026-09-17，待用户决定是否转开发）`web_fetch` 对主流医药信源基本不可用，且不暴露状态码**：实测（W2）——PubMed 人读页返回反爬拦截页 `Cookies must be enabled … reload this page to continue.`；ClinicalTrials.gov 人读页（含 `?tab=results`）只返回 JS 骨架（`Show glossary` / `Study record managers: …`），拿不到试验记录；`web_fetch` **不返回 HTTP 状态码**；沙箱自身无外网（`Could not resolve host` ⇒ `web_fetch` 为平台侧代抓，失败时调用方无法区分「被反爬」「404」「超时」）。
+  - **可用替代（我们实测能通）**：CT.gov v2 API `https://clinicaltrials.gov/api/v2/studies/<NCT>`（返回完整协议 JSON）、Europe PMC REST `…/rest/search?query=EXT_ID:<pmid>&resultType=core&format=json`（返回 `abstractText`/`pmcid`/`isOpenAccess`）。
+  - **建议**（开发定）：`web_fetch` 至少回传状态码/失败原因；若能力允许，对已知医药域名提供「API 端点优先 / 简单渲染」路径。
 
 ### 2026-09-17 对照 TS @ `30306cb`（**P7/P8 的定性要改：P7 已由平台从根修掉**）
 
