@@ -91,6 +91,25 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - `toolsmith-publish instructions`：拉**部署端真正装配的系统提示词**（`GET /api/agent/info?project_id=…`）。已验证：本仓库 `system-prompts/…-v0.15.md`（40,309 字符）是部署 `instructions`（58,851 字符）**offset 0 逐字节前缀**，平台另追加 18,542 字符样板（Pharmcube Data Tools / Entity Inline References / Write todos / Task / Skills / Filesystem / Execute / Artifact Presentation / Visualizer 等 20 节），落在 `/tmp/toolsmith-publish/instructions-deployed.txt` 与 `instructions-platform-tail.md`。**这条通道比 share 快照强**：share 不含 system prompt、只能靠运行期正文推断版本，而这里能逐字节判部署版本。
 - 用法例：想确认「部署端 `execute` 的参数名」直接看 `tools --internal --schema execute` → `required=['shell_command']`，无 `command` 参数（与 v0.15 R3 规则一致）。
 
+### 只读实测：esid → params 工具的字段与取值（2026-09-17，回答用户「长格式 esid 会不会查不到」）
+
+工具链只有一条：**`pharmcube-query-clinical-result-with-params`**，参数 **`extra_esids`**（精确过滤 `clinical_result.extra_esid`）+
+**`selected_fields`**（白名单，48 个顶层名，离线镜像 `docs/params-tool-schema.md`；嵌套字段如 `projects.*` / `arms.drugs.*` /
+`study_results.*` 以顶层名写）。只读通道 = `POST /api/tools/debug`（不写任何数据）。实测结论：
+
+- **长哈希 esid `24_187_acaa9fda98c00fb890d804d0e3a0428c_1` 查得到**：`ok:true` / 1 行 / 51 字段中 27 个非空（`paper_title`、`summary`、
+  `study_results`、`arms`、`projects`、`paper_release_time` 齐全；`abstract_text`、`doi`、`clinical_stage_cn` 等为空）。
+  ⇒ **「字段空」≠「记录查不到」**，id 格式（短号 vs 长哈希）不是问题（两者都是合法 `extra_esid`）。
+- **「查不到」在协议层是静默的**：不存在的 id → `ok:true` + `data: []` + `error:null`（负向对照已验）。
+- **一个 esid 可能返回多行（按疾病 join 扇出）**：`24_1_30561610` → **3 行**，仅 `disease_id` 不同（10000/5194/1403），
+  `extra_esid` 三行相同。⇒ **新增待办（skill 措辞缺口）**：`input-contract.md` / `SKILL.md` 应明写「按 `extra_esid` 去重后再按输入顺序编号
+  `{{ref_n}}`，重复行只取一份」，否则多行会让 ref 编号与「结果条数」对不上；**改 skill 后必须跑一次 `run` 留 `R<n>`**。
+- **`selected_fields` 不是严格白名单**：响应恒多带 3 个未请求的键（`clinical_result__id`、`company_id`、`disease_id`）；
+  48 个名全部被接受（无 `INVALID_INPUT`）。
+- 踩坑：`POST /api/tools/debug` 的 `name` 必须是**上游全名**（`pharmcube-…`），短名 → HTTP 200 + `is_error:true` `Unknown tool`；
+  `~/.secrets` 是 `export K="…"` 形式，按 `=` 切会拿到空 token（401），要用正则解析（runner 的 `env_from_secrets`）。
+- 全文（含 SQL、字段清单、脚本写法）：Obsidian `03-技术与VibeCoding/01-AI与LLM/临床结果esid查询-params工具字段与取值实测-2026-09-17.md`。
+
 ### 写权限护栏 + 上游新鲜度门禁（2026-09-11，用户追加）
 
 - **用户要求原文**：*「只允许更新我指定的 skill 和 prompt（就是除了我创建的当前正在改的主题，别动其它的）」*、*「每次准备更新我指定的 skill 和 prompt 前面，先检查下我用到的 skill 和 tool 有没有更新」*。
@@ -133,7 +152,7 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
   ⑤ **上游漂移已清**：`deps` 报 params 工具 `schema changed`，逐项核对仅为 `selected_fields` 描述里的序号笔误修正（`1./1./2.` → `1./2./3.`），18 参数 / 73 字段名 / 73 字段描述逐字节相同 → **本仓无需适配** → 重生成 `docs/params-tool-schema.md` 镜像 → `deps --accept` → `deps` exit 0。
   ⑥ **本批不改 `skill/` 与 `system-prompts/`** → 不触发 Toolsmith 发布；`status` 复测 **in sync（EXIT=0）**。
   ⑦ **R8 = 轮询版首次端到端真跑（2026-09-16）**：thread `b1302c80-f1f6-487d-8244-f495a5848490`（2 esid），**16/16 PASS / exit 0**；`POST` 后 **0.1 s 断流**，靠 **11 次轮询**看到 `running`→`completed`（**202.0 s**；当时打印的 202.4 s 是活计数）→ **T2 证实**（断流不取消 run）；同 `(thread_id, turn_id)` 重发 → **HTTP 409 `Turn already exists`（0.2 s、零执行）→ T3 证实**；**P7 现场证据**：`/info.status=completed` 而 `/timing` 仍 `completed:false`、`latency_ms` 204 s→350 s。**P8 当时未测**（需一次有意超时）→ 已于 2026-09-16 补齐并改判，见 ⑨。顺带修了量具自己两处错（重复打印的 `no tool errors`；把 `/timing` 活计数当永久值）→ 台账 **O10**。
-  ⑧ `docs/autoresearch-iteration-plan.md` 的执行队列：**S1.5（必含事实清单 + 离线打分器）已于 2026-09-16 完成** → `evals/fact-check/`（`records/` 2 份 `POST /api/tools/debug` 真实返回 + 场景 A 30 条 / B 12 条 fail 级事实 + `check.py` + `mutations.py` + `README.md`）。基线（打 R8 产物、零新 run）：**A 30/30 PASS、B 12/12 PASS**；负向对照 `mutations.py` → **GATE PASS**（A **15** 个变异覆盖 30/30、B 11 个覆盖 12/12，每个变异 rc=3）。质量层自此有 `facts_ok/facts_total` 标量。
+  ⑧ `docs/autoresearch-iteration-plan.md` 的执行队列：**S1.5（必含事实清单 + 离线打分器）已于 2026-09-16 完成** → `evals/fact-check/`（`records/` 2 份 `POST /api/tools/debug` 真实返回 + 场景 A 31 条 / B 12 条 fail 级事实 + `check.py` + `mutations.py` + `README.md`）。基线（打 R8 产物、零新 run）：**A 31/31 PASS、B 12/12 PASS**；负向对照 `mutations.py` → **GATE PASS**（A **16** 个变异覆盖 31/31、B 11 个覆盖 12/12，每个变异 rc=3）。质量层自此有 `facts_ok/facts_total` 标量。**（2026-09-17 清单修订 O17：A 由 30 条增至 31 条，新增 `A-S2b-chart-or-reason`）**
   ⑨ **P8 实验已于 2026-09-16 执行完毕**（`docs/toolsmith-run-v2-polling-plan.md` §8.1.1 / §12.2），**三臂全答**：
   (a) 硬杀客户端（第 3 次轮询 40.5 s、`status=running` 时 `kill -9`）**不会取消 run**，同一 turn 照跑到 `completed`；
   (b) `run --resume`（只重采集、完全不 POST）在窗口内补齐 → **16/16 PASS / exit 0**（R9，thread `1d8f2104-5a3f-46d3-b382-d8626eaec39b`，真实服务端 171.1 s）；
@@ -166,7 +185,8 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
   · 新增 `classify_outcome()`：零新增网络请求（吃已抓的 `messages.json`）；`error_type` → `failed`；`state=="interrupted"` 或 error_type 含 Cancel → `cancelled`；**无任何持久化消息 → `unknown`（不是 `succeeded`，空产物糊不过去）**；否则 `succeeded`。`kind==completed` 但 outcome 为 failed/cancelled 时**改写 kind**，不再谎报成功。
   · 新增第 17 项断言「turn outcome is succeeded」（拒绝路径 11 项）；`verification.md` 终态行改“read from `timing.completed_at`（durable DB row…）”+ outcome 行。
 - **R11 验收（2026-09-17）**：真跑 thread `ea0b6213-…` / turn `ee2ff701-…`，轮询 10 次 `running`×9 → `idle`，**exit 0 / 17/17 PASS**，`177.6 s server / 188.9 s polled`，`outcome=succeeded`；只读复测 N1（R8 复采集 17/17、0.2 s）、N2（R9 171.1 s）、N3/N4（`not_started` exit 4）、拒绝路径 11/11、零网络闸门 `GATE_RC=0`。改后 `py_compile` + `deps`/`status` 均绿；本批**不涉 `skill/` 与 `system-prompts/`** → 未触发 `publish`，dist 幂等（`de7c16b449…` 未变）。
-- **R11 同时暴露清单侧问题（台账 O16 / O17，未自行修改）**：R11 产物打场景 A 只有 **25/30**（R8 同输入 30/30）：3 个 FAIL 是「没出定量主图」——而 `references/chart-templates.md:91` 的规则是**定量主图可选**、需「同一终点、同一口径（**可明确对齐的时点**）」的纯数值，场景 A 两条记录是 **第 16 周 vs 第 36 周**，R11 明确写了不出图的原因；另 2 个 FAIL 中 `A-C12` 是模式过窄（字面 `2 条` vs 产物写 `2 项来源记录`）、`A-C6`（未报安慰剂组 +3.6%）**像真的内容缺口**。⇒ **不改清单迁就产物**，三项挂「待用户判定」。
+- **R11 同时暴露清单侧问题（台账 O16 / O17）**：R11 产物打场景 A 只有 **25/30**（R8 同输入 30/30）：3 个 FAIL 是「没出定量主图」——而 `references/chart-templates.md:91` 的规则是**定量主图可选**、需「同一终点、同一口径（**可明确对齐的时点**）」的纯数值，场景 A 两条记录是 **第 16 周 vs 第 36 周**，R11 明确写了不出图的原因；另 2 个 FAIL 中 `A-C12` 是模式过窄（字面 `2 条` vs 产物写 `2 项来源记录`）、`A-C6`（未报安慰剂组 +3.6%）**像真的内容缺口**。⇒ 当时**不改清单迁就产物**，三项挂「待用户判定」。
+  - **（2026-09-17，用户已批准修正 O17）**：`A-S2` 改 `chart_set_allowed`（文件名合法 + 禁跨试验 timeline + 定量图 ≤1；空集合不算违规）、新增 **`A-S2b-chart-or-reason`**（无定量图必须正文写明且给理由）、`A-S8/A-S9` 加 `optional_when_absent`、`A-C12` pattern 放宽为 `2 ?(条|项)`、新增变异 **`M16`**。结果：**R8/R9 基线 31/31、R11 由 25/30 → 30/31（只剩 `A-C6`）、B 仍 12/12、GATE PASS**。`A-C6` 仍作待样本（单样本不改规则）。
 - **另三个提交与本项目无关**：`34215c3` 只加 Pydantic `Field(description=…)`；`af4f601` 是 sandbox 镜像 pull 失败回退本地缓存（`_inspect_sandbox_image`）；`8d10fa0` 只改 `params_drug_deal_tool_v2.py` / `params_pipeline_tool_v2.py`，**`params_clinical_result_tool.py` 未动**，`deps` 复跑 **RC=0**。
 
 - **（2026-09-16，待执行）用 autoresearch 范式规划下一轮迭代**。用户要求「你用对比结果那个 skill 规划试试？先不改动那个 skill 本身」→ 交付 **`docs/autoresearch-iteration-plan.md`**（只读诊断 + 规划，**未改 skill/sys、未发布、未 commit**）。要点：① **`toolsmith-publish` 的 prompt 侧闸门已坏**：平台返回 `current_version_id`（snake_case），工具 5 处读 `currentVersionId`（`~/.local/bin/toolsmith-publish:272/362/787/936/1094`）→ `status` 恒定报 `LOCAL NOT DEPLOYED`（exit 3，**假警报**：线上 v1.6 sha `fa80094e9d41` == 本地 `-v0.15.md`、项目 `resources.prompt` 也 = 该版），且 in-place `publish` 的回读用同一坏键 → **写完再报 `read-back mismatch`**；平台源码佐证 `apps/tool-smith/backend/src/toolsmith/schemas/prompt.py:25`（`current_version_id: str = Field(alias="currentVersionId")`，部署端未走 alias）→ **已于 2026-09-16 修复（S0，`fam_current_version_id()`）**。② 5 个 `20260914-*` run 离线重放得基线：场景 A 两次 **23 vs 41 calls / 18 vs 34 turns / 173 vs 207 s**，但**跨了 17:41 那次发布** → 无干净重复、该批硬化不可归因；拒绝路径跨版本仍极稳（8/7 calls、33/32 s）→ 可当廉价回归闸门；`params` 调用 **2↔8** 波动。③ harness 缺口：params 的 tool-return 是「预览 + `.../tool_results/<tool>/call_*.jsonl for script access` 指针」，而 `artifacts.zip` **不含 `tool_results/**`** → **引用 receipt 目前无法离线核**（现有断言只查键集/日期格式/`title` 非空）。④ 实验队列 E0–E6，其中 **E2 = 删/缩委派段**（该段 6908 B = sys 44516 B 的 **15.5%**，而 5 个 run **从未 `task` 委派**）。执行顺序 S0（修工具）→ S1（harness，0 新 run）→ S2（场景 A×3 取噪声带）→ S3（一次一个变量），每步均需用户授权。

@@ -243,7 +243,7 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
   27 次工具调用（27 returned + 0 schema-rejected；`read_file`×11 / `execute`×9 / `edit_file`×3 / `load_skill`×1 /
   params×1 / `write_file`×1 / `present_artifact`×1）；turn tokens `in=1,448,663 out=31,718 reasoning=21,648`；
   产物 `report.md` + `citations.json` + `endpoint-bar-1.json`（无 timeline 是正确的：两个 esid 属不同试验）。
-- **事实清单第二份独立样本**：同一场景 A 的新产物 → `SCORE scenario=a facts 30/30 warn 1/1 -> PASS`（修正打分器句切后；修正前 29/30 是 O12 假 FAIL）。
+- **事实清单第二份独立样本**：同一场景 A 的新产物 → `SCORE scenario=a facts 30/30 warn 1/1 -> PASS`（修正打分器句切后；修正前 29/30 是 O12 假 FAIL）。（**注**：这是 2026-09-16 当时的清单版本与分数；2026-09-17 清单修订后 A 为 31 条，同一产物重打分为 31/31）
 - **P7 的描述被实测修正**：活窗口内 `/timing` 是**临时行**（`completed_at=null`、`completed=false`、`latency_ms` 现算递增），
   实测被读到的序列 190,000 → 350,200 → 429,651 → 443,488 ms；窗口过期后换成**持久化行**（三者同时变正确，
   `latency_ms` 冻结在 171,141＝真实耗时）。⇒ 活窗口的 `latency_ms` 不只是滞后，而是**大幅高估**；
@@ -275,12 +275,12 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 ### F1 — 事实清单基线 + 负向对照（2026-09-16，**离线，零新 run**）
 
 - **产物**：`evals/fact-check/`（`records/` 2 份 ground truth、`scenario-a/b.facts.json`、`check.py`、`mutations.py`、`README.md`）。
-- **清单基线**（直接打 R8 产物，未重跑）：`SCORE scenario=a facts 30/30 warn 1/1 -> PASS`（exit 0）、
+- **清单基线**（直接打 R8 产物，未重跑）：`SCORE scenario=a facts 31/31 warn 1/1 -> PASS`（exit 0）、
   `SCORE scenario=b facts 12/12 warn 1/1 -> PASS`（exit 0，B 打的是 R6 拒产 run）。
 - **负向对照（证明清单有牙）**：`python3 evals/fact-check/mutations.py` → **GATE PASS**：
-  arm A **15** 个变异翻天 30/30 条 fail 级条目（M05 改引注、M15 表格单元格跨记录归属）；arm B **11** 个变异翻天 12/12 条；
+  arm A **16** 个变异翻天 31/31 条 fail 级条目（M05 改引注、M15 表格单元格跨记录归属、M16 删图不解释）；arm B **11** 个变异翻天 12/12 条；
   每个变异都令退出码变 **3**，且必须命中**预期 item id**（只判 `rc==3` 不够）。基线（未变异）两份清单必须全 PASS。
-- **第二份独立样本**：R9（同一场景 A 的新产物）→ `SCORE scenario=a facts 30/30 -> PASS`（修正 O12 的句切后）。
+- **第二份独立样本**：R9（同一场景 A 的新产物）→ `SCORE scenario=a facts 31/31 -> PASS`（修正 O12 的句切后；O17 清单修订后再跑仍是满分）。
 - **意义**：质量层从「布尔门」升级为 `facts_ok/facts_total` 标量（`docs/autoresearch-iteration-plan.md` §9），
   后续 keep/discard 先看事实分不掉。
 
@@ -310,9 +310,13 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 
 - **顺带证实**：`run` 在 R11 上是「客户端 0.1 s 断流、run 与客户端断开无关」的又一次复现（与 R8 的 T2 同结论）。
 - **事实分（离线清单，非本 runner 职责）**：R11 产物打 `scenario=a` → **`facts 25/30`（FAIL）**，
-  与 R8 同输入的 `30/30` 不同。逐条分诊见下方 §3 的 O16 —— 5 个 FAIL 里 **3 个是清单自身的期望与规则文本冲突**、
+  与 R8 同输入的 `30/30` 不同。逐条分诊见下方 §3 的 O16（图表断言缺口）与 **O17**（清单期望本身与规则文本冲突）—— 5 个 FAIL 里 **3 个是清单自身的期望与规则文本冲突**、
   1 个是模式过窄（字面 `2 条` vs 产物写的 `2 项`）、1 个（A-C6：未报安慰剂组 +3.6%）**像真的内容缺口**。
-  ⇒ **不改清单迁就产物**，三项挂「待用户判定」。
+  ⇒ **当时不改清单迁就产物**，三项挂「待用户判定」。
+- **（2026-09-17 后续，已判）** 用户批准修清单（O17）后已落地：`A-S2b-chart-or-reason` 新增（无定量图必须在正文说明白）+
+  `A-S8/A-S9` 改条件式 `optional_when_absent` + `A-C12` pattern 放宽为 `2 ?(条|项)` +
+  变异 `M16 drop-chart-silent` → **R11 重打分为 `30/31`（只剩 `A-C6`）**、R8/R9 基线 **31/31**（新增一条条目）、
+  B 仍 12/12、`mutations.py` 覆盖 31/31 GATE PASS；正向对照（删图+写明原因）仍 31/31 PASS。
 
 ## 3. 我们自己能改的
 
@@ -334,14 +338,14 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 | O14 | **`run` 的 `not_started` 判定实际从未生效**：取的是 `me(c)['id']`，而 `/api/auth/me` 返回的是 **`user_id`** ⇒ `uid` 恒为 `None` ⇒ `/thread-turns/validate` **根本没被调用** ⇒ `in_db` 永为 `None` ⇒ **任何“状态未知”的 turn 都被无条件报成 `not_started`（exit 4，“the POST never landed”）**。只读实测：真实已完成 turn + 正确 `user_id` → `{"exist": true}`；缺参 → **HTTP 422**；传字串 `None` → `{"exist": false}`（假阴性） | 改 `me(c).get("user_id") or .get("id")`；并在 validate 说 `exist=true` 时先看 `/timing` 的 `completed_at`：有值就直接按已结束收尾（走完断言），不捛到 `--timeout`（默认 2400 s）才报 `timeout` | **已落地**（2026-09-16，用户先点头后才改；改前备份 `toolsmith-publish.v2.bak`，85,409 B）→ R10 |
 | O15 | **`--resume` 不带 `--out` 就地重采集，把原 run 目录的 `verification.md` / `run.json` 覆盖掉**（`Checks` 段被抹空）—— R8 那份记录就是这么丢的；而原 run 目录常是那次验证**唯一**的证据副本 | `--resume` 默认写**新目录**（`<stamp>-resume-<tag>`，并打印原目录位置）；只有显式 `--out` 才写指定目录（已存在记录时先 warning）；同时给 resume 目录补写自描述的 `run.json` + `prompt.txt` | **已落地**（2026-09-16）→ R10 的 T6/T7 |
 | O16 | **runner 的图表类断言在「0 图」时全部平凡通过**（R11 产物只有 `report.md` + `citations.json`，3 条图表断言照旧 PASS：「0 tags / 0 files」「no chart」）——断言本身没错（有没有图取决于输入，不能无条件要求），但意味着**“该出的图没出”这件事 runner 看不见**；R11 的事实分里 3 个 FAIL 正是这一类 | **定案：不改 runner**。`run` 是**通用**入口，不知道场景，无条件要求出图会把合法场景判死；这类“该不该出一张定量主图”的判定交给**离线事实清单**（`evals/fact-check/` 的 `A-S2/S8/S9`），清单知道场景、也知道规则文本 | **定案保留**（2026-09-17；由 R11 暴露，非缺陷） |
-| O17（待判） | **清单条目 `A-S2-chart-set` 疑似「基线污染」**：它期望场景 A 必出 `endpoint-bar-1.json`，但 `references/chart-templates.md:91` 的规则是「定量主图**可选**，需 ≥2 条入选结果给出**同一终点、同一口径（可明确对齐的时点）**的纯数值」，而场景 A 的两条记录是**第 16 周 vs 第 36 周**——R11 据此明确写了「不具备绘图条件——本报告不输出图表」并给了理由；R8（同一输入）反而画了图。**清单的期望更像从 R8 那一份产物倒推出来的，而不是从规则文本推出来的**（正是「清单条目必须先于产物撰写」防的那个坑） | 建议（**等用户判定**）：把 `A-S2/S8/S9` 改成「**若**出定量图，必须是 `endpoint-bar/line-<n>.json` 且 envelope/数值自洽；**若**不出图，正文必须写明不出图的原因（数值不可比 / 只有一个数值 / 人群不同）」——这样既守住规则、也保住两个**真实的** failure 模式（画错类型 / 静默漏图）。`A-C12` 的 pattern `2 ?条` 建议放宽为 `2 ?(条\|项)`（R11 写「2 项来源记录」，语义等同）。**改动会重算标量，所以不自行改** | **待用户判定**（2026-09-17） |
+| O17 | **清单条目 `A-S2-chart-set` 是「基线污染」**（期望从 R8 产物倒推，而不是从规则文本推）·**已按用户批准修正**：它期望场景 A 必出 `endpoint-bar-1.json`，但 `chart-templates.md:91` 的规则是「定量主图**可选**，需 ≥2 条入选结果给出**同一终点、同一口径（可明确对齐的时点）**的纯数值」，而场景 A 的两条记录是**第 16 周 vs 第 36 周**——R11 据此明确写了「不具备绘图条件——本报告不输出图表」并给了理由；R8（同一输入）反而画了图。**这就是「清单必须先于产物撰写」要防的那个坑** | **已落地**（2026-09-17）：① `A-S2` 改为 `chart_set_allowed`（文件名合法 + 禁 timeline（跨试验前置条件不成立）+ 定量图 ≤1 张；**空集合不算违规**）；② 新增 **`A-S2b-chart-or-reason`**：没有定量图时正文必须**明确写出不出图**（`required_groups`）且给 ≥1 条实质理由（`supporting_groups`）——只查支持理由不够（跨试验报告天然写「跨试验」「时点不同」，删图不说话也能过）；③ `A-S8/A-S9` 加 `"optional_when_absent": true`（文件在则硬断言封套/数值，不在则 PASS 并指向 A-S2b）；④ `A-C12` pattern `2 ?条` → **`2 ?(条\|项)`**；⑤ 新增变异 **`M16 drop-chart-silent`** | **已落地**（2026-09-17；判据：R8/R9 新基线 **31/31**、R11 由 25/30 → **30/31**（只剩 `A-C6`）、B 仍 12/12、`mutations.py` arm A **16** 个变异覆盖 31/31 + arm B 11 个覆盖 12/12 → **GATE PASS**；正向对照「删图 + 写明原因」手动跑 → 31/31 PASS） |
 
 ## 4. 平台侧（转开发）
 
 完整、可直接转发的版本见 Obsidian：
 `03-技术与VibeCoding/01-AI与LLM/ToolSmith-平台问题单-ChatAPI与SSE文档缺口.md`
 
-摘要（均为文档/可观测性问题，非阻断性 bug）：
+摘要（均为文档/可观测性问题，非阻断性 bug；**2026-09-17 起文档缺口也一并上报**，旧「不报文档缺口」规矩已作废）：
 
 - **P1** Chat API 缺最小可用示例，字段命名不一致（`threadId` 驼峰 vs `project_id` 下划线；顶层 `id` 必填；
   `messages` 只发最后一条；query 要重复 `thread_id` + `model`）；`/api/projects` 用 `projects` 键、
@@ -370,9 +374,10 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
   **成功/失败/取消只能从持久化消息里读**：`chat_service._normalize_error_text_part()` 把
   `providerMetadata.pydantic_ai.provider_details.error_type` 归一化成 text part 顶层的 `error_type`
   （`stream_error` / `TimeoutError` / 异常类名），取消则写 `state="interrupted"`（`_persist_partial_run(error_type=…)`）。
-- **仍不报（属文档/体验缺口，按规矩内部存档）**：`chat-api.mdx` 没文档化这个 `error_type` 归一化字段，
-  平台侧**唯一官方 durable 结局通道是项目级 webhook** `run.completed` + `event_status`（webhook 是项目配置，
-  外部接入方**无法按请求携带**）⇒ 外部客户端要么读源码、要么轮询 messages 自己分类。我们已按此实现（R11）。
+- **→ 2026-09-17 改为上报（P9，用户已撤销「不报文档缺口」）**：上面这条当时按「不报文档缺口」的旧规矩内部存档，**该规矩已作废**（用户原话：「这个不报是不对的，得报，让他自己决定」）。已写成完整问题单 **P9**（Obsidian 同文件「第三批」，含端点逐条清单 + DB 列清单 + webhook 为唯一通道的源码位置 + 文档自相矛盾那段 + 三条建议）。仓库侧只留摘要：
+  - **现象**：run 结局（`succeeded`/`failed`/`partial`/`cancelled` + `termination_reason`）**只能从项目级 webhook 拿到**；HTTP 侧 `chat_routes.py` 全部端点无 outcome 字段、`thread_messages` 表无 outcome 列、`/timing` 只说明「结束了」、`/thread-turns/validate` 只回 `{exist}`（且未文档化）、`GET /chat/{tid}/stream` 在 run 结束后回 **204 且不重放**。
+  - **影响**：`chat-api.mdx` 要求「外部客户端需要在 run 成功完成后重新确认产物」，却没给判断「成功完成」的 HTTP 方法；失败/取消的 run 也可能已写出部分产物。我们只能靠未文档化的 `messages` text part `error_type` / `state=interrupted` 自建 `classify_outcome()`（R11 已在生产路径跑通）。
+  - **建议**（开发定）：① `/timing` 的 turn 行加 `outcome`/`status`；② 或新增 `GET /threads/{id}/turns/{turn_id}`（与 webhook 同口径）；③ 或至少把「webhook 是唯一权威通道 / 无 webhook 时怎么判」写进文档。
 - **P8（原：错过窗口就无法区分成功/失败）→ 定性修正**：窗口问题由平台从根解决；剩下的是**结局不在 API 里**，
   由 runner 侧 `classify_outcome()` 补齐。
 - 与我们的依赖无关：`8d10fa0 add province and city params` 只改 `params_drug_deal_tool_v2.py` / `params_pipeline_tool_v2.py`，

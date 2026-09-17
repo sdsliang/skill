@@ -26,7 +26,7 @@
 | 6 | **现在无法离线核「引用真的来自拉取结果」**：params 的 tool-return 是「预览 + 落盘指针」，`artifacts.zip` **不含 `tool_results/**`** | §7 |
 | 7 | sys prompt 44516 B 里涉委派/子代理段落 **2 段 = 6908 B = 15.5%**，而 5 个 run **一次都没委派** → 可做「删段实验」 | §6/§10 E2 |
 | 8 | 真正的结构性差距只有一条：autoresearch 有 `val_bpb`，我们**只有 13 项布尔断言 + 人工读产物** → 只能判「契约破没破」，判不了「这轮改动值不值得 keep」 | §5 映射表 |
-| 9 | **差距已部分补上（S1.5，2026-09-16）**：`evals/fact-check/` = 必含事实清单 + 离线打分器，输出 `facts_ok/facts_total`；基线 A 30/30、B 12/12，负向对照 GATE PASS（每条都能翻 FAIL） | `evals/fact-check/README.md` |
+| 9 | **差距已部分补上（S1.5，2026-09-16）**：`evals/fact-check/` = 必含事实清单 + 离线打分器，输出 `facts_ok/facts_total`；基线 A 31/31、B 12/12（2026-09-17 清单修订后；修订前 A 30/30），负向对照 GATE PASS（每条都能翻 FAIL） | `evals/fact-check/README.md` |
 
 ---
 
@@ -189,7 +189,7 @@ receipt 类断言一律从**工具返回真值**取，不从产物自述取。
 
 **事实清单（S1.5，已落地）**：`evals/fact-check/` —— ground truth 来自 `POST /api/tools/debug` 的真实返回
 （`records/*.json`），清单先于产物撰写，`check.py` 离线判分并输出 `SCORE scenario=<a|b> facts <ok>/<total>`；
-`mutations.py` 用负向对照证明每条都能翻 FAIL（当前 A 30/30、B 12/12）。用法见 `evals/fact-check/README.md`。
+`mutations.py` 用负向对照证明每条都能翻 FAIL（当前 A 31/31、B 12/12）。用法见 `evals/fact-check/README.md`。
 
 ### 8.2 一轮 = 一个假设（硬纪律；A 组六项一起改就是反例）
 
@@ -249,7 +249,7 @@ r  commit  deployed_sys_sha  scenario  turns  calls  wall_s  params_calls  execu
 | **E4** | `params` 调用纪律可收敛到 ≤2 | 同版内 2 ↔ 8；`cite-date` 8 次只拉 2 个 esid | 现有「最多再一次批调用」硬化 | **`params_calls ≤ 2` 可硬断言** | 1 publish + 3 run | 误伤「确认缺失」合法路径 |
 | **E5** | 图表张数受规则钉住 | 场景 A 两次都是 1 张 bar；A7 上限规则只观测 1 次 | 无（复用 E1 的 run 观测） | 图数方差 | 0（搭 E1） | 无 |
 | **E6** | B8–B10 对外沟通项（bar 负值问题单 / `{{ref_n}}` 前端报备 / CLI 路径口径） | 用户已拍板「攒着」 | — | — | — | **不做** |
-| **E7** | **删规则也能赢**：在事实清单不掉分的前提下压 `calls` | S1.5 基线分已拿到（A 30/30、B 12/12） | sys/skill 各一段 | `facts_ok` 不掉 + `calls` 降 | 1 publish + 3 run + 0 新 run 判分 | 事实分掉了就 revert（这正是清单存在的意义） |
+| **E7** | **删规则也能赢**：在事实清单不掉分的前提下压 `calls` | S1.5 基线分已拿到（A 31/31、B 12/12） | sys/skill 各一段 | `facts_ok` 不掉 + `calls` 降 | 1 publish + 3 run + 0 新 run 判分 | 事实分掉了就 revert（这正是清单存在的意义） |
 
 ---
 

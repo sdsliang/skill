@@ -38,7 +38,7 @@ python3 mutations.py
 打分输出最后一行是标量：
 
 ```
-SCORE scenario=a facts 30/30 warn 1/1 -> PASS
+SCORE scenario=a facts 31/31 warn 1/1 -> PASS
 ```
 
 ## 清单条目的写法
@@ -59,7 +59,23 @@ SCORE scenario=a facts 30/30 warn 1/1 -> PASS
 `shape` 的 op：`artifact_present` / `artifact_absent`、`glob_count`、`citations_keys_exact`、
 `citations_entry_key_set`、`citations_matches_record`（对 ground truth record 逐字比，日期按 `YYYY-MM-DD`）、
 `citations_distinct`、`chart_envelope`（`id` / `iframe_template` 形状 / `option.type` / `group` / `stack` /
-`data_len` / `label` 非空 / `title` 非空）、`chart_values`。
+`data_len` / `label` 非空 / `title` 非空）、`chart_values`、`chart_set_allowed`、`chart_or_reason`。
+
+### 可选出图与「不出图必须说明原因」（2026-09-17，O17）
+
+定量主图是**可选**的（`chart-templates.md:91`：需 ≥2 条入选结果给出同一终点、同一口径、**可明确对齐的时点**的纯数值）。
+所以清单不能用「必出 `endpoint-bar-1.json`」去要求场景 A——那是从 R8 那一份产物倒推出来的期望（O17），
+R11 同输入不画图并写明理由反而被判 FAIL。改成三条相互配套的断言：
+
+| 条目 | op | 语义 |
+| --- | --- | --- |
+| `A-S2-chart-set` | `chart_set_allowed` | 出的每一张图**文件名必须合法**（`endpoint-bar-*.json` / `endpoint-line-*.json` / `evidence-timeline.json`）、**禁止的图不得出现**（场景 A 跨试验 → timeline 前置条件不成立）、**定量图不得超上限**（1 张）。**空集合不算违规** |
+| `A-S2b-chart-or-reason` | `chart_or_reason` | 有定量图 → 直接 PASS（图由下面两条管）；没有定量图 → 正文**必须明确写出不出图**（`required_groups`）**并**给≥1 条实质理由（`supporting_groups`） |
+| `A-S8` / `A-S9` | `chart_envelope` / `chart_values` + `"optional_when_absent": true` | 文件在 → 照旧硬断言封套/数值；文件不在 → PASS 并注明由 `A-S2b` 兜底 |
+
+**「required 组」是必须的**：只查「支持理由」会漏——跨试验报告天然写「跨试验」「时点不同」，那样删掉图不说话也能过。
+对应的负向对照是 `M16 drop-chart-silent`（删 `endpoint-bar-1.json`，报告不动）→ 必须翻 `A-S2b`；
+正向对照是「删图 + 写明原因」→ 仍 31/31 PASS（手动验过，见台账 O17）。
 
 ### 锚点归因（`anchors` + `attribution`）
 
@@ -101,11 +117,12 @@ SCORE scenario=a facts 30/30 warn 1/1 -> PASS
 当前结果：
 
 ```
-arm a: flipped 30/30   (15 个变异：改主终点数值、翻转安慰剂符号、抹掉试验登记号、篡改时点、
+arm a: flipped 31/31   (16 个变异：改主终点数值、翻转安慰剂符号、抹掉试验登记号、篡改时点、
                         把 ref_1 指向不存在的引用、把标题里的药名写成另一个、
                         在表格单元格里把 B 的药名写成 A 的（M15）、把 2 条写成 5 条、
                         改 citation 标题、让两个 ref 指向同一条记录、改图表数值、多出一张时间轴图、
-                        删掉 report、破坏 envelope、删掉 ref_2)
+                        删掉 report、破坏 envelope、删掉 ref_2、
+                        删掉定量主图且不说明原因（M16）)
 arm b: flipped 12/12   (11 个变异：写出 report/citations、写出图表、改口说「已生成报告」、
                         改掉不可用 esid 名、改掉有效 esid 名、删掉「未返回记录」表述、
                         删掉「不足以构成」表述、删掉请用户核对的表述、给死 esid 编造结论、
@@ -116,5 +133,5 @@ GATE: PASS
 基线（未变异）两份清单都必须全 PASS——否则说明清单本身写错了。
 
 **两份独立样本的基线**：R8（`20260916-104943-v2-poll`）与 R9（`20260916-112352-p8-kill`，同一场景 A、
-客户端被 `kill -9` 后 `--resume` 补齐）都用 `scenario=a` 跑到 **30/30 PASS**。两个不同 run 同一场景都给满分，
+客户端被 `kill -9` 后 `--resume` 补齐）都用 `scenario=a` 跑到 **31/31 PASS**。两个不同 run 同一场景都给满分，
 说明清单没有绑定单次运行的措辞（同时也说明它测不出“两轮之间的微小质量差”——那是后来场景 C/D 与人工抽检的事）。

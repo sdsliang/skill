@@ -197,11 +197,11 @@ facts a run must state (30 + 12 `fail`-level items, one `warn`-level each), and 
 
 ```bash
 python3 evals/fact-check/check.py --run ~/.local/state/toolsmith-runs/<ts>-<tag> --scenario a
-# SCORE scenario=a facts 30/30 warn 1/1 -> PASS          (exit 0 pass / 3 fail / 4 unusable input)
+# SCORE scenario=a facts 31/31 warn 1/1 -> PASS          (exit 0 pass / 3 fail / 4 unusable input)
 python3 evals/fact-check/mutations.py                    # negative control: proves every item can go FAIL
 ```
 
 Checklists are written from the recorded tool responses *before* any product is inspected, so a report can never certify itself;
-`mutations.py` mutates a real run directory (15 mutations for A, 11 for B) and requires each one to exit `3` and flip its expected item.
+`mutations.py` mutates a real run directory (16 mutations for A, 11 for B) and requires each one to exit `3` and flip its expected item.
 See `evals/fact-check/README.md` for the item kinds and the known gaps (the deployed-vs-online `iframe_template` equality is only
 checked by the online `run`, and v1 SSE run directories are reconstructed from `debug-history.json`).

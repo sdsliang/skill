@@ -167,6 +167,11 @@ def M15(d, r, c, v):  # cross-attribution inside a ref_2-only table row
                    "| 试验 B（优于依洛尤单抗）{{ref_2}} |")
 
 
+def M16(d, r, c, v):  # drop the quantitative chart and say nothing about charts
+    os.unlink(os.path.join(v, "endpoint-bar-1.json"))
+    return 1
+
+
 MUTS_A = [
     ("M01 minus139", M01, "A-C4-primary-A"),
     ("M02 signflip", M02, "A-N2-no-sign-flip"),
@@ -183,6 +188,7 @@ MUTS_A = [
     ("M13 chart-envelope", M13, "A-S8-chart-envelope"),
     ("M14 cite-drop-ref", M14, "A-S3-cite-keys"),
     ("M15 cross-attribution", M15, "A-ATTR-misattribution"),
+    ("M16 drop-chart-silent", M16, "A-S2b-chart-or-reason"),
 ]
 
 # --------------------------------------------------------------- arm B mutations

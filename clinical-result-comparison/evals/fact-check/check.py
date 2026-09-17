@@ -22,6 +22,14 @@ answer     assistant text parts of messages.json  (the chat reply shown to the u
 transcript transcript.md (whole run, incl. tool calls)
 any        report + answer
 
+Optional artefacts
+------------------
+The quantitative main chart is **optional** per `chart-templates.md:91`: a legal run may
+emit `visualizations/evidence-timeline.json` only, or no chart at all.  Items that inspect
+one specific chart therefore carry `"optional_when_absent": true` (they police the chart
+*when it exists* instead of demanding it), and the no-chart branch is policed separately
+by `op=chart_or_reason` — so "emit nothing and explain nothing" cannot pass for free.
+
 Anchors
 -------
 `{{ref_n}}` markers partition the report into blocks (one markdown line / table row each).
@@ -31,6 +39,7 @@ Anchors
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import glob
 import json
 import os
@@ -292,6 +301,10 @@ def op_citations_distinct(sv: dict, spec: dict) -> tuple:
 def op_chart_envelope(sv: dict, spec: dict) -> tuple:
     ch = sv["charts"].get(spec["file"])
     if not isinstance(ch, dict):
+        if spec.get("optional_when_absent"):
+            return True, (f"{spec['file']} absent — allowed (quantitative main chart is "
+                          f"optional per chart-templates.md:91); the reason is asserted by "
+                          f"A-S2b-chart-or-reason")
         return False, f"{spec['file']} missing"
     bad = []
     exp = spec["expect"]
@@ -322,10 +335,70 @@ def op_chart_envelope(sv: dict, spec: dict) -> tuple:
 def op_chart_values(sv: dict, spec: dict) -> tuple:
     ch = sv["charts"].get(spec["file"])
     if not isinstance(ch, dict):
+        if spec.get("optional_when_absent"):
+            return True, (f"{spec['file']} absent — allowed (see A-S2b-chart-or-reason)")
         return False, f"{spec['file']} missing"
     got = sorted(round(float(r["value"]), 3) for r in (ch.get("option") or {}).get("data") or [])
     want = sorted(round(float(v), 3) for v in spec["values"])
     return (got == want, f"got={got} want={want}")
+
+
+def _chart_names(sv: dict, pattern: str) -> list:
+    """Chart files (basenames) matching `pattern`, which may be bare (`endpoint-bar-*.json`)
+    or already scoped (`visualizations/*.json`).  All charts live under artifacts/visualizations."""
+    art = sv["artifacts_dir"] or ""
+    pat = pattern if "/" in pattern else os.path.join("visualizations", pattern)
+    return sorted(os.path.basename(p) for p in glob.glob(os.path.join(art, pat)))
+
+
+def op_chart_set_allowed(sv: dict, spec: dict) -> tuple:
+    """Every emitted chart must be a legal file name; forbidden kinds must not appear;
+    the number of quantitative charts must not exceed the rule's cap.
+
+    Deliberately NOT an exact expected set: the quantitative main chart is optional
+    (chart-templates.md:91), so "no chart at all" is legal here and is policed by
+    A-S2b-chart-or-reason instead.
+    """
+    got = _chart_names(sv, spec.get("pattern", "visualizations/*.json"))
+    bad = []
+    for name in got:
+        if not any(fnmatch.fnmatch(name, g) for g in spec["allowed"]):
+            bad.append(f"illegal chart file {name!r} (allowed: {spec['allowed']})")
+    for name in spec.get("forbidden", []):
+        if name in got:
+            bad.append(f"forbidden chart {name!r} present ({spec.get('forbidden_why', 'rule')})")
+    quants = [n for n in got if any(fnmatch.fnmatch(n, g) for g in spec.get("quant_globs", []))]
+    cap = spec.get("max_quant", 1)
+    if len(quants) > cap:
+        bad.append(f"{len(quants)} quantitative charts {quants} > cap {cap}")
+    return (not bad, "; ".join(bad) if bad else f"charts={got} quants={quants} (cap {cap}) OK")
+
+
+def op_chart_or_reason(sv: dict, spec: dict) -> tuple:
+    """If no quantitative chart was emitted, the report must SAY SO and give a reason.
+
+    This is the counterpart to the optional chart: without it, "emit nothing and
+    explain nothing" would pass for free.  The explicit no-chart statement is
+    *required* (a cross-trial report mentions `跨试验` / `时点不同` all the time, so a
+    supporting-reasons-only check leaks), and at least one substantive reason must
+    accompany it.
+    """
+    quants = []
+    for g in spec["quant_globs"]:
+        quants += _chart_names(sv, g)
+    if quants:
+        return True, f"quantitative chart present: {sorted(quants)}"
+    text = surface_text(sv, spec.get("surface", "report"))
+    if not text:
+        return False, "no quantitative chart AND no report text to state the reason"
+    req = [g for g in spec["required_groups"] if re.search(g, text)]
+    sup = [g for g in spec["supporting_groups"] if re.search(g, text)]
+    need_sup = spec.get("min_supporting", 1)
+    ok = len(req) == len(spec["required_groups"]) and len(sup) >= need_sup
+    return (ok,
+            f"no quantitative chart; explicit no-chart statement {len(req)}/"
+            f"{len(spec['required_groups'])}; supporting reason groups {len(sup)}/"
+            f"{len(spec['supporting_groups'])} (need {need_sup}): {sup}")
 
 
 SHAPE_OPS = {
@@ -338,6 +411,8 @@ SHAPE_OPS = {
     "citations_distinct": op_citations_distinct,
     "chart_envelope": op_chart_envelope,
     "chart_values": op_chart_values,
+    "chart_set_allowed": op_chart_set_allowed,
+    "chart_or_reason": op_chart_or_reason,
 }
 NO_CTX_OPS = {k: v for k, v in SHAPE_OPS.items()
                if k not in ("citations_matches_record",)}
