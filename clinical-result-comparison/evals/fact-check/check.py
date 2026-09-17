@@ -449,17 +449,17 @@ def op_original_check_names_class(sv: dict, spec: dict) -> tuple:
     body itself.  So the line has to name a retrieval route (PMID / DOI / registration id /
     registry API) *and* classify the records (esid source class or an explicit reason class).
     """
-    route = spec.get("route_regex") or r"PMID|DOI|doi|注册号|登记号|NCT|api|API"
+    route = spec.get("route_regex") or (r"PMID|DOI|doi|注册号|登记号|NCT|api|API|PMC\d|PMC|全文|库内正文|库内即原文|未取")
     cls = spec.get("class_regex") or (
         r"src\s*=\s*\d|来源\s*类|来源[:：]\s*\d|新闻稿|通稿|会议|登记平台|SEC|补录|库内正文|库内即原文"
-        r"|未复核|不可复核|抓取受限|无登记号|该来源不公开")
+        r"|未复核|不可复核|抓取受限|无登记号|该来源不公开|无 \`?pmcid\`?|非 OA")
     lines = [ln for ln in (sv["report"] or "").splitlines() if "原文核对" in ln]
     if not lines:
         return True, "no 原文核对 line (A-P1 owns that failure; not reported twice)"
     line = lines[0]
     miss = []
     if not re.search(route, line):
-        miss.append("route(PMID/DOI/登记号/registry API)")
+        miss.append("route(PMID/DOI/登记号/registry API/PMC 全文/库内正文即原文)")
     if not re.search(cls, line):
         miss.append("source class or reason class")
     if miss:
@@ -467,11 +467,51 @@ def op_original_check_names_class(sv: dict, spec: dict) -> tuple:
     return True, f"原文核对 line names route and source class: {line[:110]!r}"
 
 
+def op_fulltext_fetch_is_named(sv: dict, spec: dict) -> tuple:
+    """A full text that was actually retrieved must be declared in the coverage line.
+
+    `A-P4` can still be satisfied by a line that names only the *abstract* route, so a run
+    could pull 99 KB of PMC full text into `sources/` and never tell the reader that the
+    check went beyond the abstract — or, worse, claim a full-text check it did not do. This
+    op looks at what is archived under `sources/` and requires the `原文核对：` line to carry
+    the matching token: `PMC<digits>` (or the word 全文) when a full-text body was archived.
+    Nothing archived ⇒ not triggered, passes with a note (a run that legitimately fetched
+    no full text must not be punished).
+    """
+    art = sv.get("artifacts_dir") or ""
+    srcs = [p for p in sorted(glob.glob(os.path.join(art, "sources", "**", "*"), recursive=True))
+            if os.path.isfile(p) and os.path.getsize(p) < 20_000_000]
+    ft = []
+    for p in srcs:
+        name = os.path.basename(p).lower()
+        if "fulltext" in name or "full-text" in name or re.search(r"pmc\d", name):
+            ft.append(p); continue
+        try:
+            with open(p, "r", encoding="utf-8", errors="ignore") as fh:
+                head = fh.read(4000)
+        except OSError:
+            continue
+        if re.search(r"<article|<sec\b|<body\b", head):
+            ft.append(p)
+    if not ft:
+        return True, "no full-text body archived under sources/ (check not triggered)"
+    lines = [ln for ln in (sv["report"] or "").splitlines() if "原文核对" in ln]
+    blob = "\n".join(lines) if lines else ""
+    if not blob:
+        return True, "full text archived but no 原文核对 line (A-P1 owns that failure)"
+    if re.search(r"PMC\s*\d|全文", blob):
+        return True, f"full text archived ({len(ft)} file(s)) and declared"
+    return False, (f"{len(ft)} full-text file(s) archived under sources/ but the 原文核对 line "
+                   f"names neither PMC<id> nor 全文 — the reader cannot tell a full-text check "
+                   f"from an abstract-only check")
+
+
 SHAPE_OPS = {
     "artifact_present": op_artifact_present,
     "artifact_absent": op_artifact_absent,
     "no_verbatim_copy": op_no_verbatim_copy,
     "original_check_names_class": op_original_check_names_class,
+    "fulltext_fetch_is_named": op_fulltext_fetch_is_named,
     "glob_count": op_glob_count,
     "citations_keys_exact": op_citations_keys_exact,
     "citations_entry_key_set": op_citations_entry_key_set,

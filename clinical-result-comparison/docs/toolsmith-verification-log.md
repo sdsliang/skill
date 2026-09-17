@@ -355,6 +355,69 @@ Recommended `selected_fields` 收尾一句；② `SKILL.md` 输入契约段加�
 
 **下一步**：发布授权 → `publish`（原地更新 prompt v1.6 + skill 1.0.7）→ 同输入重跑 → 新记录（预期 17/17 PASS，并把事实分与调用数与本次基线对比）。
 
+### W5 — 2026-09-17，抓取预算收窄为「只有当库内没有原文时才抓」+ `src=1` 例外（PMC 全文）
+
+**用户定调（2026-09-17）**：① 认可「默认优先库内 `abstract_text`，其余内容再努力」；② `src` 其实还有**其他类型**，
+不要只对已知几类特化，一般规则是「**先 `abstract_text`，再为剩下的努力**」；③ **PubMed（`src=1`）即使有
+`abstract_text`，也要尝试取 PMC 全文。**
+
+**先证伪旧结论。** 先前把单条 `500/502` 读成「Europe PMC `fullTextXML` 不可用」（W2-d），据此把「原文」定成
+摘要级。重新测：
+
+| 探针 | 结果 |
+|---|---|
+| 本地（`/tmp/pmc_probe.py`，12 条 `src=1`） | 有 PMCID **4/12**；`{PMCID}/fullTextXML` **http=200**，63–100 KB JATS |
+| 平台侧 `run --web`（`20260917-204927-webprobe-pmc`，7 URL） | R7 **4/5 成功**（PMC11270764 99,433 / PMC8449961 87,164 / PMC12265996 63,413 / PMC11736335 99,094 字符，均含 Results 分节与数值）；`PMC6933872` → `500` |
+| 同 run 的 R6 | `EXT_ID:39054491` → `"pmcid": "PMC11270764"`；`EXT_ID:42477684` → `"inPMC": "N"`（无 pmcid） |
+| 覆盖度（100 条 `src=1`） | 有 PMCID **56/100 = 56%**，且这些 100% `isOpenAccess=Y`/`inEPMC=Y` |
+
+⇒ `500` 是**记录级**（该文未进 PMC/OA），不是路由失效；**结论更正并写进规则**。
+
+**再证「库内 `abstract_text` 是否就是原文」**（`/tmp/verbatim_check.py`、`/tmp/vc2.py`，字符集归一后比较）：
+
+| 类 | 样本 | 结果 |
+|---|---|---|
+| `src=1` PubMed vs Europe PMC | 4 条 | alnum 归一 **1.000 / 0.992 / 1.000 / 1.000**（残差只是分节标题大小写 `BACKGROUND:` vs `Background`） |
+| `src=37` 会议 vs OpenAlex | 3 条 | 0.976 / 0.991（SITC 那条 alnum 0.45 已解释：库内尾部含 markdown 加粗与网页残留 `Back to top`，扣掉后 60 字符块命中 **50/56**，库内 ⊇ 原文） |
+| `src=2` 登记结果 vs CT.gov v2 | 2 条 | 小数逐位命中 **102/102** 与 **72/72**（库内容量≈46 K vs API 65 K） |
+| `src=49` 通稿 | 已知 | 线报日期首行 `(GLOBE NEWSWIRE) --` / `/PRNewswire/` 逐字在库内 |
+
+⇒ 库内 `abstract_text` **不是「另一份加工产物」**；真正被加工的是 `study_results`/`summary` 这类结构化抽取。
+所以「有 `abstract_text` 就不必抓」在多数类**成立**。
+
+**其他来源类实测**（回答用户第 ② 点，不特化）：切片 4,106 行的 esid 中段分布 =
+`37` 2281 / `1` 1478 / `49` 156 / uuid 遗留 84 / numeric 遗留 68 / `120` 21 / `187` 8 / `2` 7 / `245` 2 / `398` 1；
+抽测未列出形态：uuid 遗留行（`ad0c754e…`）库内 = **PRNewswire 通稿原文** 8,542 字符；numeric 遗留行（`31628`）库内 =
+**ESMO 2021 会议摘要原文** 14,111 字符（带 DOI）；`src=245` 库内空、无 `doi`/`pm_id`/link ⇒ 不可复核。
+
+**改后的规则（写进仓库的版本）**
+
+- 默认：**先读库内正文并据此核对报告，不花额度**；只有库内空/疑似截断，或该类有已知更全路由时才抓。
+- **`src=1` 例外**：即使摘要已在手，也走 **R6**（Europe PMC search → `pmcid`）→ **R7**（`{PMCID}/fullTextXML`）；
+  无 `pmcid` 或 `inPMC=N` 记原因类「无 PMCID / 非 OA」，**不计作抓取失败**。
+- 预算：**每条 ≤1 次、`src=1` 允许 2 次（R6→R7 同一条链）**，整批上限 **40** 次 `web_fetch`。
+- 覆盖行（`原文核对：`）：非抓取路径也算点名（`库内正文即原文摘要（src=1，未取 PMC 全文）`）；
+  `src=1` 组必须写明 PMC 结果（`PMC11270764` / 无 PMCID / 非 OA）；归档了全文就**必须**出现 `PMC<号>` 或「全文」。
+- 未列出类沿用同一原理：库内正文 → 路由键 → 自身 link 一次 → 记原因类。
+
+| 改动文件 | 内容 |
+|---|---|
+| `skill/.../references/input-contract.md` | 新增「先读 `abstract_text`」实测段；来源类表加 `245`/uuid/numeric 行与「不抓」列；路由表加 **R6/R7**；封锁清单段更正 fullTextXML 误判；预算段改 1/2/40；覆盖行要求补 PMC 结果与非抓取路径示例 |
+| `skill/.../SKILL.md` | Evidence boundary 段落写入「库内正文即原文」实测与 `src=1` PMC 例外 |
+| `system-prompts/...-v0.15.md` | 步骤 3、`原文核对` 可见性条、Evidence boundary 段、链接白名单条（1→2 次 PMC 链 + 40 次上限） |
+| `templates/*.md`（4 个） | `原文核对：` 槽位改成「默认库内即原文 + `src=1` 必写 PMC 结果」并加原因类「无 PMCID / 非 OA」 |
+| `evals/fact-check/check.py` | `A-P4` 路由正则放宽（`PMC\d`/全文/库内正文）；**新增 `op_fulltext_fetch_is_named`** |
+| `evals/fact-check/scenario-a.facts.json` | 新增 **`A-P5-fulltext-fetch-is-declared`** ⇒ 37 条（36 fail + 1 warn） |
+| `evals/fact-check/mutations.py` | 新增 **M21**（归档 PMC 全文但覆盖行只写摘要路径）；基线补行改成「库内正文即摘要原文 / 无 PMCID」且回避 `PMC<号>`、全文 |
+| `docs/evidence/source-link-accessibility-2026-09-17.json` | 新增 `pmc_fulltext_route`（路由 + 平台 7 URL 明细 + 56% 覆盖）、`library_text_is_the_original`（12 条逐条比对）、`slice_src_distribution`；`verdicts` 加更正条；`routes` 加 R6/R7 |
+
+**离线闸门（本轮终态）**：`py_compile` → `PYC_OK`；`mutations.py` → **`arm a: flipped 36/36`**、
+`arm b: flipped 12/12`、**`GATE: PASS`**；`check.py --run …r12-fanout-dedup --scenario a` →
+`SCORE scenario=a facts 32/36 warn 1/1 -> FAIL`（`A-P1`/`A-P4`/`A-P5` 在未发布的旧产物上按预期 FAIL 或缺行）。
+
+**相对 W3/W4 的关系**：W3 立「原文第一优先」，W4 把路由按来源类分化；**W5 收窄抓取触发条件**（从「每条 ≤1 次」
+收到「只有库内没有原文时才抓」）并给 `src=1` 唯一例外。前两轮的禁止项与封锁清单**未被推翻**，只是不再是默认动作。
+
 ### W2 — 2026-09-17，`run --web` 的 **egress 探针**：路线 C（抓原文）可行性实测 → 变成技能规则
 
 背景：A2 追问「字段是不是 agent 自己选」「想让它优先读 `abstract_text`（预存全文）、再访问 `full_article_link` 取全文，怎么约束」。
@@ -385,7 +448,7 @@ run `20260917-200934-webprobe-coverage`：**10/11 FAIL**，只有题录类成功
 
 | URL 类 | 结果 |
 |---|---|
-| `…/europepmc/webservices/rest/PMC6933872/fullTextXML` | ❌ `Server error '500 '`（两次尝试均失败）→ **全文 XML 路不通** |
+| `…/europepmc/webservices/rest/PMC6933872/fullTextXML` | ❌ `Server error '500 '`（两次尝试均失败）→ 当时的结论「全文 XML 路不通」**后被证明是记录级误判**（该 PMC 未进 PMC/OA），见 `### W5` |
 | `https://api.openalex.org/works/doi:10.1093/eurheartj/ehy862` | ✅ `has_abstract=true`、`has_endpoint_numbers=true`，49,195 字符 |
 | `https://api.openalex.org/works/doi:10.1200/JCO.2023.41.4_suppl.345`（会议摘要） | ✅ `has_abstract=true`、`has_endpoint_numbers=true`，31,147 字符 → **会议摘要有 DOI 也能拿到原文摘要** |
 | `https://clinicaltrials.gov/api/v2/studies/NCT05419908` | ✅ 真原文（`protocolSection`）+ **结果数值**，322,763 字符 |
@@ -397,8 +460,8 @@ run `20260917-200934-webprobe-coverage`：**10/11 FAIL**，只有题录类成功
 - 有 `doi` 81.8%；有 `pm_id` 36.2%；链接/标题里有 NCT 0.6%；**至少有一条白名单路由的 83.0%**。
 - 按 esid 中段（源 id）：`src=1`（论文）100% 可路由，`src=37` 82.2%，`src=49`（公司/微信）**0%**，裸 id 26.3%，`src=120` 4.8%。
 
-**最终结论（写进规则的版本）**：人读页面统一不可用，**API 端点可用且适用面 ~83%**；`fullTextXML` 不可用 ⇒
-「原文」实际是**原文摘要级 / 登记平台级**，据此写的规则见 `### W3`。
+**最终结论（W2 当时的版本）**：人读页面统一不可用，**API 端点可用且适用面 ~83%**；`fullTextXML` 曾被判不可用 ⇒
+「原文」当时被当作**摘要级 / 登记平台级**。**该最后一点已在 `### W5` 更正：PMC 全文路由实测可用，且 `src=1` 已改为「即使有摘要也要尝试取全文」。**
 
 ### W3 — 2026-09-17，规则改为「原文第一优先级」（仓库已改，**等发布授权 + 真 run 才是 R13**）
 
@@ -526,7 +589,7 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O18 | **`run` 无法进入「联网状态」**：`post_turn` 把请求级 `enable_web` 硬编码为 `False`，而平台只在「项目能力 + 请求级开关」双开时才注入 `web_search`/`web_fetch`（`capabilities/web.py:140`）—— 项目能力本项目已开（`/api/agent/info?…&enable_web=true` 注入 `## Web Tools`），所以唯一的闸门正好是本机验证器碰不到的那一个；后果是无法用 `run` 验证「联网时 skill 行为」（路线 C 的前置条件），之前只能靠临时探针脚本 `/tmp/webtest.py` | `run` 新增全局 `--web`（写进请求体 `enable_web`，`run.json` 与 `verification.md` 均留痕；`--resume` 打印无效提示），CLI docstring 与 plan doc 同步 | **已落地**（2026-09-17，用户先点头后才改；改前备份 `.v4.bak`，92,618 B）→ 证据见 **W1** |
 | O19 | **打分器在「一句多 marker」上假阳性**：R12 报告里 `… NCT02729025 的机制终点未达显著{{ref_1}}，其结论不能外推至 OCEAN(a)-DOSE{{ref_2}}` 被判 `A-ATTR-misattribution` FAIL（`'NCT02729025' in unit citing ['ref_2']`）——而 sys 明文允许「一句确实混用多来源时可挂多个 marker」（`system-prompts/…-v0.15.md:203`）。判分器只看「token 的 owner 是否等于该 unit 的**唯一** ref」，与契约文本冲突 | `eval_attribution`：unit 的 refs 集合 **>1** 时，只在 token 的 owner **不在**该集合里才 FAIL（多来源共处合法）；单 ref 的 unit 维持严格归因 | **待用户点头**（2026-09-17 R12 暴露；未改，避免“刚跑完就放宽清单”的嫌疑） |
 | O20 | **清单条目 `A-T1-title-names-both` 期望过窄**：R12 的 H1 是主题式标题「Lp(a) 升高人群降 Lp(a) 治疗：跨试验对比报告」→ FAIL；但两个药名都在正文锚点里（`A-C1/C2` PASS）。该条的理由是「标题无引注、不受归因保护」，真正要防的是**两药混成一个**；而「H1 必须点名两个药」是从 R8 那份标题倒推的写法偏好（与 O17 同类基线污染） | 改为条件式：**标题若点名药物，则必须两个都点名且不混；纯主题式标题不算违规**（或降为 warn） | **待判**（2026-09-17 R12 暴露；证据仅 1 份产物，按「我方能改的先给证据再改」记待样本） |
-| O21 | **A2 追问的实现路径（分诊完成：政策已放开，规则已改仓库，等发布）**：① **`source_full_link` 字段不存在** —— 那是 v0.11 附件契约的名字（`source_url`/`source_full_text`），现行 params 工具里只有 `clinical_result.full_article_link`（描述「临床结果论文的URL」）；写错名字的后果是整次取数 `INVALID_INPUT`。② 原计划「优先 `abstract_text` → 再访问 `full_article_link`」与**旧** sys:50「citation metadata only」冲突，且对人类可读页面实测不可用（W2-a/W2-c：pubmed cookie 墙、CT.gov JS 骨架、5 个出版域 403）。③ 只有 **API 端点**可用（W2-b/d：CT.gov v2 真原文含结果数值、OpenAlex 按 DOI 拿到原文摘要含会议摘要、Europe PMC 按 pmid 拿摘要；`fullTextXML` 500），而 API 端点必须由 `pm_id`/`doi`/登记号**拼 URL**，与「URL 只逐字用、不得构造」冲突 ⇒ 必须开白名单模板。三个开关已定：**(a) 政策 = 放开**（用户 2026-09-17：字段值是加工的、可能出错，原文第一优先级）；**(b) 可追溯性承载 = 报告正文**（`citations.json` 保持严格 3 键、不加键，因此不破 `A-S4`）；**(c) 冲突/降级语义 = 原文为准 + 分歧必须双值写明 + 抓不到必须点名原因类**。 | 规则已写入仓库（清单见 `### W3`），开白名单模板 R2/R3/R4/R5；**并按来源类细化**（`### W4`：`1` PubMed / `2`/`187` CT.gov / `37` 会议 / `49` 新闻稿=库内即原文 / `120` 补录 / `398` SEC 不可复核），把「link 页一律禁抓」改成「16 主机封锁清单 + 每记录最多 1 次自身 link（仅无路由键或主机可用/未知）」 | **已定案 → 待发布授权 + 真 run（R13）**（2026-09-17；证据 W2、W3、W4 + 字段实测） |
+| O21 | **A2 追问的实现路径（分诊完成：政策已放开，规则已改仓库，等发布）**：① **`source_full_link` 字段不存在** —— 那是 v0.11 附件契约的名字（`source_url`/`source_full_text`），现行 params 工具里只有 `clinical_result.full_article_link`（描述「临床结果论文的URL」）；写错名字的后果是整次取数 `INVALID_INPUT`。② 原计划「优先 `abstract_text` → 再访问 `full_article_link`」与**旧** sys:50「citation metadata only」冲突，且对人类可读页面实测不可用（W2-a/W2-c：pubmed cookie 墙、CT.gov JS 骨架、5 个出版域 403）。③ 只有 **API 端点**可用（W2-b/d：CT.gov v2 真原文含结果数值、OpenAlex 按 DOI 拿到原文摘要含会议摘要、Europe PMC 按 pmid 拿摘要；`fullTextXML` 当时误判为 500/不可用，已在 `### W5` 更正为「记录级、路由可用」），而 API 端点必须由 `pm_id`/`doi`/登记号**拼 URL**，与「URL 只逐字用、不得构造」冲突 ⇒ 必须开白名单模板。三个开关已定：**(a) 政策 = 放开**（用户 2026-09-17：字段值是加工的、可能出错，原文第一优先级）；**(b) 可追溯性承载 = 报告正文**（`citations.json` 保持严格 3 键、不加键，因此不破 `A-S4`）；**(c) 冲突/降级语义 = 原文为准 + 分歧必须双值写明 + 抓不到必须点名原因类**。 | 规则已写入仓库（清单见 `### W3`），开白名单模板 R2/R3/R4/R5；**并按来源类细化**（`### W4`：`1` PubMed / `2`/`187` CT.gov / `37` 会议 / `49` 新闻稿=库内即原文 / `120` 补录 / `398` SEC 不可复核），把「link 页一律禁抓」改成「16 主机封锁清单 + 每记录最多 1 次自身 link（仅无路由键或主机可用/未知）」。**第四轮（`### W5`）再收窄**：默认改为「**先读库内 `abstract_text`——实测多数类它就是原文**（期刊摘要 alnum 1.000/0.992、会议摘要 0.991/0.976、登记结果小数 102/102、通稿带线报日期），所以默认不抓」；唯一例外 **`src=1` PubMed 即使有摘要也走 `R6`→`R7` 取 PMC 全文**（100 条抽样 56% 有 PMCID；平台侧 R7 4/5 成功、63–99 K JATS 全文；无 PMCID/非 OA 记原因类不计失败）；预算改「每条 ≤1、`src=1` ≤2、整批 ≤40」；覆盖行必须写 PMC 结果，归档全文就必须点名 `PMC<号>`/「全文」（新断言 `A-P5` + M21 证明有牙） | **已定案 → 待发布授权 + 真 run（R13）**（2026-09-17；证据 W2、W3、W4、W5 + 字段实测） |
 
 ## 4. 平台侧（转开发）
 

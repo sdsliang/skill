@@ -134,20 +134,31 @@ first priority for material clinical numbers, and the pulled fields are the seco
 the narrative and to fill what the original does not cover, never as the sole unreviewed basis for a
 headline number.
 
-**Know the source class before spending a fetch.** The middle segment of `clinical_result.extra_esid`
-(`YY_<src>_…`) is the **ingestion source id**, and it decides what "the original" even is — including
-whether the pulled `abstract_text` *already is* the original. Read it first, then choose the route, then
-fetch.
+**Read `abstract_text` first — it usually *is* the original.** Measured 2026-09-17 by alphanumeric-normalized
+comparison (9 records, 4 classes): the pulled `abstract_text` is the original text itself, not a rewritten
+extract — journal abstracts match Europe PMC **1.000 / 1.000 / 1.000 / 0.992** (the residue is section-header
+case, `BACKGROUND:` vs `Background`), conference abstracts match OpenAlex **0.991 / 0.999** (the one low score
+is markdown/web residue wrapped around the same words — 50 of 56 chunks of the original sit verbatim inside
+the pulled text), press releases carry the wire dateline verbatim, and for registry records the pulled
+structured-results JSON contains **102/102 and 72/72** of the decimal values the ClinicalTrials.gov API
+returns. So the default is: **read the pulled body and check the report against it, with no external call.**
+Fetch only where the pulled body is missing or looks truncated, or where a class has a documented fuller
+route (PubMed → PMC full text below).
 
-| src | Source class | What the pulled `abstract_text` is | External original | Preferred route |
+**Know the source class.** The middle segment of `clinical_result.extra_esid` (`YY_<src>_…`) is the
+**ingestion source id**; it decides what "the original" is and which route is worth spending. Classes not
+listed here follow the same principle — pulled body first, then a route key, then the record's own link
+once.
+
+| src | Source class | What the pulled `abstract_text` is | Fuller external original | What to do |
 |---|---|---|---|---|
-| `1` | PubMed / journal paper | the journal abstract itself (median ~1.8 K chars) | reachable | **R4** (`pm_id`), else **R3** (`doi`) |
-| `2`, `187` | ClinicalTrials.gov registration results | the registry's **structured-results JSON**, not prose (src `187` measured 100% empty) | reachable | **R2** (registration id) |
-| `37` | conference abstract (ASCO/ESMO/ASH/…) | the conference abstract text (median ~2.8 K chars) | reachable when a DOI exists (82.2% of rows carry one) | **R3** (`doi`) |
-| `49` | news / company press release | **the press-release body, copied verbatim** at ingestion (it carries the wire dateline, e.g. `(GLOBE NEWSWIRE) --`, `/PRNewswire/`, `(BUSINESS WIRE)--`) | mostly not reachable | **no external fetch needed** — see below |
-| `120` | manual entry (人工补录) | measured 100% empty | mixed: company-owned pages reachable, wire hosts not | **R3** if a `doi` exists, else the record's own link (once) |
-| `398` | SEC filing | no sample with content | EDGAR HTML and `browse-edgar` answer `403`; `data.sec.gov/…json` carries filing **indexes only**, no numbers | not re-checkable → record the reason class |
-| *(no middle segment)* | legacy batch, mostly ClinicalTrials.gov results | the registry's structured-results JSON (38.1% empty) | partly reachable | **R2** / **R3** |
+| `1` | PubMed / journal paper | the journal abstract, verbatim (median ~1.8 K chars) | **yes — PMC full text**; 56 of 100 sampled rows carry a `pmcid` | **always try R6 → R7**, even when `abstract_text` is non-empty |
+| `2`, `187` | ClinicalTrials.gov registration results | the registry's **structured-results JSON**, not prose (src `187` measured 100% empty) | the same data, possibly a newer posted version | no fetch; R2 only to confirm the registry version/date |
+| `37` | conference abstract (ASCO/ESMO/ASH/…) | the conference abstract, verbatim (median ~2.8 K chars) | none reachable (meeting sites answer 403 / JS-shell) | no fetch; R3 only if the pulled body is empty or truncated |
+| `49`, uuid-only legacy rows | news / company press release | **the release body, copied verbatim** at ingestion (wire dateline `(GLOBE NEWSWIRE) --`, `/PRNewswire/`, `(BUSINESS WIRE)--` present) | wire pages mostly unreachable | no fetch — check the report against the pulled body |
+| numeric-only legacy rows | mostly ClinicalTrials.gov / conference material | registry JSON or abstract text | as the matching class above | same as `2` / `37` |
+| `120` | manual entry (人工补录) | measured 100% empty | company-owned pages reachable, wire hosts not | **R3** if a `doi` exists, else the record's own link (once) |
+| `245`, `398`, other unlisted ids | unclassified ingestion source / SEC filing | measured empty or no usable sample | unknown / EDGAR answers `403`, `data.sec.gov/…json` carries filing **indexes only** | no fetch → record the reason class |
 
 **Retrieval routes.** Only these templates, and only with values that already came back in the pulled
 record. Never invent a URL, never change a host or path, never add, drop or reorder query parameters,
@@ -159,6 +170,13 @@ never use a search engine, and never re-try the same content through a different
 | R3 | `https://api.openalex.org/works/doi:{doi}` | `clinical_result.doi` | publisher-deposited **abstract** + OA locations; works for journal papers *and* conference abstracts | works: 5/6, 25–49 KB (one returned `abstract_inverted_index: null` — reachable but no abstract) |
 | R4 | `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{pm_id}&resultType=core&format=json` | `clinical_result.pm_id` | abstract (`abstractText`), `pmcid`, `isOpenAccess` | works: 1/1 |
 | R5 | `https://api.crossref.org/works/{doi}` | `clinical_result.doi` | **bibliographic metadata only** — never clinical evidence | works: 1/1 |
+| R6 | `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{pm_id}&resultType=core&format=json` | `clinical_result.pm_id` | abstract + **`pmcid`** + `inPMC` — the key that unlocks full text | works: 1/1 |
+| R7 | `https://www.ebi.ac.uk/europepmc/webservices/rest/{PMCID}/fullTextXML` | the `pmcid` that **R6** just returned | the **PMC full text** as JATS XML: sections, tables, endpoint numbers | works: 4/5, 63–99 KB — the single failure is per record (`500` when that paper is not in PMC/OA), not a dead route |
+
+**PubMed full text is the documented exception to "the pulled body is enough".** For `src=1`, even when
+`abstract_text` is present, spend the two calls: **R6** to read `pmcid` / `inPMC`, then **R7** for the full
+text — but only when R6 actually returned a `pmcid`. A paper with no `pmcid`, or `inPMC: N`, is reported as
+its own reason class (无 PMCID / 非 OA) instead of being counted as a failed fetch.
 
 **The record's own `full_article_link` page is a last resort, and accessibility is per host** (measured
 2026-09-17 over 30 representative links: 22 fail, 3 succeed, plus the route calls). Do not treat "the link
@@ -169,8 +187,9 @@ page" as one thing:
   `www.sec.gov`, `cslide.ctimeetingtech.com`, `www.abstractsonline.com`, `ascopubs.org`,
   `meetings.asco.org`, `www.sciencedirect.com`, `jitc.bmj.com`, `www.annalsofoncology.org`,
   `pubmed.ncbi.nlm.nih.gov` (cookie wall), `www.chinadrugtrials.org.cn`, `library.ehaweb.org`,
-  `sabcs.org`, `oncologypro.esmo.org`. Record the reason class instead. Europe PMC
-  `{pmcid}/fullTextXML` is unusable as well (500/502) — use R4.
+  `sabcs.org`, `oncologypro.esmo.org`. Record the reason class instead. (This is the *human-facing* host
+  class; the API endpoints above, including R7's full text, are unaffected. An earlier note that PMC
+  `fullTextXML` was "unusable (500/502)" was wrong — that `500` is per record, see R7.)
 - **These work**: `prnewswire.com` ✅ (a 55.8 K-char release carrying the trial numbers) and **company-owned
   news pages** ✅ (`bioinvent.com`, `hanchorbio.com` both returned the release body with analysis numbers).
 - So fetch the record's own link **at most once per record**, and only when (i) the record carries no usable
@@ -181,9 +200,10 @@ page" as one thing:
   "checking it against the original" means checking that the report stays faithful to that body — fetching
   the wire page adds nothing and usually fails.
 
-**Budget and failure handling.** At most **one** fetch per record, **one** pass over the selection, and at
-most **20** fetches in a run (if the selection is larger, fetch for the records that carry the key
-conclusions first and state the coverage). A failed fetch is dropped — no retry, no alternative route,
+**Budget and failure handling.** **One** pass over the selection; at most **one** fetch per record, except
+`src=1`, which may spend **two** (R6 → R7 — a single retrieval chain, still one record, one pass).
+Whole-run cap: **40** `web_fetch` calls. If the selection is larger than the budget, fetch for the records
+that carry the key conclusions first and state the coverage. A failed fetch is dropped — no retry, no alternative route,
 no substitute URL — and its reason class is recorded. `web_fetch` writes each response under
 `/workspace/tool_results/web_fetch/…`: copy what you need to `/workspace/sources/<esid>.<route>.json|md`
 (that path is archived with the run, so the evidence stays auditable) and **digest it with a script** —
@@ -200,8 +220,13 @@ paragraph (a mechanical ≥60-character verbatim guard runs in `evals/fact-check
 **Say it in the evidence scope.** The evidence-scope block (unified template's `证据范围`, cross-trial /
 mixed templates' `比较口径`) carries one line beginning `原文核对：` that gives how many retrieved records
 were re-checked against the original, **naming the route or the source class per group**, and which records
-could not be, grouped by reason class (抓取受限 / 无登记号或 DOI / 该来源不公开) — e.g. `原文核对：2/3 条已复核
-（src=1 走 PMID、src=37 走 DOI）；1 条未复核（src=49 新闻稿：库内正文即通稿原文，未做外部抓取）`. A run that
+could not be, grouped by reason class (抓取受限 / 无登记号或 DOI / 该来源不公开 / 无 PMCID / 非 OA). A
+non-fetch path is still a named path: `库内正文即原文摘要（src=1，未取 PMC 全文）` is a valid entry. For every
+`src=1` group the line must also state the PMC outcome — full text taken (`PMC11270764`), no `pmcid`, or not
+OA — and if a full text was archived under `/workspace/sources/`, both the PMID/PMCID and the word 全文 must
+appear, so a reader can tell "checked against the actual full text" from "checked against the abstract".
+Example: `原文核对：3/3 条已复核（src=1 取 PMC 全文 PMC11270764、PMC8449961；1 条无 PMCID 仅核库内摘要；
+src=37 库内正文即会议摘要原文）；1 条未复核（src=49 新闻稿：库内正文即通稿原文，未做外部抓取）`. A run that
 re-checked none must say so, and a run that fetched nothing because a source class is structurally
 unreachable must name that class instead of reporting a generic failure.
 

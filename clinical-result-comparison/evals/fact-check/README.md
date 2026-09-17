@@ -12,7 +12,7 @@
 | --- | --- |
 | `records/scenario-a.records.json` | 场景 A 的 ground truth：`POST /api/tools/debug` 对 2 个有效 esid 的真实返回（5 行 / `actual_result_count=5`） |
 | `records/scenario-b.records.json` | 场景 B：1 个有效 + 1 个不可用 esid 的真实返回（3 行 / `actual=3`） |
-| `scenario-a.facts.json` | 场景 A 清单：**35 条 fail 级 + 1 条 warn 级**（O17 新增 `A-S2b-chart-or-reason` 后为 32 条中 31 条 fail；2026-09-17 原文优先规则新增 `A-P1/P2/P3` 后为 35 条中 34 条 fail；同日按源类细化后新增 `A-P4`，共 36 条中 35 条 fail） |
+| `scenario-a.facts.json` | 场景 A 清单：**36 条 fail 级 + 1 条 warn 级**（O17 新增 `A-S2b-chart-or-reason` 后为 32 条中 31 条 fail；2026-09-17 原文优先规则新增 `A-P1/P2/P3` 后为 35 条中 34 条 fail；同日按源类细化新增 `A-P4` → 36 条中 35 条 fail；再按「库内 `abstract_text` 即原文 + `src=1` 努力取 PMC 全文」新增 `A-P5` → 37 条中 36 条 fail） |
 | `scenario-b.facts.json` | 场景 B 清单：**12 条 fail 级 + 1 条 warn 级** |
 | `check.py` | 离线打分器（纯标准库，不联网、不调用平台） |
 | `mutations.py` | 负向对照 harness：证明每条清单项都能翻 FAIL |
@@ -38,7 +38,7 @@ python3 mutations.py
 打分输出最后一行是标量：
 
 ```
-SCORE scenario=a facts 35/35 warn 1/1 -> PASS
+SCORE scenario=a facts 36/36 warn 1/1 -> PASS
 ```
 
 ## 清单条目的写法
@@ -79,12 +79,15 @@ R11 同输入不画图并写明理由反而被判 FAIL。改成三条相互配�
 对应的负向对照是 `M16 drop-chart-silent`（删 `endpoint-bar-1.json`，报告不动）→ 必须翻 `A-S2b`；
 正向对照是「删图 + 写明原因」→ 仍 31/31 PASS（手动验过，见台账 O17）。
 
-### 原文优先的三条（2026-09-17，任务「原文第一优先级」）
+### 原文优先的四条 + 全文声明一条（2026-09-17，任务「原文第一优先级」）
 
 规则本身在 `skill/.../references/input-contract.md` *Evidence source priority*：esid 字段值是**加工抽取**，
-原文是第一优先级，冲突时原文为准且必须双值写明。**取哪条路由（以及是否值得抓）取决于 esid 中段的来源类**
-（`1` PubMed→PMID、`2`/`187` 登记平台→注册号 API、`37` 会议→DOI、`49` 新闻稿=库内正文即通稿原文、
-`120` 补录、`398` SEC 不可复核），所以清单还要查覆盖行有没有把「路径 + 来源类」写出来。清单只查
+原文是第一优先级，冲突时原文为准且必须双值写明。**第一步先读库内 `abstract_text`——实测它多数类就是原文**
+（期刊摘要对 Europe PMC 归一后 0.992–1.000、会议摘要对 OpenAlex 0.991–0.999、通稿带线报日期首发行、
+注册平台数值与 CT.gov API 逐位一致），所以默认不抓；**唯一例外是 `src=1` PubMed：即使已有摘要，也要走
+`R6`（Europe PMC search 读 `pmcid`）→ `R7`（`{PMCID}/fullTextXML` 取 PMC 全文）**（抽查 100 条 56% 有 PMID；
+平台侧实测 R7 4/5 成功、63–99 KB JATS 全文，单条 500 属记录级「未进 PMC/OA」）。其余源类
+（`1` PubMed、`2`/`187` 登记平台、`37` 会议、`49` 新闻稿、`120` 补录、`245`/`398`/未列出）依旧按类决定是否值得花额度。清单只查
 **可机械判定**后果，不查「有没有努力去抓」（那是成本层的事）：
 
 | 条目 | kind / op | 语义 |
@@ -92,7 +95,8 @@ R11 同输入不画图并写明理由反而被判 FAIL。改成三条相互配�
 | `A-P1-original-check-line` | `present` | 证据范围段必须有一行 `原文核对：` + 数字（复核条数/总条数） |
 | `A-P2-divergence-shows-both` | `sent_if`（`if_regex=库内记录`） | 一旦出现「原文 vs 库内」的分歧表述，该句必须同时含 `原文`、`库内记录`、`{{ref_n}}`——防的是一侧静默降级。本轮没有分歧时自动 PASS |
 | `A-P3-no-long-verbatim` | `shape` / `no_verbatim_copy` | `/workspace/sources/**` 里归档的抓取原文，不得有 ≥60 连续字符（去空白后）原样出现在报告正文；没抓任何原文时不触发 |
-| `A-P4-original-check-names-route-and-class` | `shape` / `original_check_names_class` | `原文核对：` 那一行必须同时点名**取回路径**（PMID/DOI/登记号/registry API）与**来源类或原因类**（`src=`、新闻稿/会议/登记平台/SEC/补录/库内正文，或抓取受限/无登记号或 DOI/该来源不公开）。防的是「原文核对：2/2 条已复核」这种空壳能一路通过；报告里没有该行时由 `A-P1` 负责，本条不重复计分 |
+| `A-P4-original-check-names-route-and-class` | `shape` / `original_check_names_class` | `原文核对：` 那一行必须同时点名**取回路径**（PMID/DOI/登记号/registry API/**PMC 全文**/**库内正文即原文**）与**来源类或原因类**（`src=`、新闻稿/会议/登记平台/SEC/补录/库内正文，或抓取受限/无登记号或 DOI/该来源不公开/**无 PMCID**/**非 OA**）。防的是「原文核对：2/2 条已复核」这种空壳能一路通过；报告里没有该行时由 `A-P1` 负责，本条不重复计分 |
+| `A-P5-fulltext-fetch-is-declared` | `shape` / `fulltext_fetch_is_named` | 只要 `/workspace/sources/` 下归档了**全文正文**（文件名含 `pmc<数字>`/`fulltext`，或前 4 K 字符含 `<article>`/`<sec>`/`<body>`），覆盖行就必须出现 `PMC<号>` 或「全文」。防的是「实际取了 PMC 全文，覆盖行只写 PMID」这种无法从交付物分辨的含糊（反过来声称取了全文而没取，也同样过不了）；未归档全文时不触发 |
 
 `no_verbatim_copy` 把源文与报告都过一遍 `norm()`（Unicode 减号、全角百分号、NBSP 归一）再比，
 否则「报告里 `−70.5%`、源文里 `-70.5%`」会让抄袭检查静默失效（M18 第一次跑就是这么漏的）。
@@ -137,14 +141,15 @@ R11 同输入不画图并写明理由反而被判 FAIL。改成三条相互配�
 当前结果：
 
 ```
-arm a: flipped 35/35   (20 个变异：改主终点数值、翻转安慰剂符号、抹掉试验登记号、篡改时点、
+arm a: flipped 36/36   (21 个变异：改主终点数值、翻转安慰剂符号、抹掉试验登记号、篡改时点、
                         把 ref_1 指向不存在的引用、把标题里的药名写成另一个、
                         在表格单元格里把 B 的药名写成 A 的（M15）、把 2 条写成 5 条、
                         改 citation 标题、让两个 ref 指向同一条记录、改图表数值、多出一张时间轴图、
                         删掉 report、破坏 envelope、删掉 ref_2、
                         删掉定量主图且不说明原因（M16）、删掉原文核对行（M17）、
                         把抓取原文整段抄进正文（M18）、只写库内值不写原文值（M19）、
-                        把覆盖行改成不点路径/来源类的空壳（M20）)
+                        把覆盖行改成不点路径/来源类的空壳（M20）、
+                        归档了 PMC 全文但覆盖行只说摘要路径（M21）)
 arm b: flipped 12/12   (11 个变异：写出 report/citations、写出图表、改口说「已生成报告」、
                         改掉不可用 esid 名、改掉有效 esid 名、删掉「未返回记录」表述、
                         删掉「不足以构成」表述、删掉请用户核对的表述、给死 esid 编造结论、
@@ -154,9 +159,9 @@ GATE: PASS
 
 **基线为什么是一份「补过一行」的副本**：arm A 的基线 run（R8，2026-09-16）早于原文优先规则，
 产物里不可能有 `原文核对：` 行，直接判会让基线不干净。`mutations.py` 因此在**临时副本**上补且只补这一行
-（`seed_original_check`，刻意避开 `库内记录` 以免误触发 `A-P2`，并同时点名路径与来源类以正面满足 `A-P4`），
-内容条目仍逐字来自真实 run；四条新项各自有专属变异（M17–M20）证明能翻 FAIL。等发布后有一次带该行的真 run，
-把 `MUT_RUN_A` 指过去即可去掉这一步。
+（`seed_original_check`，刻意避开 `库内记录` 以免误触发 `A-P2`，并同时点名路径与来源类以正面满足 `A-P4`，
+且刻意不写 `PMC<号>`/「全文」以便 M21 从基线翻 `A-P5`），内容条目仍逐字来自真实 run；五条新项各自有专属变异
+（M17–M21）证明能翻 FAIL。等发布后有一次带该行的真 run，把 `MUT_RUN_A` 指过去即可去掉这一步。
 
 基线（未变异）两份清单都必须全 PASS——否则说明清单本身写错了。
 

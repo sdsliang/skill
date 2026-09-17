@@ -61,7 +61,8 @@ def fresh(name, src, files, with_artifacts):
 # The seed line deliberately avoids the literal `库内记录`, which would arm the conditional
 # divergence item A-P2 on a line that is not a divergence, and it names both a route and a
 # source class so that A-P4 (route + class) is satisfied by the seed rather than by accident.
-SEED_ORIGINAL_CHECK = ("> **原文核对：** 1/2 条已按原文复核（src=1 走 PMID）；"
+# It deliberately contains neither `PMC<digits>` nor 全文, so M21 can flip A-P5 off the baseline.
+SEED_ORIGINAL_CHECK = ("> **原文核对：** 1/2 条已按原文复核（src=1 库内正文即摘要原文，未取更多：无 PMCID）；"
                        "1 条未能复核（src=49 新闻稿：库内正文即通稿原文，未做外部抓取）。\n")
 
 
@@ -216,6 +217,17 @@ def M20(d, r, c, v):  # keep a hollow coverage line: right shape, no route/class
     return sub(r, r"原文核对：[^\n]*\n", "> **原文核对：** 2/2 条已复核。\n")
 
 
+def M21(d, r, c, v):  # archive a PMC full text but declare only the abstract route
+    src_dir = os.path.join(d, "artifacts", "sources")
+    os.makedirs(src_dir, exist_ok=True)
+    open(os.path.join(src_dir, "ref_1.pmc-fulltext.xml"), "w", encoding="utf-8").write(
+        '<?xml version="1.0"?>\n<article><front><article-title>t</article-title></front>'
+        '<body><sec><title>Results</title><p>ORR was 35.0% (95% CI, 23.1-48.4).</p></sec></body></article>\n')
+    assert "全文" not in open(r, encoding="utf-8").read(), (
+        "baseline already mentions 全文 — M21 could pass by accident")
+    return 1
+
+
 MUTS_A = [
     ("M01 minus139", M01, "A-C4-primary-A"),
     ("M02 signflip", M02, "A-N2-no-sign-flip"),
@@ -237,6 +249,7 @@ MUTS_A = [
     ("M18 verbatim-copy", M18, "A-P3-no-long-verbatim"),
     ("M19 one-sided-divergence", M19, "A-P2-divergence-shows-both"),
     ("M20 hollow-original-check", M20, "A-P4-original-check-names-route-and-class"),
+    ("M21 fulltext-archived-but-undeclared", M21, "A-P5-fulltext-fetch-is-declared"),
 ]
 
 # --------------------------------------------------------------- arm B mutations
