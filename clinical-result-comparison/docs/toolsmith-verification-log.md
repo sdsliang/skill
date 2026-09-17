@@ -52,6 +52,13 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 > **2026-09-16 起分级**：只有 **FAIL** 影响退出码（exit 3）；**WARN** 只打印。另外新增两项：
 > ① **终态必须 `completed`**（轮询判定的结局，`inconclusive`/`timeout` 另走 exit 5）；
 > ② **每个 tool-call 要么有 tool-return、要么被工具 schema 拒**（后者单列成“schema-rejected”，是 WARN/INFO 而非 tool error）。
+>
+> **2026-09-17 起再加一项（产出物路径 16 → 17 项 / 拒绝路径 10 → 11 项）**：
+> ① **turn 的结局必须是 `succeeded`** —— 平台 `30306cb` 把 `/info.status` 的终态值整个删掉（只剩
+> `preparing|running|cancelling|idle`），结局只能从**持久化消息**里读（见 §4 的 2026-09-17 段）。
+> 没有这条断言时，一个 **失败/被取消**的 turn 会被旧 runner 报成 `completed`（`/info` 说“没活的 run”，
+> 不带任何结局）→ 只有 `completed` 一条断言的话，**空手而归的失败轮次能全过**。
+> ② 空产物护栏：一个 turn 若**没有任何持久化消息**，分类结果是 `unknown`（不是 `succeeded`）→ 断言 FAIL。
 
 部署字节类（这是"我们改的东西真的上线了吗"的硬证据）：
 
@@ -262,6 +269,8 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 | **T7** R8 记录重建 | `run --resume b1302c80-… --tag r8-recollect` | 补齐被 O15 抹掉的记录 | `…/20260916-115047-resume-r8-recollect/` → 16/16 PASS |
 
 同时把「断言总数 16（不是 17）」在三个文档里改正（先前的 17 是数错；`check_run` 在产出物路径上就是 16 个 `add()`）。
+> **后续（2026-09-17）**：`30306cb` 之后新增「turn outcome 必须是 `succeeded`」一项 → 产出物路径 **17 项**、
+> 拒绝路径 **11 项**（见本节上方 §1 的 2026-09-17 注）。R10 当时记的 16/16 是当时的事实，不改。
 
 ### F1 — 事实清单基线 + 负向对照（2026-09-16，**离线，零新 run**）
 
@@ -274,6 +283,36 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 - **第二份独立样本**：R9（同一场景 A 的新产物）→ `SCORE scenario=a facts 30/30 -> PASS`（修正 O12 的句切后）。
 - **意义**：质量层从「布尔门」升级为 `facts_ok/facts_total` 标量（`docs/autoresearch-iteration-plan.md` §9），
   后续 keep/discard 先看事实分不掉。
+
+### R11 — 2026-09-17，**platform `30306cb` 契约变更后的 runner 适配**（只读复测 N1–N4 + 1 次真跑 + 拒绝路径复核）
+
+背景：上游 `30306cb remove unknown status, add idle` 把 `/info.status` 收敛为 `Literal["preparing","running","cancelling","idle"]`
+并删掉 `cleanup_stale(300)`（run 一结束即 `_discard_run`），**P7 从根修掉**，同时**任何结局都不再出现在 `/info` 里**。
+改的对象只有 runner（本机 CLI；备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v3.bak`，88,308 B），
+**未动 TS 平台、未动 `skill/` 与 `system-prompts/`**，所以没有触发 `publish`。
+
+改动：① `wait_for_run()` 学新词表（`preparing/running/cancelling` 继续轮询、`idle` 转 durable 分支、老值 `completed/failed/cancelled` 兼容）；
+② `idle` 但**没见过活状态**且 `/timing` 行无 `completed_at` + `/thread-turns/validate` 说 `exist!=true` → `not_started`（exit 4，不再空转）；
+③ **见过活状态却突然消失**且无 `completed_at`（进程重启）→ 立刻 `inconclusive`（exit 5），不再空转到 `--timeout`（连续两次 `idle` 才算，避免误读）；
+④ 新增 `classify_outcome()`：读**已抓下来的** `messages.json`（零新增网络请求），`error_type` 非空 → failed、`state == "interrupted"` 或 error_type 含 Cancel → cancelled、无消息 → `unknown`、否则 succeeded；
+⑤ 终态/结局写进 `run.json`、`verification.md` 与 stdout；⑥ 新增第 17 项断言。
+
+| 测例 | 命令 | 期望 | 实测 |
+|---|---|---|---|
+| **N1** 已完成 thread（R8） | `run --resume b1302c80-… --tag idle-r8` | 新词表下仍判 `completed` + durable 耗时 | **exit 0，0.2 s**，`status=idle` → `timing.completed_at`，**17/17 PASS**，`202.0s server` |
+| **N2** 已完成 thread（R9） | `run --resume 1d8f2104-… --tag idle-r9` | 同上 | **exit 0**，**17/17 PASS**，`171.1s server` |
+| **N3** 真 thread + 不存在的 turn | `run --resume b1302c80-… --turn-id 0000…0000 --grace 5` | `not_started` exit 4 且 probe 真被调用 | **exit 4**（2 次轮询 / 5.6 s），`run.json` `uid_probe: true` |
+| **N4** 不存在的 thread | `run --resume 1111…5555 --turn-id 0000…0000 --grace 5` | `not_started` exit 4 | **exit 4**（`/info` 非 2xx 也走同一分支） |
+| **R11** 真跑（新契约下的活路径） | `run --prompt-file ~/.local/state/toolsmith-runs/ask.txt --tag r11-idle-vocab` | 看到活词表 → idle → durable 收尾 | thread `ea0b6213-…` / turn `ee2ff701-…`；轮询 10 次：`running`×9 → `idle`；**exit 0，17/17 PASS**；`177.6s server / 188.9s polled`；`last_live=running durable=timing.completed_at`，`outcome=succeeded` |
+| **拒绝路径复核** | `run --resume 73b427f3-… --expect refusal` | 拒绝契约仍全过 | **exit 0，11/11 PASS**（含新增的 outcome 项） |
+| **零网络回归闸门** | `python3 evals/runner-gate/verify-run-chain.py` | 5 个 v1 run 逐条等于 SSE 链 | **`GATE_RC=0` / GATE: PASS**（2 个 v2 + 2 个 resume 按预期 SKIP） |
+| **离线单测 `classify_outcome()`** | 直接吃 `messages.json`（零网络） | 成功/失败/取消/超时/空/跨 turn 六种 | R8 与 R9 真记录 → `succeeded`；合成 `stream_error` → `failed`；`interrupted`+`RunCancelled` → `cancelled`；`TimeoutError` → `failed`；空列表 → `unknown`；错误只出现在别的 turn → `succeeded` |
+
+- **顺带证实**：`run` 在 R11 上是「客户端 0.1 s 断流、run 与客户端断开无关」的又一次复现（与 R8 的 T2 同结论）。
+- **事实分（离线清单，非本 runner 职责）**：R11 产物打 `scenario=a` → **`facts 25/30`（FAIL）**，
+  与 R8 同输入的 `30/30` 不同。逐条分诊见下方 §3 的 O16 —— 5 个 FAIL 里 **3 个是清单自身的期望与规则文本冲突**、
+  1 个是模式过窄（字面 `2 条` vs 产物写的 `2 项`）、1 个（A-C6：未报安慰剂组 +3.6%）**像真的内容缺口**。
+  ⇒ **不改清单迁就产物**，三项挂「待用户判定」。
 
 ## 3. 我们自己能改的
 
@@ -294,6 +333,8 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 | O13 | **变异 harness 把字符串当正则**：`sub()` 用 `re.subn`，而 `| 试验 B {{ref_2}} |` 里的 `|` 是**空分支交替** → 一次替换 **7923 处**，把整份报告改烂，却仍报“变异成功”（翻转 19 条 item，掩盖了真正的定位） | 新增 `sub_lit()`（`re.escape` + `count=1`）用于含 `|`/`{}` 的字面量；`sub()` 加**替换次数上限**断言 `n <= max(200, len(text)//200)` —— 这类“匹配到到处都是”的静默灾难直接 fail-loud | **已落地**（2026-09-16；判据：M15 从“翻转 19 条”收敛为“只翻 `A-ATTR`”，GATE PASS） |
 | O14 | **`run` 的 `not_started` 判定实际从未生效**：取的是 `me(c)['id']`，而 `/api/auth/me` 返回的是 **`user_id`** ⇒ `uid` 恒为 `None` ⇒ `/thread-turns/validate` **根本没被调用** ⇒ `in_db` 永为 `None` ⇒ **任何“状态未知”的 turn 都被无条件报成 `not_started`（exit 4，“the POST never landed”）**。只读实测：真实已完成 turn + 正确 `user_id` → `{"exist": true}`；缺参 → **HTTP 422**；传字串 `None` → `{"exist": false}`（假阴性） | 改 `me(c).get("user_id") or .get("id")`；并在 validate 说 `exist=true` 时先看 `/timing` 的 `completed_at`：有值就直接按已结束收尾（走完断言），不捛到 `--timeout`（默认 2400 s）才报 `timeout` | **已落地**（2026-09-16，用户先点头后才改；改前备份 `toolsmith-publish.v2.bak`，85,409 B）→ R10 |
 | O15 | **`--resume` 不带 `--out` 就地重采集，把原 run 目录的 `verification.md` / `run.json` 覆盖掉**（`Checks` 段被抹空）—— R8 那份记录就是这么丢的；而原 run 目录常是那次验证**唯一**的证据副本 | `--resume` 默认写**新目录**（`<stamp>-resume-<tag>`，并打印原目录位置）；只有显式 `--out` 才写指定目录（已存在记录时先 warning）；同时给 resume 目录补写自描述的 `run.json` + `prompt.txt` | **已落地**（2026-09-16）→ R10 的 T6/T7 |
+| O16 | **runner 的图表类断言在「0 图」时全部平凡通过**（R11 产物只有 `report.md` + `citations.json`，3 条图表断言照旧 PASS：「0 tags / 0 files」「no chart」）——断言本身没错（有没有图取决于输入，不能无条件要求），但意味着**“该出的图没出”这件事 runner 看不见**；R11 的事实分里 3 个 FAIL 正是这一类 | **定案：不改 runner**。`run` 是**通用**入口，不知道场景，无条件要求出图会把合法场景判死；这类“该不该出一张定量主图”的判定交给**离线事实清单**（`evals/fact-check/` 的 `A-S2/S8/S9`），清单知道场景、也知道规则文本 | **定案保留**（2026-09-17；由 R11 暴露，非缺陷） |
+| O17（待判） | **清单条目 `A-S2-chart-set` 疑似「基线污染」**：它期望场景 A 必出 `endpoint-bar-1.json`，但 `references/chart-templates.md:91` 的规则是「定量主图**可选**，需 ≥2 条入选结果给出**同一终点、同一口径（可明确对齐的时点）**的纯数值」，而场景 A 的两条记录是**第 16 周 vs 第 36 周**——R11 据此明确写了「不具备绘图条件——本报告不输出图表」并给了理由；R8（同一输入）反而画了图。**清单的期望更像从 R8 那一份产物倒推出来的，而不是从规则文本推出来的**（正是「清单条目必须先于产物撰写」防的那个坑） | 建议（**等用户判定**）：把 `A-S2/S8/S9` 改成「**若**出定量图，必须是 `endpoint-bar/line-<n>.json` 且 envelope/数值自洽；**若**不出图，正文必须写明不出图的原因（数值不可比 / 只有一个数值 / 人群不同）」——这样既守住规则、也保住两个**真实的** failure 模式（画错类型 / 静默漏图）。`A-C12` 的 pattern `2 ?条` 建议放宽为 `2 ?(条\|项)`（R11 写「2 项来源记录」，语义等同）。**改动会重算标量，所以不自行改** | **待用户判定**（2026-09-17） |
 
 ## 4. 平台侧（转开发）
 
@@ -314,7 +355,30 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 - **P6** `POST /api/tools/debug` 的必填字段与 schema 不一致：源码里 `ToolDebugRequest.mcp_server_id: str | None = None`（OpenAPI 呈现为 `anyOf[string,null]`、不在 `required`），但 `origin == "MCP"` 时不传就被 `model_validator` 拦下，422 原文
   `"mcp_server_id is required for MCP tool debug"` —— 调用方只能从报错反推。
 
-**P7 / P8 在 2026-09-16 已由 `docs/toolsmith-run-v2-polling-plan.md` §8.1.1 的三轮实验定案，两项都降为「不报」**：
+### 2026-09-17 对照 TS @ `30306cb`（**P7/P8 的定性要改：P7 已由平台从根修掉**）
+
+上游 `30306cb remove unknown status, add idle`（含前三个提交 `8d10fa0` / `af4f601` / `34215c3`）逐条核对：
+
+- **P7 = 已修（从根，不是绕过）**：`30306cb` 里 `cleanup_stale(300)` 被删、`run_manager.complete()` / cancel / force-kill
+  三处立即 `_discard_run()`、`active_run_count` 简化为 `len(self._runs)`。**「活窗口内 `/timing` 大幅高估」不再存在**
+  （run 一结束就换成持久化行）。prod 只读实测（2026-09-17）：R8/R9 两个 thread 的 `/timing` 已是冻结行
+  （`latency_ms` 202049 / 171141，与记录逐位相等）。
+- **但同一提交把「结局」从 API 里删掉了**：`/info.status` 现在是 `Literal["preparing","running","cancelling","idle"]`
+  （`?status=idle`→200、`?status=未知`→400、**`?status=completed`→422**），而 `/info` 没有任何 outcome 字段、
+  `thread_messages` 也没有 outcome 列。源码里的顺序不变量是「**先**持久化（含 `finish_timing_now(completed_at=…)`）、
+  **后** `run_manager.complete()`」⇒ `idle` 必然意味着 DB 行已有 `completed_at`（终态可判），但
+  **成功/失败/取消只能从持久化消息里读**：`chat_service._normalize_error_text_part()` 把
+  `providerMetadata.pydantic_ai.provider_details.error_type` 归一化成 text part 顶层的 `error_type`
+  （`stream_error` / `TimeoutError` / 异常类名），取消则写 `state="interrupted"`（`_persist_partial_run(error_type=…)`）。
+- **仍不报（属文档/体验缺口，按规矩内部存档）**：`chat-api.mdx` 没文档化这个 `error_type` 归一化字段，
+  平台侧**唯一官方 durable 结局通道是项目级 webhook** `run.completed` + `event_status`（webhook 是项目配置，
+  外部接入方**无法按请求携带**）⇒ 外部客户端要么读源码、要么轮询 messages 自己分类。我们已按此实现（R11）。
+- **P8（原：错过窗口就无法区分成功/失败）→ 定性修正**：窗口问题由平台从根解决；剩下的是**结局不在 API 里**，
+  由 runner 侧 `classify_outcome()` 补齐。
+- 与我们的依赖无关：`8d10fa0 add province and city params` 只改 `params_drug_deal_tool_v2.py` / `params_pipeline_tool_v2.py`，
+  **`params_clinical_result_tool.py` 未动**；`deps` 复跑 **RC=0**。
+
+**（2026-09-16 的旧结论，保留作历史）P7 / P8 当时按 §8.1.1 的三轮实验定为「不报」**：
 
 - **P8（原：终态不落库、错过 300–360 s 窗口就无法区分成功/失败）→ 撤销上报**。实测：窗口过期后 `/info.status` 确实回落
   `未知`，但 `/timing` 的**持久化行**（`completed_at` / `completed=true` / 冻结的 `latency_ms`）与

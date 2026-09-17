@@ -161,8 +161,15 @@ After touching `skill/` or `system-prompts/`, run one real chat turn through the
 `verification.md` plus a human-readable `transcript.md` into `~/.local/state/toolsmith-runs/<ts>-<tag>/`. A `run.json` with the
 `thread_id`/`turn_id` is written *before* the POST, so `--resume <THREAD_ID>` can pick a run back up; a repeated POST returns `409` and is
 treated as idempotent (never re-POST after a timeout). `--resume` writes a **new** run directory by default (the original record stays frozen; pass
-`--out` only if you really mean to overwrite). When `/info` no longer carries the state (its terminal value lives 300-360 s) the run is closed
-from the **durable** `/timing` row instead: `completed_at` present ⇒ `completed` (annotated `recovered from timing.completed_at`).
+`--out` only if you really mean to overwrite). Since the platform's `30306cb` (2026-09-16) `/info.status` is a hard
+`preparing | running | cancelling | idle` vocabulary — the terminal values were **removed from the API** and a finished run leaves memory
+immediately (P7 fixed at the root) — so `idle` means "no live run here", never a verdict: the run is closed from the **durable**
+`/timing` row instead, `completed_at` present ⇒ `completed` (annotated with where it came from); a run that goes live and then vanishes
+with no DB row (process restart) is called `inconclusive` at once instead of burning the whole `--timeout`. Outcome is likewise no longer
+in `/info` (there is no outcome field anywhere, and no outcome column in `thread_messages`), so `classify_outcome()` reads the persisted
+messages the platform already normalises — a part with a top-level `error_type` (`stream_error` / `TimeoutError` / exception name) means
+`failed`, `state="interrupted"` or a `Cancel`-ish error type means `cancelled`, no messages at all means `unknown` — and a turn the
+platform silently failed is no longer reported as `completed` (assertion #17).
 Exit codes: `0` all assertions passed, `3` ran but something failed,
 `4` the turn never landed in the database (`not_started`), `5` no live terminal state *and* no `completed_at` in the DB row (`inconclusive`), or polling timed out.
 The tool chain and every error are rebuilt from persisted messages, not from SSE; a call rejected by a tool schema is reported separately
@@ -195,6 +202,6 @@ python3 evals/fact-check/mutations.py                    # negative control: pro
 ```
 
 Checklists are written from the recorded tool responses *before* any product is inspected, so a report can never certify itself;
-`mutations.py` mutates a real run directory (14 mutations for A, 11 for B) and requires each one to exit `3` and flip its expected item.
+`mutations.py` mutates a real run directory (15 mutations for A, 11 for B) and requires each one to exit `3` and flip its expected item.
 See `evals/fact-check/README.md` for the item kinds and the known gaps (the deployed-vs-online `iframe_template` equality is only
 checked by the online `run`, and v1 SSE run directories are reconstructed from `debug-history.json`).

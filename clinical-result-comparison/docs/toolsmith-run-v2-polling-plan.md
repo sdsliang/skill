@@ -210,26 +210,34 @@ POST /api/chat  (body 带 thread_id/turn_id + query 保留以兼容 prod)
     其他 4xx/5xx → exit 4（预检失败，run 未启动）
 
 loop 每 15–30 s，墙钟上限 = --timeout（默认 2400 s）:
-  s = GET /api/threads/{tid}/info → status
-    running | cancelling              → 打印进度（status + steps + 已耗时），继续
-    completed                         → DONE(ok)
-    failed | cancelled                → DONE(bad)；再扫持久化消息取 error_type 写进 verification.md
-    "未知" → GET /api/threads/{tid}/timing
-        active_turn.turn_id == turn_id       → 预检/准备阶段，继续等
-        turns[turn_id] 存在且 completed      → 跑完了但结局已被清理 → INCONCLUSIVE
-        turn 记录不存在 → 若已过 grace(默认 120 s) 且从未见到 running → 从未启动 → exit 4
-                        → 否则（刚 POST 完）继续等
+  s = GET /api/threads/{tid}/info → status            # 2026-09-16 起只可能是这四个值
+    preparing | running | cancelling  → 活的：记住 last_live、打印进度、继续等
+    completed | failed | cancelled    → 老部署（30306cb 之前）的终态，兼容保留
+    idle（或 status 读不到，如 thread 不存在）
+        → 本进程没有活的 run，**但这不是结局**（结局已从 API 里删掉）：
+          GET /api/threads/{tid}/timing
+            turns[turn_id].completed_at 有值 → DONE(completed, durable)；这也是常规路径
+            turns[turn_id].completed=true 无时间戳 → INCONCLUSIVE（已知完成但无法证明）
+            都没有：连续两次 idle 才肯认；
+              见过活状态 → INCONCLUSIVE（进程重启/回收，再等也等不到）
+              从未活过 + 过了 grace → GET /api/thread-turns/validate
+                  exist != true → 从未启动 → exit 4；exist == true → 继续等
 
 DONE 之后：
   bundle = timing / usage / info / messages / debug-history / artifacts / artifacts/archive
-  断言（§5.5）→ 写 verification.md + transcript.md → exit
+  outcome = classify_outcome(messages, turn_id)         # error_type / state=interrupted
+  kind == completed 而 outcome 是 failed/cancelled → kind 改成对应值（不再报成功）
+  断言（§5.5）→ 写 run.json + verification.md + transcript.md → exit
 ```
 
 **不变量**
 - 超时/异常**绝不重新 POST**（会重复执行 + 烧 token）；只能 `--resume <thread_id>`。
-- 终态判据**只认 `/info.status`**；`/timing` 只用于"永久耗时 / 是否已落库 / 是否在准备阶段"。
-- 轮询间隔 ≤ 60 s（终态窗口下限 300 s）。
-- 客户端没有任何"必须保持的连接"。
+- 终态判据 = `/info.status` 离开活词表（`idle`）**加上** `/timing` 行的 `completed_at`；两者缺一不可——
+  `idle` 单独**不构成结局**，`/timing` 行的 `latency_ms` 也**绝不能**当作“还在跑”（P7）。
+- `active_turn` 不参与任何判定。
+- 结局（succeeded / failed / cancelled）**只从持久化消息读**（`/info` 没有 outcome，`thread_messages` 也没有 outcome 列）。
+- 轮询间隔 ≤ 60 s。
+- 客户端没有任何“必须保持的连接”。
 
 ---
 
@@ -508,10 +516,11 @@ EOF
 |---|---|
 | S0 | `status` 假警报根因 = 平台返回 snake_case `current_version_id`、工具读 camelCase `currentVersionId`（5 处）。新增 helper `fam_current_version_id(fam)`（读两种拼法），替换 5 个调用点。复测 `status` **EXIT=0**、`prompt deployed == local: True` |
 | 主通道 | `cmd_run` 不再消费 SSE：`POST /api/chat` 只读到 `data-turn-start`（≤ `TAP_MAX_SECONDS` 20 s）即断连，改为轮询 `GET /api/threads/{tid}/info` 的 `status` 判终态（间隔 ≤ `POLL_MAX_INTERVAL` 60 s，默认 20 s） |
-| 状态机 | `完成/失败/取消` → 终态；`未知` 时按顺序看：① `/timing` 行有 **`completed_at`** → **终态（`completed`，标注 `recovered from timing.completed_at`）**；② 行的 `completed=true`（无时间戳）→ `inconclusive`；③ 两者皆无且过了 `--grace` → `GET /api/thread-turns/validate`（DB 持久）→ `exist=true` 继续等、否则 `not_started`（exit 4）。**超时绝不重发 POST**，只允许 `--resume`（见 §12.2 / R10） |
+| 状态机 | 见 §4；**2026-09-17 按平台 `30306cb` 重建**：活词表 = `preparing/running/cancelling`，`idle` = 无活 run（不是结局）→ 看 `/timing` 行 `completed_at`（**durable，常规路径**）→ `completed`；行存在但无时间戳 → `inconclusive`；从没活过 + 过 grace + validate `exist!=true` → `not_started`（exit 4）。新增 `classify_outcome()` 从持久化消息定结局（`error_type` / `state=interrupted`），`completed` 但失败/取消的 turn **不再谎报成功**。**超时绝不重发 POST**，只允许 `--resume`（见 §12.2 / §12.3） |
+| 旧词表 | `completed/failed/cancelled/未知` 已从平台 API 删除（`?status=completed` → **422**）；runner 仍兼容这些值，但只对旧部署有意义 |
 | 证据源 | 调用链改由 `tool_chain_from_history()` 从 `/debug/history` 的持久化消息重建；`parse_stream()` **降级为 legacy 离线对账用的 oracle**，运行期不读 SSE |
 | 幂等 | `turn_id = uuid4()` **在 POST 之前**写进 `run.json`；body 同时带 `id`/`threadId`/`thread_id`/`turnId`/`turn_id`；重复 POST 收到 **409** 视为幂等提示而非失败 |
-| 新断言 | ① 终态必须 `completed`；② 每个 tool-call 要么有 tool-return 要么被 schema 拒（WARN 级，只有 FAIL 计入 exit 3）；③ `retry-prompt`（参数被工具 schema 拒绝）单独记账，不再混入 tool error | 
+| 新断言 | ① 终态必须 `completed`；② 每个 tool-call 要么有 tool-return 要么被 schema 拒（WARN 级，只有 FAIL 计入 exit 3）；③ `retry-prompt`（参数被工具 schema 拒绝）单独记账，不再混入 tool error；④ **2026-09-17 新增：turn outcome 必须 `succeeded`**（产出物路径 **17 项** / 拒绝路径 **11 项**） | 
 | 产物 | 每次运行落 `run.json`（thread/turn/repo/model/tag/prompt 长度，**POST 前**）、`prompt.txt`、`stream.tap`（有界 tap）、`info.json`/`timing.json`/`usage.json`、`debug-history.json`、`artifacts.zip` + 解包、`verification.md`（含轮询日志 + 分级断言）、**新增 `transcript.md`** |
 | CLI | 新增 `--resume THREAD_ID`、`--turn-id`、`--poll-interval`、`--grace`、`--no-tap`；`--timeout` 语义改为"停止轮询"（默认 2400 s） |
 | 退出码 | 0 全过 / 3 断言失败或工具报错 / **4 `not_started`（turn 从未进库）** / **5 `inconclusive`（活着时看不到终态、且 DB 行也没有 `completed_at`）或 `timeout`** |
@@ -611,3 +620,47 @@ v2 从持久化消息重建，天然看得到（`raw_ui_messages` 里同 id 的 
   零网络闸门 PASS；`--resume` 不带 `--out` 不动原目录（md5 未变）；
   R8 记录重建件 `~/.local/state/toolsmith-runs/20260916-115047-resume-r8-recollect/` → 16/16 PASS。
   **附带改正**：断言总数是 **16**（此前台账写 17 是数错）。
+
+### 12.3 R11：平台 `30306cb` 之后的状态机重建（2026-09-17，已执行）
+
+上游 `30306cb remove unknown status, add idle`（含 `34215c3` / `af4f601` / `8d10fa0`）对我们是**契约级变更**：
+
+- **P7 从根修掉**：`cleanup_stale(300)` 删除，`run_manager.complete()` / cancel / force-kill 三处立即 `_discard_run()`，
+  `active_run_count` 简化为 `len(self._runs)`，并新增 `RunManager.live_status(thread_id)`。
+  ⇒ 「活窗口内 `latency_ms` 现算递增且大幅高估」不存在了（run 一结束就换持久化行）。
+- **但 `ThreadStatusFilter` / `ThreadInfoResponse.status` 改成了 `Literal["preparing","running","cancelling","idle"]`** ⇒
+  `completed/failed/cancelled/未知` **从 API 删除**（prod 实测：`?status=idle`→200、`?status=未知`→400、
+  `?status=completed`→**422**），而 `/info` 里**没有任何 outcome 字段**、`thread_messages` 也没有 outcome 列。
+- **顺序不变量**（`chat_service.py`）：`pending_turn.finish_timing_now(completed_at=db_now())` 与持久化发生在
+  `run_manager.complete()`（line 2019）**之前** ⇒ **`idle` ⇒ DB 行必已有 `completed_at`** ⇒ 终态永远可判。
+- **结局的唯一外部通道**：`_normalize_error_text_part()`（`chat_service.py:2988-3022`）把
+  `providerMetadata.pydantic_ai.provider_details.error_type` 归一化成 text part 顶层的 `error_type`
+  （`stream_error` / `TimeoutError` / 异常类名），取消则 `state="interrupted"`
+  （`_persist_partial_run(error_type=type(reported_cancellation).__name__)`，line 1803）。
+  官方 durable 结局通道是**项目级 webhook** `run.completed` + `event_status` —— 外部接入方**无法按请求携带**。
+
+runner 因此改了三处（改前备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v3.bak`，88,308 B）：
+
+1. `wait_for_run()`：活词表 `preparing/running/cancelling` 继续轮询；`idle` → durable 分支
+   （`/timing` 行 `completed_at` → `completed` + `recovered=timing.completed_at`；行 `completed` 无时间戳 → `inconclusive`）；
+   老值 `completed/failed/cancelled` 仍兼容（旧部署）；**从没活过 + 过 grace + validate `exist!=true` → `not_started`**；
+   **见过活状态却消失且无 `completed_at`（进程重启）→ 立刻 `inconclusive`**（不再空转到 `--timeout`）；
+   `idle` 必须**连续两次**才肯认，避免把一次瞬时读数当真。
+2. 新增 `classify_outcome(bundle, turn_id)`：零新增网络请求（吃已抓下来的 `messages.json`）；
+   `error_type` 非空 → `failed`；`state=="interrupted"` 或 error_type 含 Cancel → `cancelled`；
+   **没有任何持久化消息 → `unknown`（不是 `succeeded`，空产物糊不过去）**；否则 `succeeded`。
+   `kind == completed` 而 outcome 是 failed/cancelled 时**把 kind 改掉**，不再谎报成功。
+3. 新增断言「turn outcome is succeeded」→ **产出物路径 16 → 17 项、拒绝路径 10 → 11 项**；
+   `verification.md` 的终态行改为“read from `timing.completed_at`（durable DB row…）”，并附 outcome 行。
+
+R11 实测（同一 2-esid 场景，新契约下的活路径）：thread `ea0b6213-…` / turn `ee2ff701-…`，
+轮询 10 次 `running`×9 → `idle`，**exit 0 / 17/17 PASS**，`177.6 s server / 188.9 s polled`，
+`last_live=running durable=timing.completed_at outcome=succeeded`；只读复测 N1–N4（R8/R9 两 thread 复采集 17/17、
+两个不存在 turn/thread 的 `not_started` exit 4）、拒绝路径 11/11、零网络闸门 `GATE_RC=0` 均过。
+
+**同时暴露一个清单侧问题（台账 O16/O17，未自行修改）**：R11 产物打场景 A 只有 **25/30**，
+5 个 FAIL 里 3 个是「没出定量主图」——而 `references/chart-templates.md:91` 的规则是**定量主图可选**、
+要求「同一终点、同一口径（**可明确对齐的时点**）」的纯数值，场景 A 的两条记录是**第 16 周 vs 第 36 周**，
+R11 明确写了「不具备绘图条件——本报告不输出图表」并给了理由（R8 同一输入反而画了图）。
+⇒ `A-S2/S8/S9` 的期望更像**从 R8 那一份产物倒推**出来的（正是「清单条目必须先于产物撰写」要防的坑），
+但改它会重算标量，**所以挂「待用户判定」**，不自行改。
