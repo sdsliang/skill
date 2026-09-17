@@ -36,7 +36,7 @@
 |---|---|
 | 仓库 / 子目录 / 分支 | `git@github.com:sdsliang/skill.git` / `clinical-result-comparison/` / `main` |
 | 本地 sys（部署态） | `system-prompts/multi-clinical-result-comparison-v0.15.md`（44516 B，sha `fa80094e9d41`） |
-| 本地 dist | `dist/multi-clinical-result-comparison-v0.15.zip`（19 entries，sha `de7c16b44910`） |
+| 本地 dist | `dist/multi-clinical-result-comparison-v0.15.zip`（19 entries，sha `7b1dd5ec5f45` / 77,711 B，2026-09-17 重打：加入原文优先规则） |
 | 线上 prompt | family `91febc286412479a8b6d569fa3b8025e`，current `1f7586c0…` = **v1.6** == 本地文件 |
 | 线上 skill | family `9fe0035bdd324b998436c6cb9c2de212`，current **v1.0.7**，`skill_id=ad75ec2c44334f389a0394895a47b765` |
 | 项目 | `a7cdda6508e0423c8b7afaaf3a68e50d`（`resources.prompt = 1f7586c0…`；skills=`[chart-visualization-json, multi-clinical-result-comparison]`） |
