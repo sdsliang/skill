@@ -161,7 +161,9 @@ After touching `skill/` or `system-prompts/`, run one real chat turn through the
 `verification.md` plus a human-readable `transcript.md` into `~/.local/state/toolsmith-runs/<ts>-<tag>/`. A `run.json` with the
 `thread_id`/`turn_id` is written *before* the POST, so `--resume <THREAD_ID>` can pick a run back up; a repeated POST returns `409` and is
 treated as idempotent (never re-POST after a timeout). `--resume` writes a **new** run directory by default (the original record stays frozen; pass
-`--out` only if you really mean to overwrite). Since the platform's `30306cb` (2026-09-16) `/info.status` is a hard
+`--out` only if you really mean to overwrite). `--web` sends `enable_web: true` in the turn body so a run can
+actually exercise the platform's Web tools (`web_search`/`web_fetch`): the platform gates them on *project capability AND the
+per-request flag*, and the flag was hard-coded `false` here (ledger O18), so no run could ever reach that path. Since the platform's `30306cb` (2026-09-16) `/info.status` is a hard
 `preparing | running | cancelling | idle` vocabulary — the terminal values were **removed from the API** and a finished run leaves memory
 immediately (P7 fixed at the root) — so `idle` means "no live run here", never a verdict: the run is closed from the **durable**
 `/timing` row instead, `completed_at` present ⇒ `completed` (annotated with where it came from); a run that goes live and then vanishes

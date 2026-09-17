@@ -523,6 +523,7 @@ EOF
 | 新断言 | ① 终态必须 `completed`；② 每个 tool-call 要么有 tool-return 要么被 schema 拒（WARN 级，只有 FAIL 计入 exit 3）；③ `retry-prompt`（参数被工具 schema 拒绝）单独记账，不再混入 tool error；④ **2026-09-17 新增：turn outcome 必须 `succeeded`**（产出物路径 **17 项** / 拒绝路径 **11 项**） | 
 | 产物 | 每次运行落 `run.json`（thread/turn/repo/model/tag/prompt 长度，**POST 前**）、`prompt.txt`、`stream.tap`（有界 tap）、`info.json`/`timing.json`/`usage.json`、`debug-history.json`、`artifacts.zip` + 解包、`verification.md`（含轮询日志 + 分级断言）、**新增 `transcript.md`** |
 | CLI | 新增 `--resume THREAD_ID`、`--turn-id`、`--poll-interval`、`--grace`、`--no-tap`；`--timeout` 语义改为"停止轮询"（默认 2400 s） |
+| Web 开关 | **2026-09-17 新增 `--web`（台账 O18 / W1）**：请求体 `enable_web` 由硬编码 `False` 变为开关。平台语义 = **项目能力 `capability_config.web` + 请求级 `enable_web`**（`capabilities/web.py:140` `should_activate_web_tool`），本项目项目级已开，所以唯一闸门就是请求级，而 `run` 以前无法翻开它。开：1 次 `web_fetch` 拿到 `example.com` 正文；关：0 次调用、模型明说"没有 web_fetch 工具" |
 | 退出码 | 0 全过 / 3 断言失败或工具报错 / **4 `not_started`（turn 从未进库）** / **5 `inconclusive`（活着时看不到终态、且 DB 行也没有 `completed_at`）或 `timeout`** |
 | 恢复 | 窗口过期后的 `--resume` **不再算 `inconclusive`**：`completed_at` 在就按已结束收尾、跑完全套断言 → **exit 0**（实测 0.2 s vs 旧行为空转到 2400 s）。另：`--resume` 默认写**新目录**，不再就地覆盖原 run 记录（台账 O15） |
 

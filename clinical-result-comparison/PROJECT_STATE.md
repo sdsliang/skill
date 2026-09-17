@@ -73,9 +73,10 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 
 - **能力存在性**：`GET /api/agent/info?project_id=a7cdda6…&enable_web=true` → 内置工具表含 `web_search` / `web_fetch`，
   instructions 多出 `## Web Tools` 段（62,244 → 62,898 chars）；`enable_web=false` 时该段消失。⇒ 本项目
-  `capability_config.web` 已开，**唯一闸门是请求级 `enable_web`**（我们 runner 的 `post_turn` 硬编码 `False`）。
+  `capability_config.web` 已开，**唯一闸门是请求级 `enable_web`**（我们 runner 的 `post_turn` 当时硬编码 `False` →
+  **已于 2026-09-17 补上 `run --web`**，台账 O18 / **W1**）。
 - **探针脚本**：`/tmp/webtest.py`（复用 runner 的 `Client`/`create_thread`/`wait_for_run`，只把 body 的 `enable_web` 改 True；
-  不动 runner 本体、不动任何已发布资产）。产物 4 个 run 目录（`~/.local/state/toolsmith-runs/20260917-13*`）。
+  不动 runner 本体、不动任何已发布资产；**`run --web` 落地后这类临时脚本不再必需**）。产物 4 个 run 目录（`~/.local/state/toolsmith-runs/20260917-13*`）。
 - **结果矩阵（同一工具，四个源四种命运）**：
 
   | 源 | 结果 |
@@ -270,6 +271,19 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - **另三个提交与本项目无关**：`34215c3` 只加 Pydantic `Field(description=…)`；`af4f601` 是 sandbox 镜像 pull 失败回退本地缓存（`_inspect_sandbox_image`）；`8d10fa0` 只改 `params_drug_deal_tool_v2.py` / `params_pipeline_tool_v2.py`，**`params_clinical_result_tool.py` 未动**，`deps` 复跑 **RC=0**。
 
 - **（2026-09-16，待执行）用 autoresearch 范式规划下一轮迭代**。用户要求「你用对比结果那个 skill 规划试试？先不改动那个 skill 本身」→ 交付 **`docs/autoresearch-iteration-plan.md`**（只读诊断 + 规划，**未改 skill/sys、未发布、未 commit**）。要点：① **`toolsmith-publish` 的 prompt 侧闸门已坏**：平台返回 `current_version_id`（snake_case），工具 5 处读 `currentVersionId`（`~/.local/bin/toolsmith-publish:272/362/787/936/1094`）→ `status` 恒定报 `LOCAL NOT DEPLOYED`（exit 3，**假警报**：线上 v1.6 sha `fa80094e9d41` == 本地 `-v0.15.md`、项目 `resources.prompt` 也 = 该版），且 in-place `publish` 的回读用同一坏键 → **写完再报 `read-back mismatch`**；平台源码佐证 `apps/tool-smith/backend/src/toolsmith/schemas/prompt.py:25`（`current_version_id: str = Field(alias="currentVersionId")`，部署端未走 alias）→ **已于 2026-09-16 修复（S0，`fam_current_version_id()`）**。② 5 个 `20260914-*` run 离线重放得基线：场景 A 两次 **23 vs 41 calls / 18 vs 34 turns / 173 vs 207 s**，但**跨了 17:41 那次发布** → 无干净重复、该批硬化不可归因；拒绝路径跨版本仍极稳（8/7 calls、33/32 s）→ 可当廉价回归闸门；`params` 调用 **2↔8** 波动。③ harness 缺口：params 的 tool-return 是「预览 + `.../tool_results/<tool>/call_*.jsonl for script access` 指针」，而 `artifacts.zip` **不含 `tool_results/**`** → **引用 receipt 目前无法离线核**（现有断言只查键集/日期格式/`title` 非空）。④ 实验队列 E0–E6，其中 **E2 = 删/缩委派段**（该段 6908 B = sys 44516 B 的 **15.5%**，而 5 个 run **从未 `task` 委派**）。执行顺序 S0（修工具）→ S1（harness，0 新 run）→ S2（场景 A×3 取噪声带）→ S3（一次一个变量），每步均需用户授权。
+
+### 附：同批 runner 第二次改动 —— `run --web`（2026-09-17，台账 O18 / W1）
+
+- **缺口**：平台 Web 工具（`web_search`/`web_fetch`）= **项目能力 `capability_config.web` AND 请求级 `enable_web`**
+  （`capabilities/web.py:140` `should_activate_web_tool`）；项目能力已开，但 `run` 的 `post_turn` 把请求级写死 `False`
+  ⇒ **本机验证器永远跑不到「联网状态」**，路线 C 的前置条件无法自验（之前只能靠临时 `/tmp/webtest.py`）。
+- **改动**（改前备份 `toolsmith-publish.v4.bak`，92,618 B，`f7fc69be…`；只改本机 CLI，未动平台/已发布资产）：
+  全局 `--web` → `post_turn` body `enable_web: bool(a.web)`；`run.json` 与 `verification.md` 留痕；`--resume` 打印无效提示；
+  CLI docstring 与 `docs/toolsmith-run-v2-polling-plan.md` 同步。
+- **判据**：`py_compile` OK；零网络闸门 `GATE: PASS`（RC=0）；**A/B 双真跑**（同一 prompt）——
+  开：thread `f11aeb37-…` / turn `48b7797f-…`，`web_fetch`×1 取回 `example.com` 正文并逐字回报；
+  关：thread `da5fc11c-…` / turn `bf38ed63-…`，**0 次工具调用**、模型答「我没有 web_fetch 工具」。
+- **意义**：CT.gov **路线 C 现在本机可验证**（政策/引用口径拍板后可直接 `run --web` 测联网下的引用纪律）。
 
 ## 上游平台代码拉新：TS `master` → `50f048b`（2026-09-14）
 

@@ -318,6 +318,37 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
   变异 `M16 drop-chart-silent` → **R11 重打分为 `30/31`（只剩 `A-C6`）**、R8/R9 基线 **31/31**（新增一条条目）、
   B 仍 12/12、`mutations.py` 覆盖 31/31 GATE PASS；正向对照（删图+写明原因）仍 31/31 PASS。
 
+### W1 — 2026-09-17，runner 新增 `run --web`（只改 runner，零线上改动；台账 O18）
+
+**背景**：平台把 Web 工具挂在**「项目能力 + 请求级 `enable_web`」两道开关**上（`capabilities/web.py:140`
+`should_activate_web_tool`）。本项目能力已开（`GET /api/agent/info?…&enable_web=true` 注入 `## Web Tools`），
+但 `run` 的 `post_turn` **硬编码 `enable_web: False`** ⇒ 无论如何都跑不到「联网状态」，也就无法验证
+「联网时 skill 会怎样」（CT.gov 路线 C 的前置条件）。
+
+**改动**（`~/.local/bin/toolsmith-publish`，1805 → 1822 行；改前备份
+`~/.local/state/toolsmith-publish/toolsmith-publish.v4.bak`，92,618 B，`f7fc69be…`）：新增全局 `--web`
+（`GLOBALS` + `add_global_args`）→ `post_turn` body 改成 `enable_web: bool(a.web)`；`run.json` 记 `enable_web`；
+`verification.md` 头部记 `web tools: enabled/disabled`；`--resume` 时明说该开关对已 POST 的 turn 无效。
+
+**验证**：
+
+| 闸门 | 命令 | 结果 |
+|---|---|---|
+| 语法 | `python3 -m py_compile` | `PYC_OK` |
+| 零网络回归 | `python3 evals/runner-gate/verify-run-chain.py` | **`GATE: PASS` / RC=0**（11 个录制 run：5 个 v1 逐条相等，其余按预期 SKIP，含 4 个 web 探针 run） |
+| 正向真跑（开） | `run --no-assert --tag webflag-on --web --prompt "用 web_fetch 打开 https://example.com …"` | thread `f11aeb37-…` / turn `48b7797f-…`；打印 `web=ON`；**`web_fetch`×1** 取回正文并逐字回报；`outcome=succeeded`，server 5.7 s |
+| 负向对照（关） | 同一 prompt，不带 `--web` | thread `da5fc11c-…` / turn `bf38ed63-…`；**0 次工具调用**、`tools=0` tokens，模型答「我没有 web_fetch 工具」 |
+
+run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260917-141634-webflag-off`
+（两份 `run.json` 的 `"enable_web"` 分别为 `true` / `false`，可复核）。
+
+**边界（避免误用）**：`--web` 只影响 **`run` 新建 turn 的请求体**；`--resume` 只重采集、不 POST ⇒ 开关无效（会打印提示）；
+`deps` / `status` / `tools` / `instructions` 的 `enable_web` 语义未动（它们只查目录）。它**不改任何已发布资产**，
+只是让本机验证器能复现「联网状态」。
+
+**对本项目的影响**：CT.gov 路线 C（运行期用 `web_fetch` 拉官方全量 JSON）**现在本机可验证了** —— 政策/引用口径
+一旦拍板，就能用 `run --web` 测「skill 在联网下是否照规矩引用」；当前仍 parked 等产品。
+
 ## 3. 我们自己能改的
 
 | # | 现象（证据） | 改法 | 状态 |
@@ -339,6 +370,7 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 | O15 | **`--resume` 不带 `--out` 就地重采集，把原 run 目录的 `verification.md` / `run.json` 覆盖掉**（`Checks` 段被抹空）—— R8 那份记录就是这么丢的；而原 run 目录常是那次验证**唯一**的证据副本 | `--resume` 默认写**新目录**（`<stamp>-resume-<tag>`，并打印原目录位置）；只有显式 `--out` 才写指定目录（已存在记录时先 warning）；同时给 resume 目录补写自描述的 `run.json` + `prompt.txt` | **已落地**（2026-09-16）→ R10 的 T6/T7 |
 | O16 | **runner 的图表类断言在「0 图」时全部平凡通过**（R11 产物只有 `report.md` + `citations.json`，3 条图表断言照旧 PASS：「0 tags / 0 files」「no chart」）——断言本身没错（有没有图取决于输入，不能无条件要求），但意味着**“该出的图没出”这件事 runner 看不见**；R11 的事实分里 3 个 FAIL 正是这一类 | **定案：不改 runner**。`run` 是**通用**入口，不知道场景，无条件要求出图会把合法场景判死；这类“该不该出一张定量主图”的判定交给**离线事实清单**（`evals/fact-check/` 的 `A-S2/S8/S9`），清单知道场景、也知道规则文本 | **定案保留**（2026-09-17；由 R11 暴露，非缺陷） |
 | O17 | **清单条目 `A-S2-chart-set` 是「基线污染」**（期望从 R8 产物倒推，而不是从规则文本推）·**已按用户批准修正**：它期望场景 A 必出 `endpoint-bar-1.json`，但 `chart-templates.md:91` 的规则是「定量主图**可选**，需 ≥2 条入选结果给出**同一终点、同一口径（可明确对齐的时点）**的纯数值」，而场景 A 的两条记录是**第 16 周 vs 第 36 周**——R11 据此明确写了「不具备绘图条件——本报告不输出图表」并给了理由；R8（同一输入）反而画了图。**这就是「清单必须先于产物撰写」要防的那个坑** | **已落地**（2026-09-17）：① `A-S2` 改为 `chart_set_allowed`（文件名合法 + 禁 timeline（跨试验前置条件不成立）+ 定量图 ≤1 张；**空集合不算违规**）；② 新增 **`A-S2b-chart-or-reason`**：没有定量图时正文必须**明确写出不出图**（`required_groups`）且给 ≥1 条实质理由（`supporting_groups`）——只查支持理由不够（跨试验报告天然写「跨试验」「时点不同」，删图不说话也能过）；③ `A-S8/A-S9` 加 `"optional_when_absent": true`（文件在则硬断言封套/数值，不在则 PASS 并指向 A-S2b）；④ `A-C12` pattern `2 ?条` → **`2 ?(条\|项)`**；⑤ 新增变异 **`M16 drop-chart-silent`** | **已落地**（2026-09-17；判据：R8/R9 新基线 **31/31**、R11 由 25/30 → **30/31**（只剩 `A-C6`）、B 仍 12/12、`mutations.py` arm A **16** 个变异覆盖 31/31 + arm B 11 个覆盖 12/12 → **GATE PASS**；正向对照「删图 + 写明原因」手动跑 → 31/31 PASS） |
+| O18 | **`run` 无法进入「联网状态」**：`post_turn` 把请求级 `enable_web` 硬编码为 `False`，而平台只在「项目能力 + 请求级开关」双开时才注入 `web_search`/`web_fetch`（`capabilities/web.py:140`）—— 项目能力本项目已开（`/api/agent/info?…&enable_web=true` 注入 `## Web Tools`），所以唯一的闸门正好是本机验证器碰不到的那一个；后果是无法用 `run` 验证「联网时 skill 行为」（路线 C 的前置条件），之前只能靠临时探针脚本 `/tmp/webtest.py` | `run` 新增全局 `--web`（写进请求体 `enable_web`，`run.json` 与 `verification.md` 均留痕；`--resume` 打印无效提示），CLI docstring 与 plan doc 同步 | **已落地**（2026-09-17，用户先点头后才改；改前备份 `.v4.bak`，92,618 B）→ 证据见 **W1** |
 
 ## 4. 平台侧（转开发）
 
