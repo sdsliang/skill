@@ -57,11 +57,12 @@ def fresh(name, src, files, with_artifacts):
 # The recorded baseline run (R8, 2026-09-16) predates the original-source contract, so it
 # cannot already contain the `原文核对：` line that contract now requires.  Seed that one line
 # into the throwaway baseline copy: every content item still sees the real run's bytes, and the
-# three original-source items each keep their own mutation (M17-M19) proving they can flip.
+# four original-source items each keep their own mutation (M17-M20) proving they can flip.
 # The seed line deliberately avoids the literal `库内记录`, which would arm the conditional
-# divergence item A-P2 on a line that is not a divergence.
-SEED_ORIGINAL_CHECK = ("> **原文核对：** 1/2 条已按原文复核（路由：DOI / PMID）；"
-                       "1 条未能复核（原因类：抓取受限）。\n")
+# divergence item A-P2 on a line that is not a divergence, and it names both a route and a
+# source class so that A-P4 (route + class) is satisfied by the seed rather than by accident.
+SEED_ORIGINAL_CHECK = ("> **原文核对：** 1/2 条已按原文复核（src=1 走 PMID）；"
+                       "1 条未能复核（src=49 新闻稿：库内正文即通稿原文，未做外部抓取）。\n")
 
 
 def seed_original_check(report_path):
@@ -211,6 +212,10 @@ def M19(d, r, c, v):  # quote only the pulled value where the original disagrees
     return sub(r, r"\Z", "\n\n库内记录显示主要终点降幅为 −13.9%。\n")
 
 
+def M20(d, r, c, v):  # keep a hollow coverage line: right shape, no route/class content
+    return sub(r, r"原文核对：[^\n]*\n", "> **原文核对：** 2/2 条已复核。\n")
+
+
 MUTS_A = [
     ("M01 minus139", M01, "A-C4-primary-A"),
     ("M02 signflip", M02, "A-N2-no-sign-flip"),
@@ -231,6 +236,7 @@ MUTS_A = [
     ("M17 drop-original-check", M17, "A-P1-original-check-line"),
     ("M18 verbatim-copy", M18, "A-P3-no-long-verbatim"),
     ("M19 one-sided-divergence", M19, "A-P2-divergence-shows-both"),
+    ("M20 hollow-original-check", M20, "A-P4-original-check-names-route-and-class"),
 ]
 
 # --------------------------------------------------------------- arm B mutations

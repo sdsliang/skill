@@ -1,0 +1,609 @@
+{
+ "probe": "临床结果 Skill 原文复核路由：按 esid 中段来源类（ingestion source id）分化的链接可达性",
+ "date": "2026-09-17",
+ "question": "平台 web_fetch 对各来源类记录的“原文”到底能不能取到？取不到时抓哪条已实测可用的路由；规则怎么按来源类分化，而不是笼统地禁止抓 link。",
+ "slice": {
+  "file": "/tmp/link_sample.json",
+  "rows": 4106,
+  "filter": "单药（pembrolizumab）结果记录，含 esid/doi/pm_id/full_article_link/journal/evidence_source",
+  "note": "该切片 100% 带 esid 且 83.0% 至少有一条路由键；无 esid 的历史批次（CT.gov 结构化结果 JSON，3,170/4,095）见 abstract-text-by-source 证据文件",
+  "any_route_pct": {
+   "doi": 81.8,
+   "pm_id": 36.2,
+   "registration_id": 0.6,
+   "any": 83.0
+  }
+ },
+ "by_source_class": [
+  {
+   "src": "37",
+   "class": "会议摘要（ASCO/ESMO/ASH…）",
+   "rows_in_slice": 2281,
+   "route_keys_pct": {
+    "doi": 82.2,
+    "pm_id": 0.0,
+    "registration_id": 0.0,
+    "any": 82.2
+   },
+   "top_hosts": [
+    "meetings.asco.org",
+    "ascopubs.org",
+    "www.asco.org",
+    "www.annalsofoncology.org",
+    "cslide.ctimeetingtech.com"
+   ]
+  },
+  {
+   "src": "1",
+   "class": "PubMed / 期刊论文",
+   "rows_in_slice": 1478,
+   "route_keys_pct": {
+    "doi": 98.9,
+    "pm_id": 100.0,
+    "registration_id": 0.0,
+    "any": 100.0
+   },
+   "top_hosts": [
+    "pubmed.ncbi.nlm.nih.gov"
+   ]
+  },
+  {
+   "src": "49",
+   "class": "新闻稿 / 公司通稿",
+   "rows_in_slice": 156,
+   "route_keys_pct": {
+    "doi": 0.0,
+    "pm_id": 0.0,
+    "registration_id": 0.0,
+    "any": 0.0
+   },
+   "top_hosts": [
+    "www.globenewswire.com",
+    "www.businesswire.com",
+    "www.prnewswire.com",
+    "mp.weixin.qq.com",
+    "nykode.com"
+   ]
+  },
+  {
+   "src": "bare/other",
+   "class": "历史批次 / 无中段",
+   "rows_in_slice": 152,
+   "route_keys_pct": {
+    "doi": 12.5,
+    "pm_id": 6.6,
+    "registration_id": 7.9,
+    "any": 26.3
+   },
+   "top_hosts": [
+    "www.businesswire.com",
+    "www.globenewswire.com",
+    "www.prnewswire.com",
+    "pubmed.ncbi.nlm.nih.gov",
+    "www.clinicaltrials.gov"
+   ]
+  },
+  {
+   "src": "120",
+   "class": "人工补录",
+   "rows_in_slice": 21,
+   "route_keys_pct": {
+    "doi": 4.8,
+    "pm_id": 0.0,
+    "registration_id": 0.0,
+    "any": 4.8
+   },
+   "top_hosts": [
+    "www.globenewswire.com",
+    "www.businesswire.com",
+    "ir.revmed.com",
+    "www.prnewswire.com",
+    "www.hanchorbio.com"
+   ]
+  },
+  {
+   "src": "187",
+   "class": "ClinicalTrials.gov 登记结果（另一摄取通道）",
+   "rows_in_slice": 8,
+   "route_keys_pct": {
+    "doi": 0.0,
+    "pm_id": 0.0,
+    "registration_id": 87.5,
+    "any": 87.5
+   },
+   "top_hosts": [
+    "clinicaltrials.gov",
+    "www.clinicaltrials.gov",
+    "www.chinadrugtrials.org.cn"
+   ]
+  },
+  {
+   "src": "2",
+   "class": "ClinicalTrials.gov 登记结果",
+   "rows_in_slice": 7,
+   "route_keys_pct": {
+    "doi": 0.0,
+    "pm_id": 0.0,
+    "registration_id": 100.0,
+    "any": 100.0
+   },
+   "top_hosts": [
+    "www.clinicaltrials.gov"
+   ]
+  },
+  {
+   "src": "245",
+   "class": "245",
+   "rows_in_slice": 2,
+   "route_keys_pct": {
+    "doi": 0.0,
+    "pm_id": 0.0,
+    "registration_id": 0.0,
+    "any": 0.0
+   },
+   "top_hosts": [
+    "www.brightpathbio.com",
+    "pharmcube-cplatform.oss-cn-beijing.aliyuncs.com"
+   ]
+  },
+  {
+   "src": "398",
+   "class": "SEC 备案",
+   "rows_in_slice": 1,
+   "route_keys_pct": {
+    "doi": 0.0,
+    "pm_id": 0.0,
+    "registration_id": 0.0,
+    "any": 0.0
+   },
+   "top_hosts": [
+    "www.sec.gov"
+   ]
+  }
+ ],
+ "library_abstract_text_nature": {
+  "src=187": {
+   "rows": 34,
+   "empty": 34,
+   "empty_pct": 100.0,
+   "meaning": "ClinicalTrials.gov / US-ClinicalTrial registration records"
+  },
+  "src=2": {
+   "rows": 11,
+   "empty": 3,
+   "empty_pct": 27.3,
+   "len_median": 49967,
+   "len_max": 109386,
+   "meaning": "ClinicalTrials.gov NCT-shaped result records"
+  },
+  "src=120": {
+   "rows": 91,
+   "empty": 91,
+   "empty_pct": 100.0,
+   "len_median": 0,
+   "len_max": 0,
+   "meaning": "unidentified batch (hash-shaped esids, journal mostly blank / WCLC 2024)"
+  },
+  "bare_number_id": {
+   "rows": 3015,
+   "empty": 1148,
+   "empty_pct": 38.1,
+   "len_median": 30251,
+   "len_max": 1907425,
+   "content": "abstract_text holds the ClinicalTrials.gov structured-results JSON (starts with [{\"paramType\":...], not prose)"
+  },
+  "bare_uuid_id": {
+   "rows": 155,
+   "empty": 22,
+   "empty_pct": 14.2,
+   "len_median": 60263,
+   "len_max": 446552,
+   "content": "same CT.gov structured-results JSON"
+  },
+  "src=1": {
+   "rows": 250,
+   "empty": 1,
+   "empty_pct": 0.4,
+   "len_median": 1812,
+   "len_max": 4381,
+   "meaning": "journal papers"
+  },
+  "src=37": {
+   "rows": 250,
+   "empty": 0,
+   "empty_pct": 0.0,
+   "len_median": 2786,
+   "len_max": 9804,
+   "meaning": "conference abstracts (ASCO/ASH/...)"
+  },
+  "src=49": {
+   "rows": 250,
+   "empty": 6,
+   "empty_pct": 2.4,
+   "len_median": 8765,
+   "len_max": 77857,
+   "meaning": "company news / commercial feeds"
+  }
+ },
+ "measured_urls": [
+  {
+   "run": "webprobe-coverage",
+   "url": "https://meetings.asco.org/abstracts-presentations/217732",
+   "host": "meetings.asco.org",
+   "ok": false,
+   "kind": "error",
+   "evidence": "Failed to fetch https://meetings.asco.org/abstracts-presentations/217732: \n\nFix the errors and try again."
+  },
+  {
+   "run": "webprobe-coverage",
+   "url": "https://cslide.ctimeetingtech.com/coasis_21571/attendee/confcal_2/presentation/list?q=336eP&c=pnr",
+   "host": "cslide.ctimeetingtech.com",
+   "ok": false,
+   "kind": "blocked",
+   "evidence": "JavaScript is disabled\n======================\n\nIn order to continue, we need to verify that you're not a robot.\nThis req"
+  },
+  {
+   "run": "webprobe-coverage",
+   "url": "https://www.abstractsonline.com/pp8/#!/21436/presentation/12019",
+   "host": "www.abstractsonline.com",
+   "ok": false,
+   "kind": "shell",
+   "evidence": "# Program Planner\n\n﻿\n\nProgram Planner\n\nOne fine body�\n\nClose\nSave changes"
+  },
+  {
+   "run": "webprobe-coverage",
+   "url": "https://www.businesswire.com/news/home/20250327895076/en/Mercks-Investigational-Subcutaneous-Pembrolizumab-With-Berahyaluronidase-Alfa-Demonstrates-Noninferior-Pharmacokinetics-Compared-to-Intravenous-IV-KEYTRUDA-pembrolizumab-in-Pivotal-3475A-D77-Trial",
+   "host": "www.businesswire.com",
+   "ok": false,
+   "kind": "blocked",
+   "evidence": "Client error '403 Forbidden' for url 'https://www.businesswire.com/news/home/20250327895076/en/Mercks-Investigational-Su"
+  },
+  {
+   "run": "webprobe-coverage",
+   "url": "https://jitc.bmj.com/content/13/Suppl_3/A1571",
+   "host": "jitc.bmj.com",
+   "ok": false,
+   "kind": "blocked",
+   "evidence": "Client error '403 Forbidden' for url 'https://jitc.bmj.com/content/13/Suppl_3/A1571'\nFor more information check: https:/"
+  },
+  {
+   "run": "webprobe-coverage",
+   "url": "https://ascopubs.org/doi/abs/10.1200/JCO.2022.40.16_suppl.9042",
+   "host": "ascopubs.org",
+   "ok": false,
+   "kind": "blocked",
+   "evidence": "Client error '403 Forbidden' for url 'https://ascopubs.org/doi/abs/10.1200/JCO.2022.40.16_suppl.9042'\nFor more informati"
+  },
+  {
+   "run": "webprobe-coverage",
+   "url": "https://oncologypro.esmo.org/meeting-resources/esmo-congress-2021/a-phase-ii-study-of-pembrolizumab-p-in-combination-with-doxorubicin-d-in-advanced-endometrial-cancer-aec-topic-trial-vhio10001",
+   "host": "oncologypro.esmo.org",
+   "ok": false,
+   "kind": "error",
+   "evidence": "Client error '404 Not Found' for url 'https://oncologypro.esmo.org/meeting-resources/esmo-congress-2021/a-phase-ii-study"
+  },
+  {
+   "run": "webprobe-coverage",
+   "url": "https://www.globenewswire.com/news-release/2025/12/18/3207556/0/en/Pyxis-Oncology-Announces-Positive-Preliminary-Phase-1-Data-for-Micvotabart-Pelidotin-MICVO-in-Recurrent-Metastatic-Head-and-Neck-Squamous-Cell-Carcinoma.html",
+   "host": "www.globenewswire.com",
+   "ok": false,
+   "kind": "error",
+   "evidence": "Failed to fetch https://www.globenewswire.com/news-release/2025/12/18/3207556/0/en/Pyxis-Oncology-Announces-Positive-Pre"
+  },
+  {
+   "run": "webprobe-coverage",
+   "url": "https://www.sciencedirect.com/science/article/pii/S2590018822002301",
+   "host": "www.sciencedirect.com",
+   "ok": false,
+   "kind": "blocked",
+   "evidence": "Client error '403 Forbidden' for url 'https://www.sciencedirect.com/science/article/pii/S2590018822002301'\nFor more info"
+  },
+  {
+   "run": "webprobe-coverage",
+   "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC6933872/fullTextXML",
+   "host": "www.ebi.ac.uk",
+   "ok": false,
+   "kind": "error",
+   "evidence": "Server error '502 Bad Gateway' for url 'https://www.ebi.ac.uk/europepmc/webservices/rest/PMC6933872/fullTextXML'\nFor mor"
+  },
+  {
+   "run": "webprobe-coverage",
+   "url": "https://api.crossref.org/works/10.1200/JCO.2023.41.4_suppl.345",
+   "host": "api.crossref.org",
+   "ok": true,
+   "kind": "metadata-only",
+   "evidence": "{\n  \"status\": \"ok\",\n  \"message-type\": \"work\",\n  \"message-version\": \"1.0.0\",\n  \"message\": {\n    \"indexed\": {\n      \"date-"
+  },
+  {
+   "run": "webprobe-sourceclass",
+   "url": "https://www.sec.gov/Archives/edgar/data/1472091/000114036126032142/ef20079931_ex99-1.htm",
+   "host": "www.sec.gov",
+   "ok": false,
+   "kind": "blocked",
+   "evidence": "Client error '403 Forbidden'",
+   "has_analysis_numbers": false,
+   "approx_chars": 0
+  },
+  {
+   "run": "webprobe-sourceclass",
+   "url": "https://data.sec.gov/submissions/CIK0001472091.json",
+   "host": "data.sec.gov",
+   "ok": true,
+   "kind": "json-api",
+   "evidence": "\"name\": \"PDS Biotechnology Corp\"",
+   "has_analysis_numbers": false,
+   "approx_chars": 239410
+  },
+  {
+   "run": "webprobe-sourceclass",
+   "url": "https://mp.weixin.qq.com/s?__biz=Mzg3ODgyOTc2Mw==&mid=2247484406&idx=1&sn=f07a72359f92399c202d8856b426e40f",
+   "host": "mp.weixin.qq.com",
+   "ok": false,
+   "kind": "html-shell",
+   "evidence": "视频\n小程序\n赞\n，轻点两下取消赞\n在看\n，轻点两下取消在看",
+   "has_analysis_numbers": false,
+   "approx_chars": 40
+  },
+  {
+   "run": "webprobe-sourceclass",
+   "url": "https://www.globenewswire.com/news-release/2025/08/25/3138462/37149/en/PDS-Biotech-Announces-Final-Topline-Survival-Data-from-VERSATILE-002-Phase-2-Trial-in-Head-and-Neck-Cancer.html",
+   "host": "www.globenewswire.com",
+   "ok": false,
+   "kind": "redirect-or-error",
+   "evidence": "Fix the errors and try again.",
+   "has_analysis_numbers": false,
+   "approx_chars": 0
+  },
+  {
+   "run": "webprobe-sourceclass",
+   "url": "https://www.chinadrugtrials.org.cn/clinicaltrials.searchlistdetail.dhtml?ckm_index=1&sort=desc&rule=CTR&secondLevel=0&currentpage=1&keywords=CTR20242872",
+   "host": "www.chinadrugtrials.org.cn",
+   "ok": false,
+   "kind": "redirect-or-error",
+   "evidence": "URL: https://www.chinadrugtrials.org.cn/clinicaltrials.searchlistdetail.dhtml?ckm_index=1&sort",
+   "has_analysis_numbers": false,
+   "approx_chars": 0
+  },
+  {
+   "run": "webprobe-sourceclass",
+   "url": "https://cslide.ctimeetingtech.com/coasis_21571/attendee/confcal_2/presentation/list?q=336eP&c=pnr",
+   "host": "cslide.ctimeetingtech.com",
+   "ok": false,
+   "kind": "blocked",
+   "evidence": "In order to continue, we need to verify that you're not a robot.",
+   "has_analysis_numbers": false,
+   "approx_chars": 160
+  },
+  {
+   "run": "webprobe-sourceclass",
+   "url": "https://www.hanchorbio.com/en/news/hanchorbio-presents-first-dedicated-hcb101-head-and-neck-cancer-data-in-oral-presentation-at-ichno-2026/",
+   "host": "www.hanchorbio.com",
+   "ok": true,
+   "kind": "html-fulltext",
+   "evidence": "This corresponded to an ORR of 66.7% and a DCR of 100% in the small evaluable cohort.",
+   "has_analysis_numbers": true,
+   "approx_chars": 8500
+  },
+  {
+   "run": "webprobe-route37",
+   "url": "https://api.openalex.org/works/doi:10.1136/jitc-2025-SITC2025.1330",
+   "host": "api.openalex.org",
+   "ok": true,
+   "kind": "json-api",
+   "evidence": "plinabulin/docetaxel outperformed docetaxel in extending OS (HR 0.82, p=0.0399)",
+   "has_analysis_numbers": true,
+   "has_abstract_text": true,
+   "approx_chars": 44400
+  },
+  {
+   "run": "webprobe-route37",
+   "url": "https://api.openalex.org/works/doi:10.1016/j.annonc.2020.08.1106",
+   "host": "api.openalex.org",
+   "ok": true,
+   "kind": "json-api",
+   "evidence": "\"abstract_inverted_index\": null",
+   "has_analysis_numbers": false,
+   "has_abstract_text": false,
+   "approx_chars": 25600
+  },
+  {
+   "run": "webprobe-route37",
+   "url": "https://api.openalex.org/works/doi:10.1200/JCO.2026.44.7_suppl.769",
+   "host": "api.openalex.org",
+   "ok": true,
+   "kind": "json-api",
+   "evidence": "49 pts were treated and efficacy evaluable. 33 (67.3%) had a cT2 st",
+   "has_analysis_numbers": true,
+   "has_abstract_text": true,
+   "approx_chars": 49400
+  },
+  {
+   "run": "webprobe-route37",
+   "url": "https://www.bioinvent.com/en/press/bioinvent-announces-promising-initial-efficacy-data-triple-combination-arm-bi-1206-rituximab",
+   "host": "www.bioinvent.com",
+   "ok": true,
+   "kind": "html-fulltext",
+   "evidence": "One complete response (CR) and one partial response (PR)",
+   "has_analysis_numbers": true,
+   "has_abstract_text": true,
+   "approx_chars": 13000
+  },
+  {
+   "run": "webprobe-route37",
+   "url": "https://ir.revmed.com/static-files/f16877f0-ee3d-46e5-98d7-2f1207f11c10",
+   "host": "ir.revmed.com",
+   "ok": false,
+   "kind": "redirect-or-error",
+   "evidence": "Failed to fetch https://ir.revmed.com/static-files/f16877f0-ee3d-46e5-98d7-2f1207f11c10",
+   "has_analysis_numbers": false,
+   "has_abstract_text": false,
+   "approx_chars": 0
+  },
+  {
+   "run": "webprobe-route37",
+   "url": "https://www.prnewswire.com/news-releases/4d-pharma-plc-preliminary-safety-and-clinical-observations-from-its-phase-iii-study-of-mrx0518-in-combination-with-keytruda-300952341.html",
+   "host": "www.prnewswire.com",
+   "ok": true,
+   "kind": "html-fulltext",
+   "evidence": "Induction of clinically relevant response in two out of six patients with prior progressive disease",
+   "has_analysis_numbers": true,
+   "has_abstract_text": true,
+   "approx_chars": 55800
+  },
+  {
+   "run": "webprobe-route37",
+   "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=0001472091&type=8-K",
+   "host": "www.sec.gov",
+   "ok": false,
+   "kind": "blocked",
+   "evidence": "Client error '403 Forbidden' for url",
+   "has_analysis_numbers": false,
+   "has_abstract_text": false,
+   "approx_chars": 0
+  },
+  {
+   "run": "webprobe-api2",
+   "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC6933872/fullTextXML",
+   "host": "www.ebi.ac.uk",
+   "ok": false,
+   "kind": "error",
+   "evidence": "Server error '500 ' for url 'https://www.ebi.ac.uk/europepmc/webservices/rest/PMC6933872/fullTextXML'",
+   "has_abstract": false,
+   "has_endpoint_numbers": false,
+   "approx_chars": 0
+  },
+  {
+   "run": "webprobe-api2",
+   "url": "https://api.openalex.org/works/doi:10.1093/eurheartj/ehy862",
+   "host": "api.openalex.org",
+   "ok": true,
+   "kind": "json-api",
+   "evidence": "{\n  \"id\": \"https://openalex.org/W2904421322\",\n  \"doi\": \"https://doi.org/10.1093/eurheartj/ehy862\",\n ",
+   "has_abstract": true,
+   "has_endpoint_numbers": true,
+   "approx_chars": 49195
+  },
+  {
+   "run": "webprobe-api2",
+   "url": "https://api.openalex.org/works/doi:10.1200/JCO.2023.41.4_suppl.345",
+   "host": "api.openalex.org",
+   "ok": true,
+   "kind": "json-api",
+   "evidence": "{\n  \"id\": \"https://openalex.org/W4317863134\",\n  \"doi\": \"https://doi.org/10.1200/jco.2023.41.4_suppl.",
+   "has_abstract": true,
+   "has_endpoint_numbers": true,
+   "approx_chars": 31147
+  },
+  {
+   "run": "webprobe-api2",
+   "url": "https://clinicaltrials.gov/api/v2/studies/NCT05419908",
+   "host": "clinicaltrials.gov",
+   "ok": true,
+   "kind": "json-api",
+   "evidence": "{\n  \"protocolSection\": {\n    \"identificationModule\": {\n      \"nctId\": \"NCT05419908\",\n      \"orgStudy",
+   "has_abstract": false,
+   "has_endpoint_numbers": true,
+   "approx_chars": 322763
+  },
+  {
+   "run": "webprobe-egress",
+   "url": "https://pubmed.ncbi.nlm.nih.gov/38723384/",
+   "host": "pubmed.ncbi.nlm.nih.gov",
+   "ok": false,
+   "kind": "cookie-wall",
+   "evidence": "页首 interstitial：Cookies must be enabled / 反爬拦截页"
+  },
+  {
+   "run": "webprobe-egress",
+   "url": "https://clinicaltrials.gov/study/NCT05419908",
+   "host": "clinicaltrials.gov",
+   "ok": false,
+   "kind": "js-shell",
+   "evidence": "人类页只返回 JS 骨架（同数据的 JSON API 正常）"
+  },
+  {
+   "run": "webprobe-egress",
+   "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC6933872/fullTextXML",
+   "host": "www.ebi.ac.uk",
+   "ok": false,
+   "kind": "error",
+   "evidence": "Server error '500'"
+  }
+ ],
+ "routes": [
+  {
+   "id": "R2",
+   "template": "https://clinicaltrials.gov/api/v2/studies/{NCT}",
+   "built_from": "登记号（来自 full_article_link / paper_title）",
+   "works": true,
+   "evidence": "NCT05419908 → ok, 323 K chars, protocol+results 含端点数值"
+  },
+  {
+   "id": "R3",
+   "template": "https://api.openalex.org/works/doi:{doi}",
+   "built_from": "doi",
+   "works": true,
+   "evidence": "6 次实测 5 成功（25–49 K）；1 次 abstract_inverted_index=null（可达但无摘要）；既覆盖期刊论文也覆盖会议摘要"
+  },
+  {
+   "id": "R4",
+   "template": "https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{pm_id}&resultType=core&format=json",
+   "built_from": "pm_id",
+   "works": true,
+   "evidence": "1/1 成功（abstractText）"
+  },
+  {
+   "id": "R5",
+   "template": "https://api.crossref.org/works/{doi}",
+   "built_from": "doi",
+   "works": true,
+   "evidence": "1/1 成功，但只有题录元数据 → 不得当临床证据"
+  }
+ ],
+ "verdicts": [
+  "来源可达性必须按来源类判断，不能按“link 能不能打开”一刀切：src=1（PMID）与 src=37（DOI）走 OpenAlex/Europe PMC 链路基本可复核；src=2/187 走 CT.gov JSON API 可复核；src=49 的库内 abstract_text 本身就是通稿原文（逐字保留、(GLOBE NEWSWIRE)/(BUSINESS WIRE) dateline 在），外部抓取无必要且站点多为 403/壳；src=120 只有 4.8% 有 doi（实测公司域页可抓、IR 静态文件不可抓）；src=398 SEC 的 EDGAR HTML 与 browse-edgar 均 403，data.sec.gov JSON 只有题录无临床数值 ⇒ 不可复核，只能记原因类。",
+  "pubmed.ncbi.nlm.nih.gov 人类页有 cookie 墙，但 PMID 路由（Europe PMC）可用 ⇒ 不要抓 pubmed 页面。",
+  "CT.gov 人类页是 JS 壳，JSON API 可用 ⇒ 永远走 API。",
+  "会议站点（meetings.asco.org / ascopubs.org / cslide / abstractsonline / annalsofoncology）全部不可达，但会议摘要 82.2% 有 DOI ⇒ 走 OpenAlex。",
+  "通稿站点分裂：prnewswire 可抓（55.8 K，含数值），businesswire/globenewswire/微信公众号不可抓；但 src=49 根本不需要抓。"
+ ],
+ "measured_host_summary": {
+  "blocked_hosts": [
+   "ascopubs.org",
+   "clinicaltrials.gov",
+   "cslide.ctimeetingtech.com",
+   "ir.revmed.com",
+   "jitc.bmj.com",
+   "meetings.asco.org",
+   "mp.weixin.qq.com",
+   "oncologypro.esmo.org",
+   "pubmed.ncbi.nlm.nih.gov",
+   "www.abstractsonline.com",
+   "www.businesswire.com",
+   "www.chinadrugtrials.org.cn",
+   "www.ebi.ac.uk",
+   "www.globenewswire.com",
+   "www.sciencedirect.com",
+   "www.sec.gov"
+  ],
+  "working_hosts": [
+   "api.crossref.org",
+   "api.openalex.org",
+   "clinicaltrials.gov",
+   "data.sec.gov",
+   "www.bioinvent.com",
+   "www.hanchorbio.com",
+   "www.prnewswire.com"
+  ],
+  "note_human_page_vs_api": "同一主机可以“人类页不可达、API 可达”：clinicaltrials.gov/study/… 是 JS 壳，而 clinicaltrials.gov/api/v2/… 正常；pubmed.ncbi.nlm.nih.gov 有 cookie 墙，而 www.ebi.ac.uk/europepmc/webservices/… 正常；www.sec.gov 的 EDGAR 页 403，而 data.sec.gov/…json 可达（但只有题录）。所以封锁清单是 host+页面类，不是主机名。"
+ },
+ "caveats": [
+  "主机可达性随时间变化：本表是 2026-09-17 的实测基线，命中封锁清单只是“不浪费调用”，未列入的主机按未知处理（允许 1 次尝试）。",
+  "全部探测都是只读 GET，只取摘要/结构化数值，不落库、不改任何线上状态。"
+ ],
+ "measured_count": {
+  "urls": 32,
+  "ok": 11,
+  "fail": 21
+ }
+}

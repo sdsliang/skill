@@ -440,10 +440,38 @@ def op_no_verbatim_copy(sv: dict, spec: dict) -> tuple:
     return True, f"{len(srcs)} archived source file(s), no verbatim run >= {n} chars in the report"
 
 
+def op_original_check_names_class(sv: dict, spec: dict) -> tuple:
+    """The `原文核对：` line must say *how* each record was re-checked and name its source class.
+
+    `A-P1` only proves the line exists and carries a count — an empty shell such as
+    `原文核对：2/2 条已复核` would sail through while hiding that nothing was actually
+    re-checked and that one of the records is a press release whose original is the pulled
+    body itself.  So the line has to name a retrieval route (PMID / DOI / registration id /
+    registry API) *and* classify the records (esid source class or an explicit reason class).
+    """
+    route = spec.get("route_regex") or r"PMID|DOI|doi|注册号|登记号|NCT|api|API"
+    cls = spec.get("class_regex") or (
+        r"src\s*=\s*\d|来源\s*类|来源[:：]\s*\d|新闻稿|通稿|会议|登记平台|SEC|补录|库内正文|库内即原文"
+        r"|未复核|不可复核|抓取受限|无登记号|该来源不公开")
+    lines = [ln for ln in (sv["report"] or "").splitlines() if "原文核对" in ln]
+    if not lines:
+        return True, "no 原文核对 line (A-P1 owns that failure; not reported twice)"
+    line = lines[0]
+    miss = []
+    if not re.search(route, line):
+        miss.append("route(PMID/DOI/登记号/registry API)")
+    if not re.search(cls, line):
+        miss.append("source class or reason class")
+    if miss:
+        return False, f"原文核对 line misses {' + '.join(miss)}: {line[:150]!r}"
+    return True, f"原文核对 line names route and source class: {line[:110]!r}"
+
+
 SHAPE_OPS = {
     "artifact_present": op_artifact_present,
     "artifact_absent": op_artifact_absent,
     "no_verbatim_copy": op_no_verbatim_copy,
+    "original_check_names_class": op_original_check_names_class,
     "glob_count": op_glob_count,
     "citations_keys_exact": op_citations_keys_exact,
     "citations_entry_key_set": op_citations_entry_key_set,

@@ -134,23 +134,52 @@ first priority for material clinical numbers, and the pulled fields are the seco
 the narrative and to fill what the original does not cover, never as the sole unreviewed basis for a
 headline number.
 
+**Know the source class before spending a fetch.** The middle segment of `clinical_result.extra_esid`
+(`YY_<src>_…`) is the **ingestion source id**, and it decides what "the original" even is — including
+whether the pulled `abstract_text` *already is* the original. Read it first, then choose the route, then
+fetch.
+
+| src | Source class | What the pulled `abstract_text` is | External original | Preferred route |
+|---|---|---|---|---|
+| `1` | PubMed / journal paper | the journal abstract itself (median ~1.8 K chars) | reachable | **R4** (`pm_id`), else **R3** (`doi`) |
+| `2`, `187` | ClinicalTrials.gov registration results | the registry's **structured-results JSON**, not prose (src `187` measured 100% empty) | reachable | **R2** (registration id) |
+| `37` | conference abstract (ASCO/ESMO/ASH/…) | the conference abstract text (median ~2.8 K chars) | reachable when a DOI exists (82.2% of rows carry one) | **R3** (`doi`) |
+| `49` | news / company press release | **the press-release body, copied verbatim** at ingestion (it carries the wire dateline, e.g. `(GLOBE NEWSWIRE) --`, `/PRNewswire/`, `(BUSINESS WIRE)--`) | mostly not reachable | **no external fetch needed** — see below |
+| `120` | manual entry (人工补录) | measured 100% empty | mixed: company-owned pages reachable, wire hosts not | **R3** if a `doi` exists, else the record's own link (once) |
+| `398` | SEC filing | no sample with content | EDGAR HTML and `browse-edgar` answer `403`; `data.sec.gov/…json` carries filing **indexes only**, no numbers | not re-checkable → record the reason class |
+| *(no middle segment)* | legacy batch, mostly ClinicalTrials.gov results | the registry's structured-results JSON (38.1% empty) | partly reachable | **R2** / **R3** |
+
 **Retrieval routes.** Only these templates, and only with values that already came back in the pulled
 record. Never invent a URL, never change a host or path, never add, drop or reorder query parameters,
 never use a search engine, and never re-try the same content through a different route.
 
 | # | Template | Build from | Returns | Measured (2026-09-17) |
 |---|---|---|---|---|
-| R2 | `https://clinicaltrials.gov/api/v2/studies/{NCT}` | the registration id inside `clinical_result.full_article_link` or `paper_title` | the registry's own protocol **and posted results** JSON (endpoint values, CIs, p-values, arms) | works: 1/1, ~323 KB |
-| R3 | `https://api.openalex.org/works/doi:{doi}` | `clinical_result.doi` | publisher-deposited **abstract** + OA locations; works for journal papers *and* conference abstracts | works: 2/2, 31–49 KB |
+| R2 | `https://clinicaltrials.gov/api/v2/studies/{NCT}` | the registration id inside `clinical_result.full_article_link` or `paper_title` | the registry's own protocol **and posted results** JSON (endpoint values, CIs, p-values, arms) | works: 2/2, ~323 KB |
+| R3 | `https://api.openalex.org/works/doi:{doi}` | `clinical_result.doi` | publisher-deposited **abstract** + OA locations; works for journal papers *and* conference abstracts | works: 5/6, 25–49 KB (one returned `abstract_inverted_index: null` — reachable but no abstract) |
 | R4 | `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{pm_id}&resultType=core&format=json` | `clinical_result.pm_id` | abstract (`abstractText`), `pmcid`, `isOpenAccess` | works: 1/1 |
 | R5 | `https://api.crossref.org/works/{doi}` | `clinical_result.doi` | **bibliographic metadata only** — never clinical evidence | works: 1/1 |
 
-**Never fetch `clinical_result.full_article_link` itself.** Measured over 10 representative links, the
-platform's `web_fetch` returned nothing usable from any of them: publisher and conference pages answer
-`403 Forbidden` (ascopubs, sciencedirect, annalsofoncology, jitc.bmj, businesswire), or serve a
-JavaScript shell (clinicaltrials.gov study page, cslide, abstractsonline), or a cookie wall (pubmed).
-Europe PMC `{pmcid}/fullTextXML` fails (500/502). **Full article text is normally out of reach** —
-retrieve the abstract- or registry-level original and say so; do not burn budget on the link page.
+**The record's own `full_article_link` page is a last resort, and accessibility is per host** (measured
+2026-09-17 over 30 representative links: 22 fail, 3 succeed, plus the route calls). Do not treat "the link
+page" as one thing:
+
+- **Do not fetch these hosts at all** — they answer `403` / anti-bot / JS-shell, so the attempt only burns
+  budget and inflates the failed-call count: `businesswire.com`, `globenewswire.com`, `mp.weixin.qq.com`,
+  `www.sec.gov`, `cslide.ctimeetingtech.com`, `www.abstractsonline.com`, `ascopubs.org`,
+  `meetings.asco.org`, `www.sciencedirect.com`, `jitc.bmj.com`, `www.annalsofoncology.org`,
+  `pubmed.ncbi.nlm.nih.gov` (cookie wall), `www.chinadrugtrials.org.cn`, `library.ehaweb.org`,
+  `sabcs.org`, `oncologypro.esmo.org`. Record the reason class instead. Europe PMC
+  `{pmcid}/fullTextXML` is unusable as well (500/502) — use R4.
+- **These work**: `prnewswire.com` ✅ (a 55.8 K-char release carrying the trial numbers) and **company-owned
+  news pages** ✅ (`bioinvent.com`, `hanchorbio.com` both returned the release body with analysis numbers).
+- So fetch the record's own link **at most once per record**, and only when (i) the record carries no usable
+  route key (`doi` / `pm_id` / registration id), or (ii) its host is in the working class above or is
+  unknown. One attempt, no retry, no substitute URL. Full article text is normally out of reach — retrieve
+  the abstract- or registry-level original (or the press-release body) and say so.
+- **`src=49` needs no external fetch at all**: the pulled `abstract_text` *is* the press-release text, so
+  "checking it against the original" means checking that the report stays faithful to that body — fetching
+  the wire page adds nothing and usually fails.
 
 **Budget and failure handling.** At most **one** fetch per record, **one** pass over the selection, and at
 most **20** fetches in a run (if the selection is larger, fetch for the records that carry the key
@@ -170,8 +199,11 @@ paragraph (a mechanical ≥60-character verbatim guard runs in `evals/fact-check
 
 **Say it in the evidence scope.** The evidence-scope block (unified template's `证据范围`, cross-trial /
 mixed templates' `比较口径`) carries one line beginning `原文核对：` that gives how many retrieved records
-were re-checked against the original, by which route, and which records could not be, grouped by reason
-class (抓取受限 / 无登记号或 DOI / 该来源不公开). A run that re-checked none must say so.
+were re-checked against the original, **naming the route or the source class per group**, and which records
+could not be, grouped by reason class (抓取受限 / 无登记号或 DOI / 该来源不公开) — e.g. `原文核对：2/3 条已复核
+（src=1 走 PMID、src=37 走 DOI）；1 条未复核（src=49 新闻稿：库内正文即通稿原文，未做外部抓取）`. A run that
+re-checked none must say so, and a run that fetched nothing because a source class is structurally
+unreachable must name that class instead of reporting a generic failure.
 
 ## Consumer-field mapping (v0.11 attachment fields → params fields)
 

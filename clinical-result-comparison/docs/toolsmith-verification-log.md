@@ -424,7 +424,53 @@ skill 里「禁止外部内容」的条款改掉。实测数据支持这个判�
 **待办**：发布授权 → `publish` → `run --web --prompt "解读这几个结果 24_1_30561610 24_1_36342163"` → `R13`
 （预期 17/17 断言 + `facts 34/34`；若抓取命中原文，`sources/` 应有落盘、正文应有 `原文核对：` 行）。
 
-### W1 — 2026-09-17，runner 新增 `run --web`（只改 runner，零线上改动；台账 O18）
+### W4 — 2026-09-17，原文优先规则**按来源类细化**（用户质疑「你不考虑所有源的 link 可访问性吗？」）
+
+**背景**：W3 把「原文第一优先级」写成一条**扁平**规则——一张路由表 + 一条「不许抓 link 页」的禁令。
+用户质疑：不同来源的 link 可访问性并不一样，一刀切既会浪费调用（对本来就不可达的站点反复抓），
+也会漏掉本来可复核的记录。本轮按 **esid 中段 = 摄取来源 id** 把规则改成**按来源类分化**。
+
+**新增实测（只读，零线上改动；产物 `docs/evidence/source-link-accessibility-2026-09-17.json`）**
+
+| 来源类（src） | 库内 `abstract_text` 是什么 | 外部原文可达性（实测） | 首选路由 |
+|---|---|---|---|
+| `1` PubMed | 期刊摘要正文（中位 1,812 字符） | 可达（PMID 路由 1/1） | R4 → R3 |
+| `2` / `187` CT.gov | 登记平台**结构化结果 JSON**（`187` 实测 602/602 空） | 可达（CT.gov JSON API 323 K 字符，含端点数值） | R2 |
+| `37` 会议摘要 | 会议摘要正文（中位 2,786） | 82.2% 有 DOI ⇒ 可达；**会议站点本身全封**（asco / cslide / abstractsonline / annalsofoncology） | R3 |
+| `49` 新闻稿 | **通稿正文逐字**（`(GLOBE NEWSWIRE) --` / `/PRNewswire/` dateline 在文内） | 分裂：prnewswire ✅ / businesswire ❌403 / globenewswire ❌ / 微信公众号 ❌壳 | **不需外部抓取** |
+| `120` 人工补录 | 实测 100% 空 | 仅 4.8% 有 DOI；公司域页 ✅、IR 静态文件 ❌ | R3（有 DOI）或 link 1 次 |
+| `398` SEC | 未取到有效样本 | EDGAR `403`；`data.sec.gov/*.json` 只有题录**无临床数值** | 不可复核 ⇒ 记原因类 |
+| 无中段 | CT.gov 结构化结果 JSON（38.1% 空） | 26.3% 有路由键 | R2 / R3 |
+
+- 32 条实测 URL：**11 可达 / 21 不可达**（含 4 条路由 API）。同主机可能「人类页不可达、API 可达」：
+  `clinicaltrials.gov/study/…` JS 壳 vs `clinicaltrials.gov/api/v2/…` 正常；`pubmed.ncbi.nlm.nih.gov` cookie 墙 vs
+  Europe PMC REST 正常；`www.sec.gov` 403 vs `data.sec.gov` JSON 可达（仅题录）⇒ **封锁清单是 host+页面类，不是主机名**。
+- 结论：**可达性按来源类判断**；把「link 页一律禁抓」换成「封锁清单 + 每记录最多 1 次、仅在无路由键或主机可用/未知时」。
+
+**改了哪些行（仓库资产，仍未发布）**
+
+| 文件 | 改动 |
+|---|---|
+| `references/input-contract.md` | 原文优先章新增「先认来源类」表（src → 库内 `abstract_text` 性质 / 可达性 / 首选路由）与「按主机分化的抓取策略」（封锁清单 16 个主机 + 可用类 + 每记录 1 次 + `src=49` 免抓）；路由表补足 R3 实测 5/6、R2 2/2；覆盖行要求**逐组点名路由与来源类**并给示例 |
+| `SKILL.md` | 证据段写明按 esid 中段选路（`49` 库内即原文、`398` 不可复核），把「绝不抓 link 页」换成「白名单路由 + 每记录最多 1 次自身 link（仅无路由键或主机可用/未知）」 |
+| `system-prompts/…-v0.15.md` | ①line 15 步骤 3 按来源类选路；②line 46 覆盖行要求点名路由 + 来源类、结构性不可达要按类说明；③line 51 证据段写来源类分流与封锁清单；④line 209 可见性检查改为「路由模板 + 每记录最多 1 次自身 link」 |
+| `templates/*.md`（4 个） | `原文核对：` 槽位说明改为**逐条按来源类标注路径**（含 `src=49` 库内即原文、`src=398` 不可复核） |
+| `evals/fact-check/` | 新增 `A-P4-original-check-names-route-and-class`（op `original_check_names_class`）与 `M20`；`SEED_ORIGINAL_CHECK` 改为同时点名路径与来源类（仍避开 `库内记录`）；README 计数与变异清单同步 |
+| `docs/evidence/source-link-accessibility-2026-09-17.json` | 新增：按来源类的路由键占比 / 库内文本性质 / 32 条 URL 实测 / 主机封锁与可用清单 / 注意事项 |
+
+**离线闸门（已跑，本机）**：`py_compile check.py mutations.py` OK；`mutations.py` →
+`arm a: flipped 35/35`（20 个变异，含 M20「覆盖行空壳」）、`arm b: flipped 12/12`、**`GATE: PASS`**；
+`check.py --run …/20260917-191502-r12-fanout-dedup --scenario a` → `facts 32/35`（`A-P1` 按预期 FAIL 于旧部署字节；
+`A-P4` 在缺行时自动让位给 `A-P1`，不重复计分）。
+
+**为什么加 `A-P4`**：`A-P1` 只查「有一行 + 有数字」，`原文核对：2/2 条已复核。` 这种空壳能全过；
+而本轮实测恰恰说明「是新闻稿（库内即原文、无需抓）」与「是 SEC 备案（不可复核）」必须被写出来，
+否则下游分不清「没复核」和「不需要复核」。`M20` 专门构造这个空壳，证明这条规则有牙。
+
+**待办**：发布授权 → `publish` → `run --web --prompt "解读这几个结果 24_1_30561610 24_1_36342163"` → `R13`
+（预期 17/17 断言 + `facts 35/35`；正文应带 `原文核对：` 行，若命中原文则 `/workspace/sources/` 有落盘）。W3 的计数
+（34/34、`facts 34/34`）以本节为最新。
+
 ### W1 — 2026-09-17，runner 新增 `run --web`（只改 runner，零线上改动；台账 O18）
 
 **背景**：平台把 Web 工具挂在**「项目能力 + 请求级 `enable_web`」两道开关**上（`capabilities/web.py:140`
@@ -480,7 +526,7 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O18 | **`run` 无法进入「联网状态」**：`post_turn` 把请求级 `enable_web` 硬编码为 `False`，而平台只在「项目能力 + 请求级开关」双开时才注入 `web_search`/`web_fetch`（`capabilities/web.py:140`）—— 项目能力本项目已开（`/api/agent/info?…&enable_web=true` 注入 `## Web Tools`），所以唯一的闸门正好是本机验证器碰不到的那一个；后果是无法用 `run` 验证「联网时 skill 行为」（路线 C 的前置条件），之前只能靠临时探针脚本 `/tmp/webtest.py` | `run` 新增全局 `--web`（写进请求体 `enable_web`，`run.json` 与 `verification.md` 均留痕；`--resume` 打印无效提示），CLI docstring 与 plan doc 同步 | **已落地**（2026-09-17，用户先点头后才改；改前备份 `.v4.bak`，92,618 B）→ 证据见 **W1** |
 | O19 | **打分器在「一句多 marker」上假阳性**：R12 报告里 `… NCT02729025 的机制终点未达显著{{ref_1}}，其结论不能外推至 OCEAN(a)-DOSE{{ref_2}}` 被判 `A-ATTR-misattribution` FAIL（`'NCT02729025' in unit citing ['ref_2']`）——而 sys 明文允许「一句确实混用多来源时可挂多个 marker」（`system-prompts/…-v0.15.md:203`）。判分器只看「token 的 owner 是否等于该 unit 的**唯一** ref」，与契约文本冲突 | `eval_attribution`：unit 的 refs 集合 **>1** 时，只在 token 的 owner **不在**该集合里才 FAIL（多来源共处合法）；单 ref 的 unit 维持严格归因 | **待用户点头**（2026-09-17 R12 暴露；未改，避免“刚跑完就放宽清单”的嫌疑） |
 | O20 | **清单条目 `A-T1-title-names-both` 期望过窄**：R12 的 H1 是主题式标题「Lp(a) 升高人群降 Lp(a) 治疗：跨试验对比报告」→ FAIL；但两个药名都在正文锚点里（`A-C1/C2` PASS）。该条的理由是「标题无引注、不受归因保护」，真正要防的是**两药混成一个**；而「H1 必须点名两个药」是从 R8 那份标题倒推的写法偏好（与 O17 同类基线污染） | 改为条件式：**标题若点名药物，则必须两个都点名且不混；纯主题式标题不算违规**（或降为 warn） | **待判**（2026-09-17 R12 暴露；证据仅 1 份产物，按「我方能改的先给证据再改」记待样本） |
-| O21 | **A2 追问的实现路径（分诊完成：政策已放开，规则已改仓库，等发布）**：① **`source_full_link` 字段不存在** —— 那是 v0.11 附件契约的名字（`source_url`/`source_full_text`），现行 params 工具里只有 `clinical_result.full_article_link`（描述「临床结果论文的URL」）；写错名字的后果是整次取数 `INVALID_INPUT`。② 原计划「优先 `abstract_text` → 再访问 `full_article_link`」与**旧** sys:50「citation metadata only」冲突，且对人类可读页面实测不可用（W2-a/W2-c：pubmed cookie 墙、CT.gov JS 骨架、5 个出版域 403）。③ 只有 **API 端点**可用（W2-b/d：CT.gov v2 真原文含结果数值、OpenAlex 按 DOI 拿到原文摘要含会议摘要、Europe PMC 按 pmid 拿摘要；`fullTextXML` 500），而 API 端点必须由 `pm_id`/`doi`/登记号**拼 URL**，与「URL 只逐字用、不得构造」冲突 ⇒ 必须开白名单模板。三个开关已定：**(a) 政策 = 放开**（用户 2026-09-17：字段值是加工的、可能出错，原文第一优先级）；**(b) 可追溯性承载 = 报告正文**（`citations.json` 保持严格 3 键、不加键，因此不破 `A-S4`）；**(c) 冲突/降级语义 = 原文为准 + 分歧必须双值写明 + 抓不到必须点名原因类**。 | 规则已写入仓库（清单见 `### W3`），开白名单模板 R2/R3/R4/R5 | **已定案 → 待发布授权 + 真 run（R13）**（2026-09-17；证据 W2、W3 + 字段实测） |
+| O21 | **A2 追问的实现路径（分诊完成：政策已放开，规则已改仓库，等发布）**：① **`source_full_link` 字段不存在** —— 那是 v0.11 附件契约的名字（`source_url`/`source_full_text`），现行 params 工具里只有 `clinical_result.full_article_link`（描述「临床结果论文的URL」）；写错名字的后果是整次取数 `INVALID_INPUT`。② 原计划「优先 `abstract_text` → 再访问 `full_article_link`」与**旧** sys:50「citation metadata only」冲突，且对人类可读页面实测不可用（W2-a/W2-c：pubmed cookie 墙、CT.gov JS 骨架、5 个出版域 403）。③ 只有 **API 端点**可用（W2-b/d：CT.gov v2 真原文含结果数值、OpenAlex 按 DOI 拿到原文摘要含会议摘要、Europe PMC 按 pmid 拿摘要；`fullTextXML` 500），而 API 端点必须由 `pm_id`/`doi`/登记号**拼 URL**，与「URL 只逐字用、不得构造」冲突 ⇒ 必须开白名单模板。三个开关已定：**(a) 政策 = 放开**（用户 2026-09-17：字段值是加工的、可能出错，原文第一优先级）；**(b) 可追溯性承载 = 报告正文**（`citations.json` 保持严格 3 键、不加键，因此不破 `A-S4`）；**(c) 冲突/降级语义 = 原文为准 + 分歧必须双值写明 + 抓不到必须点名原因类**。 | 规则已写入仓库（清单见 `### W3`），开白名单模板 R2/R3/R4/R5；**并按来源类细化**（`### W4`：`1` PubMed / `2`/`187` CT.gov / `37` 会议 / `49` 新闻稿=库内即原文 / `120` 补录 / `398` SEC 不可复核），把「link 页一律禁抓」改成「16 主机封锁清单 + 每记录最多 1 次自身 link（仅无路由键或主机可用/未知）」 | **已定案 → 待发布授权 + 真 run（R13）**（2026-09-17；证据 W2、W3、W4 + 字段实测） |
 
 ## 4. 平台侧（转开发）
 
