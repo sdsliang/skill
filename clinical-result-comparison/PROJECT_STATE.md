@@ -30,6 +30,18 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - **决定**：先不改 skill 文件；已交产品（何林杰）先尝试验证平台能力，等其结论后再决定是否给 skill 交付契约加「每表同步产 CSV/TSV/XLSX 数据文件」规则。
 - **飞书任务**：待建 task，负责人=何林杰（open_id `ou_543a818d8dcd7a4ce52a9349b1a000ac` 本地聊天记录已取，无需 contact 搜索权限）。**卡点（2026-09-01）**：应用 `cli_aae61ba424389d06` 已启用 28 个 scope（含全部 task），但用户侧 token 未授予 `task:task:write`；bot 身份也未申请该 scope。→ **精简申请链接（仅 task+日历 17 个 scope，一轮审批）**：https://open.feishu.cn/page/scope-apply?clientID=cli_aae61ba424389d06&scopes=task%3Acomment%3Awrite%2Ctask%3Acustom_field%3Awrite%2Ctask%3Atasklist%3Awrite%2Ctask%3Acustom_field%3Aread%2Ctask%3Asection%3Awrite%2Ctask%3Atask%3Aread%2Ctask%3Atasklist%3Aread%2Ctask%3Aattachment%3Awrite%2Ctask%3Asection%3Aread%2Ctask%3Atask%3Awrite%2Ccalendar%3Acalendar%3Areadonly%2Ccalendar%3Acalendar%3Awrite%2Ccalendar%3Acalendar.event%3Aread%2Ccalendar%3Acalendar.event%3Awrite%2Ccalendar%3Acalendar.acl%3Aread%2Ccalendar%3Acalendar.acl%3Acreate%2Ccalendar%3Acalendar.acl%3Adelete 。审批通过后用户再做一次 `--domain task,calendar` 授权即可建任务。
 
+## ⏸️ Parked: 一个 esid 多行扇出 → `{{ref_n}}` 去重措辞（2026-09-17，等产品确认）
+
+- **现象（只读实测）**：`extra_esids` 精确过滤一个 esid 时可返回**多行**；`24_1_30561610` → 3 行，仅 `disease_id` 不同（10000/5194/1403），
+  三行 `clinical_result__id` / `extra_esid` **完全相同**（`clinical_trial_result_structured` 按疾病维度 join 后发散）。
+- **为什么要改**：`{{ref_n}}` 编号口径是**esid 级**（第 3 个输入 esid → `ref_3`，见 `SKILL.md:33`），而响应是**行级**；
+  若按行枚举，2 个 esid 可能来 4–6 行，ref 编号与「结果条数」对不上。skill 正文目前**没有**明写「同一 esid 多行要按 `extra_esid` 去重后再编号」。
+- **状态**：**用户 2026-09-17 判为「很重要、需要改，但我得先问产品」→ 本轮不动 `skill/`**，只记录（改 skill 则必须重跑 `run` 留 `R<n>`）。
+- **要问产品的两个问题**：① 疾病维度扇出是**预期语义**（一条结果对应多适应症）还是**取数副作用**？若是预期，前端「选中结果」的粒度是 esid 还是 `(esid, disease_id)`？
+  ② 若是副作用，应该**工具侧 DISTINCT 掉**（现有 CTE 里的 `SELECT DISTINCT` 只覆盖 `_id/extra_esid`，外层 join 后又发散）还是**由 skill 提示词去重**？
+- **备好的改法（拿到结论后再执行）**：`references/input-contract.md` + `SKILL.md` 各加一句「按 `clinical_result.extra_esid` 去重后再按输入顺序编号 `{{ref_n}}`，同一 esid 的重复行只取一份」。
+- 全文：Obsidian `03-技术与VibeCoding/01-AI与LLM/临床结果esid查询-params工具字段与取值实测-2026-09-17.md`「追问 3」。
+
 ## ⏸️ Parked: bar 柱下钻（v0.9-test，已由用户验证可行，暂不开发）
 
 - 全部改动（未提交）已 stash：`git stash list` → `stash@{0}: On chart-drilldown-nct: wip: bar drill-down (v0.9-test) + 1L ORR test datasets — verified by user, park for later`。分支 `feat/chart-drilldown-nct` 与 main 同提交 `349eabc`（无独立 commit），后续要继续可直接 `git checkout feat/chart-drilldown-nct && git stash pop`。
@@ -102,13 +114,22 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
   ⇒ **「字段空」≠「记录查不到」**，id 格式（短号 vs 长哈希）不是问题（两者都是合法 `extra_esid`）。
 - **「查不到」在协议层是静默的**：不存在的 id → `ok:true` + `data: []` + `error:null`（负向对照已验）。
 - **一个 esid 可能返回多行（按疾病 join 扇出）**：`24_1_30561610` → **3 行**，仅 `disease_id` 不同（10000/5194/1403），
-  `extra_esid` 三行相同。⇒ **新增待办（skill 措辞缺口）**：`input-contract.md` / `SKILL.md` 应明写「按 `extra_esid` 去重后再按输入顺序编号
-  `{{ref_n}}`，重复行只取一份」，否则多行会让 ref 编号与「结果条数」对不上；**改 skill 后必须跑一次 `run` 留 `R<n>`**。
+  `extra_esid` 三行相同。**用户 2026-09-17 判为「很重要、需要改，但要先问产品」→ 本轮不改 skill**；见下方 parked 条。
+- **NCT 号不需要另查**：`clinical_result.projects[*].associate_ids` 里就有（该记录 = `["NCT05419908","EudraCT2015-002578-20",
+  "ESN364_HF_204","PMCT00191065"]`），且 `full_article_link` 就是 CT.gov 的 **results 页** URL；而 `study_results`（该记录 **84 行**）
+ 已经是 results 页的结构化解析 + 魔方自己的成对比较（`compare_result`/`p_value`/CI）。
+- **「用 nct_id 调 CT.gov API 拿 result 全文」不可行/非必要**：① 部署端沙箱 `no network access by default`
+  （`instructions-platform-tail.md` Execute 节）；② skill/sys 明文 `Do not retrieve external facts or URLs`；
+  ③ 会破 ref ↔ 内部记录的一一对应与版本口径 → 属**平台侧能力 + 政策改写**，不是改提示词能落地的事。
+- **但 `trial_id` 参数可用 NCT 号反向拉「该试验全部结果」**（源码 `params_clinical_result_tool.py:246`，
+  `JSON_PATH_LIKE` 于 `projects $[*].associate_ids`）：实测 `trial_id=NCT05419908` → 2 条不同 esid（`24_1_31415087`
+  JCEM 2019 / `24_187_acaa9fda98c00fb890d804d0e3a0428c_1` CT.gov 2023）。**纯内部数据、无需联网**，是「同试验多证据」的正路。
 - **`selected_fields` 不是严格白名单**：响应恒多带 3 个未请求的键（`clinical_result__id`、`company_id`、`disease_id`）；
   48 个名全部被接受（无 `INVALID_INPUT`）。
 - 踩坑：`POST /api/tools/debug` 的 `name` 必须是**上游全名**（`pharmcube-…`），短名 → HTTP 200 + `is_error:true` `Unknown tool`；
   `~/.secrets` 是 `export K="…"` 形式，按 `=` 切会拿到空 token（401），要用正则解析（runner 的 `env_from_secrets`）。
-- 全文（含 SQL、字段清单、脚本写法）：Obsidian `03-技术与VibeCoding/01-AI与LLM/临床结果esid查询-params工具字段与取值实测-2026-09-17.md`。
+- 全文（含 SQL、逐字段取值、84 行 `study_results` 与脚本写法）：Obsidian
+  `03-技术与VibeCoding/01-AI与LLM/临床结果esid查询-params工具字段与取值实测-2026-09-17.md`。
 
 ### 写权限护栏 + 上游新鲜度门禁（2026-09-11，用户追加）
 
