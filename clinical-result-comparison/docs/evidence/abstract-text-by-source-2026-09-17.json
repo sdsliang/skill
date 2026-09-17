@@ -1,0 +1,32 @@
+{
+  "probe": "read-only, MCP pharmcube-query-clinical-result-with-params / pharmcube-query-clinical-trial-with-params via POST /api/tools/debug",
+  "date": "2026-09-17",
+  "question": "is a `source` field reachable on the clinical-result side, and what does abstract_text coverage look like grouped by source?",
+  "source_field_reachability": {
+    "result_tool_measurement": "no `source`/`data_source`/`source_type`/`source_name`/`record_source`/`regulation_source` in ALLOWED_FIELD_NAMES (74 names); all 6 candidates rejected with INVALID_INPUT; the only source-ish field is clinical_result.evidence_source; response rows carry only 3 injected keys (clinical_result__id, company_id, disease_id)",
+    "trial_tool_measurement": "reachable on the trial side: clinical_trial.data_source (=US-ClinicalTrial), clinical_trial_project.aggre_data_source (=[EU-EudraCT, US-ClinicalTrial]), clinical_trial_project.source_name_cn (=null)",
+    "verdict": "not reachable on the result side"
+  },
+  "registration_platform_dimension": {
+    "note": "meeting_tags probe for other registries returned 0 rows",
+    "meeting_tags_rows": {"ChiCTR": 0, "中国临床试验注册中心": 0, "药物临床试验登记与信息公示平台": 0, "EudraCT": 0, "EU Clinical Trials Register": 0, "ClinicalTrials.gov": 4095},
+    "join_check": "500-row joined sample (incl. projects): 500/500 registration platform = US-ClinicalTrials.gov"
+  },
+  "by_source_slice": {
+    "fields": ["extra_esid", "journal", "evidence_source", "abstract_text"],
+    "slice": {"rows": 4095, "empty": 1837, "empty_pct": 44.9, "len_median": 33406, "len_max": 1907425},
+    "ClinicalTrials.gov": {"rows": 4095, "empty": 1837, "empty_pct": 44.9, "len_median": 33406, "len_max": 1907425},
+    "Lancet": {"rows": 1344, "empty": 21, "empty_pct": 1.6, "len_median": 2796, "len_max": 7132},
+    "ASCO 2024": {"rows": 1353, "empty": 5, "empty_pct": 0.4, "len_median": 2821, "len_max": 25108},
+    "Blood": {"rows": 841, "empty": 9, "empty_pct": 1.1, "len_median": 1630, "len_max": 2418},
+    "ESMO 2024": {"rows": 745, "empty": 0, "empty_pct": 0.0, "len_median": 4165, "len_max": 24963},
+    "JAMA": {"rows": 579, "empty": 9, "empty_pct": 1.6, "len_median": 2760, "len_max": 3702},
+    "AACR 2024": {"rows": 200, "empty": 0, "empty_pct": 0.0, "len_median": 2848, "len_max": 6070}
+  },
+  "ctgov_internal_contingency": {
+    "hash_esid_and_prospective_study": {"rows": 600, "empty": 600, "empty_pct": 100.0},
+    "hash_esid_only": {"rows": 3, "empty": 3, "empty_pct": 100.0},
+    "non_hash_esid": {"rows": 3492, "empty": 1234, "empty_pct": 35.3}
+  },
+  "verdict": "emptiness is not distributed by registry vs paper at random: the whole hash-shaped esid class (N_N_<32-hex>, = the 'Prospective Study' class) is 100% empty (603/603), the rest of the CT.gov slice is 35.3% empty, and journal/conference slices are 0-1.6% empty with real abstract-scale lengths (1.6-4.5 KB)"
+}

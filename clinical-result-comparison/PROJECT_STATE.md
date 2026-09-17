@@ -148,6 +148,36 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 7. **给开发的问题**：① 这两个 esid 对应行里 `abstract_text` 当前实际是什么值？② 45% 空是「分批回填未完成」还是「这些记录本来没有可回填的源文本」？
    ③ `Prospective Study` 600/600 全空是否符合预期？④ 回填的是整份文本还是摘要——若为整份，能否另开一个真正摘要级的字段（我们只需要摘要级内容）？
 
+### 追加：`source` 字段可达性 + 按可得来源维度重统（2026-09-17）
+
+**（1）`source` 在结果侧不可及。** 结果工具 74 个可选字段里与 source 有关的**只有** `clinical_result.evidence_source`；
+实测 `clinical_result.source` / `data_source` / `source_type` / `source_name` / `record_source` / `regulation_source` 六个候选名 → 全部 `INVALID_INPUT`；
+返回行只有 `clinical_result__id` / `company_id` / `disease_id` 三个注入列，没有 source。
+（试验侧有：`clinical_trial.data_source` = `US-ClinicalTrial`、`clinical_trial_project.aggre_data_source` = `['EU-EudraCT','US-ClinicalTrial']`、`source_name_cn` = null —— 即 source 语义只在试验侧能读到。）
+
+**（2）按可得的「来源」替代维度重统。**
+
+- **登记平台维度无方差**：`meeting_tags` 试 `ChiCTR` / `中国临床试验注册中心` / `药物临床试验登记与信息公示平台` / `EudraCT` / `EU Clinical Trials Register` → **全部 0 行**；只有 `ClinicalTrials.gov` 有 4,095 行；带 `projects` 的 500 行连接样本里 **500/500** 登记平台都是 `US-ClinicalTrials.gov`。⇒ 结果表里的登记记录就只有 CT.gov 一类。
+- **登记平台 vs 期刊/会议**（同一张表按 journal/会议切片，字段 `extra_esid/journal/evidence_source/abstract_text`）：
+
+| 来源切片 | 行数 | 空 | 空占比 | 中位长度 | 最大长度 |
+|---|---|---|---|---|---|
+| **ClinicalTrials.gov** | 4,095 | 1,837 | **44.9%** | **33,406** | **1,907,425** |
+| Lancet | 1,344 | 21 | 1.6% | 2,796 | 7,132 |
+| ASCO 2024 | 1,353 | 5 | 0.4% | 2,821 | 25,108 |
+| Blood | 841 | 9 | 1.1% | 1,630 | 2,418 |
+| ESMO 2024 | 745 | 0 | 0.0% | 4,165 | 24,963 |
+| JAMA | 579 | 9 | 1.6% | 2,760 | 3,702 |
+| AACR 2024 | 200 | 0 | 0.0% | 2,848 | 6,070 |
+
+⇒ **论文/会议侧几乎不空（0–1.6%）且长度 1.6–4.5 KB（真摘要）；登记平台侧 44.9% 空且中位 33 KB、最大 1.9 MB（整份文本）。**
+- **CT.gov 切片内部交叉表**（4,095 行）：hash 型 esid（`N_N_<32位hex>`）**603/603 = 100% 空**（其中 600 条正是 `Prospective Study`）；非 hash 型 3,492 行 35.3% 空。
+  用户给的 esid #1（`24_187_acaa9fda…`）落在 100% 空的 hash 类，#2（`24_2_NCT06618118_1`，NCT 型）落在 35.3% 空那类（Phase I 最重）。
+- 证据：`docs/evidence/abstract-text-by-source-2026-09-17.json`。
+
+**待开发确认**：他说的 `source` 指哪一列？若指试验侧 `data_source`（登记/期刊来源），需要把它加进结果工具的可选字段，我才能按它全量重统；
+若指的是结果表内部的摄入渠道，那从外部只有上述两个替身维度可见。
+
 ## ⏸️ Parked: bar 柱下钻（v0.9-test，已由用户验证可行，暂不开发）
 
 - 全部改动（未提交）已 stash：`git stash list` → `stash@{0}: On chart-drilldown-nct: wip: bar drill-down (v0.9-test) + 1L ORR test datasets — verified by user, park for later`。分支 `feat/chart-drilldown-nct` 与 main 同提交 `349eabc`（无独立 commit），后续要继续可直接 `git checkout feat/chart-drilldown-nct && git stash pop`。
