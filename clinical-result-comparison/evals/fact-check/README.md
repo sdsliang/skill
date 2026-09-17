@@ -12,7 +12,7 @@
 | --- | --- |
 | `records/scenario-a.records.json` | 场景 A 的 ground truth：`POST /api/tools/debug` 对 2 个有效 esid 的真实返回（5 行 / `actual_result_count=5`） |
 | `records/scenario-b.records.json` | 场景 B：1 个有效 + 1 个不可用 esid 的真实返回（3 行 / `actual=3`） |
-| `scenario-a.facts.json` | 场景 A 清单：**31 条 fail 级 + 1 条 warn 级**（O17 新增 `A-S2b-chart-or-reason` 后：32 条中 31 条 fail） |
+| `scenario-a.facts.json` | 场景 A 清单：**34 条 fail 级 + 1 条 warn 级**（O17 新增 `A-S2b-chart-or-reason` 后为 32 条中 31 条 fail；2026-09-17 原文优先规则新增 `A-P1/P2/P3` 后为 35 条中 34 条 fail） |
 | `scenario-b.facts.json` | 场景 B 清单：**12 条 fail 级 + 1 条 warn 级** |
 | `check.py` | 离线打分器（纯标准库，不联网、不调用平台） |
 | `mutations.py` | 负向对照 harness：证明每条清单项都能翻 FAIL |
@@ -38,7 +38,7 @@ python3 mutations.py
 打分输出最后一行是标量：
 
 ```
-SCORE scenario=a facts 31/31 warn 1/1 -> PASS
+SCORE scenario=a facts 34/34 warn 1/1 -> PASS
 ```
 
 ## 清单条目的写法
@@ -51,6 +51,7 @@ SCORE scenario=a facts 31/31 warn 1/1 -> PASS
 | `absent` | `surface`, `patterns[]` | 图案不得出现（用于「不许把 5 行返回写成 5 条结果」「不许把 `+3.6%` 写成 `−3.6%`」这类反向事实） |
 | `attribution` | `surface`, `pairs[{token, owner}]` | 有引注的句/单元格里，token 必须归属其 owner ref |
 | `line` | `surface`, `line_regex`, `patterns[]` | 同一行（如 H1 标题）必须同时命中全部图案 |
+| `sent_if` | `surface`, `if_regex`, `patterns[]` | **条件句规则**：某句命中 `if_regex` 时，该句必须同时命中全部 `patterns`；没有任何句子命中时自动 PASS（用于「只在真的发生时才约束」的规则，如原文与库内不一致） |
 | `shape` | `op`, 参数 | 结构化断言，见下表 |
 
 `surface` 取值：`report`（`artifacts/output/report.md`）、`citations`、`charts`（`artifacts/visualizations/*.json`）、
@@ -59,7 +60,8 @@ SCORE scenario=a facts 31/31 warn 1/1 -> PASS
 `shape` 的 op：`artifact_present` / `artifact_absent`、`glob_count`、`citations_keys_exact`、
 `citations_entry_key_set`、`citations_matches_record`（对 ground truth record 逐字比，日期按 `YYYY-MM-DD`）、
 `citations_distinct`、`chart_envelope`（`id` / `iframe_template` 形状 / `option.type` / `group` / `stack` /
-`data_len` / `label` 非空 / `title` 非空）、`chart_values`、`chart_set_allowed`、`chart_or_reason`。
+`data_len` / `label` 非空 / `title` 非空）、`chart_values`、`chart_set_allowed`、`chart_or_reason`、
+`no_verbatim_copy`（见下）。
 
 ### 可选出图与「不出图必须说明原因」（2026-09-17，O17）
 
@@ -76,6 +78,21 @@ R11 同输入不画图并写明理由反而被判 FAIL。改成三条相互配�
 **「required 组」是必须的**：只查「支持理由」会漏——跨试验报告天然写「跨试验」「时点不同」，那样删掉图不说话也能过。
 对应的负向对照是 `M16 drop-chart-silent`（删 `endpoint-bar-1.json`，报告不动）→ 必须翻 `A-S2b`；
 正向对照是「删图 + 写明原因」→ 仍 31/31 PASS（手动验过，见台账 O17）。
+
+### 原文优先的三条（2026-09-17，任务「原文第一优先级」）
+
+规则本身在 `skill/.../references/input-contract.md` *Evidence source priority*：esid 字段值是**加工抽取**，
+原文（登记平台 API / DOI / PMID 三条白名单路由）才是第一优先级，冲突时原文为准且必须双值写明。清单只查
+**可机械判定**后果，不查「有没有努力去抓」（那是成本层的事）：
+
+| 条目 | kind / op | 语义 |
+| --- | --- | --- |
+| `A-P1-original-check-line` | `present` | 证据范围段必须有一行 `原文核对：` + 数字（复核条数/总条数） |
+| `A-P2-divergence-shows-both` | `sent_if`（`if_regex=库内记录`） | 一旦出现「原文 vs 库内」的分歧表述，该句必须同时含 `原文`、`库内记录`、`{{ref_n}}`——防的是一侧静默降级。本轮没有分歧时自动 PASS |
+| `A-P3-no-long-verbatim` | `shape` / `no_verbatim_copy` | `/workspace/sources/**` 里归档的抓取原文，不得有 ≥60 连续字符（去空白后）原样出现在报告正文；没抓任何原文时不触发 |
+
+`no_verbatim_copy` 把源文与报告都过一遍 `norm()`（Unicode 减号、全角百分号、NBSP 归一）再比，
+否则「报告里 `−70.5%`、源文里 `-70.5%`」会让抄袭检查静默失效（M18 第一次跑就是这么漏的）。
 
 ### 锚点归因（`anchors` + `attribution`）
 
@@ -117,12 +134,13 @@ R11 同输入不画图并写明理由反而被判 FAIL。改成三条相互配�
 当前结果：
 
 ```
-arm a: flipped 31/31   (16 个变异：改主终点数值、翻转安慰剂符号、抹掉试验登记号、篡改时点、
+arm a: flipped 34/34   (19 个变异：改主终点数值、翻转安慰剂符号、抹掉试验登记号、篡改时点、
                         把 ref_1 指向不存在的引用、把标题里的药名写成另一个、
                         在表格单元格里把 B 的药名写成 A 的（M15）、把 2 条写成 5 条、
                         改 citation 标题、让两个 ref 指向同一条记录、改图表数值、多出一张时间轴图、
                         删掉 report、破坏 envelope、删掉 ref_2、
-                        删掉定量主图且不说明原因（M16）)
+                        删掉定量主图且不说明原因（M16）、删掉原文核对行（M17）、
+                        把抓取原文整段抄进正文（M18）、只写库内值不写原文值（M19）)
 arm b: flipped 12/12   (11 个变异：写出 report/citations、写出图表、改口说「已生成报告」、
                         改掉不可用 esid 名、改掉有效 esid 名、删掉「未返回记录」表述、
                         删掉「不足以构成」表述、删掉请用户核对的表述、给死 esid 编造结论、
@@ -130,8 +148,13 @@ arm b: flipped 12/12   (11 个变异：写出 report/citations、写出图表、
 GATE: PASS
 ```
 
+**基线为什么是一份「补过一行」的副本**：arm A 的基线 run（R8，2026-09-16）早于原文优先规则，
+产物里不可能有 `原文核对：` 行，直接判会让基线不干净。`mutations.py` 因此在**临时副本**上补且只补这一行
+（`seed_original_check`，且刻意避开 `库内记录` 以免误触发 `A-P2`），内容条目仍逐字来自真实 run；
+三条新项各自有专属变异（M17–M19）证明能翻 FAIL。等发布后有一次带该行的真 run，把 `MUT_RUN_A` 指过去即可去掉这一步。
+
 基线（未变异）两份清单都必须全 PASS——否则说明清单本身写错了。
 
 **两份独立样本的基线**：R8（`20260916-104943-v2-poll`）与 R9（`20260916-112352-p8-kill`，同一场景 A、
-客户端被 `kill -9` 后 `--resume` 补齐）都用 `scenario=a` 跑到 **31/31 PASS**。两个不同 run 同一场景都给满分，
+客户端被 `kill -9` 后 `--resume` 补齐）都用 `scenario=a` 跑到 **31/31 PASS**（当时的清单版本）。两个不同 run 同一场景都给满分，
 说明清单没有绑定单次运行的措辞（同时也说明它测不出“两轮之间的微小质量差”——那是后来场景 C/D 与人工抽检的事）。

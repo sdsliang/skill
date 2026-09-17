@@ -355,10 +355,12 @@ Recommended `selected_fields` 收尾一句；② `SKILL.md` 输入契约段加�
 
 **下一步**：发布授权 → `publish`（原地更新 prompt v1.6 + skill 1.0.7）→ 同输入重跑 → 新记录（预期 17/17 PASS，并把事实分与调用数与本次基线对比）。
 
-### W2 — 2026-09-17，`run --web` 的两次 **egress 探针**：路线 C（抓原文 URL）可行性实测
+### W2 — 2026-09-17，`run --web` 的 **egress 探针**：路线 C（抓原文）可行性实测 → 变成技能规则
 
 背景：A2 追问「字段是不是 agent 自己选」「想让它优先读 `abstract_text`（预存全文）、再访问 `full_article_link` 取全文，怎么约束」。
-先用 `run --web`（W1 新增的能力）探清「第二级到底能不能抓」。
+先用 `run --web`（W1 新增的能力）探清「到底能不能抓、能抓到什么」，再把结论写成规则（本次已落仓库，见 `### W3`）。
+
+**W2-a/W2-b（前两个探针，只挑代表性 URL）**
 
 | # | 探针 | URL | `web_fetch` 实测返回 | 结论 |
 |---|---|---|---|---|
@@ -366,12 +368,63 @@ Recommended `selected_fields` 收尾一句；② `SKILL.md` 输入契约段加�
 | W2-a | 人读页面 | `https://clinicaltrials.gov/study/NCT06618118?tab=results` | 站点骨架（`Show glossary` / `Study record managers: …`），零试验内容（正文靠 JS 渲染） | 登记平台类**不可用** |
 | W2-b | 登记平台 API | `https://clinicaltrials.gov/api/v2/studies/NCT06618118` | **完整协议 JSON**（`protocolSection.identificationModule.nctId=NCT06618118`、`orgStudyIdInfo.id=M24-840`、`statusModule.overallStatus=TERMINATED`、申办方 AbbVie…，共 ~7.4 k 字符） | **可用** |
 | W2-b | 文献 API | `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:30561610&resultType=core&format=json` | **Europe PMC JSON**：`pmcid=PMC6933872`、`abstractText`（带 `<h4>` 小标题的摘要全文）、`isOpenAccess="N"`、`hasPDF="Y"`、`citedByCount=110` | **可用** |
-| W2-b | 文献 API | `https://api.crossref.org/works/10.1056/NEJMoa2211023` | 抓取成功，但返回体被平台落盘（`too large to keep inline`），对话里**未展开内容** | 可达，内容未核 |
+| W2-b | 题录 API | `https://api.crossref.org/works/10.1056/NEJMoa2211023` | 抓取成功，但返回体被平台落盘（`too large to keep inline`），对话里**未展开内容** | 可达（后续 W2-d 复核≈题录） |
 
 - 两个探针共 2 次 run（`20260917-193854-webprobe-egress`、`20260917-194022-webprobe-api`），均 `enable_web=true`、断言全绿、`web_fetch` 分别 2 次 / 3 次。
-- **附带事实**：沙箱自身无外网（模型试 `curl` → `Could not resolve host: pubmed.ncbi.nlm.nih.gov`、`HTTP_STATUS:000`），`web_fetch` 是**平台侧代抓**；它**不返回 HTTP 状态码**。
-- **设计含义**：路线 C 不是“不可行”，而是**必须走 API 端点而不是人读页面**；且 API 端点需要**由返回的 `pm_id`/`doi`/登记号拼出**，与现有规则「URL 只逐字使用、不得构造」相矛盾 → 要改规则必须先定白名单模版（见下文 §3）。
+- **附带事实**：沙箱自身无外网（模型试 `curl` → `Could not resolve host: pubmed.ncbi.nlm.nih.gov`、`HTTP_STATUS:000`），`web_fetch` 是**平台侧代抓**。
 
+**W2-c（覆盖探针，11 个真实 URL，来自 1 个药名的 4,106 条结果里各域的代表链接）**
+
+run `20260917-200934-webprobe-coverage`：**10/11 FAIL**，只有题录类成功。
+
+- **更正 W2-a/b 的推断**：`web_fetch` 在**失败时确实带 HTTP 状态码文本**（如 businesswire / jitc.bmj.com 返回 `403 Forbidden`），只是**成功时不回状态码**；失败抓取计入「schema-rejected」而不是普通 tool 调用（所以「0 schema-rejected」不能单独当健康指标）。
+- 逐域结果：`ascopubs / sciencedirect / annalsofoncology / jitc.bmj / businesswire` → `403`；`clinicaltrials.gov` 人读页 / `cslide / abstractsonline` → JS 骨架；`pubmed` → cookie 墙；`doi.org` 重定向类 → 抓取错误。
+- 另一发现：写到 `output/` 的探针文件**会随 run 归档**（`output/fetch-probe.json` 在 `artifacts.zip` 里），而 `tool_results/` **不归档** → 证据落盘必须主动搬到 `output/` 或 `sources/`（后来专门验证，见 W2-e）。
+
+**W2-d（端点覆盖探针，4 个 URL）** run `20260917-201202-webprobe-api2`：
+
+| URL 类 | 结果 |
+|---|---|
+| `…/europepmc/webservices/rest/PMC6933872/fullTextXML` | ❌ `Server error '500 '`（两次尝试均失败）→ **全文 XML 路不通** |
+| `https://api.openalex.org/works/doi:10.1093/eurheartj/ehy862` | ✅ `has_abstract=true`、`has_endpoint_numbers=true`，49,195 字符 |
+| `https://api.openalex.org/works/doi:10.1200/JCO.2023.41.4_suppl.345`（会议摘要） | ✅ `has_abstract=true`、`has_endpoint_numbers=true`，31,147 字符 → **会议摘要有 DOI 也能拿到原文摘要** |
+| `https://clinicaltrials.gov/api/v2/studies/NCT05419908` | ✅ 真原文（`protocolSection`）+ **结果数值**，322,763 字符 |
+
+**W2-e（落盘归档探针）** run `20260917-201416-archive-scope`：写 `/workspace/{sources,notes,output}/probe.txt` 三个路径 → `artifacts.json` 三个都在，`artifacts.zip` 内 `['notes/probe.txt','output/probe.txt','sources/probe.txt']` ⇒ **工作区任意路径都随 run 归档**，`sources/` 可作为「抓到的原文」的审计落点。
+
+**覆盖度测量**（药名切片 4,106 行，字段：`doi` / `pm_id` / `full_article_link` 内登记号）
+
+- 有 `doi` 81.8%；有 `pm_id` 36.2%；链接/标题里有 NCT 0.6%；**至少有一条白名单路由的 83.0%**。
+- 按 esid 中段（源 id）：`src=1`（论文）100% 可路由，`src=37` 82.2%，`src=49`（公司/微信）**0%**，裸 id 26.3%，`src=120` 4.8%。
+
+**最终结论（写进规则的版本）**：人读页面统一不可用，**API 端点可用且适用面 ~83%**；`fullTextXML` 不可用 ⇒
+「原文」实际是**原文摘要级 / 登记平台级**，据此写的规则见 `### W3`。
+
+### W3 — 2026-09-17，规则改为「原文第一优先级」（仓库已改，**等发布授权 + 真 run 才是 R13**）
+
+**背景**：用户指出「esid 字段值是**加工过**的，可能出错，应以**原文**为第一优先级，库内字段次之」，并要求把
+skill 里「禁止外部内容」的条款改掉。实测数据支持这个判断：`abstract_text` 中位数 33 KB、最大 1.9 MB，
+且 77.4% 的 CT.gov 行里它是**结构化结果 JSON 而不是文字摘要**（见 `docs/evidence/*.json`）。
+
+**改了哪些行（全部为仓库资产，尚未发布）**
+
+| 文件 | 改动 |
+|---|---|
+| `skill/.../references/input-contract.md` | 新增 `### Evidence source priority: the original source comes first`：白名单路由表 R2/R3/R4/R5、预算（每记录 1 次 / 整批 1 轮 / 上限 20 次）、失败处理、分歧固定写法 `原文 …；库内记录 …{{ref_n}}`、「原文缺失 ≠ 库内错」、`原文核对：` 覆盖行、版权闸门 |
+| `skill/.../SKILL.md` | 证据段：把「clinical evidence」改为「processed extracts」，删掉「Do not retrieve external facts or URLs」的全面禁止，改为「只走白名单模板、原文优先、冲突写双值」 |
+| `skill/.../references/input-and-extraction.md` | 同上口径（去「never retrieve … a missing URL」的绝对禁止） |
+| `skill/.../references/citation-and-ref.md` | 说明 `doi`/`pm_id`/登记号仅作路由键，题录字段本身仍不得产生临床事实 |
+| `system-prompts/…-v0.15.md` | ①line 50 证据定义改为「加工抽取 + 原文复核」；②line 53 澄清「复核**已选**记录不算引入未选内容」；③line 209 `no URL was retrieved` 改为「只允许白名单模板」；④新增「原文核对必须可见」条：`原文核对：` 行 + 分歧双值 + 未复核点名 |
+| `templates/*.md`（unified / cross-trial / mixed / same-trial） | 证据范围（or 比较口径）块加 `原文核对：` 槽位；unified §6.3 差异段加双值写法 |
+| `evals/fact-check/` | 新增 `A-P1/P2/P3`（覆盖率行 / 分歧双值 / 禁长段照抄）与 `sent_if` kind、`no_verbatim_copy` op；`mutations.py` 加 M17–M19（含「基线补一行」的说明与实现） |
+
+**离线闸门（已跑）**：`py_compile` OK；`mutations.py` → `arm a: flipped 34/34`、`arm b: 12/12`、`GATE: PASS`；
+`check.py --scenario a` 对 R12（旧部署字节）→ `31/34`（新三项按预期 FAIL，属契约新增）。
+
+**待办**：发布授权 → `publish` → `run --web --prompt "解读这几个结果 24_1_30561610 24_1_36342163"` → `R13`
+（预期 17/17 断言 + `facts 34/34`；若抓取命中原文，`sources/` 应有落盘、正文应有 `原文核对：` 行）。
+
+### W1 — 2026-09-17，runner 新增 `run --web`（只改 runner，零线上改动；台账 O18）
 ### W1 — 2026-09-17，runner 新增 `run --web`（只改 runner，零线上改动；台账 O18）
 
 **背景**：平台把 Web 工具挂在**「项目能力 + 请求级 `enable_web`」两道开关**上（`capabilities/web.py:140`
@@ -427,7 +480,7 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O18 | **`run` 无法进入「联网状态」**：`post_turn` 把请求级 `enable_web` 硬编码为 `False`，而平台只在「项目能力 + 请求级开关」双开时才注入 `web_search`/`web_fetch`（`capabilities/web.py:140`）—— 项目能力本项目已开（`/api/agent/info?…&enable_web=true` 注入 `## Web Tools`），所以唯一的闸门正好是本机验证器碰不到的那一个；后果是无法用 `run` 验证「联网时 skill 行为」（路线 C 的前置条件），之前只能靠临时探针脚本 `/tmp/webtest.py` | `run` 新增全局 `--web`（写进请求体 `enable_web`，`run.json` 与 `verification.md` 均留痕；`--resume` 打印无效提示），CLI docstring 与 plan doc 同步 | **已落地**（2026-09-17，用户先点头后才改；改前备份 `.v4.bak`，92,618 B）→ 证据见 **W1** |
 | O19 | **打分器在「一句多 marker」上假阳性**：R12 报告里 `… NCT02729025 的机制终点未达显著{{ref_1}}，其结论不能外推至 OCEAN(a)-DOSE{{ref_2}}` 被判 `A-ATTR-misattribution` FAIL（`'NCT02729025' in unit citing ['ref_2']`）——而 sys 明文允许「一句确实混用多来源时可挂多个 marker」（`system-prompts/…-v0.15.md:203`）。判分器只看「token 的 owner 是否等于该 unit 的**唯一** ref」，与契约文本冲突 | `eval_attribution`：unit 的 refs 集合 **>1** 时，只在 token 的 owner **不在**该集合里才 FAIL（多来源共处合法）；单 ref 的 unit 维持严格归因 | **待用户点头**（2026-09-17 R12 暴露；未改，避免“刚跑完就放宽清单”的嫌疑） |
 | O20 | **清单条目 `A-T1-title-names-both` 期望过窄**：R12 的 H1 是主题式标题「Lp(a) 升高人群降 Lp(a) 治疗：跨试验对比报告」→ FAIL；但两个药名都在正文锚点里（`A-C1/C2` PASS）。该条的理由是「标题无引注、不受归因保护」，真正要防的是**两药混成一个**；而「H1 必须点名两个药」是从 R8 那份标题倒推的写法偏好（与 O17 同类基线污染） | 改为条件式：**标题若点名药物，则必须两个都点名且不混；纯主题式标题不算违规**（或降为 warn） | **待判**（2026-09-17 R12 暴露；证据仅 1 份产物，按「我方能改的先给证据再改」记待样本） |
-| O21 | **A2 追问的实现路径（待拍板，未改任何文件）**：① **`source_full_link` 字段不存在** —— 那是 v0.11 附件契约的名字（`source_url`/`source_full_text`），现行 params 工具里只有 `clinical_result.full_article_link`（描述「临床结果论文的URL」）；写错名字的后果是整次取数 `INVALID_INPUT`。② 用户要的「优先 `abstract_text` → 再访问 `full_article_link`」ladder **与现行 sys 直接冲突**：sys:50 明文规定 `full_article_link` 是「citation metadata only and may never add clinical facts」。③ 且第二级对人读地址实测不可用（见 W2），只有 API 端点可用 —— 而 API 端点必须由 `pm_id`/`doi`/登记号**拼 URL**，与「URL 只逐字用、不得构造」冲突 | 待用户拍三个开关：**(a)** 政策（允不允许联网抓外部内容并写进报告）；**(b)** 可追溯性承载（`citations.json` 严格 3 键、加键会让 `A-S4` FAIL → 正文标注 / 旁路文件 / 禁止外部事实三选一）；**(c)** 冲突与降级语义（库内 vs 外抓冲突以谁为准；抓不到是否必须写明） | **待拍板**（2026-09-17；证据 W2 + 字段实测） |
+| O21 | **A2 追问的实现路径（分诊完成：政策已放开，规则已改仓库，等发布）**：① **`source_full_link` 字段不存在** —— 那是 v0.11 附件契约的名字（`source_url`/`source_full_text`），现行 params 工具里只有 `clinical_result.full_article_link`（描述「临床结果论文的URL」）；写错名字的后果是整次取数 `INVALID_INPUT`。② 原计划「优先 `abstract_text` → 再访问 `full_article_link`」与**旧** sys:50「citation metadata only」冲突，且对人类可读页面实测不可用（W2-a/W2-c：pubmed cookie 墙、CT.gov JS 骨架、5 个出版域 403）。③ 只有 **API 端点**可用（W2-b/d：CT.gov v2 真原文含结果数值、OpenAlex 按 DOI 拿到原文摘要含会议摘要、Europe PMC 按 pmid 拿摘要；`fullTextXML` 500），而 API 端点必须由 `pm_id`/`doi`/登记号**拼 URL**，与「URL 只逐字用、不得构造」冲突 ⇒ 必须开白名单模板。三个开关已定：**(a) 政策 = 放开**（用户 2026-09-17：字段值是加工的、可能出错，原文第一优先级）；**(b) 可追溯性承载 = 报告正文**（`citations.json` 保持严格 3 键、不加键，因此不破 `A-S4`）；**(c) 冲突/降级语义 = 原文为准 + 分歧必须双值写明 + 抓不到必须点名原因类**。 | 规则已写入仓库（清单见 `### W3`），开白名单模板 R2/R3/R4/R5 | **已定案 → 待发布授权 + 真 run（R13）**（2026-09-17；证据 W2、W3 + 字段实测） |
 
 ## 4. 平台侧（转开发）
 
@@ -448,7 +501,7 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 - **P6** `POST /api/tools/debug` 的必填字段与 schema 不一致：源码里 `ToolDebugRequest.mcp_server_id: str | None = None`（OpenAPI 呈现为 `anyOf[string,null]`、不在 `required`），但 `origin == "MCP"` 时不传就被 `model_validator` 拦下，422 原文
   `"mcp_server_id is required for MCP tool debug"` —— 调用方只能从报错反推。
 
-- **P10（新，2026-09-17，待用户决定是否转开发）`web_fetch` 对主流医药信源基本不可用，且不暴露状态码**：实测（W2）——PubMed 人读页返回反爬拦截页 `Cookies must be enabled … reload this page to continue.`；ClinicalTrials.gov 人读页（含 `?tab=results`）只返回 JS 骨架（`Show glossary` / `Study record managers: …`），拿不到试验记录；`web_fetch` **不返回 HTTP 状态码**；沙箱自身无外网（`Could not resolve host` ⇒ `web_fetch` 为平台侧代抓，失败时调用方无法区分「被反爬」「404」「超时」）。
+- **P10（新，2026-09-17，待用户决定是否转开发）`web_fetch` 对主流医药信源的人读页面基本不可用，失败语义不清**：实测（W2-a/c/d；W2-c 更正：**失败时确实返回状态码文本**，如 `403 Forbidden`，只有成功时不回状态码）——PubMed 人读页返回反爬拦截页 `Cookies must be enabled … reload this page to continue.`；ClinicalTrials.gov 人读页（含 `?tab=results`）只返回 JS 骨架（`Show glossary` / `Study record managers: …`），拿不到试验记录；失败抓取会计入「schema-rejected」计数（正常 0 schema-rejected 的健康指标会因此失真）；沙箱自身无外网（`Could not resolve host` ⇒ `web_fetch` 为平台侧代抓）。
   - **可用替代（我们实测能通）**：CT.gov v2 API `https://clinicaltrials.gov/api/v2/studies/<NCT>`（返回完整协议 JSON）、Europe PMC REST `…/rest/search?query=EXT_ID:<pmid>&resultType=core&format=json`（返回 `abstractText`/`pmcid`/`isOpenAccess`）。
   - **建议**（开发定）：`web_fetch` 至少回传状态码/失败原因；若能力允许，对已知医药域名提供「API 端点优先 / 简单渲染」路径。
 

@@ -16,7 +16,7 @@ Each selected clinical result is pulled by esid through the MCP tool `pharmcube-
 }
 ```
 
-Only the fields that carry clinical content (`abstract_text`, `summary`, `study_results`, design/arms context) support clinical claims. `paper_title`, `full_article_link`, `paper_release_time`, `journal`, `doi`, and `pm_id` are citation metadata. Do not derive clinical facts from them. `title` and `link` are preserved byte-for-byte and are never completed, transformed, or guessed.
+Only the fields that carry clinical content (`abstract_text`, `summary`, `study_results`, design/arms context) support clinical claims, and they are pipeline-processed extracts: the original source is the first-priority check for material numbers (see `references/input-contract.md`, *Evidence source priority*) and wins on divergence. `paper_title`, `full_article_link`, `paper_release_time`, `journal`, `doi`, and `pm_id` are citation metadata. Do not derive clinical facts from them; `doi` / `pm_id` / a registration id serve only as the route keys of the whitelisted fetch templates. `title` and `link` are preserved byte-for-byte and are never completed, transformed, or guessed.
 
 `paper_release_time` comes back as a **datetime string** (`YYYY-MM-DD HH:MM:SS`, e.g. `2018-12-19 00:00:00`); the citation value is its **date part only**: keep `YYYY-MM-DD` (the first 10 characters, after checking they match `\d{4}-\d{2}-\d{2}`) and drop the time component. Never reformat beyond that, never convert to another format or timezone, and never invent or complete a missing date: an empty value stays `""`, and a value that does not begin with a date is passed through unchanged.
 

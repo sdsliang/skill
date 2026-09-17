@@ -46,10 +46,30 @@ def fresh(name, src, files, with_artifacts):
         shutil.copytree(os.path.join(src, "artifacts"), os.path.join(d, "artifacts"))
     else:
         os.makedirs(os.path.join(d, "artifacts", "visualizations"), exist_ok=True)
-    return (d,
-            os.path.join(d, "artifacts", "output", "report.md"),
+    r = os.path.join(d, "artifacts", "output", "report.md")
+    if with_artifacts and os.path.isfile(r):
+        seed_original_check(r)
+    return (d, r,
             os.path.join(d, "artifacts", "output", "citations.json"),
             os.path.join(d, "artifacts", "visualizations"))
+
+
+# The recorded baseline run (R8, 2026-09-16) predates the original-source contract, so it
+# cannot already contain the `原文核对：` line that contract now requires.  Seed that one line
+# into the throwaway baseline copy: every content item still sees the real run's bytes, and the
+# three original-source items each keep their own mutation (M17-M19) proving they can flip.
+# The seed line deliberately avoids the literal `库内记录`, which would arm the conditional
+# divergence item A-P2 on a line that is not a divergence.
+SEED_ORIGINAL_CHECK = ("> **原文核对：** 1/2 条已按原文复核（路由：DOI / PMID）；"
+                       "1 条未能复核（原因类：抓取受限）。\n")
+
+
+def seed_original_check(report_path):
+    t = open(report_path, encoding="utf-8").read()
+    lines = t.splitlines(keepends=True)
+    lines.insert(1, "\n" + SEED_ORIGINAL_CHECK)
+    open(report_path, "w", encoding="utf-8").write("".join(lines))
+    return 1
 
 
 def sub(path, pat, rep, count=0):
@@ -172,6 +192,25 @@ def M16(d, r, c, v):  # drop the quantitative chart and say nothing about charts
     return 1
 
 
+def M17(d, r, c, v):  # answer without any original-source coverage line
+    return sub(r, r"原文核对：[^\n]*\n", "")
+
+
+def M18(d, r, c, v):  # paste a long verbatim run from a fetched original into the report
+    src_dir = os.path.join(d, "artifacts", "sources")
+    os.makedirs(src_dir, exist_ok=True)
+    t = re.sub(r"\s+", "", open(r, encoding="utf-8").read())
+    frag = t[200:320]
+    assert len(frag) >= 60, "baseline report too short to build a verbatim-copy mutation"
+    open(os.path.join(src_dir, "ref_1.abstract.json"), "w", encoding="utf-8").write(frag)
+    open(r, "a", encoding="utf-8").write("\n\n" + frag[:100] + "\n")
+    return 1
+
+
+def M19(d, r, c, v):  # quote only the pulled value where the original disagrees (silent one-sided divergence)
+    return sub(r, r"\Z", "\n\n库内记录显示主要终点降幅为 −13.9%。\n")
+
+
 MUTS_A = [
     ("M01 minus139", M01, "A-C4-primary-A"),
     ("M02 signflip", M02, "A-N2-no-sign-flip"),
@@ -189,6 +228,9 @@ MUTS_A = [
     ("M14 cite-drop-ref", M14, "A-S3-cite-keys"),
     ("M15 cross-attribution", M15, "A-ATTR-misattribution"),
     ("M16 drop-chart-silent", M16, "A-S2b-chart-or-reason"),
+    ("M17 drop-original-check", M17, "A-P1-original-check-line"),
+    ("M18 verbatim-copy", M18, "A-P3-no-long-verbatim"),
+    ("M19 one-sided-divergence", M19, "A-P2-divergence-shows-both"),
 ]
 
 # --------------------------------------------------------------- arm B mutations
@@ -273,14 +315,18 @@ MUTS_B = [
 
 
 def arm(scenario, src, files, with_artifacts, muts):
-    rc0, bad0, base = score(src, scenario)
+    if not os.path.isdir(src):
+        print(f"arm {scenario}: SKIP (run dir not found: {src})")
+        return True, [], []
+    # Score a seeded *copy* as the baseline: the recorded run predates the original-source
+    # contract, so its own bytes cannot satisfy A-P1 (see seed_original_check).
+    bd, _, _, _ = fresh("baseline", src, files, with_artifacts)
+    rc0, bad0, base = score(bd, scenario)
+    shutil.rmtree(bd, ignore_errors=True)
     assert rc0 == 0 and not bad0, f"baseline {scenario} not clean: rc={rc0} bad={bad0}"
     total = {i["id"] for i in base["items"] if i["severity"] == "fail"}
     print(f"baseline {scenario}: {len(total)} fail-severity items, all PASS")
     covered, mismatch, ok = set(), [], True
-    if not os.path.isdir(src):
-        print(f"arm {scenario}: SKIP (run dir not found: {src})")
-        return True, [], []
     for name, fn, expect in muts:
         d, r, c, v = fresh(name, src, files, with_artifacts)
         fn(d, r, c, v)

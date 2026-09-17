@@ -473,6 +473,37 @@
    ],
    "evidence": "剂量名在 abstract 中与降幅成对给出；但记录里 arm 与剂量的绑定只能靠 arms 顺序 + arm_count(58/58/56/55) 与 study_results 臂顺序推得，记录本身未直接给出 arm_id↔剂量",
    "rationale": "推断性事实，不计入 keep/discard；只提醒读者这条映射是推理而非字段直读"
+  },
+  {
+   "id": "A-P1-original-check-line",
+   "kind": "present",
+   "surface": "report",
+   "patterns": [
+    "原文核对[:：][^\\n]*\\d"
+   ],
+   "evidence": "原文优先规则要求证据范围段（unified 模板 `证据范围` / cross-trial 模板 `比较口径`）写一行复核覆盖：`原文核对：` + 已复核/总条数 + 未复核原因类",
+   "rationale": "原文优先必须留可核对痕迹；没有这一行，'声称复核过' 与 '没复核' 在下游不可区分，规则等于装饰"
+  },
+  {
+   "id": "A-P2-divergence-shows-both",
+   "kind": "sent_if",
+   "surface": "report",
+   "if_regex": "库内记录",
+   "patterns": [
+    "原文",
+    "库内记录",
+    "\\{\\{ref_\\d+\\}\\}"
+   ],
+   "evidence": "固定写法：原文与库内不一致时必须写 `原文 <值>；库内记录 <值>{{ref_n}}`；未触发（本轮无不一致）时自动通过",
+   "rationale": "只写库内值而不写原文值，等于把降级悄悄咽下；这条把分歧写成必须双值并附引用"
+  },
+  {
+   "id": "A-P3-no-long-verbatim",
+   "kind": "shape",
+   "op": "no_verbatim_copy",
+   "min_run": 60,
+   "evidence": "原文抓取落盘 /workspace/sources/（随 run 归档）；报告正文不得出现与源文一致的 >=60 连续字符（版权 + 文体）。未抓取原文时不触发",
+   "rationale": "放开原文读取后必须同时上版权/文体闸门，否则就是把出版方正文搬进交付物"
   }
  ],
  "revision": "2026-09-17（O17 修复，用户批准）：A-S2/A-S8/A-S9 原期望『必出 endpoint-bar-1.json』是从 R8 那一份产物倒推出来的，与规则文本 references/chart-templates.md:91 冲突（定量主图是可选补充，条件是同一终点/同一口径/可明确对齐的时点）。改成：出图则类型/文件名/封套/数值必须自洽（chart_set_allowed + 条件式 envelope/values）；不出图则正文必须写明原因（A-S2b-chart-or-reason，≥2 组关键词）。变异 M16 证明『删图且不解释』仍会 FAIL。R11（2026-09-17）不画图的理由：第 16 周 vs 第 36 周、人群与给药方案不同 → 按规则合规。"

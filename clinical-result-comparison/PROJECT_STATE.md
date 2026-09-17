@@ -25,6 +25,7 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 > **2026-09-17 当日进展**：A1 已定为「扇出 = 疾病 join 引入，Skill 侧兼容」→ **兼容措辞已落地 4 个文件（B2 关闭）**，本地先行跑出 **R12**（旧版基线 + 3 项部署一致性 FAIL 属预期）；发布授权下来后重跑即收口。
 > 另新增两条清单发现（**O19** 打分器「一句多 marker」假阳性、**O20** `A-T1` 期望过窄），均待你一句话判定。
 > **追加（同日第二轮）**：用 `run --web` 做了两次 **egress 探针（W2）**，把路线 C 探清楚了——**人读页面抓不到**（PubMed 反爬拦截页 / CT.gov 只有 JS 壳），**API 端点能抓到**（CT.gov v2 API 全协议 JSON、Europe PMC REST 带 `abstractText`/`pmcid`）。用户提的「优先 `abstract_text` → 再访 `full_article_link`」ladder 因此卡在三个政策开关上（新开 **A13**，台账 **O21**）。另：**不存在 `source_full_link` 字段**，现名是 `clinical_result.full_article_link`。
+> **追加（同日第三轮，最新）**：用户拍定 **政策放开、原文第一优先级** ⇒ A13 三开关已定，规则已落仓库（台账 **`### W3`**）。离线闸门已绿（`mutations.py` arm a **34/34**、arm b 12/12、`GATE: PASS`）；**差 `publish` 授权 + 真 run `R13`** 才能算验证完（与 A1 的发布共用一次授权）。覆盖度实测：83.0% 记录至少有一条白名单路由。
 
 > 分四类：**A 等外部答复才能动** / **B 已定要改、只差授权执行** / **C 待样本再判** / **D 已定案不动**。
 > 每条点名层与文件（runner = 本机 CLI；TS 资产 = 平台上已发布的 prompt/skill；仓库资产 = `skill/`、`system-prompts/`、`docs/`、`evals/`）。
@@ -35,7 +36,7 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 |---|---|---|---|---|
 | A1 | ~~一个 esid 多行扇出的语义~~ **已答（2026-09-17）**：产品确认扇出由疾病 join 引入、非预期语义，要求 Skill 侧兼容 | 产品 | ✅ 已解决 | **兼容措辞已落地**（`input-contract.md` / `SKILL.md` / `citation-and-ref.md` / sys v0.15）：按 `clinical_result.extra_esid` 去重、一个 esid = 一 marker 一 citation；本地先行跑出 **R12**（台账已记），发布授权后重跑收口 → 见 B2 |
 | A2 | 结果记录不全 vs CT.gov 官方全：路线 A 数据侧补 / B skill 诚实声明 / C 运行期拉官方 | 产品 + 数据团队 | 路线 C 还牵扯「联网 + 外部引用」政策 | A → 报数据团队；B → 需新信号字段；C → `run --web` 已可验（O18/W1）。**附：链路梳理与优化评估已完成** → Obsidian「临床结果Skill-esid到MCP查询链路梳理与优化评估-2026-09-17」。**2026-09-17 追加 W2 探针：路线 C 只能走 API 端点（人读页面对 PubMed/CT.gov 都抓不到）** → 改规则前需先定白名单模版，见 A13 |
-| A13 | **证据来源优先级 ladder**（你问「优先读预存全文、其次访原文 URL」怎么写约束）：字段是 agent 自选（平台不强制），唯一约束面是我们自己的契约文本；但落地前需拍三个开关 —— **(a) 政策**：允不允许联网抓外部内容并写进报告（现在 sys:50 明文禁 `full_article_link` 提供临床事实）；**(b) 可追溯性承载**：`citations.json` 严格 3 键（加键会让 `A-S4` FAIL）→ 正文标注 / 旁路文件 / 禁止外部事实三选一；**(c) 冲突与降级语义**：库内 vs 外抓冲突以谁为准、抓不到是否必须写明 | 用户（+ 产品/合规） | 名字更正：**无 `source_full_link`**，现值 `clinical_result.full_article_link`（4 条样本实测：论文→PubMed 链接、登记平台→CT.gov study 链接、公司新闻→公众号 URL）；ladder 第二级实测只能走 API 端点（W2） | 拍完三个开关 → 我写 `input-contract.md` 新节 + sys 证据段同步 + 事实清单加可判定条目 + `run`/`R<n>` + 发布授权 |
+| A13 | **证据来源优先级 ladder**：原三条待拍开关 **已定案（用户 2026-09-17）**：(a) 政策 = **放开**（字段值是加工抽取、可能出错，原文第一优先级）；(b) 可追溯性承载 = **报告正文**（`citations.json` 保持严格 3 键、不加键）；(c) 冲突/降级 = **原文为准 + 分歧必须双值 `原文 …；库内记录 …{{ref_n}}` + 抓不到必须点名原因类**，且「原文缺失 ≠ 库内错」 | 自己 | ✅ 已定案 | **规则已落仓库（未发布）**：`input-contract.md` 新章 + SKILL/sys 四处改写 + 4 个 template 加 `原文核对：` 槽位 + 清单加 `A-P1/P2/P3`（`mutations.py` M17–M19 已证能翻）⇒ 差 `publish` + 真 run `R13`（见台账 `### W3`） |
 | A3 | 报告表格整表复制 / 整表下载 CSV-Excel（平台能力） | 产品（何林杰） | 已交其验证；**飞书任务至今未建**（2026-09-17 实测用户 token scope 仍无 `task:task:write`） | 他给结论 → 再定 skill 是否「每表同步产 CSV/TSV/XLSX」 |
 | A4 | 通用下钻契约 `drillDownValue` + detail json（esid 数组） | 产品（何林杰/段帅帅） | 08-28 起 parked，等其案例测试与范式记录 | 照其规范实现（半小时级） |
 | A5 | registry `abstract_text` 回填 4 问（这两个 esid 实际值？45% 空是分批未完成？`Prospective Study` 600/600 全空是否预期？回填的是整份文本还是摘要？） | 开发 | 问法与证据已备好 | 答复后定是否另要「摘要级字段」 |
@@ -951,7 +952,7 @@ esid 形如 `YY_SRC_KEY`，**中段就是摄入 source id**。这个 id 不需�
 
 **链路要点（评估结论）**：整条链路只有 **1 次批量调用**（`extra_esids` + 最小 `selected_fields`），无发现式检索、无分页、无重试风暴；风险全在返回体形状 —— 行数被疾病 join 放大、`abstract_text` 在登记平台记录里可达 1.9 MB（且常常不是摘要），另有「未过滤选大字段 → StarRocks `rg_cube` 16 GiB 内存爆」与「请求 `projects` → 返回压到 500 行」两个已知边界。优化按性价比：**O-1 扇出去重（已落地）** > O-3 大字段按需（文案待改，即 B1）> O-8 平台侧显式返回未命中 esid（问题单候选）> O-9 真实 `source` 字段（等开发）> O-6 委派阈值（待样本）。
 
-### 追加 B：证据来源优先级 ladder 的落点（2026-09-17 第二轮，**未改任何 skill/sys 文件**）
+### 追加 B：证据来源优先级 ladder 的落点（2026-09-17 第二轮探清 → 政策放开后已落仓库，见 `### W3`）
 
 **问题（用户）**：`selected_fields` 是不是 agent 自己决定？想约束读取优先级——第一优先 `abstract_text`（预存全文），第二优先访问 `source_full_link` 抓全文；怎么约束？
 
@@ -962,5 +963,6 @@ esid 形如 `YY_SRC_KEY`，**中段就是摄入 source id**。这个 id 不需�
 3. **`full_article_link` 实测指向（4 条样本）**：论文 → `https://pubmed.ncbi.nlm.nih.gov/<pm_id>`（同带 `doi`）；登记平台 → `https://clinicaltrials.gov/study/<NCT>`（`187` 类带 `?tab=results`）；公司新闻 → 微信公众号文章 URL。
 4. **第二级「访问 URL 取全文」实测**：**人读页面全部失败**（PubMed → `Cookies must be enabled …` 反爬页；CT.gov → JS 骨架，无试验内容）；**API 端点全部成功**（CT.gov v2 `…/api/v2/studies/<NCT>` → 完整协议 JSON；Europe PMC `…/rest/search?query=EXT_ID:<pmid>&resultType=core&format=json` → `abstractText` + `pmcid` + `isOpenAccess`）。且 `web_fetch` **不回状态码**、沙箱无外网（平台侧代抓）。
 5. **因此「原样写 ladder」不可行**：第二级必须换成 **API 端点**，而 API 端点要**由 `pm_id`/`doi`/登记号拼 URL** —— 与现行「URL 只逐字使用、不得构造/猜测」直接冲突；且与 sys:50「`full_article_link` 仅为引用元数据、不得提供临床事实」冲突。
-6. **待拍三个开关（A13）**：(a) 政策：允不允许联网抓外部内容并作为正文证据；(b) 可追溯性承载：`citations.json` 严格 3 键（加键 → `A-S4` FAIL），外部事实放正文标注 / 旁路文件 / 干脆禁入正文；(c) 冲突与降级语义（库内优先还是外抓优先、抓不到是否**必须**写明）。
+6. ~~待拍三个开关~~ **已拍（2026-09-17 用户答复）**：(a) 政策 = **允许外部访问、原文第一优先级**；(b) 承载 = **报告正文 + `/workspace/sources/<esid>.<route>.{json,md}` 旁路审计**（`citations.json` 不动，`A-S4/A-S5` 保持绿）；(c) 语义 = 同指标分歧**原文为准**且双值并列、**原文缺失不算库内错**（可达原文多为摘要级）、抓不到按 `抓取受限 / 无登记号或 DOI / 该来源不公开` 记原因类。
+8. **落实形态（2026-09-17 第三轮）**：白名单模板 R2/R3/R4/R5 逐字写进 `input-contract.md`；预算 ≤1 次/记录、整批 1 轮、硬上限 20 次、失败不重试不换路线；抓取全文落 `sources/` 且**不得贴进上下文**（用脚本摘）；版权闸门 = 正文不得出现抓取源 ≥60 连续字符（`A-P3`）。
 7. **建议**：先把第一级写扎实（`abstract_text` = 第一手证据 + 可用性判据：非空、非结构化结果 JSON（不以 `[{` 开头/不含 `paramType`）、长度 ≥ 200 字符；一律先落盘再脚本摘，B1 的同批文案改动），第二级等三个开关拍板 + 白名单模版确定后再写。

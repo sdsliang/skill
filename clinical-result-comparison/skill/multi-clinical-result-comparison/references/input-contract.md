@@ -126,6 +126,53 @@ Do not pull large aggregates of unrelated esids; if a batch is big, split the pu
 multiplies the returned rows (see *Row fan-out*) — de-duplicate by `clinical_result.extra_esid` instead of
 dropping the field, which has no substitute.
 
+### Evidence source priority: the original source comes first (原文优先)
+
+The pulled clinical-content fields are **pipeline-processed extracts**: the backend's own parsing of the
+source can drop a field, normalize a unit, or misread a table. The **original source** is therefore the
+first priority for material clinical numbers, and the pulled fields are the second — use them to structure
+the narrative and to fill what the original does not cover, never as the sole unreviewed basis for a
+headline number.
+
+**Retrieval routes.** Only these templates, and only with values that already came back in the pulled
+record. Never invent a URL, never change a host or path, never add, drop or reorder query parameters,
+never use a search engine, and never re-try the same content through a different route.
+
+| # | Template | Build from | Returns | Measured (2026-09-17) |
+|---|---|---|---|---|
+| R2 | `https://clinicaltrials.gov/api/v2/studies/{NCT}` | the registration id inside `clinical_result.full_article_link` or `paper_title` | the registry's own protocol **and posted results** JSON (endpoint values, CIs, p-values, arms) | works: 1/1, ~323 KB |
+| R3 | `https://api.openalex.org/works/doi:{doi}` | `clinical_result.doi` | publisher-deposited **abstract** + OA locations; works for journal papers *and* conference abstracts | works: 2/2, 31–49 KB |
+| R4 | `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{pm_id}&resultType=core&format=json` | `clinical_result.pm_id` | abstract (`abstractText`), `pmcid`, `isOpenAccess` | works: 1/1 |
+| R5 | `https://api.crossref.org/works/{doi}` | `clinical_result.doi` | **bibliographic metadata only** — never clinical evidence | works: 1/1 |
+
+**Never fetch `clinical_result.full_article_link` itself.** Measured over 10 representative links, the
+platform's `web_fetch` returned nothing usable from any of them: publisher and conference pages answer
+`403 Forbidden` (ascopubs, sciencedirect, annalsofoncology, jitc.bmj, businesswire), or serve a
+JavaScript shell (clinicaltrials.gov study page, cslide, abstractsonline), or a cookie wall (pubmed).
+Europe PMC `{pmcid}/fullTextXML` fails (500/502). **Full article text is normally out of reach** —
+retrieve the abstract- or registry-level original and say so; do not burn budget on the link page.
+
+**Budget and failure handling.** At most **one** fetch per record, **one** pass over the selection, and at
+most **20** fetches in a run (if the selection is larger, fetch for the records that carry the key
+conclusions first and state the coverage). A failed fetch is dropped — no retry, no alternative route,
+no substitute URL — and its reason class is recorded. `web_fetch` writes each response under
+`/workspace/tool_results/web_fetch/…`: copy what you need to `/workspace/sources/<esid>.<route>.json|md`
+(that path is archived with the run, so the evidence stays auditable) and **digest it with a script** —
+never paste a response body into the context.
+
+**Divergence.** Compare like with like: a divergence is a *material clinical number* that the original
+states differently from the pulled fields (endpoint value, unit, p-value, CI, HR/OR/RR, n, population,
+analysis time point). Then the **original wins** and the report writes both values in the fixed form
+`原文 <值>；库内记录 <值>{{ref_n}}` — never silently pick one. Absence in the original is **not** evidence
+that the pulled value is wrong (abstract-level originals are the norm and omit detail): keep the pulled
+value and add no marker. Original text never enters the report body — at most a short phrase, never a
+paragraph (a mechanical ≥60-character verbatim guard runs in `evals/fact-check`).
+
+**Say it in the evidence scope.** The evidence-scope block (unified template's `证据范围`, cross-trial /
+mixed templates' `比较口径`) carries one line beginning `原文核对：` that gives how many retrieved records
+were re-checked against the original, by which route, and which records could not be, grouped by reason
+class (抓取受限 / 无登记号或 DOI / 该来源不公开). A run that re-checked none must say so.
+
 ## Consumer-field mapping (v0.11 attachment fields → params fields)
 
 | v0.11 attachment field | v0.12 params field(s) |

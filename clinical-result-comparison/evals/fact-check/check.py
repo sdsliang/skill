@@ -401,9 +401,49 @@ def op_chart_or_reason(sv: dict, spec: dict) -> tuple:
             f"{len(spec['supporting_groups'])} (need {need_sup}): {sup}")
 
 
+def op_no_verbatim_copy(sv: dict, spec: dict) -> tuple:
+    """No long verbatim run from a fetched original source may appear in the report.
+
+    The original-source rule lets the Skill read publisher/registry text, so the
+    copyright-and-style guard has to be mechanical: whatever text was fetched into
+    `/workspace/sources/` (archived with the run) must not reappear in the report as
+    a run of `min_run` consecutive characters.  Whitespace is stripped on both sides
+    because the report re-flows text.  When nothing was fetched the check is not
+    triggered and passes with a note, so a record set without a reachable original
+    is never punished twice.
+    """
+    art = sv.get("artifacts_dir") or ""
+    n = int(spec.get("min_run", 60))
+    step = max(10, n // 3)
+    srcs = [p for p in sorted(glob.glob(os.path.join(art, "sources", "**", "*"), recursive=True))
+            if os.path.isfile(p) and os.path.getsize(p) < 5_000_000]
+    if not srcs:
+        return True, "no fetched original archived under sources/ (check not triggered)"
+    rep = re.sub(r"\s+", "", sv["report"] or "")
+    if not rep:
+        return False, "report surface is empty"
+    hits = []
+    for p in srcs:
+        try:
+            # norm() is what the report surface was put through, so the archived source has to
+            # be aligned the same way (Unicode minus, full-width percent, NBSP) before comparing.
+            t = re.sub(r"\s+", "", norm(open(p, encoding="utf-8", errors="replace").read()))
+        except Exception:                                          # noqa: BLE001
+            continue
+        for i in range(0, max(0, len(t) - n), step):
+            frag = t[i:i + n]
+            if frag and frag in rep:
+                hits.append(f"{os.path.basename(p)}: {frag[:60]!r}")
+                break
+    if hits:
+        return False, f"verbatim run >= {n} chars copied into the report: {hits[:3]}"
+    return True, f"{len(srcs)} archived source file(s), no verbatim run >= {n} chars in the report"
+
+
 SHAPE_OPS = {
     "artifact_present": op_artifact_present,
     "artifact_absent": op_artifact_absent,
+    "no_verbatim_copy": op_no_verbatim_copy,
     "glob_count": op_glob_count,
     "citations_keys_exact": op_citations_keys_exact,
     "citations_entry_key_set": op_citations_entry_key_set,
@@ -475,6 +515,28 @@ def eval_line(item: dict, sv: dict) -> tuple:
                    f" -- {sel[0][:90]!r}")
 
 
+def eval_sent_if(item: dict, sv: dict) -> tuple:
+    """Conditional sentence rule: *if* a sentence matches `if_regex`, it must carry all patterns.
+
+    Needed for the original-source rules, which only bind when the occasion arises:
+    a divergence between original and pulled extract must show both values in one
+    sentence, but a run where nothing diverged has no such sentence and must not fail.
+    """
+    text = sv["report"]
+    if not text:
+        return False, "report surface is empty"
+    rx = re.compile(item["if_regex"])
+    hits = [sent for b in blocks(text) for sent, _ in units(b) if rx.search(sent)]
+    if not hits:
+        return True, f"no sentence matches {item['if_regex']!r} (check not triggered)"
+    bad = [s for s in hits if any(not re.search(p, s) for p in item["patterns"])]
+    if bad:
+        return False, (f"{len(bad)}/{len(hits)} triggered sentence(s) missing patterns "
+                       f"{[p for p in item['patterns'] if not re.search(p, bad[0])]}: "
+                       f"{bad[0].strip()[:80]!r}")
+    return True, f"{len(hits)} triggered sentence(s) carry all {len(item['patterns'])} pattern(s)"
+
+
 def eval_attribution(item: dict, sv: dict) -> tuple:
     """Every claim that cites anything must cite the owner of each token it names.
 
@@ -541,6 +603,8 @@ def run_check(args) -> int:
             ok, detail = eval_attribution(item, sv)
         elif kind == "line":
             ok, detail = eval_line(item, sv)
+        elif kind == "sent_if":
+            ok, detail = eval_sent_if(item, sv)
         else:
             ok, detail = False, f"unknown kind {kind}"
         if not ok:
