@@ -20,6 +20,56 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
   回答“要不要改 X”时必须点名哪一层 + 具体文件。详见 `/home/xupeipeioo1/AGENTS.md`。
 - 从 NP Clinical 拉取的示例数据（`evals/**/np-clinical-*/`）不入库：`.gitignore` 已忽略，`fetch-np-clinical-attachments.mjs` 可随时重拉。已提交的历史版本也已从跟踪移除（commit 63c031c）。
 
+## ⏳ 开放事项总表（2026-09-17 整理；各条详情仍以下面正文各节为准）
+
+> 分四类：**A 等外部答复才能动** / **B 已定要改、只差授权执行** / **C 待样本再判** / **D 已定案不动**。
+> 每条点名层与文件（runner = 本机 CLI；TS 资产 = 平台上已发布的 prompt/skill；仓库资产 = `skill/`、`system-prompts/`、`docs/`、`evals/`）。
+
+### A. 等外部答复（我们动不了，只能等）
+
+| # | 事项 | 等谁 | 卡在哪 | 答复后的动作 |
+|---|---|---|---|---|
+| A1 | 一个 esid 多行扇出的语义：疾病维度扇出是预期还是副作用？前端选中粒度是 esid 还是 `(esid, disease_id)`？ | 产品 | 用户 09-17 判「很重要、要改，但先问产品」 | 改 `references/input-contract.md` + `SKILL.md` 各加一句去重 → `run` 留 `R<n>` → publish 授权 |
+| A2 | 结果记录不全 vs CT.gov 官方全：路线 A 数据侧补 / B skill 诚实声明 / C 运行期拉官方 | 产品 + 数据团队 | 路线 C 还牵扯「联网 + 外部引用」政策 | A → 报数据团队；B → 需新信号字段；C → `run --web` 已可验（O18/W1） |
+| A3 | 报告表格整表复制 / 整表下载 CSV-Excel（平台能力） | 产品（何林杰） | 已交其验证；**飞书任务至今未建**（2026-09-17 实测用户 token scope 仍无 `task:task:write`） | 他给结论 → 再定 skill 是否「每表同步产 CSV/TSV/XLSX」 |
+| A4 | 通用下钻契约 `drillDownValue` + detail json（esid 数组） | 产品（何林杰/段帅帅） | 08-28 起 parked，等其案例测试与范式记录 | 照其规范实现（半小时级） |
+| A5 | registry `abstract_text` 回填 4 问（这两个 esid 实际值？45% 空是分批未完成？`Prospective Study` 600/600 全空是否预期？回填的是整份文本还是摘要？） | 开发 | 问法与证据已备好 | 答复后定是否另要「摘要级字段」 |
+| A6 | 追加精确问法：回填 source 名单是否漏 `187`/`120`（各 100% 空），`2` 还剩 ~20% | 开发 | 同上（按 esid 中段精确分层已完成） | 同上 |
+| A7 | 他说的 `source` 指哪一列；会不会加进结果工具的 `ALLOWED_FIELD_NAMES` | 开发 | 结果侧 74 字段里没有（6 个候选名全 `INVALID_INPUT`）；试验侧有 `data_source` | 加了 → 按它全量重统；不加 → 沿用 esid 中段 / `evidence_source` 代用维度 |
+| A8 | 平台问题单 P1–P6 + P9 何时转开发 | 用户决定 | 全文已写（Obsidian「ChatAPI与SSE文档缺口」）；P7 已由平台从根修、P8 已撤销上报 | 转出后等开发排期 |
+| A9 | `vendor/`（上游 chart skill 源码，含内部 CDN 地址）是否入 git | 用户 | 现在 `.gitignore` 排除 | 决定入库 → 去 ignore + commit |
+| A10 | 是否把 registry `abstract_text` 的发现写成可直接转开发的飞书消息 | 用户 | 证据已齐（两个 evidence JSON + 分层表） | 我起草 → 你确认再发 |
+| A11 | autoresearch 迭代是否开跑：S2（场景 A×3 取噪声带）/ S3（E2 删委派段、E3 返工纪律） | 用户授权 | 计划见 `docs/autoresearch-iteration-plan.md` §13 | 授权即执行 |
+| A12 | 三处对外沟通项 B8–B10（bar 负值问题单 / `{{ref_n}}` 前端报备 / CLI 路径口径） | 用户 | 09-11 拍板「攒着」 | 说一声就发 |
+
+### B. 已定要改、只差执行（我们能改，但各有闸门）
+
+| # | 改什么（层 + 文件） | 依赖 | 闸门 |
+|---|---|---|---|
+| B1 | **TS 资产**：sys `system-prompts/multi-clinical-result-comparison-v0.15.md:38` 与 `skill/.../references/input-contract.md:93` 的「短 `abstract_text`」假设 → 「论文/会议记录短（约 2–4 KB），登记平台记录可能是整份文本（中位 33 KB / 最大 1.9 MB），一律先落盘再脚本摘」 | 事实已确证，**不必等 A5/A6**；若开发答复「会改成摘要级」，措辞可一次写对 | `run` 留新 `R<n>` + publish 授权（TS 资产写动作） |
+| B2 | **TS 资产**：扇出去重措辞（`input-contract.md` + `SKILL.md` 各一句「按 `clinical_result.extra_esid` 去重后再按输入顺序编号 `{{ref_n}}`」） | **卡 A1** | 同上 |
+| B3 | **runner**：无待改项（O1–O18 全已落地，只剩 O4/O5 待样本） | — | — |
+| B4 | **仓库资产**：autoresearch harness 骨架 + 把 `tool_results/**` 纳入归档 → 跑 E0「receipts 命中率」回测（不动 `skill/`、0 新 run） | 用户点头 | 纯本地脚本 + 文档 |
+| B5 | **仓库资产**：把「冻结面 + 场景集 + TSV 列」写进 `AGENTS.md`/`PROJECT_STATE.md`，形成常驻 program.md（S4） | 用户点头 | 文档 |
+
+### C. 待样本（攒够再判，不凭感觉改规则）
+
+| # | 事项 | 现有证据 | 何时可判 |
+|---|---|---|---|
+| C1 | 台账 O4：正文句子级返工（`s.replace()` 就地改模板字面量，非规则返工） | R1 的 19 次 `execute` 里 8 次 + 3 次 `edit_file` | 再攒 3–5 次运行 |
+| C2 | 台账 O5：小样本不便宜（1 个 esid 也要 21 次调用 / 173 s / 26k reasoning） | R1 vs R4（14 esid 50 次 / 299 s） | 再攒几次，或用户体感贵时给「单结果解读」轻模板 |
+| C3 | 事实清单 `A-C6`（未报安慰剂组 +3.6%） | R11 唯一 FAIL（现 30/31） | 有第二个同类样本再改规则 |
+| C4 | E1 场景 A 噪声带（23 vs 41 calls 跨了发布，无干净重复） | 5 个 `20260914-*` run 离线重放 | S2 跑 3 次 |
+
+### D. 已定案不动（别再翻）
+
+- **O16** runner 图表断言「0 图全过」：`run` 是通用入口、不知道场景，判定交给离线事实清单 → **定案不改**。
+- **P7 / P8**：P7 已由平台从根修掉（`30306cb` 删 `cleanup_stale(300)`）；P8 撤销上报（终态可重建，属客户端体验）。
+- **表格复制/下载**（skill 侧）：在 A3 有结论前不动 `skill/`。
+- **E6 / B8–B10**：明确不做 / 攒着。
+- **bar 柱下钻 与 `drillDownValue` 契约**：parked 等外部（A4）。
+- **两条已关闭的「伪待办」**（曾被记成待用户，现已不成立）：① 「重传 sys v0.15 到平台」—— `status` 已 in-sync（prompt v1.6 `fa80094e9d41` == 本地 `-v0.15.md`、skill v1.0.7 dist `de7c16b44910` 19/19 逐字节相同），只剩「复跑验墙钟」那半句，已被 A11/S2 覆盖；② v0.6/v0.7 时代的「`dist/` 是否重建」—— 发布已走 API 通道，dist 只作留档，无需重建。
+
 ## 📌 待办: 报告表格整表复制 / 整表下载 CSV-Excel（2026-09-01，已交产品验证，不改文件）
 
 - **背景**：对比结果 skill 报告（`present_artifact` 交付的 .md）含多张 Markdown 表格（timeline 表、endpoint 表、cross-trial 对比表）。问 ToolSmith 能否支持「表格整表复制」+「整表下载为 CSV/Excel」。
