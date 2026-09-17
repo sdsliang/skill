@@ -829,5 +829,88 @@
     },
     "note": "除已知 1/2/37/49/120/187/398 外还实测了三类未列出形态：uuid 遗留行（=通稿原文）、numeric 遗留行（=会议摘要原文）、src=245（库内空无路由键）"
   },
-  "date_extended": "2026-09-17（同日追加第二轮：PMC 全文路由 + 「库内正文是否即原文」实测）"
+  "date_extended": "2026-09-17（同日追加第二轮：PMC 全文路由 + 「库内正文是否即原文」实测）",
+  "pmc_fulltext_information_gain": {
+    "question": "用户 2026-09-17：字段值基于摘要生成，能取到的 PMC 记录是否可以直接读全文？全文一定含更多信息。",
+    "method": "对 src=1 且 R6 返回 pmcid 的记录取 R7 全文，剥标签后统计独立数值 token 集合（含小数/百分比/单位），与 R6 摘要的数值集合求差；并检查摘要中不出现的维度关键词",
+    "samples": [
+      {
+        "pmid": "39054491",
+        "pmcid": "PMC11270764",
+        "abstract_chars": 2621,
+        "abstract_numbers": 30,
+        "fulltext_chars": 49180,
+        "fulltext_numbers": 334,
+        "numbers_only_in_fulltext": 308,
+        "pct_only_fulltext": 92,
+        "dims_absent_from_abstract": [
+          "PFS",
+          "HR",
+          "p =",
+          "n =",
+          "TTR"
+        ]
+      },
+      {
+        "pmid": "34531249",
+        "pmcid": "PMC8449961",
+        "abstract_chars": 2584,
+        "abstract_numbers": 41,
+        "fulltext_chars": 36167,
+        "fulltext_numbers": 334,
+        "numbers_only_in_fulltext": 295,
+        "pct_only_fulltext": 88,
+        "dims_absent_from_abstract": [
+          "PFS",
+          "ORR",
+          "DoR",
+          "Subgroup",
+          "Grade 3",
+          "TTR"
+        ]
+      },
+      {
+        "pmid": "40700234",
+        "pmcid": "PMC12265996",
+        "abstract_chars": 1641,
+        "abstract_numbers": 2,
+        "fulltext_chars": 26919,
+        "fulltext_numbers": 249,
+        "numbers_only_in_fulltext": 247,
+        "pct_only_infulltext": 99,
+        "dims_absent_from_abstract": [
+          "ORR",
+          "HR",
+          "TTR"
+        ]
+      }
+    ],
+    "verdict": "用户判断成立：全文可及的记录，88–99% 的数值不在摘要里，PFS/DoR/亚组/分级安全性等维度摘要根本不写 ⇒ 现行「原文只用于复核既有数值」对这类记录是低利用率。",
+    "asymmetry_warning": {
+      "src=37_conference": "本切片 2,281/4,106 = 55.6% 是会议摘要类，会议站点整体封锁且不是 OA ⇒ 外部永久只有摘要级；OpenAlex 只给摘要 ⇒ 该类的深度上限就是摘要级",
+      "src=2_187_registry": "库内结果 JSON ≈46 K vs CT.gov API 65 K，数值逐位一致 ⇒ 结构化登记类其实已经是「全文级」",
+      "implication": "若按全文加深，多数对比会变成「一边有全文、一边只有摘要」的不对称交付；读者易把「原文没写」误读成「没发生」，而跨试验对比的前提正是同口径可比。"
+    },
+    "options": [
+      {
+        "level": "L1（现状）",
+        "desc": "全文只用于复核既有数值，分歧以原文为准 + 双值写明",
+        "cost": "0",
+        "risk": "低利用率"
+      },
+      {
+        "level": "L2（建议）",
+        "desc": "全文用于补齐库内空档（缺失终点如 PFS/DoR/亚组/分级安全性），不改动既有数字；冲突仍按原文优先双值；必须在覆盖行标注该记录的来源深度（摘要级/全文级）",
+        "cost": "每篇一次 R7 + 脚本摘要",
+        "risk": "口径版本差需靠「时点/分析集」断言兜住"
+      },
+      {
+        "level": "L3",
+        "desc": "以全文为默认分析面",
+        "cost": "0.5–1 MB/次 18 条对比，需脚本化摘要",
+        "risk": "会议摘要类（55.6%）永远达不到 ⇒ 可比性受损，不建议默认开"
+      }
+    ],
+    "status": "待用户定级（未改任何规则）"
+  }
 }
