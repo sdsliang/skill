@@ -178,6 +178,30 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 **待开发确认**：他说的 `source` 指哪一列？若指试验侧 `data_source`（登记/期刊来源），需要把它加进结果工具的可选字段，我才能按它全量重统；
 若指的是结果表内部的摄入渠道，那从外部只有上述两个替身维度可见。
 
+### 追加 2：按 esid 中段（source id）精确分层（2026-09-17，用户提示「用 id 排查」）
+
+esid 形如 `YY_SRC_KEY`，**中段就是摄入 source id**。这个 id 不需要新字段——从 `clinical_result.extra_esid` 自己就能看出来。
+
+| esid 中段（source id） | 这批记录是什么 | 行数 | abstract_text 空 | 空占比 | 中位长度 | 最大长度 |
+|---|---|---|---|---|---|---|
+| **187** | CT.gov / US-ClinicalTrial 登记（`24_187_<32hex>_1`，`Prospective Study` 600/602） | 602（CT.gov 切片内，**精确**） | 602 | **100%** | — | 0 |
+| **120** | 未识别批次（hash 型 esid，journal 多为空 / WCLC 2024） | 91（样本） | 91 | **100%** | — | 0 |
+| 138 | 单行样本 | 1 | 1 | 100% | — | 0 |
+| **2** | CT.gov NCT 型结果（`24_2_NCT…_1`） | 322（**精确**） | 64 | **19.9%** | 38,774 | 605,847 |
+| 1 | 期刊论文 | 250（样本） | 1 | 0.4% | 1,812 | 4,381 |
+| 37 | 会议摘要（ASCO/ASH…） | 250（样本） | 0 | **0%** | 2,786 | 9,804 |
+| 49 | 公司新闻/商业资讯 | 250（样本） | 6 | 2.4% | 8,765 | 77,857 |
+
+- src=2 内部又分层：Phase II 124 行 15.3% 空 / **Phase I 92 行 29.3%** / Phase III 60 行 15.0% / Phase I/II 43 行 20.9%。
+- 用户给的两个 esid：`24_187_acaa…` → **src 187（整批 100% 空）**；`24_2_NCT06618118_1` → **src 2（总体 19.9% 空，Phase I 子集 29.3%）**。
+- **CT.gov 切片里还有 3,170 行（77.4%）根本没有 esid**（裸数字 `25607` / 裸 uuid `651414cc…`）：裸数字 3,015 行 38.1% 空、裸 uuid 155 行 14.2% 空；
+  这类`abstract_text`里装的是 **CT.gov 结构化结果 JSON**（`[{"paramType":"NUMBER","unitOfMeasure":"participants",...}]`），不是文字摘要——**即使“有值”也不能当摘要读**。
+- 另一个副作用发现：**不限定过滤条件、只选 `abstract_text` 的查询会直接报错**：`QUERY_EXECUTION_ERROR` / StarRocks `Memory of Group=rg_cube … Used: 23354210528, Limit: 17179869184`（用 23.35 GB 撞 16 GiB 限制）
+  ⇒ 该工具不能做全表 abstract_text 扫描，只能带过滤条件的小批量。（我们的 skill 一直带 `extra_esids`，不受影响。）
+- 证据：`docs/evidence/abstract-text-by-source-2026-09-17.json` 的 `by_esid_source_id` 节。
+
+**给开发的精确问法**：回填的 source 名单是不是漏了 `187` 和 `120` 两个 source（整批 0 写入），`2` 里也还剩 ~20%（Phase I 最多）？
+
 ## ⏸️ Parked: bar 柱下钻（v0.9-test，已由用户验证可行，暂不开发）
 
 - 全部改动（未提交）已 stash：`git stash list` → `stash@{0}: On chart-drilldown-nct: wip: bar drill-down (v0.9-test) + 1L ORR test datasets — verified by user, park for later`。分支 `feat/chart-drilldown-nct` 与 main 同提交 `349eabc`（无独立 commit），后续要继续可直接 `git checkout feat/chart-drilldown-nct && git stash pop`。

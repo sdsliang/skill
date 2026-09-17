@@ -9,24 +9,205 @@
   },
   "registration_platform_dimension": {
     "note": "meeting_tags probe for other registries returned 0 rows",
-    "meeting_tags_rows": {"ChiCTR": 0, "中国临床试验注册中心": 0, "药物临床试验登记与信息公示平台": 0, "EudraCT": 0, "EU Clinical Trials Register": 0, "ClinicalTrials.gov": 4095},
+    "meeting_tags_rows": {
+      "ChiCTR": 0,
+      "中国临床试验注册中心": 0,
+      "药物临床试验登记与信息公示平台": 0,
+      "EudraCT": 0,
+      "EU Clinical Trials Register": 0,
+      "ClinicalTrials.gov": 4095
+    },
     "join_check": "500-row joined sample (incl. projects): 500/500 registration platform = US-ClinicalTrials.gov"
   },
   "by_source_slice": {
-    "fields": ["extra_esid", "journal", "evidence_source", "abstract_text"],
-    "slice": {"rows": 4095, "empty": 1837, "empty_pct": 44.9, "len_median": 33406, "len_max": 1907425},
-    "ClinicalTrials.gov": {"rows": 4095, "empty": 1837, "empty_pct": 44.9, "len_median": 33406, "len_max": 1907425},
-    "Lancet": {"rows": 1344, "empty": 21, "empty_pct": 1.6, "len_median": 2796, "len_max": 7132},
-    "ASCO 2024": {"rows": 1353, "empty": 5, "empty_pct": 0.4, "len_median": 2821, "len_max": 25108},
-    "Blood": {"rows": 841, "empty": 9, "empty_pct": 1.1, "len_median": 1630, "len_max": 2418},
-    "ESMO 2024": {"rows": 745, "empty": 0, "empty_pct": 0.0, "len_median": 4165, "len_max": 24963},
-    "JAMA": {"rows": 579, "empty": 9, "empty_pct": 1.6, "len_median": 2760, "len_max": 3702},
-    "AACR 2024": {"rows": 200, "empty": 0, "empty_pct": 0.0, "len_median": 2848, "len_max": 6070}
+    "fields": [
+      "extra_esid",
+      "journal",
+      "evidence_source",
+      "abstract_text"
+    ],
+    "slice": {
+      "rows": 4095,
+      "empty": 1837,
+      "empty_pct": 44.9,
+      "len_median": 33406,
+      "len_max": 1907425
+    },
+    "ClinicalTrials.gov": {
+      "rows": 4095,
+      "empty": 1837,
+      "empty_pct": 44.9,
+      "len_median": 33406,
+      "len_max": 1907425
+    },
+    "Lancet": {
+      "rows": 1344,
+      "empty": 21,
+      "empty_pct": 1.6,
+      "len_median": 2796,
+      "len_max": 7132
+    },
+    "ASCO 2024": {
+      "rows": 1353,
+      "empty": 5,
+      "empty_pct": 0.4,
+      "len_median": 2821,
+      "len_max": 25108
+    },
+    "Blood": {
+      "rows": 841,
+      "empty": 9,
+      "empty_pct": 1.1,
+      "len_median": 1630,
+      "len_max": 2418
+    },
+    "ESMO 2024": {
+      "rows": 745,
+      "empty": 0,
+      "empty_pct": 0.0,
+      "len_median": 4165,
+      "len_max": 24963
+    },
+    "JAMA": {
+      "rows": 579,
+      "empty": 9,
+      "empty_pct": 1.6,
+      "len_median": 2760,
+      "len_max": 3702
+    },
+    "AACR 2024": {
+      "rows": 200,
+      "empty": 0,
+      "empty_pct": 0.0,
+      "len_median": 2848,
+      "len_max": 6070
+    }
   },
   "ctgov_internal_contingency": {
-    "hash_esid_and_prospective_study": {"rows": 600, "empty": 600, "empty_pct": 100.0},
-    "hash_esid_only": {"rows": 3, "empty": 3, "empty_pct": 100.0},
-    "non_hash_esid": {"rows": 3492, "empty": 1234, "empty_pct": 35.3}
+    "hash_esid_and_prospective_study": {
+      "rows": 600,
+      "empty": 600,
+      "empty_pct": 100.0
+    },
+    "hash_esid_only": {
+      "rows": 3,
+      "empty": 3,
+      "empty_pct": 100.0
+    },
+    "non_hash_esid": {
+      "rows": 3492,
+      "empty": 1234,
+      "empty_pct": 35.3
+    }
   },
-  "verdict": "emptiness is not distributed by registry vs paper at random: the whole hash-shaped esid class (N_N_<32-hex>, = the 'Prospective Study' class) is 100% empty (603/603), the rest of the CT.gov slice is 35.3% empty, and journal/conference slices are 0-1.6% empty with real abstract-scale lengths (1.6-4.5 KB)"
+  "verdict": "emptiness is not distributed by registry vs paper at random: the whole hash-shaped esid class (N_N_<32-hex>, = the 'Prospective Study' class) is 100% empty (603/603), the rest of the CT.gov slice is 35.3% empty, and journal/conference slices are 0-1.6% empty with real abstract-scale lengths (1.6-4.5 KB)",
+  "by_esid_source_id": {
+    "note": "esid shape is YY_SRC_KEY; the middle segment is the ingestion source id. CT.gov numbers are exact (full 4095-row slice); others are from a re-query of up to 250 sampled esids per source taken from the unfiltered 10k-row sample (total table = 190,919 rows).",
+    "clinicaltrials_gov_slice_exact": {
+      "src=187": {
+        "rows": 602,
+        "empty": 602,
+        "empty_pct": 100.0,
+        "shape": "24_187_<32hex>_1",
+        "evidence_source": "Prospective Study (600/602)"
+      },
+      "src=2": {
+        "rows": 322,
+        "empty": 64,
+        "empty_pct": 19.9,
+        "len_median": 38774,
+        "len_max": 605847,
+        "shape": "24_2_NCT<digits>_1",
+        "by_evidence_source": {
+          "Phase II": [
+            124,
+            19
+          ],
+          "Phase I": [
+            92,
+            27
+          ],
+          "Phase III": [
+            60,
+            9
+          ],
+          "Phase I/II": [
+            43,
+            9
+          ]
+        }
+      },
+      "src=120": {
+        "rows": 1,
+        "empty": 1,
+        "empty_pct": 100.0
+      },
+      "bare_number_id": {
+        "rows": 3015,
+        "empty": 1148,
+        "empty_pct": 38.1,
+        "len_median": 30251,
+        "len_max": 1907425,
+        "content": "abstract_text holds the ClinicalTrials.gov structured-results JSON (starts with [{\"paramType\":...], not prose)"
+      },
+      "bare_uuid_id": {
+        "rows": 155,
+        "empty": 22,
+        "empty_pct": 14.2,
+        "len_median": 60263,
+        "len_max": 446552,
+        "content": "same CT.gov structured-results JSON"
+      }
+    },
+    "sampled_per_source": {
+      "src=1": {
+        "rows": 250,
+        "empty": 1,
+        "empty_pct": 0.4,
+        "len_median": 1812,
+        "len_max": 4381,
+        "meaning": "journal papers"
+      },
+      "src=37": {
+        "rows": 250,
+        "empty": 0,
+        "empty_pct": 0.0,
+        "len_median": 2786,
+        "len_max": 9804,
+        "meaning": "conference abstracts (ASCO/ASH/...)"
+      },
+      "src=49": {
+        "rows": 250,
+        "empty": 6,
+        "empty_pct": 2.4,
+        "len_median": 8765,
+        "len_max": 77857,
+        "meaning": "company news / commercial feeds"
+      },
+      "src=120": {
+        "rows": 91,
+        "empty": 91,
+        "empty_pct": 100.0,
+        "len_median": 0,
+        "len_max": 0,
+        "meaning": "unidentified batch (hash-shaped esids, journal mostly blank / WCLC 2024)"
+      },
+      "src=187": {
+        "rows": 34,
+        "empty": 34,
+        "empty_pct": 100.0,
+        "meaning": "ClinicalTrials.gov / US-ClinicalTrial registration records"
+      },
+      "src=2": {
+        "rows": 11,
+        "empty": 3,
+        "empty_pct": 27.3,
+        "len_median": 49967,
+        "len_max": 109386,
+        "meaning": "ClinicalTrials.gov NCT-shaped result records"
+      }
+    },
+    "verdict": "abstract_text emptiness is stratified by the esid source id, not by journal: src=187 and src=120 are empty for the entire batch, src=2 is ~20% empty (29% of its Phase I subset), and src=1/37/49 are 0-2.4% empty. The two test esids fall in src=187 (100% empty) and src=2 (19.9% empty). Separately, 77.4% of the CT.gov slice carries no esid at all (bare number/uuid) and its abstract_text is the CT.gov structured-results JSON.",
+    "side_finding": "an unfiltered call that selects abstract_text fails with QUERY_EXECUTION_ERROR (StarRocks group mem limit 16 GiB, used 23.35 GB): the params tool cannot do a whole-table abstract_text scan, only bounded ones."
+  }
 }
