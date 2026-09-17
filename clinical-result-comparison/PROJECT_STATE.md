@@ -59,12 +59,42 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - **三条路线**：**A（推荐）数据侧补全**（报告数据团队：只抽部分终点是有意还是入库缺失；补 16 个终点值 +
   基线 + 人流 + AE）；**B skill 层「诚实声明」**（但记录里目前无 `data_completeness`/`omitted_endpoints` 类信号，
   要落实得先有信号或额外调一次 trial 工具交叉核对，会引入二次取数与新引用口径问题 → 待产品拍板）；
-  **C 平台开 CT.gov 出口**（沙箱白名单 + 平台工具 + 政策/引用口径重写，代价最高且双源版本差异风险）。
+  **C 运行期拉官方**（**2026-09-17 复核后升级为「通道已存在」**：平台已有 `web_fetch`，实测能直连
+  `clinicaltrials.gov/api/v2/studies/NCT05419908` 拿全量 JSON（322,835 chars，自动落盘 `/workspace/tool_results/web_fetch/*.md`）；
+  剩下要做的是**政策/口径**：请求级 `enable_web=true`（前端 composer 的「联网」开关，`ChatComposer.tsx:263`）+
+  skill/sys 允许外部检索 + ref ↔ 内部记录一一对应契约改写 + 双源版本漂移处理）。
 - **附带字段陷阱**：`clinical_result.group_count` = **总体入组 87**，不是组数（实际 2 组 44/43，组 n 在结果记录里根本没有）；
   结果记录的 `arms[*].drug_earth_ids` 与试验记录的 `arms[*].therapeutic_schedule_id` 是**两套 id 体系**。
 - 全文（含官方模块清单、逐字段对比、trial 工具回包）：Obsidian
   `03-技术与VibeCoding/01-AI与LLM/临床结果esid查询-params工具字段与取值实测-2026-09-17.md`「追问 2 更正」。
 - 官方 JSON 落盘：`/tmp/ct-NCT05419908.json`（164,496 B）；trial 工具回包：`/tmp/trial-NCT05419908.json`。
+
+### 只读探针：`web_fetch` 能拿到什么（2026-09-17，4 次真实 turn）
+
+- **能力存在性**：`GET /api/agent/info?project_id=a7cdda6…&enable_web=true` → 内置工具表含 `web_search` / `web_fetch`，
+  instructions 多出 `## Web Tools` 段（62,244 → 62,898 chars）；`enable_web=false` 时该段消失。⇒ 本项目
+  `capability_config.web` 已开，**唯一闸门是请求级 `enable_web`**（我们 runner 的 `post_turn` 硬编码 `False`）。
+- **探针脚本**：`/tmp/webtest.py`（复用 runner 的 `Client`/`create_thread`/`wait_for_run`，只把 body 的 `enable_web` 改 True；
+  不动 runner 本体、不动任何已发布资产）。产物 4 个 run 目录（`~/.local/state/toolsmith-runs/20260917-13*`）。
+- **结果矩阵（同一工具，四个源四种命运）**：
+
+  | 源 | 结果 |
+  |---|---|
+  | 微信公众号（本 esid 的 `full_article_link`） | ✅ 正文 **4,057 chars** 逐字拿到（`outcome: success`） |
+  | `pubmed.ncbi.nlm.nih.gov/31415087` | ⚠️ `outcome: success` 但正文只有 **175 chars 的 reCAPTCHA 挑战页**（静默失败，需自己识别） |
+  | DOI → `academic.oup.com`（JCEM 全文页） | ❌ **HTTP 403** 被出版商拦（零正文） |
+  | `clinicaltrials.gov/api/v2/studies/NCT05419908` | ✅ **322,835 chars 原始 JSON**，四个 results 模块齐（`outcomeMeasuresModule` 26 条 = 1 PRIMARY + 25 SECONDARY、`baselineCharacteristicsModule`、`participantFlowModule`、`adverseEventsModule`），**超内联上限 → 自动落盘** `/workspace/tool_results/web_fetch/call_*.md`（turn 结束清空），可 `json.loads` 解析、未截断 |
+
+- **要记的两个坑**：① `web_fetch` 只回文本/JSON/markdown，HTML 转 markdown、JSON 走 `_format_json_content`，
+  **二进制直接丢**（“binary; not returned”）；② 反爬页 / 403 都算「调用成功」，**`outcome` 字段不能当可用性判据**。
+- **对 24_49_f9a67f535c33c8022fd87e5cc170db7d_1 的具体回答**（用户 2026-09-17 提问）：该记录是**公司新闻稿**
+  （`journal: 和铂医药`、`paper_release_time: null`、无 DOI/PMID），`full_article_link` 是微信公众号文章
+  （HBM9378/WIN378 哮喘 II 期 POLARIS-1 中期结果）。`web_fetch` 原文可得，且**本机 `curl` 同样可得**
+  （3,515,892 B HTML，`#js_content` 正文 4,161 chars）。内部 `summary` 只覆盖其中一段。
+- 探针 thread（均在 `~/.local/state/toolsmith-runs/20260917-13*`，每个目录都在 `run.json` 里）：
+  微信原文 `56c61c9f-6227-49cf-ae6b-2cff6f01a562`、PubMed `e15bdcb0-1c97-4d0d-a252-42527f438c70`、
+  DOI/OUP `20ff3947-2892-42ff-9b27-7b4f1d5e99d6`、CT.gov API `8cd2c77e-0f41-47fa-b3e9-c65edb8d0fa6`。
+  耗时均 ~11–13 s/轮（DeepSeek Flash），单轮 input ~50k tokens（系统提示 + 技能）。
 
 ## ⏸️ Parked: bar 柱下钻（v0.9-test，已由用户验证可行，暂不开发）
 
@@ -142,10 +172,14 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - **NCT 号不需要另查**：`clinical_result.projects[*].associate_ids` 里就有（该记录 = `["NCT05419908","EudraCT2015-002578-20",
   "ESN364_HF_204","PMCT00191065"]`），且 `full_article_link` 就是 CT.gov 的 **results 页** URL；而 `study_results`（该记录 **84 行**）
  已经是 results 页的结构化解析 + 魔方自己的成对比较（`compare_result`/`p_value`/CI）。
-- **「用 nct_id 调 CT.gov API 拿 result 全文」不可行/非必要**：① 部署端沙箱 `no network access by default`
-  （`instructions-platform-tail.md` Execute 节）；② skill/sys 明文 `Do not retrieve external facts or URLs`；
-  ③ 会破 ref ↔ 内部记录的一一对应与版本口径。**（2026-09-17 用户更正：真实诉求不是「多拿证据」，
-  而是「我们的结果记录不全」→ 见上方 parked 段与 Obsidian 追问 2 更正）**
+- **⚠️ 2026-09-17 更正（原判断作废）：「沙箱无网络 ⇒ 拿不到 CT.gov」把两个开关搞混了**。平台有两套独立的东西：
+  **① 服务端受控的 Web 工具**（`web_search` / `web_fetch`，`CapabilityConfig.web` 项目开关 + 请求级 `enable_web`），
+  **② 沙箱联网**（`sandbox_internet`，只影响 `execute` 里的任意命令出站）。平台自己的文档就写明这个区别
+  （`frontend/content/docs/projects/capabilities.mdx:36,57`）；`instructions-platform-tail.md` 的
+  「sandbox is isolated」只讲 ②。**实测（4 次 web_fetch 探针，见下方「只读探针」段）：`web_fetch` 能直连
+  `clinicaltrials.gov/api/v2`**。⇒ 剩下的阻碍只有 ③ 引用口径 + skill/sys`Do not retrieve external facts or URLs`
+  政策，属**产品/政策层**，不再是「平台拿不到」。
+- **（2026-09-17 用户更正）真实诉求不是「多拿证据」，而是「我们的结果记录不全」** → 见上方 parked 段与 Obsidian 追问 2 更正。
 - **但 `trial_id` 参数可用 NCT 号反向拉「该试验全部结果」**（源码 `params_clinical_result_tool.py:246`，
   `JSON_PATH_LIKE` 于 `projects $[*].associate_ids`）：实测 `trial_id=NCT05419908` → 2 条不同 esid（`24_1_31415087`
   JCEM 2019 / `24_187_acaa9fda98c00fb890d804d0e3a0428c_1` CT.gov 2023）。**纯内部数据、无需联网**，是「同试验多证据」的正路。
