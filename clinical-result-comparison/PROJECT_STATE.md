@@ -22,6 +22,9 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 
 ## ⏳ 开放事项总表（2026-09-17 整理；各条详情仍以下面正文各节为准）
 
+> **2026-09-17 当日进展**：A1 已定为「扇出 = 疾病 join 引入，Skill 侧兼容」→ **兼容措辞已落地 4 个文件（B2 关闭）**，本地先行跑出 **R12**（旧版基线 + 3 项部署一致性 FAIL 属预期）；发布授权下来后重跑即收口。
+> 另新增两条清单发现（**O19** 打分器「一句多 marker」假阳性、**O20** `A-T1` 期望过窄），均待你一句话判定。
+
 > 分四类：**A 等外部答复才能动** / **B 已定要改、只差授权执行** / **C 待样本再判** / **D 已定案不动**。
 > 每条点名层与文件（runner = 本机 CLI；TS 资产 = 平台上已发布的 prompt/skill；仓库资产 = `skill/`、`system-prompts/`、`docs/`、`evals/`）。
 
@@ -29,8 +32,8 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 
 | # | 事项 | 等谁 | 卡在哪 | 答复后的动作 |
 |---|---|---|---|---|
-| A1 | 一个 esid 多行扇出的语义：疾病维度扇出是预期还是副作用？前端选中粒度是 esid 还是 `(esid, disease_id)`？ | 产品 | 用户 09-17 判「很重要、要改，但先问产品」 | 改 `references/input-contract.md` + `SKILL.md` 各加一句去重 → `run` 留 `R<n>` → publish 授权 |
-| A2 | 结果记录不全 vs CT.gov 官方全：路线 A 数据侧补 / B skill 诚实声明 / C 运行期拉官方 | 产品 + 数据团队 | 路线 C 还牵扯「联网 + 外部引用」政策 | A → 报数据团队；B → 需新信号字段；C → `run --web` 已可验（O18/W1） |
+| A1 | ~~一个 esid 多行扇出的语义~~ **已答（2026-09-17）**：产品确认扇出由疾病 join 引入、非预期语义，要求 Skill 侧兼容 | 产品 | ✅ 已解决 | **兼容措辞已落地**（`input-contract.md` / `SKILL.md` / `citation-and-ref.md` / sys v0.15）：按 `clinical_result.extra_esid` 去重、一个 esid = 一 marker 一 citation；本地先行跑出 **R12**（台账已记），发布授权后重跑收口 → 见 B2 |
+| A2 | 结果记录不全 vs CT.gov 官方全：路线 A 数据侧补 / B skill 诚实声明 / C 运行期拉官方 | 产品 + 数据团队 | 路线 C 还牵扯「联网 + 外部引用」政策 | A → 报数据团队；B → 需新信号字段；C → `run --web` 已可验（O18/W1）。**附：链路梳理与优化评估已完成** → Obsidian「临床结果Skill-esid到MCP查询链路梳理与优化评估-2026-09-17」 |
 | A3 | 报告表格整表复制 / 整表下载 CSV-Excel（平台能力） | 产品（何林杰） | 已交其验证；**飞书任务至今未建**（2026-09-17 实测用户 token scope 仍无 `task:task:write`） | 他给结论 → 再定 skill 是否「每表同步产 CSV/TSV/XLSX」 |
 | A4 | 通用下钻契约 `drillDownValue` + detail json（esid 数组） | 产品（何林杰/段帅帅） | 08-28 起 parked，等其案例测试与范式记录 | 照其规范实现（半小时级） |
 | A5 | registry `abstract_text` 回填 4 问（这两个 esid 实际值？45% 空是分批未完成？`Prospective Study` 600/600 全空是否预期？回填的是整份文本还是摘要？） | 开发 | 问法与证据已备好 | 答复后定是否另要「摘要级字段」 |
@@ -47,7 +50,9 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 | # | 改什么（层 + 文件） | 依赖 | 闸门 |
 |---|---|---|---|
 | B1 | **TS 资产**：sys `system-prompts/multi-clinical-result-comparison-v0.15.md:38` 与 `skill/.../references/input-contract.md:93` 的「短 `abstract_text`」假设 → 「论文/会议记录短（约 2–4 KB），登记平台记录可能是整份文本（中位 33 KB / 最大 1.9 MB），一律先落盘再脚本摘」 | 事实已确证，**不必等 A5/A6**；若开发答复「会改成摘要级」，措辞可一次写对 | `run` 留新 `R<n>` + publish 授权（TS 资产写动作） |
-| B2 | **TS 资产**：扇出去重措辞（`input-contract.md` + `SKILL.md` 各一句「按 `clinical_result.extra_esid` 去重后再按输入顺序编号 `{{ref_n}}`」） | **卡 A1** | 同上 |
+| B2 | **TS 资产**：扇出去重措辞（`input-contract.md` + `SKILL.md` + `citation-and-ref.md` + sys v0.15）——**仓库侧已改完并跑过 R12** | ~~卡 A1~~ 已解除 | 只差 **TS 资产写授权**：`publish`（原地更新 prompt v1.6 + skill 1.0.7）→ 同输入重跑取新 R 记录（预期 17/17 PASS，并与 R12 基线比调用数/事实分） |
+| B6 | **仓库资产**：`evals/fact-check/check.py` 的 `eval_attribution` —— unit 的 refs 集合 >1 时只在该 token 的 owner **不在**集合内才判 FAIL（多来源共处合法，与 sys 明文一致） | 已落地或待点头？—— **待点头**（O19；证据 R12） | 改完跑 `mutations.py`（arm A 需仍 31/31 翻转）+ R11/R12 重打分 |
+| B7 | **仓库资产**：清单条目 `A-T1-title-names-both` 改条件式（标题若点名药物则两个都要且不混；纯主题式不算违规）或降 warn | **待样本**（O20；只有 1 份产物） | 同 B6 的判据 |
 | B3 | **runner**：无待改项（O1–O18 全已落地，只剩 O4/O5 待样本） | — | — |
 | B4 | **仓库资产**：autoresearch harness 骨架 + 把 `tool_results/**` 纳入归档 → 跑 E0「receipts 命中率」回测（不动 `skill/`、0 新 run） | 用户点头 | 纯本地脚本 + 文档 |
 | B5 | **仓库资产**：把「冻结面 + 场景集 + TSV 列」写进 `AGENTS.md`/`PROJECT_STATE.md`，形成常驻 program.md（S4） | 用户点头 | 文档 |
@@ -929,3 +934,17 @@ esid 形如 `YY_SRC_KEY`，**中段就是摄入 source id**。这个 id 不需�
 - The evidence-chain timeline is generated only when **all usable selected records belong to one trial** and there are at least two distinct evidence states.
 - Mixed-trial inputs do not receive the default timeline, even when some records are repeated disclosures from the same trial.
 - Rebuilt `dist/multi-clinical-result-comparison-v0.13.zip`; current SHA-256: `445d7335f0d503c60fd3da6950015915fbb36f0d883360d03e971ec25462e7f3`.
+
+## 追加：esid → MCP 查询链路梳理与优化评估 + 事实清单归档（2026-09-17）
+
+**诉求**：① 产品确认扇出后「兼容一下」；② 总体梳理「输入 id 之后从 MCP 查什么、怎么查」并评估优化；③ 事实清单在哪、能否落到 Obsidian。
+
+**已落地**
+- **扇出兼容（A1/B2 的仓库侧）**：`references/input-contract.md` 新增 `### Row fan-out: one esid can return several rows`（触发条件 = 请求 `indication_name`/`_en`；实测 2 esid → 5 行、每行取值相同、仅注入列 `disease_id` 不同且该列不可请求；去重必须发生在编号/计数/证据状态/时间轴/引用之前；`indication_detail`（句子）与 `indication_type_cn`（领域）**不是**替代字段）+ `SKILL.md` / `references/citation-and-ref.md` / sys v0.15 各一句同义规则；`evals/fact-check/README.md` 条目计数笔误（30 → 31 fail）顺手修正。
+- **R12 记录**（台账 §2）：旧版部署内容 + 扇出输入的基线。旧版也能去重成功（正文「2 项独立试验、各 1 条结果来源」，`citations.json` 恰 2 键），但为此花了 16 次 `execute` + 15 次 `read_file`（枚举 jsonl 数行）→ 佐证「扇出是潜风险，代价是探索成本」。断言 14 PASS / 3 FAIL（全是「部署端 == 本地」一致性，因本地已改未发布）；事实分 `29/31 FAIL`。
+- **两条清单发现**：**O19** 打分器在「一句多 marker」上假阳性（与 sys 明文允许多 marker 冲突）；**O20** `A-T1-title-names-both` 期望过窄（主题式 H1 被判 FAIL）。均待判定，不擅自改。
+- **Obsidian 归档**（`D:\software\MD\slowrun\03-技术与VibeCoding\01-AI与LLM\`）：
+  - `临床结果Skill-esid到MCP查询链路梳理与优化评估-2026-09-17.md`
+  - `对比结果Skill-事实清单与离线打分器-场景A32-B13-2026-09-17.md`
+
+**链路要点（评估结论）**：整条链路只有 **1 次批量调用**（`extra_esids` + 最小 `selected_fields`），无发现式检索、无分页、无重试风暴；风险全在返回体形状 —— 行数被疾病 join 放大、`abstract_text` 在登记平台记录里可达 1.9 MB（且常常不是摘要），另有「未过滤选大字段 → StarRocks `rg_cube` 16 GiB 内存爆」与「请求 `projects` → 返回压到 500 行」两个已知边界。优化按性价比：**O-1 扇出去重（已落地）** > O-3 大字段按需（文案待改，即 B1）> O-8 平台侧显式返回未命中 esid（问题单候选）> O-9 真实 `source` 字段（等开发）> O-6 委派阈值（待样本）。

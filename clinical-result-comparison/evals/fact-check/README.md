@@ -12,7 +12,7 @@
 | --- | --- |
 | `records/scenario-a.records.json` | 场景 A 的 ground truth：`POST /api/tools/debug` 对 2 个有效 esid 的真实返回（5 行 / `actual_result_count=5`） |
 | `records/scenario-b.records.json` | 场景 B：1 个有效 + 1 个不可用 esid 的真实返回（3 行 / `actual=3`） |
-| `scenario-a.facts.json` | 场景 A 清单：**30 条 fail 级 + 1 条 warn 级** |
+| `scenario-a.facts.json` | 场景 A 清单：**31 条 fail 级 + 1 条 warn 级**（O17 新增 `A-S2b-chart-or-reason` 后：32 条中 31 条 fail） |
 | `scenario-b.facts.json` | 场景 B 清单：**12 条 fail 级 + 1 条 warn 级** |
 | `check.py` | 离线打分器（纯标准库，不联网、不调用平台） |
 | `mutations.py` | 负向对照 harness：证明每条清单项都能翻 FAIL |

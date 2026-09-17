@@ -22,6 +22,8 @@ Only the fields that carry clinical content (`abstract_text`, `summary`, `study_
 
 Assign markers in selection (esid) order over the records that actually came back: `{{ref_1}}`, `{{ref_2}}`, and so on. This ordering is stable but does not establish clinical chronology.
 
+**One esid can return several rows.** With `clinical_result.indication_name` (`_en`) requested, the backend joins a disease dimension and returns one row per disease id for the same record, the rows differing only in an injected `disease_id`. Fan-out rows are **one** source: de-duplicate by `clinical_result.extra_esid` before numbering, keep the first row, and never emit one marker or one citation key per row (see `references/input-contract.md`, *Row fan-out*).
+
 **A selected record that did not come back is not a source.** The params tool returns `ok: true` with an empty `data` array — no error — for an esid that does not exist or is not visible, so retrieve the whole selection in one batched call and confirm the gaps in at most one further call for exactly those esids; never probe variant spellings or guessed ids and never loop per esid (see `references/input-contract.md`, *Unretrievable selected items*). Such an esid gets **no** marker and **no** citation key: never emit an entry with an empty `title` — an empty-title entry is the signature of a citation written for a record that never returned. Name the unretrieved items in the evidence-scope paragraph as a limitation instead. If fewer than two usable records come back, write neither the report nor the citation file and tell the user in chat which selections could not be retrieved.
 
 ## Inline syntax

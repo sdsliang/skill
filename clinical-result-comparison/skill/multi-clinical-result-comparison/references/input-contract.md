@@ -46,6 +46,30 @@ citation mapping stable (3rd retrieved esid in selection order → `{{ref_3}}`).
    records that returned**: 3rd esid in input order → `{{ref_3}}` holds while that record exists, but
    an esid that yields no record is not numbered at all (see *Unretrievable selected items*).
 
+### Row fan-out: one esid can return several rows
+
+`extra_esids` is an exact filter on the clinical-result ID, but **one esid can come back as more than one row**.
+When `selected_fields` contains `clinical_result.indication_name` (or `clinical_result.indication_name_en`),
+the backend joins a disease dimension and returns **one row per disease id** attached to the record, while every
+requested field keeps the *identical* value on every row (the row carries the record's whole indication-name
+list, not one name per row) and an extra **`disease_id` column appears that is not a requestable field**
+(`disease_id` in `selected_fields` is rejected with `INVALID_INPUT`, yet it shows up in the response).
+
+- Measured: the two selected esids `24_1_30561610` / `24_1_36342163` return **5 rows** with `indication_name`
+  requested (3 + 2), and exactly **1 row each** with `paper_title` / `indication_detail` / `indication_type_cn`.
+- **Treat all rows sharing a `clinical_result.extra_esid` (same record `_id`) as one record.** De-duplicate by
+  `clinical_result.extra_esid` — keep the first row — **before** numbering `{{ref_n}}`, counting records, merging
+  evidence states, emitting timeline events, or writing citation entries. A fan-out row set is neither repeated
+  disclosure nor several sources: one esid = one marker = one citation key.
+- Never emit the injected `disease_id` (or a row count) in the report, and never let the fan-out drive the
+  reader-visible record count: the report covers the **selected records**, not the returned rows.
+- The rows of one esid are identical in every requested field; should they ever differ substantively, still keep
+  them as one record and use the union of the values rather than reporting the record twice.
+- If a fan-out makes one response unwieldy (many esids × large fields), split the pull by esid ranges — **do not
+  drop `indication_name` to avoid it**: the disease display names exist only in `indication_name` /
+  `indication_name_en` (`indication_detail` is a free-text sentence about the enrolled population and
+  `indication_type_cn` is the therapeutic area, both of which are not substitutes).
+
 ### Unretrievable selected items
 
 The params tool answers `ok: true` with an **empty `data` array and no error** when an esid does not
@@ -98,7 +122,9 @@ structured results. Field names below are verbatim from ALLOWED_FIELD_NAMES.
   `clinical_result.baseline_characteristics`, `clinical_result.inclusion_criteria`.
 
 Do not pull large aggregates of unrelated esids; if a batch is big, split the pull (see
-"Large-batch delegation") or tighten `selected_fields` further.
+"Large-batch delegation") or tighten `selected_fields` further. Requesting `indication_name` / `_en`
+multiplies the returned rows (see *Row fan-out*) — de-duplicate by `clinical_result.extra_esid` instead of
+dropping the field, which has no substitute.
 
 ## Consumer-field mapping (v0.11 attachment fields → params fields)
 

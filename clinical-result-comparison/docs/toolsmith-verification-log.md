@@ -318,6 +318,43 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
   变异 `M16 drop-chart-silent` → **R11 重打分为 `30/31`（只剩 `A-C6`）**、R8/R9 基线 **31/31**（新增一条条目）、
   B 仍 12/12、`mutations.py` 覆盖 31/31 GATE PASS；正向对照（删图+写明原因）仍 31/31 PASS。
 
+### R12 — 2026-09-17，**一个 esid 多行扇出的兼容措辞**（本地先行，发布未授权；部署一致性 3 项 FAIL 属预期）
+
+背景：产品侧确认「一个 esid 扇出多行」是**疾病 join 引入的**（不是可依赖的语义），要求 Skill 侧兼容。
+只读实测（`POST /api/tools/debug`）：`extra_esids=[24_1_30561610, 24_1_36342163]` + `selected_fields=[clinical_result.indication_name]`
+→ **5 行**（3+2），每行被请求字段的取值**完全相同**，只有注入列 `disease_id` 不同（该列**不可请求**：写进 `selected_fields` 直接 `INVALID_INPUT`）；
+同样两个 esid 改请求 `paper_title` / `indication_detail` / `indication_type_cn` → **各 1 行**。
+⇒ 病名只存在于 `indication_name` / `_en`（`indication_detail` 是描述入组人群的**句子**、`indication_type_cn` 是**领域**），**没有替代字段**，只能接受扇出 + 去重。
+
+改动（4 个仓库资产文件；**未动 runner、未动 TS 平台**）：
+① `references/input-contract.md` 新增 `### Row fan-out: one esid can return several rows`（触发条件 / 实测行数 / **去重时机在编号与计数之前** / 注入列不得进正文 / 不可用 `indication_detail` 替代）+
+Recommended `selected_fields` 收尾一句；② `SKILL.md` 输入契约段加「按 `extra_esid` 去重 = 一词一 marker」；
+③ `references/citation-and-ref.md` 加同义规则；④ sys `-v0.15.md` 第 7 行加同义子句；
+⑤ 顺带修 `evals/fact-check/README.md` 的条目计数笔误（场景 A 实为 **31 fail + 1 warn**，文中写作 30）。
+
+| 项 | 值 |
+|---|---|
+| 命令 | `toolsmith-publish run --prompt "解读这几个结果 24_1_30561610 24_1_36342163" --tag r12-fanout-dedup` |
+| thread / turn | `89c055da-3c8b-4a6e-90ee-7f779510c3f3` / `c100df33-c1d0-4f28-91d0-149d44219f29` |
+| 终态 / 结局 | `completed`（durable `timing.completed_at`）/ `succeeded` |
+| 墙钟 | 201.8 s server / 207.9 s polled（11 次轮询：`running`×10 → `idle`） |
+| 调用 | **36 次**：`execute`×16、`read_file`×15、`load_skill`×1、`params`×1、`write_file`×1、`edit_file`×1、`present_artifact`×1；schema 被拒 0 |
+| token | thread in 110,371；turn in 2,210,912 / out 36,713 / reasoning 24,864；cache 97.6% |
+| 产物 | `output/report.md`、`output/citations.json`、`visualizations/endpoint-bar-1.json` |
+| 断言 | **14 PASS / 3 FAIL（exit 3）** —— 3 个 FAIL 全是「部署端 == 本地」一致性项（prompt `d58b0638ce34`、SKILL 19,580 vs 19,933、`citation-and-ref.md` 7.9 vs 8.33 KB、`input-contract.md` 16.4 vs 18.74 KB）：**本地已改而未发布**，属预期信号而非缺陷 |
+| 事实分（离线清单） | `scenario=a facts 29/31 warn 1/1 -> FAIL` |
+
+**基线行为（旧版部署内容 + 扇出输入）**：旧版**照样去重成功** —— 正文写「2 项独立试验、各 1 条结果来源」，
+`citations.json` 恰为 `ref_1`/`ref_2` 且标题非空 ⇒ 再次印证扇出是**潜风险而非在线缺陷**。
+但代价可见：模型为了弄清「5 行 → 2 条记录」用了 **16 次 `execute` + 15 次 `read_file`**（枚举 jsonl、逐行比对），
+36 次调用 / 201.8 s 里相当一部分就是这个探索 —— 这正是新增措辞要省掉的部分。
+
+**事实分 2 个 FAIL 的分诊（都不像内容缺口）**：
+- `A-ATTR-misattribution`（**打分器假阳性，见 O19**）：合法的一句多 marker 被判错配。
+- `A-T1-title-names-both`（**清单期望过窄，见 O20**）：主题式 H1 不含药名即 FAIL，但药名都在正文锚点里。
+
+**下一步**：发布授权 → `publish`（原地更新 prompt v1.6 + skill 1.0.7）→ 同输入重跑 → 新记录（预期 17/17 PASS，并把事实分与调用数与本次基线对比）。
+
 ### W1 — 2026-09-17，runner 新增 `run --web`（只改 runner，零线上改动；台账 O18）
 
 **背景**：平台把 Web 工具挂在**「项目能力 + 请求级 `enable_web`」两道开关**上（`capabilities/web.py:140`
@@ -371,6 +408,8 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O16 | **runner 的图表类断言在「0 图」时全部平凡通过**（R11 产物只有 `report.md` + `citations.json`，3 条图表断言照旧 PASS：「0 tags / 0 files」「no chart」）——断言本身没错（有没有图取决于输入，不能无条件要求），但意味着**“该出的图没出”这件事 runner 看不见**；R11 的事实分里 3 个 FAIL 正是这一类 | **定案：不改 runner**。`run` 是**通用**入口，不知道场景，无条件要求出图会把合法场景判死；这类“该不该出一张定量主图”的判定交给**离线事实清单**（`evals/fact-check/` 的 `A-S2/S8/S9`），清单知道场景、也知道规则文本 | **定案保留**（2026-09-17；由 R11 暴露，非缺陷） |
 | O17 | **清单条目 `A-S2-chart-set` 是「基线污染」**（期望从 R8 产物倒推，而不是从规则文本推）·**已按用户批准修正**：它期望场景 A 必出 `endpoint-bar-1.json`，但 `chart-templates.md:91` 的规则是「定量主图**可选**，需 ≥2 条入选结果给出**同一终点、同一口径（可明确对齐的时点）**的纯数值」，而场景 A 的两条记录是**第 16 周 vs 第 36 周**——R11 据此明确写了「不具备绘图条件——本报告不输出图表」并给了理由；R8（同一输入）反而画了图。**这就是「清单必须先于产物撰写」要防的那个坑** | **已落地**（2026-09-17）：① `A-S2` 改为 `chart_set_allowed`（文件名合法 + 禁 timeline（跨试验前置条件不成立）+ 定量图 ≤1 张；**空集合不算违规**）；② 新增 **`A-S2b-chart-or-reason`**：没有定量图时正文必须**明确写出不出图**（`required_groups`）且给 ≥1 条实质理由（`supporting_groups`）——只查支持理由不够（跨试验报告天然写「跨试验」「时点不同」，删图不说话也能过）；③ `A-S8/A-S9` 加 `"optional_when_absent": true`（文件在则硬断言封套/数值，不在则 PASS 并指向 A-S2b）；④ `A-C12` pattern `2 ?条` → **`2 ?(条\|项)`**；⑤ 新增变异 **`M16 drop-chart-silent`** | **已落地**（2026-09-17；判据：R8/R9 新基线 **31/31**、R11 由 25/30 → **30/31**（只剩 `A-C6`）、B 仍 12/12、`mutations.py` arm A **16** 个变异覆盖 31/31 + arm B 11 个覆盖 12/12 → **GATE PASS**；正向对照「删图 + 写明原因」手动跑 → 31/31 PASS） |
 | O18 | **`run` 无法进入「联网状态」**：`post_turn` 把请求级 `enable_web` 硬编码为 `False`，而平台只在「项目能力 + 请求级开关」双开时才注入 `web_search`/`web_fetch`（`capabilities/web.py:140`）—— 项目能力本项目已开（`/api/agent/info?…&enable_web=true` 注入 `## Web Tools`），所以唯一的闸门正好是本机验证器碰不到的那一个；后果是无法用 `run` 验证「联网时 skill 行为」（路线 C 的前置条件），之前只能靠临时探针脚本 `/tmp/webtest.py` | `run` 新增全局 `--web`（写进请求体 `enable_web`，`run.json` 与 `verification.md` 均留痕；`--resume` 打印无效提示），CLI docstring 与 plan doc 同步 | **已落地**（2026-09-17，用户先点头后才改；改前备份 `.v4.bak`，92,618 B）→ 证据见 **W1** |
+| O19 | **打分器在「一句多 marker」上假阳性**：R12 报告里 `… NCT02729025 的机制终点未达显著{{ref_1}}，其结论不能外推至 OCEAN(a)-DOSE{{ref_2}}` 被判 `A-ATTR-misattribution` FAIL（`'NCT02729025' in unit citing ['ref_2']`）——而 sys 明文允许「一句确实混用多来源时可挂多个 marker」（`system-prompts/…-v0.15.md:203`）。判分器只看「token 的 owner 是否等于该 unit 的**唯一** ref」，与契约文本冲突 | `eval_attribution`：unit 的 refs 集合 **>1** 时，只在 token 的 owner **不在**该集合里才 FAIL（多来源共处合法）；单 ref 的 unit 维持严格归因 | **待用户点头**（2026-09-17 R12 暴露；未改，避免“刚跑完就放宽清单”的嫌疑） |
+| O20 | **清单条目 `A-T1-title-names-both` 期望过窄**：R12 的 H1 是主题式标题「Lp(a) 升高人群降 Lp(a) 治疗：跨试验对比报告」→ FAIL；但两个药名都在正文锚点里（`A-C1/C2` PASS）。该条的理由是「标题无引注、不受归因保护」，真正要防的是**两药混成一个**；而「H1 必须点名两个药」是从 R8 那份标题倒推的写法偏好（与 O17 同类基线污染） | 改为条件式：**标题若点名药物，则必须两个都点名且不混；纯主题式标题不算违规**（或降为 warn） | **待判**（2026-09-17 R12 暴露；证据仅 1 份产物，按「我方能改的先给证据再改」记待样本） |
 
 ## 4. 平台侧（转开发）
 
