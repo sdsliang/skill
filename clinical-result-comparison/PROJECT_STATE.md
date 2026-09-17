@@ -39,6 +39,22 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - **状态**：**用户 2026-09-17 判为「很重要、需要改，但我得先问产品」→ 本轮不动 `skill/`**，只记录（改 skill 则必须重跑 `run` 留 `R<n>`）。
 - **要问产品的两个问题**：① 疾病维度扇出是**预期语义**（一条结果对应多适应症）还是**取数副作用**？若是预期，前端「选中结果」的粒度是 esid 还是 `(esid, disease_id)`？
   ② 若是副作用，应该**工具侧 DISTINCT 掉**（现有 CTE 里的 `SELECT DISTINCT` 只覆盖 `_id/extra_esid`，外层 join 后又发散）还是**由 skill 提示词去重**？
+
+### 扇出根因追加定位（2026-09-17，只读探针，给产品的第二个版本解释用）
+
+- **触发条件很精确（新）**：**只有 `selected_fields` 里带 `clinical_result.indication_name`（或 `indication_name_en`）时才扇出**；
+  同一 esid 改查 `paper_title` / `study_results` / `indication_detail` / `indication_type_cn` → **1 行，且返回行里没有 `disease_id` 列**。
+  而我们的取数字段清单**正好包含 `clinical_result.indication_name`**（`references/input-contract.md:91`）⇒ 实时路径走的就是扇出那条路。
+- **`disease_id` 不是可请求字段**：写进 `selected_fields` 报 `INVALID_INPUT: Invalid fields selected`（不在 `ALLOWED_FIELD_NAMES` 里），
+  却会**凭空出现在返回行**中 ⇒ 是那条 SQL 尾段 join 疾病维表多出来的列（与「CTE 里 `SELECT DISTINCT` 只覆盖 `_id/extra_esid`」对得上）。
+- **每行的 `indication_name` 都是完整 3 个**（高低密度脂蛋白胆固醇血症 / 脂蛋白(a)增高 / 炎症(未指明)），**没有按行拆开** ⇒ 看着像
+  「join 后被复制」，不是「按疾病拆行」。
+- **真实场景命中（新）**：场景 A 的两个 esid 都扇出 —— `24_1_30561610` **3 行**（1403/5194/10000）、`24_1_36342163` **2 行**（421/1403）
+  ⇒ 选 2 条结果实际拿回 **5 行**（对照：`24_1_31415087` 1 行、`24_1_45608045` 0 行、`24_187_acaa9fda…_1` 1 行、`24_49_f9a67f…_1` 1 行）。
+  扇出行除了 `disease_id` **逐字段完全相同**（同 title / journal / study_results）。
+- **严重性口径（勿夸大）**：**尚未观测到产物出错** —— R8 / R11 两个真跑（正是这两个 esid）`citations.json` 都是 **2 条**、正文写「**2 项**来源记录」，
+  即模型自己按内容合并了；但合并的**依据是「重复行逐字段相同」这个巧合**，契约层没有保障（若将来按疾病不同的字段出现，模型无法判断并/拆）。
+  ⇒ 向产品陈述时说「现在靠巧合对」，不说「线上报错」，我们**不改清单/产物迁就**。
 - **备好的改法（拿到结论后再执行）**：`references/input-contract.md` + `SKILL.md` 各加一句「按 `clinical_result.extra_esid` 去重后再按输入顺序编号 `{{ref_n}}`，同一 esid 的重复行只取一份」。
 - 全文：Obsidian `03-技术与VibeCoding/01-AI与LLM/临床结果esid查询-params工具字段与取值实测-2026-09-17.md`「追问 3」。
 
