@@ -42,6 +42,30 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 - **备好的改法（拿到结论后再执行）**：`references/input-contract.md` + `SKILL.md` 各加一句「按 `clinical_result.extra_esid` 去重后再按输入顺序编号 `{{ref_n}}`，同一 esid 的重复行只取一份」。
 - 全文：Obsidian `03-技术与VibeCoding/01-AI与LLM/临床结果esid查询-params工具字段与取值实测-2026-09-17.md`「追问 3」。
 
+## ⏸️ Parked: 结果记录（表单）不全 vs CT.gov 官方全 —— 数据侧缺口（2026-09-17，等产品/数据团队确认）
+
+- **用户澄清（2026-09-17）**：引 NCT/CT.gov 的真实动机不是「要更多证据」，而是**我们自己的结果记录只抽了官方 results
+  页的一部分，ClinicalTrials.gov 官方才是全的**。
+- **量化缺口**（同一试验 `NCT05419908`，只读对比）：官方 results **26 个终点 / 300 个值行**、基线 5 指标×3 组、
+  人流 3 里程碑×2 组、AE 1 严重 + 8 其他（带分母 44/43）；内部 `study_results` 只有 **84 行 / 28 标签 / 5
+  `endpoint_id`**。**完全缺**：HFRDIS/LSEQ/GCS/SDS（156 值）、7 个血浆浓度终点 LH/FSH/E2/SHBG/Leptin/Insulin/
+  C-peptide（70 值）、基线特征（`baseline_characteristics` 空）、人流（`participant_flow` 空）、AE 事件名与计数。
+- **反向偏差（内部更好的一面）**：24 行 `arm_type: relative` 带 `compare_result` + `p_value` + CI，是魔方自己的加工；
+  官方只有 `analyses` 雏形。安全性行的 `endpoint_label` **只有时间窗**、无事件名。
+- **关键区分：骨架内部有，值内部没**。`pharmcube-query-clinical-trial-with-params`
+  （`trial_id=NCT05419908`，零联网）返回 **1 主 + 25 次** 终点定义（`sec_outcome_measures_en` 16,569 chars，
+  HFRDIS/LSEQ/GCS/SDS/血浆浓度/AE 全在，与官方 25 个数**完全一致**）+ 纳入/排除标准 + `arms` + `enrollment` +
+  sites/dates/design。⇒ 缺口性质 = **取数/入库不完整**，不是「不知道要去哪拿」。
+- **三条路线**：**A（推荐）数据侧补全**（报告数据团队：只抽部分终点是有意还是入库缺失；补 16 个终点值 +
+  基线 + 人流 + AE）；**B skill 层「诚实声明」**（但记录里目前无 `data_completeness`/`omitted_endpoints` 类信号，
+  要落实得先有信号或额外调一次 trial 工具交叉核对，会引入二次取数与新引用口径问题 → 待产品拍板）；
+  **C 平台开 CT.gov 出口**（沙箱白名单 + 平台工具 + 政策/引用口径重写，代价最高且双源版本差异风险）。
+- **附带字段陷阱**：`clinical_result.group_count` = **总体入组 87**，不是组数（实际 2 组 44/43，组 n 在结果记录里根本没有）；
+  结果记录的 `arms[*].drug_earth_ids` 与试验记录的 `arms[*].therapeutic_schedule_id` 是**两套 id 体系**。
+- 全文（含官方模块清单、逐字段对比、trial 工具回包）：Obsidian
+  `03-技术与VibeCoding/01-AI与LLM/临床结果esid查询-params工具字段与取值实测-2026-09-17.md`「追问 2 更正」。
+- 官方 JSON 落盘：`/tmp/ct-NCT05419908.json`（164,496 B）；trial 工具回包：`/tmp/trial-NCT05419908.json`。
+
 ## ⏸️ Parked: bar 柱下钻（v0.9-test，已由用户验证可行，暂不开发）
 
 - 全部改动（未提交）已 stash：`git stash list` → `stash@{0}: On chart-drilldown-nct: wip: bar drill-down (v0.9-test) + 1L ORR test datasets — verified by user, park for later`。分支 `feat/chart-drilldown-nct` 与 main 同提交 `349eabc`（无独立 commit），后续要继续可直接 `git checkout feat/chart-drilldown-nct && git stash pop`。
@@ -120,7 +144,8 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
  已经是 results 页的结构化解析 + 魔方自己的成对比较（`compare_result`/`p_value`/CI）。
 - **「用 nct_id 调 CT.gov API 拿 result 全文」不可行/非必要**：① 部署端沙箱 `no network access by default`
   （`instructions-platform-tail.md` Execute 节）；② skill/sys 明文 `Do not retrieve external facts or URLs`；
-  ③ 会破 ref ↔ 内部记录的一一对应与版本口径 → 属**平台侧能力 + 政策改写**，不是改提示词能落地的事。
+  ③ 会破 ref ↔ 内部记录的一一对应与版本口径。**（2026-09-17 用户更正：真实诉求不是「多拿证据」，
+  而是「我们的结果记录不全」→ 见上方 parked 段与 Obsidian 追问 2 更正）**
 - **但 `trial_id` 参数可用 NCT 号反向拉「该试验全部结果」**（源码 `params_clinical_result_tool.py:246`，
   `JSON_PATH_LIKE` 于 `projects $[*].associate_ids`）：实测 `trial_id=NCT05419908` → 2 条不同 esid（`24_1_31415087`
   JCEM 2019 / `24_187_acaa9fda98c00fb890d804d0e3a0428c_1` CT.gov 2023）。**纯内部数据、无需联网**，是「同试验多证据」的正路。
