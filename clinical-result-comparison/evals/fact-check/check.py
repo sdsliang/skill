@@ -270,6 +270,16 @@ def op_citations_entry_key_set(sv: dict, spec: dict) -> tuple:
     return (not bad, "; ".join(bad) if bad else f"{len(spec['refs'])} entries OK")
 
 
+# A citation link may carry the full-text body instead of the record's own link, but only in the two
+# whitelisted forms from `references/input-contract.md` (*Citation link follows the analysis depth*).
+FT_CITE = (re.compile(r"^https://pmc\.ncbi\.nlm\.nih\.gov/articles/PMC\d+/?$"),
+           re.compile(r"^https://www\.ebi\.ac\.uk/europepmc/webservices/rest/PMC\d+/fullTextXML$"))
+
+
+def is_fulltext_citation_link(link: str) -> bool:
+    return any(p.match(str(link or "")) for p in FT_CITE)
+
+
 def op_citations_matches_record(sv: dict, spec: dict, ctx: dict) -> tuple:
     rec = record_of(ctx["fixture"], spec["esid"])
     e = (sv["citations"] or {}).get(spec["ref"])
@@ -280,15 +290,20 @@ def op_citations_matches_record(sv: dict, spec: dict, ctx: dict) -> tuple:
     if e.get("title") != t:
         bad.append(f"title != record ({str(e.get('title'))[:60]!r} vs {str(t)[:60]!r})")
     link = rec.get(spec["map"]["link"])
-    if e.get("link") != link:
-        bad.append(f"link != record ({e.get('link')!r} vs {link!r})")
+    upgraded = (e.get("link") != link)
+    if upgraded and not is_fulltext_citation_link(e.get("link")):
+        bad.append(f"link != record and not a whitelisted full-text link ({e.get('link')!r} vs {link!r})")
     raw = rec.get(spec["map"]["date"]) or ""
     want_date = str(raw)[:10]
     if e.get("paper_release_time_str") != want_date:
         bad.append(f"date != {want_date!r} (record={raw!r})")
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(e.get("paper_release_time_str") or "")):
         bad.append("date not YYYY-MM-DD")
-    return (not bad, "; ".join(bad) if bad else f"{spec['ref']} == record {spec['esid']}")
+    if bad:
+        return False, "; ".join(bad)
+    if upgraded:
+        return True, f"{spec['ref']} == record {spec['esid']} (link carries the full text)"
+    return True, f"{spec['ref']} == record {spec['esid']}"
 
 
 def op_citations_distinct(sv: dict, spec: dict) -> tuple:
@@ -506,12 +521,69 @@ def op_fulltext_fetch_is_named(sv: dict, spec: dict) -> tuple:
                    f"from an abstract-only check")
 
 
+def archived_fulltexts(art: str) -> list:
+    """Full-text bodies archived under `sources/` (same detection as `op_fulltext_fetch_is_named`)."""
+    srcs = [p for p in sorted(glob.glob(os.path.join(art or "", "sources", "**", "*"), recursive=True))
+            if os.path.isfile(p) and os.path.getsize(p) < 20_000_000]
+    ft = []
+    for p in srcs:
+        name = os.path.basename(p).lower()
+        if "fulltext" in name or "full-text" in name or re.search(r"pmc\d", name):
+            ft.append(p); continue
+        try:
+            with open(p, "r", encoding="utf-8", errors="ignore") as fh:
+                head = fh.read(4000)
+        except OSError:
+            continue
+        if re.search(r"<article|<sec\b|<body\b", head):
+            ft.append(p)
+    return ft
+
+
+def op_cite_link_is_deepest(sv: dict, spec: dict) -> tuple:
+    """A record analysed from the full text must cite the full text, not the abstract page.
+
+    `A-P5` makes the *declaration* of a full-text check mandatory; the citation `link` is the other
+    half of that promise. If a full-text body for `ref_<n>` sits in `sources/` while `citations.json`
+    still points `ref_<n>` at the abstract/publisher URL, whoever clicks the superscript lands on a
+    page that does not contain the numbers the report used. Nothing archived ⇒ not triggered; a link
+    carrying the same `PMC<id>` as the archive is accepted too.
+    """
+    art = sv.get("artifacts_dir") or ""
+    ft = [p for p in archived_fulltexts(art) if re.match(r"ref_(\d+)", os.path.basename(p).lower())]
+    if not ft:
+        return True, "no per-ref full-text body archived (check not triggered)"
+    c = sv["citations"] or {}
+    bad = []
+    for p in ft:
+        base = os.path.basename(p)
+        ref = "ref_" + re.match(r"ref_(\d+)", base.lower()).group(1)
+        e = c.get(ref)
+        if not isinstance(e, dict):
+            bad.append(f"{ref} missing from citations.json (full text archived as {base})")
+            continue
+        link = str(e.get("link") or "")
+        try:
+            with open(p, "r", encoding="utf-8", errors="ignore") as fh:
+                head = fh.read(4000)
+        except OSError:
+            head = ""
+        ids = {i.lower() for i in re.findall(r"PMC\d+", base + " " + head)}
+        if not (is_fulltext_citation_link(link) or any(i in link.lower() for i in ids)):
+            bad.append(f"{ref} cites {link!r} but its full text is archived as {base}")
+    if bad:
+        return False, ("full-text body archived without pointing the citation at it: " + "; ".join(bad)
+                       + " — a record analysed from the full text must cite the full text")
+    return True, f"{len(ft)} full-text ref(s) cite their full-text carrier"
+
+
 SHAPE_OPS = {
     "artifact_present": op_artifact_present,
     "artifact_absent": op_artifact_absent,
     "no_verbatim_copy": op_no_verbatim_copy,
     "original_check_names_class": op_original_check_names_class,
     "fulltext_fetch_is_named": op_fulltext_fetch_is_named,
+    "cite_link_is_deepest": op_cite_link_is_deepest,
     "glob_count": op_glob_count,
     "citations_keys_exact": op_citations_keys_exact,
     "citations_entry_key_set": op_citations_entry_key_set,

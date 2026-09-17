@@ -228,6 +228,17 @@ def M21(d, r, c, v):  # archive a PMC full text but declare only the abstract ro
     return 1
 
 
+def M22(d, r, c, v):  # full text archived AND declared, but the citation still points at the abstract
+    src_dir = os.path.join(d, "artifacts", "sources")
+    os.makedirs(src_dir, exist_ok=True)
+    open(os.path.join(src_dir, "ref_1.pmc-fulltext.xml"), "w", encoding="utf-8").write(
+        '<?xml version="1.0"?>\n<article><front><article-title>t</article-title></front>'
+        '<body><sec><title>Results</title><p>ORR was 35.0% (95% CI, 23.1-48.4).</p></sec></body></article>\n')
+    # declare the full-text depth so A-P5 stays satisfied: only the citation link is wrong here
+    return sub(r, r"原文核对：[^\n]*\n",
+               "> **原文核对：** 2/2 条已复核（src=1 取 PMC 全文 PMC11270764；src=37 库内正文即会议摘要原文）。\n")
+
+
 MUTS_A = [
     ("M01 minus139", M01, "A-C4-primary-A"),
     ("M02 signflip", M02, "A-N2-no-sign-flip"),
@@ -250,6 +261,7 @@ MUTS_A = [
     ("M19 one-sided-divergence", M19, "A-P2-divergence-shows-both"),
     ("M20 hollow-original-check", M20, "A-P4-original-check-names-route-and-class"),
     ("M21 fulltext-archived-but-undeclared", M21, "A-P5-fulltext-fetch-is-declared"),
+    ("M22 fulltext-archived-but-abstract-link", M22, "A-P6-cite-link-is-deepest"),
 ]
 
 # --------------------------------------------------------------- arm B mutations

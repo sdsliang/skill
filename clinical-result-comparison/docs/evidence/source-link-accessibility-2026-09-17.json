@@ -911,6 +911,55 @@
         "risk": "会议摘要类（55.6%）永远达不到 ⇒ 可比性受损，不建议默认开"
       }
     ],
-    "status": "待用户定级（未改任何规则）"
+    "status": "已定级：L3（用户 2026-09-17 拍板，仓库先行，未发布）"
+  },
+  "l3_decision": {
+    "decision": "L3 — 分析面 = 可得最深载体；基于全文分析的记录，引用 link 指向全文",
+    "decided_by": "user",
+    "decided_on": "2026-09-17",
+    "user_point_verbatim": "科学事实不会因为披露在摘要里还是全文里而改变；不要仅凭长短判可比性。改为在 ref 处处理：若已获取全文并基于全文分析，引用应指向真正的全文链接，而不是原来的 PubMed 摘要链接。",
+    "correction_recorded": "本台账先前用「会议摘要无全文 ⇒ 深度不对等 ⇒ 不可比」论证 L1/L2，该论证撤回：深度决定「这条记录有多少内容可用」，不决定科学事实是否可比。深度不对等的正确处置是逐条声明分析深度，而非把记录判为不可比。",
+    "citation_link_rule": {
+      "when": "某条记录的事实建立在已取回的 PMC 全文上（R6→R7 返回全文）",
+      "default": "https://pmc.ncbi.nlm.nih.gov/articles/{PMCID}/  (C1)",
+      "alternative": "https://www.ebi.ac.uk/europepmc/webservices/rest/{PMCID}/fullTextXML  (C2)",
+      "limits": "每条记录最多一次替换；只能用 R6 返回的 PMCID；title 与 paper_release_time_str 不变；其余记录 link 仍逐字节取自 full_article_link"
+    },
+    "citation_link_reachability_probe": {
+      "run": "20260917-211711-pmclink",
+      "probe": "run --web，3 个候选 URL 各一次，literal，无重试，不产报告",
+      "results": [
+        {
+          "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11270764/",
+          "ok": false,
+          "chars": 115,
+          "note": "reCAPTCHA 挑战页（机房出口被拦）；浏览器正常可通过，仅作为「写进引用」的目标，不作为抓取目标"
+        },
+        {
+          "url": "https://europepmc.org/article/MED/39054491",
+          "ok": false,
+          "chars": 141,
+          "note": "Client error '403 Forbidden'"
+        },
+        {
+          "url": "https://www.ebi.ac.uk/europepmc/webservices/rest/PMC11270764/fullTextXML",
+          "ok": true,
+          "chars": 99433,
+          "note": "本次真正读取的字节源；作为 C2 备选"
+        }
+      ],
+      "conclusion": "两个人类可读页对我们的出口不可取，机器端点可取。因此 C1 只写不取（写进 citations.json 供读者点击），C2 保留给「引用想指向实际读取字节」的场景，覆盖行需说明。"
+    },
+    "full_text_facts_discipline": "取自全文的数值必须带自己的时点/分析集/人群标签；亚组/事后分析需点名。全文与库内不一致若非同指标同标签冲突，按版本差异（截止/人群/分析集不同）写明，不判库内错误。",
+    "assertions_added": [
+      {
+        "id": "A-P6-cite-link-is-deepest",
+        "op": "cite_link_is_deepest",
+        "rule": "sources/ref_<n>.* 归档全文 ⇒ citations.json 里 ref_<n>.link 必须是白名单全文 URL（或至少带同一 PMC<id>）",
+        "why": "与 A-P5 互补：A-P5 管覆盖行声明，A-P6 管引用落点，否则点开上标的人看不到报告用到的数值",
+        "mutation": "M22（归档全文 + 覆盖行已声明全文 + 引用仍指摘要页 → 只翻 A-P6，证明隔离）"
+      }
+    ],
+    "budget": "不变：每条 ≤2（仅 src=1 的 R6→R7 链），整批 ≤40；src=1 的两次是主取回而非兜底"
   }
 }

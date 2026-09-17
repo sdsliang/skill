@@ -132,7 +132,8 @@ The pulled clinical-content fields are **pipeline-processed extracts**: the back
 source can drop a field, normalize a unit, or misread a table. The **original source** is therefore the
 first priority for material clinical numbers, and the pulled fields are the second — use them to structure
 the narrative and to fill what the original does not cover, never as the sole unreviewed basis for a
-headline number.
+headline number. **"The original" means the deepest body available for that record**, not the shortest one
+that happens to be in the pulled fields: see *The analysis surface is the deepest body you can obtain* below.
 
 **Read `abstract_text` first — it usually *is* the original.** Measured 2026-09-17 by alphanumeric-normalized
 comparison (9 records, 4 classes): the pulled `abstract_text` is the original text itself, not a rewritten
@@ -141,9 +142,9 @@ case, `BACKGROUND:` vs `Background`), conference abstracts match OpenAlex **0.99
 is markdown/web residue wrapped around the same words — 50 of 56 chunks of the original sit verbatim inside
 the pulled text), press releases carry the wire dateline verbatim, and for registry records the pulled
 structured-results JSON contains **102/102 and 72/72** of the decimal values the ClinicalTrials.gov API
-returns. So the default is: **read the pulled body and check the report against it, with no external call.**
-Fetch only where the pulled body is missing or looks truncated, or where a class has a documented fuller
-route (PubMed → PMC full text below).
+returns. So the default is: **read the pulled body and check the report against it, with no external call** —
+except where a class has a documented fuller route, where the fuller body *replaces* the pulled body as the
+analysis surface (PubMed → PMC full text below).
 
 **Know the source class.** The middle segment of `clinical_result.extra_esid` (`YY_<src>_…`) is the
 **ingestion source id**; it decides what "the original" is and which route is worth spending. Classes not
@@ -152,7 +153,7 @@ once.
 
 | src | Source class | What the pulled `abstract_text` is | Fuller external original | What to do |
 |---|---|---|---|---|
-| `1` | PubMed / journal paper | the journal abstract, verbatim (median ~1.8 K chars) | **yes — PMC full text**; 56 of 100 sampled rows carry a `pmcid` | **always try R6 → R7**, even when `abstract_text` is non-empty |
+| `1` | PubMed / journal paper | the journal abstract, verbatim (median ~1.8 K chars) | **yes — PMC full text**; 56 of 100 sampled rows carry a `pmcid` | **always try R6 → R7**, even when `abstract_text` is non-empty, and **analyse the full text** when it comes back |
 | `2`, `187` | ClinicalTrials.gov registration results | the registry's **structured-results JSON**, not prose (src `187` measured 100% empty) | the same data, possibly a newer posted version | no fetch; R2 only to confirm the registry version/date |
 | `37` | conference abstract (ASCO/ESMO/ASH/…) | the conference abstract, verbatim (median ~2.8 K chars) | none reachable (meeting sites answer 403 / JS-shell) | no fetch; R3 only if the pulled body is empty or truncated |
 | `49`, uuid-only legacy rows | news / company press release | **the release body, copied verbatim** at ingestion (wire dateline `(GLOBE NEWSWIRE) --`, `/PRNewswire/`, `(BUSINESS WIRE)--` present) | wire pages mostly unreachable | no fetch — check the report against the pulled body |
@@ -173,10 +174,49 @@ never use a search engine, and never re-try the same content through a different
 | R6 | `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{pm_id}&resultType=core&format=json` | `clinical_result.pm_id` | abstract + **`pmcid`** + `inPMC` — the key that unlocks full text | works: 1/1 |
 | R7 | `https://www.ebi.ac.uk/europepmc/webservices/rest/{PMCID}/fullTextXML` | the `pmcid` that **R6** just returned | the **PMC full text** as JATS XML: sections, tables, endpoint numbers | works: 4/5, 63–99 KB — the single failure is per record (`500` when that paper is not in PMC/OA), not a dead route |
 
-**PubMed full text is the documented exception to "the pulled body is enough".** For `src=1`, even when
-`abstract_text` is present, spend the two calls: **R6** to read `pmcid` / `inPMC`, then **R7** for the full
-text — but only when R6 actually returned a `pmcid`. A paper with no `pmcid`, or `inPMC: N`, is reported as
-its own reason class (无 PMCID / 非 OA) instead of being counted as a failed fetch.
+**The analysis surface is the deepest body you can obtain — depth is not comparability.** A scientific fact
+does not become a different fact because it was disclosed in an abstract rather than in a full text, so
+"the full text is longer" must never be used to call two records incomparable. What depth changes is *how
+much of the record is available to you*: it decides whether a report can speak about PFS, a hazard ratio, a
+subgroup or grade-3 safety at all. So:
+
+- **`src=1` (PubMed) is the documenting case.** Even when `abstract_text` is present, spend the two calls —
+  **R6** to read `pmcid` / `inPMC`, then **R7** for the full text — and when R7 returns, the **full text is
+the analysis surface**, not a cross-check on the abstract. Measured 2026-09-17 over three `src=1` rows: the
+  abstract (2.6 K chars) carries 30 / 41 / 2 of the numerals the full text (49–99 K chars) carries, i.e.
+  **88–99 % of the full text's numbers appear nowhere in the abstract** (absent dimensions included PFS,
+  HR / ORR / DoR, TTR, p = / n =, subgroup and grade-3 safety; see
+  `docs/evidence/source-link-accessibility-2026-09-17.json`, `pmc_fulltext_information_gain`).
+- **Every other class keeps its measured deepest body** and needs no extra call: `37` / `49` / uuid rows —
+  the pulled `abstract_text` *is* the deepest carrier that exists; `2` / `187` — the pulled body already *is*
+  the registry JSON, so the registry holds no deeper layer for you.
+- A paper where R6 returns no `pmcid`, or `inPMC: N`, stays at abstract depth and is reported as its own
+  reason class (无 PMCID / **非 OA**) instead of being counted as a failed fetch.
+
+**Facts that exist only in the full text are allowed — but they must carry their own label.** When a number
+comes from a deeper body than the pulled fields, write its 时点 / 分析集 / 人群 next to it, and name a
+subgroup, post-hoc or updated-cutoff analysis as exactly that. Never let a full-text-only number read as the
+primary analysis merely because it is more precise, and never merge two depths into one unlabelled figure.
+For the same reason a divergence between the full text and the pulled fields is not automatically a library
+error: when the two are different disclosure versions (different cutoff, cohort or analysis set), record it
+as a version difference and name it — only a same-metric, same-label conflict is written
+`原文 <值>；库内记录 <值>{{ref_n}}`.
+
+**Citation link follows the analysis depth.** When a record's facts rest on a retrieved full text, its
+`citations.json` entry must point at that full text instead of the abstract/publisher page — otherwise the
+reader who clicks the superscript lands on a page that does not contain the numbers the report used. Exactly
+one substitution per record, built only from the `PMCID` that R6 returned:
+
+| # | Template | When |
+|---|---|---|
+| C1 | `https://pmc.ncbi.nlm.nih.gov/articles/{PMCID}/` | **default** — the canonical human full-text page, what a reader can actually open |
+| C2 | `https://www.ebi.ac.uk/europepmc/webservices/rest/{PMCID}/fullTextXML` | allowed alternative — the exact byte source the run read (say so in the coverage line) |
+
+Measured 2026-09-17: **C1 answers a reCAPTCHA challenge to our datacenter egress and C2 is the URL we can
+and did fetch.** C1 is therefore only ever *written* as a citation, never fetched as evidence; a browser
+passes the challenge that our egress does not. Every other citation entry keeps `link` byte-for-byte from
+`full_article_link` — this is the *only* exception to the byte-for-byte rule, it never applies to `title` or
+`paper_release_time_str`, and no other URL may be written.
 
 **The record's own `full_article_link` page is a last resort, and accessibility is per host** (measured
 2026-09-17 over 30 representative links: 22 fail, 3 succeed, plus the route calls). Do not treat "the link
@@ -201,7 +241,8 @@ page" as one thing:
   the wire page adds nothing and usually fails.
 
 **Budget and failure handling.** **One** pass over the selection; at most **one** fetch per record, except
-`src=1`, which may spend **two** (R6 → R7 — a single retrieval chain, still one record, one pass).
+`src=1`, which may spend **two** (R6 → R7 — a single retrieval chain, still one record, one pass) and where
+the two calls are the **primary** retrieval, not a fallback for a missing body.
 Whole-run cap: **40** `web_fetch` calls. If the selection is larger than the budget, fetch for the records
 that carry the key conclusions first and state the coverage. A failed fetch is dropped — no retry, no alternative route,
 no substitute URL — and its reason class is recorded. `web_fetch` writes each response under
@@ -225,6 +266,11 @@ non-fetch path is still a named path: `库内正文即原文摘要（src=1，未
 `src=1` group the line must also state the PMC outcome — full text taken (`PMC11270764`), no `pmcid`, or not
 OA — and if a full text was archived under `/workspace/sources/`, both the PMID/PMCID and the word 全文 must
 appear, so a reader can tell "checked against the actual full text" from "checked against the abstract".
+**State the depth per record, not just per group**: say how many records were analysed at full-text depth
+("2 条按全文分析 / 1 条仅摘要级"), so that a fact missing from the report can be attributed to the source
+("the full text does not state it") rather than to the run ("we never looked") — the two must stay
+distinguishable in the deliverable, and a record whose citation `link` was pointed at the full text (C1/C2)
+is exactly such a full-text-depth record.
 Example: `原文核对：3/3 条已复核（src=1 取 PMC 全文 PMC11270764、PMC8449961；1 条无 PMCID 仅核库内摘要；
 src=37 库内正文即会议摘要原文）；1 条未复核（src=49 新闻稿：库内正文即通稿原文，未做外部抓取）`. A run that
 re-checked none must say so, and a run that fetched nothing because a source class is structurally

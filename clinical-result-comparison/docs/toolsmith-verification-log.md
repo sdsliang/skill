@@ -355,6 +355,62 @@ Recommended `selected_fields` 收尾一句；② `SKILL.md` 输入契约段加�
 
 **下一步**：发布授权 → `publish`（原地更新 prompt v1.6 + skill 1.0.7）→ 同输入重跑 → 新记录（预期 17/17 PASS，并把事实分与调用数与本次基线对比）。
 
+### W6 — 2026-09-17，L3：分析面 = 可得最深载体 + 引用落点跟随分析深度（仓库先行，未发布）
+
+**用户决策（2026-09-17，L1/L2/L3 定级）**：**先试 L3**，并当场驳掉了本台账先前的论证 ——
+> 不应仅因「长短」判定不可比，因为科学事实不会因披露载体（PubMed 摘要 vs 全文）而改变。可改为在 **ref** 处
+> 处理：若已获取全文并基于全文分析，则将引用指向**真正的全文链接**，而不是原来的 PubMed 摘要链接。
+
+**收回一句错话。** 先前用「会议摘要类（本切片 55.6%）外部永久只有摘要级 ⇒ 深度不对等 ⇒ 不可比」论证 L2，
+该论证**撤回**：深度决定「这条记录有多少内容可用」，不决定两个事实是否可比。深度不对等的正确处置是**逐条声明
+分析深度**，而不是把记录判为不可比。O22 的 L1/L2/L3 建议表据此作废重写。
+
+**规则改动（仓库资产，未发布会话）**
+
+| 文件 | 改动 |
+|---|---|
+| `references/input-contract.md` | 新增 *The analysis surface is the deepest body you can obtain*（深度≠可比性；`src=1` 全文即分析面；其它类保持已测最深载体）；新增 *Facts that exist only in the full text are allowed — but they must carry their own label*（时点/分析集/人群 + 亚组/事后点名 + 版本差异不判库内错）；新增 *Citation link follows the analysis depth* 及 **C1/C2 引用 URL 白名单**；覆盖行须按**记录**说明分析深度 |
+| `references/citation-and-ref.md` | `link` 逐字节规则的**唯一例外**：基于全文分析的记录 `link` 指向全文（C1 默认 / C2 备选），`title` 与 `paper_release_time_str` 不变；前置校验同步改写 |
+| `SKILL.md` | 证据边界段：`src=1` 全文即分析面、全文独占事实须带标签、该记录引用指全文 |
+| `system-prompts/...-v0.15.md` | 第 14/15/46/51/187/209 行同步（引用 JSON 例外、分析面、覆盖率深度、版本差异、前置清单） |
+| `templates/*.md`（4 个报告模板） | `原文核对：` 槽位补「按记录的分析深度」+ 全文链接规则 + 版本差异不算库内错 |
+| `evals/fact-check/check.py` | ① `citations_matches_record` 放宽：`link` ≠ 记录值时必须命中白名单全文 URL（否则仍判 FAIL）；② 新算子 `cite_link_is_deepest` |
+| `evals/fact-check/scenario-a.facts.json` | 新条目 `A-P6-cite-link-is-deepest` → 共 **38 条（37 fail + 1 warn）** |
+| `evals/fact-check/mutations.py` | 新变异 **M22**（归档全文 + 覆盖行已声明全文 + 引用仍指摘要页 → 只翻 `A-P6`，证明与 `A-P5` 隔离） |
+| `evals/fact-check/README.md` | 条目数 38 / 变异 22 / 新算子表格行 / arm-a 明细 |
+
+**引用该指哪个 URL——实测（run `R13` = `20260917-211711-pmclink`，3 URL 各一次 literal、无重试、不产报告）**
+
+| 候选 | ok | 结果 |
+|---|---|---|
+| `https://pmc.ncbi.nlm.nih.gov/articles/PMC11270764/` | ❌ | reCAPTCHA 挑战页（115 字符）；**机房出口被拦，浏览器正常可通过** |
+| `https://europepmc.org/article/MED/39054491` | ❌ | `403 Forbidden` |
+| `https://www.ebi.ac.uk/europepmc/webservices/rest/PMC11270764/fullTextXML` | ✅ | 99,433 字符（本次真正读取的字节源） |
+
+⇒ 定成 **C1 只写不取**（写进 `citations.json` 供读者点击；不作为抓取目标），**C2 = 本次实际读取的字节源**备选，
+用 C2 时覆盖行要说明。取回链本身不变（R6→R7）。
+
+**离线门禁（本次全绿）**
+
+```
+py_compile                          -> PYC_OK
+evals/fact-check/mutations.py        -> arm a: flipped 37/37; never flipped []
+                                       arm b: flipped 12/12; never flipped []
+                                       GATE: PASS
+evals/runner-gate/verify-run-chain.py-> GATE: PASS
+check.py --run ...r12-fanout-dedup --scenario a -> 34/37 warn 1/1 FAIL
+   （3 条 FAIL 均为既有挂账：A-P1 用的是未发布字节；A-T1/A-ATTR = O20/O19）
+dist d5afb1f00320（84,994 B / 19 entries / mismatch vs worktree: []）
+```
+
+**尚未验证的部分（诚实标注）**：L3 是**仓库先行**——用户 2026-09-17 明确「还不用发布ts」，因此本轮的 skill/sys
+改动**没有对应的已发布字节**，无法用 `run` 证明平台装配后的行为。`A-P6` 的「能翻 FAIL」由 M22 离线证明（隔离），
+但「真 run 里模型会照做（取全文 ⇒ 引用指全文）」必须等发布后跑 `R14`（`run --web`，看 `citations.json` 的
+`link` 与 `sources/` 是否一致）；发布后的真 run 编号为 `R14`（R13 已被引用落点探针占用）。在此之前不得把 L3 记为「已验证」。
+
+**我方仍可改的**：`A-P6` 只覆盖「归档了全文」的情形；若某记录全文取回后被丢弃未归档、而引用又改指全文，属
+`A-P5`/`A-P6` 都管不到的盲区——等真 run 样本再决定是否加「引用指全文 ⇒ 必须有对应归档」的反向断言（不凭感觉加）。
+
 ### W5 — 2026-09-17，抓取预算收窄为「只有当库内没有原文时才抓」+ `src=1` 例外（PMC 全文）
 
 **用户定调（2026-09-17）**：① 认可「默认优先库内 `abstract_text`，其余内容再努力」；② `src` 其实还有**其他类型**，
@@ -463,7 +519,7 @@ run `20260917-200934-webprobe-coverage`：**10/11 FAIL**，只有题录类成功
 **最终结论（W2 当时的版本）**：人读页面统一不可用，**API 端点可用且适用面 ~83%**；`fullTextXML` 曾被判不可用 ⇒
 「原文」当时被当作**摘要级 / 登记平台级**。**该最后一点已在 `### W5` 更正：PMC 全文路由实测可用，且 `src=1` 已改为「即使有摘要也要尝试取全文」。**
 
-### W3 — 2026-09-17，规则改为「原文第一优先级」（仓库已改，**等发布授权 + 真 run 才是 R13**）
+### W3 — 2026-09-17，规则改为「原文第一优先级」（仓库已改，**等发布授权 + 真 run 才是 R14**）
 
 **背景**：用户指出「esid 字段值是**加工过**的，可能出错，应以**原文**为第一优先级，库内字段次之」，并要求把
 skill 里「禁止外部内容」的条款改掉。实测数据支持这个判断：`abstract_text` 中位数 33 KB、最大 1.9 MB，
@@ -591,7 +647,7 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O20 | **清单条目 `A-T1-title-names-both` 期望过窄**：R12 的 H1 是主题式标题「Lp(a) 升高人群降 Lp(a) 治疗：跨试验对比报告」→ FAIL；但两个药名都在正文锚点里（`A-C1/C2` PASS）。该条的理由是「标题无引注、不受归因保护」，真正要防的是**两药混成一个**；而「H1 必须点名两个药」是从 R8 那份标题倒推的写法偏好（与 O17 同类基线污染） | 改为条件式：**标题若点名药物，则必须两个都点名且不混；纯主题式标题不算违规**（或降为 warn） | **待判**（2026-09-17 R12 暴露；证据仅 1 份产物，按「我方能改的先给证据再改」记待样本） |
 | O21 | **A2 追问的实现路径（分诊完成：政策已放开，规则已改仓库，等发布）**：① **`source_full_link` 字段不存在** —— 那是 v0.11 附件契约的名字（`source_url`/`source_full_text`），现行 params 工具里只有 `clinical_result.full_article_link`（描述「临床结果论文的URL」）；写错名字的后果是整次取数 `INVALID_INPUT`。② 原计划「优先 `abstract_text` → 再访问 `full_article_link`」与**旧** sys:50「citation metadata only」冲突，且对人类可读页面实测不可用（W2-a/W2-c：pubmed cookie 墙、CT.gov JS 骨架、5 个出版域 403）。③ 只有 **API 端点**可用（W2-b/d：CT.gov v2 真原文含结果数值、OpenAlex 按 DOI 拿到原文摘要含会议摘要、Europe PMC 按 pmid 拿摘要；`fullTextXML` 当时误判为 500/不可用，已在 `### W5` 更正为「记录级、路由可用」），而 API 端点必须由 `pm_id`/`doi`/登记号**拼 URL**，与「URL 只逐字用、不得构造」冲突 ⇒ 必须开白名单模板。三个开关已定：**(a) 政策 = 放开**（用户 2026-09-17：字段值是加工的、可能出错，原文第一优先级）；**(b) 可追溯性承载 = 报告正文**（`citations.json` 保持严格 3 键、不加键，因此不破 `A-S4`）；**(c) 冲突/降级语义 = 原文为准 + 分歧必须双值写明 + 抓不到必须点名原因类**。 | 规则已写入仓库（清单见 `### W3`），开白名单模板 R2/R3/R4/R5；**并按来源类细化**（`### W4`：`1` PubMed / `2`/`187` CT.gov / `37` 会议 / `49` 新闻稿=库内即原文 / `120` 补录 / `398` SEC 不可复核），把「link 页一律禁抓」改成「16 主机封锁清单 + 每记录最多 1 次自身 link（仅无路由键或主机可用/未知）」。**第四轮（`### W5`）再收窄**：默认改为「**先读库内 `abstract_text`——实测多数类它就是原文**（期刊摘要 alnum 1.000/0.992、会议摘要 0.991/0.976、登记结果小数 102/102、通稿带线报日期），所以默认不抓」；唯一例外 **`src=1` PubMed 即使有摘要也走 `R6`→`R7` 取 PMC 全文**（100 条抽样 56% 有 PMCID；平台侧 R7 4/5 成功、63–99 K JATS 全文；无 PMCID/非 OA 记原因类不计失败）；预算改「每条 ≤1、`src=1` ≤2、整批 ≤40」；覆盖行必须写 PMC 结果，归档全文就必须点名 `PMC<号>`/「全文」（新断言 `A-P5` + M21 证明有牙） | **已定案 → 待发布授权 + 真 run（R13）**（2026-09-17；证据 W2、W3、W4、W5 + 字段实测） |
 
-| O22 | **全文深度分层（待定级，未改规则）**：用户提问「字段值基于摘要生成，PMC 能取到的能不能直接读全文」⇒ 实测成立：3 篇 R6 返回 pmcid 的记录，全文独立数值 **334 / 334 / 249**，其中 **92% / 88% / 99%** 不在摘要里，且 `PFS`/`DoR`/`HR`/`TTR`/亚组/`Grade 3` 等维度摘要根本不出现（`39054491`→PMC11270764、`34531249`→PMC8449961、`40700234`→PMC12265996）。但存在**深度不对称**：会议摘要类（本切片 55.6%）外部永久只有摘要级；登记平台类库内已是全文级（46 K vs API 65 K 数值逐位一致）。⇒ 给出 L1/L2/L3 三级，建议 **L2（全文补齐库内空档 + 覆盖行标注来源深度）**，等待用户定级；证据见 `docs/evidence/source-link-accessibility-2026-09-17.json` 的 `pmc_fulltext_information_gain`。 | — | 规则未改 | **待用户定级**（L1 现状 / L2 建议 / L3 不推荐） |
+| O22 | **全文深度分层 → 已定级 L3（2026-09-17）**：用户提问「字段值基于摘要生成，PMC 能取到的能不能直接读全文」⇒ 实测成立：3 篇 R6 返回 pmcid 的记录，全文独立数值 **334 / 334 / 249**，其中 **92% / 88% / 99%** 不在摘要里，且 `PFS`/`DoR`/`HR`/`TTR`/亚组/`Grade 3` 等维度摘要根本不出现。**用户选 L3 并驳掉「长短即不可比」**：科学事实不因披露载体改变 ⇒ 规则改为「分析面 = 可得最深载体」，且**基于全文分析的记录其引用 `link` 指向全文**（C1 `pmc.ncbi.nlm.nih.gov/articles/{PMCID}/` 只写不取 / C2 ebi REST fullTextXML 为实际读取源），覆盖行须按记录声明深度。新断言 `A-P6-cite-link-is-deepest`（M22 证明可翻）。证据：`docs/evidence/source-link-accessibility-2026-09-17.json` 的 `l3_decision` / `pmc_fulltext_information_gain`。 | W6 | 仓库已改，**未发布** | **待用户发布授权**（发布后跑 R14 才算已验证） |
 ## 4. 平台侧（转开发）
 
 完整、可直接转发的版本见 Obsidian：

@@ -518,6 +518,14 @@
       "op": "fulltext_fetch_is_named",
       "evidence": "只要 /workspace/sources/ 下归档了全文正文（文件名含 pmc<数字>/fulltext，或内容含 <article>/<sec>/<body>），覆盖行就必须出现 `PMC<号>` 或「全文」字样；未归档全文时不触发。平台侧实测 src=1 走 R7 可拿到 PMC 全文，所以「抓了全文却只写 PMID」是可复现的空壳/含糊形态",
       "rationale": "只点名摘要路径、实际却取了全文（或反过来声称取了全文但没取）无法从交付物分辨；这条把'核的是全文还是摘要'变成必须写明的机械事实"
+    },
+    {
+      "id": "A-P6-cite-link-is-deepest",
+      "kind": "shape",
+      "op": "cite_link_is_deepest",
+      "evidence": "若 /workspace/sources/ref_<n>.* 归档了全文正文（文件名含 fulltext/pmc<数字>，或内容含 <article>/<sec>/<body>），citations.json 里 ref_<n>.link 必须指向全文载体（白名单：https://pmc.ncbi.nlm.nih.gov/articles/PMC<id>/ 或 https://www.ebi.ac.uk/europepmc/webservices/rest/PMC<id>/fullTextXML），或至少带同一个 PMC<id>；未归档全文的记录不触发（其 link 仍逐字节来自 full_article_link）",
+      "rationale": "用户 2026-09-17 的 L3 决策：基于全文分析的记录，ref 必须指真正的全文，而不是原来的 PubMed 摘要页——否则点开上标链接的人看到的页面里没有报告用到的数值。与 A-P5（覆盖行必须声明全文）互补：一个管正文声明，一个管引用落点",
+      "severity": "fail"
     }
   ],
   "revision": "2026-09-17（O17 修复，用户批准）：A-S2/A-S8/A-S9 原期望『必出 endpoint-bar-1.json』是从 R8 那一份产物倒推出来的，与规则文本 references/chart-templates.md:91 冲突（定量主图是可选补充，条件是同一终点/同一口径/可明确对齐的时点）。改成：出图则类型/文件名/封套/数值必须自洽（chart_set_allowed + 条件式 envelope/values）；不出图则正文必须写明原因（A-S2b-chart-or-reason，≥2 组关键词）。变异 M16 证明『删图且不解释』仍会 FAIL。R11（2026-09-17）不画图的理由：第 16 周 vs 第 36 周、人群与给药方案不同 → 按规则合规。"
