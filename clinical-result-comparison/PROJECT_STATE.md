@@ -113,6 +113,41 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
   DOI/OUP `20ff3947-2892-42ff-9b27-7b4f1d5e99d6`、CT.gov API `8cd2c77e-0f41-47fa-b3e9-c65edb8d0fa6`。
   耗时均 ~11–13 s/轮（DeepSeek Flash），单轮 input ~50k tokens（系统提示 + 技能）。
 
+## 🔎 只读实测：登记平台记录 `abstract_text` 的回填现状（2026-09-17，开发称「已写到 `clinical_trial_result_structured`」）
+
+**结论：对这两个测试 esid 不成立；且已回填的那部分，字段形态也不是「摘要」。**
+
+1. **两个测试 esid 仍为空**（各查两次，`clinical_result.abstract_text` 长度 = 0）：
+   - `24_187_acaa9fda98c00fb890d804d0e3a0428c_1`（ESN364 潮热 IIa，`journal=ClinicalTrials.gov`，`evidence_source=["Prospective Study"]`）——
+     **该记录其他字段是齐的**：`study_results` 30,917 chars、`arms` 2,307、`summary` 447、`indication_detail` 233，**只有 `abstract_text` 空**。
+   - `24_2_NCT06618118_1`（Fosigotifator MDD Phase Ib，`_id=nr_24_2_NCT06618118_1`，`evidence_source=["Phase I"]`）——
+     `abstract_text` 空、`study_results` 也空，但 `arms` / `projects` 有值。
+2. **不是「登记平台整体没回填」**：以 `meeting_tags='ClinicalTrials.gov'` 全量拉（**4,095 行**）→ **2,258 行有值（55%）、1,837 行空（45%）**。
+3. **空/非空与 `evidence_source` 强相关**（同一批 4,095 行）：
+
+| `evidence_source` | 空 / 总 | 空占比 |
+|---|---|---|
+| Prospective Study | 600 / 600 | **100%** |
+| Phase I | 202 / 346 | 58.4% |
+| Phase II/III | 51 / 97 | 52.6% |
+| Phase II | 361 / 959 | 37.6% |
+| Phase I/II | 44 / 125 | 35.2% |
+| Phase III | 548 / 1,827 | 30.0% |
+| Phase IV | 29 / 139 | 20.9% |
+
+→ 测试 esid #1 正好落在 **100% 全空的 `Prospective Study` 桶**、#2 落在 58% 空的 `Phase I` ⇒ 更像「回填按证据类型分批、`Prospective Study` 这批还没跑」。
+4. **已回填的登记平台 `abstract_text` 不是「摘要」，是整份方案/结果文本**：2,258 个非空值 min 1,423 / p10 8,901 /
+   **median 33,406** / p90 114,848 / **max 1,907,425 chars**；≤ 4,000 chars 的只有 38 个（1.7%），> 20,000 的 1,536 个（68%）。
+   （对照：论文记录 `abstract_text` 实测 1,852–3,587 chars，与 v0.15 sys 里「短 abstract_text」的假设一致。）
+5. **对我们 skill 的影响（本地产物风险，尚未在真跑中观测到）**：`skill/` 取数字段清单含 `abstract_text`（`references/input-contract.md:93`），
+   而 sys 假设它是「短 `abstract_text`」（`system-prompts/…-v0.15.md:38`：*small selections … short `abstract_text`/`study_results`*）。
+   用户一旦选中登记平台记录，单字段中位 33 KB、最大 1.9 MB ⇒ 直读上下文会爆；现有「先脚本 digest、再考虑委派」规则能兜住，
+   但「短」这个假设已失效。**候选改法（未执行，改 `skill/` 需重跑 `run` 留 R 记录 + 发布授权）**：把「short」改成
+   「论文/会议记录短（~2–4 KB），登记平台（ClinicalTrials.gov）记录可能是整份方案/结果文本（中位 ~33 KB、最大 ~1.9 MB），**一律先落盘再用脚本摘**」。
+6. 证据文件：`docs/evidence/ctgov-abstract-text-coverage-2026-09-17.json`（4,095 行逐条 `{id, evidence_source, len, head(120)}`，588 KB）。
+7. **给开发的问题**：① 这两个 esid 对应行里 `abstract_text` 当前实际是什么值？② 45% 空是「分批回填未完成」还是「这些记录本来没有可回填的源文本」？
+   ③ `Prospective Study` 600/600 全空是否符合预期？④ 回填的是整份文本还是摘要——若为整份，能否另开一个真正摘要级的字段（我们只需要摘要级内容）？
+
 ## ⏸️ Parked: bar 柱下钻（v0.9-test，已由用户验证可行，暂不开发）
 
 - 全部改动（未提交）已 stash：`git stash list` → `stash@{0}: On chart-drilldown-nct: wip: bar drill-down (v0.9-test) + 1L ORR test datasets — verified by user, park for later`。分支 `feat/chart-drilldown-nct` 与 main 同提交 `349eabc`（无独立 commit），后续要继续可直接 `git checkout feat/chart-drilldown-nct && git stash pop`。
