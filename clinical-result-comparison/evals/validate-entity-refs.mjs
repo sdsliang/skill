@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 
-// Validate entity inline references in a delivered report (v0.10).
+// Validate current entity inline syntax and charts, with optional legacy source
+// attachment metadata checks. Without sourcesDir this cannot prove ID provenance.
 //
 // Checks, for a report file plus its attachment source files:
 //   1. Every `[name](entity:type:id)` reference is well-formed (balanced
@@ -23,7 +24,7 @@ if (!reportFile) {
   process.exit(2);
 }
 
-const entityRe = /\[([^\]]+)\]\(entity:([a-z_]+):([^)]+)\)/g;
+const entityRe = /\[([^\[\]\r\n]*)\]\(entity:([^:()\s]*):([^():\s]*)\)/g;
 const allowedTypes = new Set(["drug", "company", "trial"]);
 const failures = [];
 const report = fs.readFileSync(reportFile, "utf8");
@@ -41,22 +42,32 @@ if (sourcesDir) {
       const type = lineKey === "source_drug_entities" ? "drug" : "company";
       for (const tuple of line.split(";")) {
         const parts = tuple.split("|").map((p) => p.trim());
-        if (parts.length === 3 && parts[1]) available.set(`${type}:${parts[2]}`, true);
+        if (parts.length === 3 && parts.every(Boolean)) available.set(`${type}:${parts[2]}`, true);
       }
     }
   }
 }
 
 const seen = new Set();
+const matchedEntityOffsets = new Set();
 let match;
 while ((match = entityRe.exec(report)) !== null) {
   const [, name, type, id] = match;
+  matchedEntityOffsets.add(match.index + 1 + name.length + 2);
   const ref = `${type}:${id}`;
   if (!allowedTypes.has(type)) failures.push(`disallowed entity type "${type}" in ${match[0]}`);
   if (!name.trim()) failures.push(`empty display name in ${match[0]}`);
   if (!id.trim()) failures.push(`empty id in ${match[0]}`);
   if (sourcesDir && !available.has(ref)) failures.push(`entity id not in metadata lines: ${ref} (${match[0]})`);
   seen.add(ref);
+}
+
+// Account for every occurrence, including incomplete links and nested anchors
+// that a regex matching only valid links would silently skip.
+for (const occurrence of report.matchAll(/entity:/gi)) {
+  if (!matchedEntityOffsets.has(occurrence.index)) {
+    failures.push(`malformed entity reference at offset ${occurrence.index}`);
+  }
 }
 
 // Every available drug/company/trial should be referenced at least once when it
@@ -67,11 +78,30 @@ if (sourcesDir) {
   }
 }
 
-if (vizDir && fs.existsSync(vizDir)) {
-  for (const f of fs.readdirSync(vizDir)) {
-    if (!/\.(html|svg)$/i.test(f)) continue;
-    const text = fs.readFileSync(path.join(vizDir, f), "utf8");
-    if (/entity:[a-z_]+:/.test(text)) failures.push(`chart file ${f} contains entity: text`);
+if (vizDir) {
+  if (!fs.existsSync(vizDir)) failures.push(`chart directory does not exist: ${vizDir}`);
+  else checkCharts(vizDir);
+}
+
+function checkCharts(directory) {
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const filename = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      checkCharts(filename);
+      continue;
+    }
+    if (!entry.isFile() || !/\.(json|html|svg)$/i.test(entry.name)) continue;
+    let text = fs.readFileSync(filename, "utf8");
+    if (/\.json$/i.test(entry.name)) {
+      try {
+        // Decode escapes as well as scanning keys, values and iframe templates.
+        text = JSON.stringify(JSON.parse(text));
+      } catch {
+        failures.push(`chart file ${filename} is invalid JSON`);
+        continue;
+      }
+    }
+    if (/entity:/i.test(text)) failures.push(`chart file ${filename} contains entity: text`);
   }
 }
 

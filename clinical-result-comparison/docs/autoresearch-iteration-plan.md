@@ -1,6 +1,14 @@
-# 对比结果 skill：用 autoresearch 范式做下一轮迭代（规划，**待执行**）
+# 对比结果 skill：autoresearch 迭代计划与历史诊断
 
-> **状态：规划，未执行。** 本文只沉淀诊断与方案 —— **没有改任何 skill/sys 文件、没有发布、没有 commit**。
+> **当前修订（2026-09-18）**：S0/S1/S4 已落地；全项目审查修复记录见 [project-review-2026-09-18.md](project-review-2026-09-18.md) 与台账 F7。评估器 **`2026-09-18-r2`** 是显式新基线：A **43 fail + 1 warn**、B **12 fail + 1 warn**；旧 41→43 不代表质量提升，旧 TSV 保留原口径。R17/R18 重判 43/43，R20 12/12；R14 不是 A，只做两条定向全文核验。97 tests、63 mutation controls 通过，不替代线上验证。
+>
+> **当前未发布、无新 run**：本地 prompt `2ff672b5aa9b` / 54,311 B，dist `4d20d48faeee` / 85,633 B / 19 entries；线上仍 prompt 1.6 `b9bfcec19538`、skill 1.0.7 旧 dist `404dbccf5058`。`status` exit 3 是真实待发布差异，**不是下文 §4 的已修假警报**。live 参数现为 `esids`，旧规则要求 `extra_esids` 是我方适配缺口；本地 deps 基线已接受，但这不授权或执行发布。
+>
+> 下一步：取得本批 prompt/skill 发布授权，回读一致后做 B 闸门及 A×3 同配置新基线，再执行 S2/S3 单变量实验。C/D 仍无判分基线，先补清单再声称质量结论。冻结面修订详情见 [EVALUATOR_REVISION.md](../evals/fact-check/EVALUATOR_REVISION.md)。本轮无 Git 写动作，无 Docker 配置/镜像动作。
+>
+> 下文 §1–§4 等保留原始诊断与当时坐标，除显式修订外不是当前上线快照。`revert` 等 Git 操作须另获授权；本项目免确认仅限 commit/push，且当次任务可禁止它们。
+
+> **原始状态（2026-09-16）：规划，未执行。** 当时只沉淀诊断与方案，没有改 skill/sys、发布或 commit。
 > 拟于 2026-09-16。接手者先读 §1（TL;DR）、§4（闸门 1，必须先修）、§12（执行顺序与授权）。
 > 姐妹文档：`docs/toolsmith-run-v2-polling-plan.md`（run 通道改造）—— 两者在 §4/§7 有交叠，建议先修 §4。
 
@@ -34,13 +42,13 @@
 
 | 资源 | 值 |
 |---|---|
-| 仓库 / 子目录 / 分支 | `git@github.com:sdsliang/skill.git` / `clinical-result-comparison/` / `main` |
+| 仓库 / 子目录 / 分支 | `git@github.com:sdsliang/skill.git` / `clinical-result-comparison/` / `v0.15-remove-html`（当前分支） |
 | 本地 sys（部署态） | `system-prompts/multi-clinical-result-comparison-v0.15.md`（44516 B，sha `fa80094e9d41`） |
 | 本地 dist | `dist/multi-clinical-result-comparison-v0.15.zip`（19 entries，sha `c9dc143908d6` / 82,004 B，2026-09-17 重打三次：原文优先规则 → 按来源类细化的抓取策略 → 库内即原文/`src=1` PMC 全文例外） |
 | 线上 prompt | family `91febc286412479a8b6d569fa3b8025e`，current `1f7586c0…` = **v1.6** == 本地文件 |
 | 线上 skill | family `9fe0035bdd324b998436c6cb9c2de212`，current **v1.0.7**，`skill_id=ad75ec2c44334f389a0394895a47b765` |
 | 项目 | `a7cdda6508e0423c8b7afaaf3a68e50d`（`resources.prompt = 1f7586c0…`；skills=`[chart-visualization-json, multi-clinical-result-comparison]`） |
-| 工具 | `toolsmith-publish`（`~/.local/bin/`，单文件 Python，65790 B，mtime 2026-09-14 17:34；**非 git 仓库**，改它就是改本体） |
+| 工具 | `toolsmith-publish`（`~/.local/bin/`，单文件 Python，65790 B，mtime 2026-09-14 17:34；**非 git 仓库**，属于 runner 层；该体积与日期为历史值） |
 | 运行台账 | `~/.local/state/toolsmith-runs/<时间戳>-<tag>/`（`debug-history.json` / `stream.sse` / `artifacts.zip` / `artifacts/` / `verification.md`） |
 | 验证日志 | `docs/toolsmith-verification-log.md`（`R<n>` 记录 + 两栏：我方/平台侧） |
 | 凭证 | `$TS_BASE` / `$TS_TOKEN`（`~/.secrets`，勿写入任何文件） |
@@ -94,7 +102,7 @@ STATUS: OUT OF SYNC — publish needed          # exit 3
    人看到「失败」可能重发或回滚 —— 这是会把线上搞乱的那类 bug。
    （旁证：线上 v1.6 的 `updated_at` = 2026-09-14T17:41:40，正是当天发布动作；当时是否已报错未留记录。）
 
-### 4.4 修法（改工具本体，非 skill）
+### 4.4 历史修法（runner 层 `~/.local/bin/toolsmith-publish`，已完成）
 
 - 5 处统一改成 `fam.get("currentVersionId") or fam.get("current_version_id")`（或抽一个 `_current_prompt_version()` helper）。
 - 回读校验同样改；改完 `toolsmith-publish status` 应 **exit 0** 且打印 `in sync`。
@@ -108,12 +116,12 @@ STATUS: OUT OF SYNC — publish needed          # exit 3
 | autoresearch | 本项目 | 现状 |
 |---|---|---|
 | `train.py`（agent 唯一可改） | `system-prompts/*-v0.15.md` + `skill/multi-clinical-result-comparison/**` | 改完 in-place 重发 |
-| `prepare.py`（只读：数据 + tokenizer + `evaluate_bpb`） | **冻结面**：场景集（§8）+ `evals/fixtures` + 断言 harness + `runtime/citation-renderer.mjs` + `test/` + params 工具 schema（字段名权威） | ⚠️ **现在没明文冻结**，谁都能改 |
+| `prepare.py`（只读：数据 + tokenizer + `evaluate_bpb`） | **冻结面**：场景集（§8）+ `evals/fixtures` + 断言 harness + `runtime/citation-renderer.mjs` + `test/` + params 工具 schema（字段名权威） | ✅ 已在 `AGENTS.md` 明文冻结；本次 r2 审查修订显式开新基线 |
 | `program.md`（人改） | **仓库根 `AGENTS.md`**（冻结面 + 场景集 + TSV 列 + 循环纪律，2026-09-18 落地）+ `docs/toolsmith-verification-log.md` §0 流程 | ✅ 已常驻 |
 | 固定 5 分钟预算 | 单轮 run 的**成本上限**（墙钟 / 调用数） | 有数据，**无预算线** |
 | `val_bpb`（单一可比标量） | **缺失** ← 唯一结构性差距 | 只有 13 项布尔断言 + 人工读产物 |
 | `results.tsv` | `docs/toolsmith-verification-log.md` 的 `R<n>` | 有记录，**无「每轮一个数」** |
-| keep commit / 差 `git reset` | `main`（或特性分支）上 commit / revert + in-place 重发上一版 | 已有 |
+| keep commit / 差 `git reset` | `v0.15-remove-html` 上 commit；discard 先申请 revert 与重新发布授权 | 已有 |
 | NEVER STOP 通宵 | 现在：人给 A/B/C 决策清单 → 落地 → 跑 R → 报两栏 | 半自动 |
 
 ---

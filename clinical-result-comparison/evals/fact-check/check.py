@@ -42,9 +42,12 @@ import argparse
 import fnmatch
 import glob
 import json
+import math
 import os
 import re
 import sys
+
+EVALUATOR_REVISION = "2026-09-18-r2"
 
 MINUS = "\u2212"          # −
 EN_DASH = "\u2013"        # –
@@ -80,6 +83,7 @@ def load_surfaces(run_dir: str) -> dict:
         try:
             out["charts"][os.path.basename(p)] = json.load(open(p, encoding="utf-8"))
         except Exception as e:                                    # noqa: BLE001
+            out["charts"][os.path.basename(p)] = None
             out["errors"].append(f"{os.path.basename(p)} unparsable: {e}")
     mp = os.path.join(run_dir, "messages.json")
     if os.path.isfile(mp):
@@ -227,13 +231,13 @@ def record_of(fixture: dict, esid: str) -> dict:
 # --------------------------------------------------------------------------- ops
 
 def op_artifact_present(files: dict, spec: dict) -> tuple:
-    missing = [p for p, ok in files.items() if not ok]
+    missing = [p for p in spec.get("files", {}) if not files.get(p)]
     return (not missing, f"missing={missing}" if missing else "all present")
 
 
 def op_artifact_absent(files: dict, spec: dict) -> tuple:
     scope = spec.get("files") or list(files)
-    present = [p for p in scope if files.get(p)]
+    present = [p for p in scope if os.path.exists(os.path.join(files.get("_art", ""), p))]
     return (not present, f"unexpected files={present}" if present else f"nothing written out of {scope}")
 
 
@@ -251,7 +255,9 @@ def op_citations_keys_exact(sv: dict, spec: dict) -> tuple:
         return False, "citations.json missing or not an object"
     got = sorted(c.keys())
     want = sorted(spec["keys"])
-    return (got == want, f"got={got} want={want}")
+    cited = refs_in(sv.get("report", ""))
+    ok = got == want and cited == set(want)
+    return (ok, f"keys={got} cited={sorted(cited)} want={want}")
 
 
 def op_citations_entry_key_set(sv: dict, spec: dict) -> tuple:
@@ -265,7 +271,7 @@ def op_citations_entry_key_set(sv: dict, spec: dict) -> tuple:
         got = sorted(e.keys())
         if got != sorted(spec["keys"]):
             bad.append(f"{ref}: {got}")
-        elif any(not str(e[k]).strip() for k in spec["keys"]):
+        elif any(not isinstance(e[k], str) or not e[k].strip() for k in spec["keys"]):
             bad.append(f"{ref}: empty value")
     return (not bad, "; ".join(bad) if bad else f"{len(spec['refs'])} entries OK")
 
@@ -314,9 +320,11 @@ def op_citations_distinct(sv: dict, spec: dict) -> tuple:
 
 
 def op_chart_envelope(sv: dict, spec: dict) -> tuple:
+    if spec.get("pattern"):
+        return _each_chart(op_chart_envelope, sv, spec)
     ch = sv["charts"].get(spec["file"])
     if not isinstance(ch, dict):
-        if spec.get("optional_when_absent"):
+        if spec["file"] not in sv["charts"] and spec.get("optional_when_absent"):
             return True, (f"{spec['file']} absent — allowed (quantitative main chart is "
                           f"optional per chart-templates.md:91); the reason is asserted by "
                           f"A-S2b-chart-or-reason")
@@ -335,11 +343,13 @@ def op_chart_envelope(sv: dict, spec: dict) -> tuple:
         for k, v in exp["option"].items():
             if opt.get(k) != v:
                 bad.append(f"option.{k}={opt.get(k)!r} want {v!r}")
-        data = opt.get("data") or []
+        data = opt.get("data")
+        if not isinstance(data, list):
+            return False, "option.data must be a list"
         if len(data) != exp["data_len"]:
             bad.append(f"option.data len={len(data)} want {exp['data_len']}")
         for row in data:
-            if not str(row.get("label") or "").strip():
+            if not isinstance(row, dict) or not isinstance(row.get("label"), str) or not row["label"].strip():
                 bad.append(f"empty label in data row {row}")
         for k in ("title",):
             if not str(opt.get(k) or "").strip():
@@ -347,73 +357,176 @@ def op_chart_envelope(sv: dict, spec: dict) -> tuple:
     return (not bad, "; ".join(bad) if bad else "envelope + option OK")
 
 
-def _chart_floats(sv: dict, name: str) -> list | None:
+def _chart_rows(sv: dict, name: str) -> list | None:
     ch = sv["charts"].get(name)
     if not isinstance(ch, dict):
         return None
-    return [round(float(r["value"]), 3) for r in (ch.get("option") or {}).get("data") or []]
+    opt = ch.get("option")
+    data = opt.get("data") if isinstance(opt, dict) else None
+    return data if isinstance(data, list) else None
+
+
+def _each_chart(op, sv, spec):
+    names = [n for n in sv.get("charts", {}) if fnmatch.fnmatch(n, spec["pattern"])]
+    results = [op(sv, {**{k: v for k, v in spec.items() if k != "pattern"}, "file": n})
+               for n in names]
+    return (all(ok for ok, _ in results), "; ".join(f"{n}: {d}" for n, (_, d) in zip(names, results))
+            or "no quantitative chart emitted (chart-or-reason owns absence)")
+
+
+def op_charts_structural(sv: dict, spec: dict) -> tuple:
+    """Validate the envelope and every emitted chart row.
+
+    The chart-specific facts are checked separately.  This operation closes the generic
+    escape hatch where an allowed filename could contain an unusable or non-auditable chart.
+    Quantitative rows must retain a label, numeric value, and description; the description is
+    the chart's local identity carrier for endpoint and time.
+    """
+    bad = []
+    for name, ch in sorted(sv.get("charts", {}).items()):
+        if not isinstance(ch, dict):
+            bad.append(f"{name}: chart is not an object")
+            continue
+        if ch.get("id") != spec.get("chart_id", "chart-visualization-json"):
+            bad.append(f"{name}: id={ch.get('id')!r}")
+        if not re.match(spec.get("iframe_template_regex", r"^https://\S+$"),
+                        str(ch.get("iframe_template") or "")):
+            bad.append(f"{name}: iframe_template is missing or not https")
+        opt = ch.get("option")
+        if not isinstance(opt, dict):
+            bad.append(f"{name}: option missing or not an object")
+            continue
+        if not isinstance(opt.get("title"), str) or not opt["title"].strip():
+            bad.append(f"{name}: title missing")
+        # Scenario A supports bar observations only; even illegal filenames must be inspected.
+        if isinstance(opt, dict):
+            if opt.get("type") not in spec.get("quant_types", ["bar"]):
+                bad.append(f"{name}: quantitative type={opt.get('type')!r}")
+            data = opt.get("data")
+            if not isinstance(data, list) or not data:
+                bad.append(f"{name}: quantitative data missing or empty")
+                continue
+            for i, row in enumerate(data):
+                if not isinstance(row, dict):
+                    bad.append(f"{name}[{i}]: row is not an object")
+                    continue
+                if not isinstance(row.get("label"), str) or not row["label"].strip():
+                    bad.append(f"{name}[{i}]: label empty")
+                value = row.get("value")
+                if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(float(value)):
+                    bad.append(f"{name}[{i}]: value is not finite numeric")
+                if not isinstance(row.get("description"), str) or not row["description"].strip():
+                    bad.append(f"{name}[{i}]: description empty")
+        elif "data" in opt and not isinstance(opt.get("data"), list):
+            bad.append(f"{name}: option.data is not a list")
+    return (not bad, "; ".join(bad) if bad else f"{len(sv.get('charts', {}))} chart(s) structurally valid")
+
+
+def op_chart_observations(sv: dict, spec: dict) -> tuple:
+    """Match each chart observation to its identity, value, and sign.
+
+    Values are compared by the row's drug/dose/endpoint/time identity, never as a sorted
+    magnitude bag.  A positive chart is legal only when the corresponding report observation
+    is rendered as an explicit unsigned reduction; a negative chart must have the matching
+    signed observation in the report.  This keeps the two documented sign conventions while
+    making sign and ownership per observation rather than global.
+    """
+    if spec.get("pattern"):
+        return _each_chart(op_chart_observations, sv, spec)
+    name = spec["file"]
+    rows = _chart_rows(sv, name)
+    if rows is None:
+        if name not in sv["charts"] and spec.get("optional_when_absent"):
+            return True, f"{name} absent — observation check not triggered"
+        return False, f"{name} missing"
+    expected = spec.get("observations", [])
+    if len(rows) != len(expected):
+        return False, f"{name} has {len(rows)} rows; want {len(expected)} identified observations"
+    used = set()
+    bad = []
+    opt = sv["charts"][name]["option"]
+    endpoint_context = " ".join(str(opt.get(k) or "") for k in ("title", "axisXTitle", "dataSource"))
+    for i, row in enumerate(rows):
+        if not isinstance(row, dict):
+            bad.append(f"row {i} is not an object")
+            continue
+        identity = str(row.get("label") or "") + " " + str(row.get("description") or "")
+        matches = [j for j, e in enumerate(expected)
+                   if all(re.search(p, identity, re.I) for p in e["identity_patterns"])]
+        if len(matches) != 1:
+            bad.append(f"row {i} label does not identify exactly one observation: {row.get('label')!r}")
+            continue
+        j = matches[0]
+        if j in used:
+            bad.append(f"observation {j} appears more than once")
+            continue
+        used.add(j)
+        e = expected[j]
+        # Components are parallel identity dimensions. A partial label is legal, but a
+        # known competing identity in either carrier cannot be hidden by the other.
+        for carrier in (str(row.get("label") or ""), str(row.get("description") or "")):
+            for dimension, own_pattern in enumerate(e["identity_patterns"]):
+                competing = {other["identity_patterns"][dimension] for other in expected
+                             if len(other["identity_patterns"]) > dimension}
+                for pattern in competing - {own_pattern}:
+                    for hit in re.finditer(pattern, carrier, re.I):
+                        if not re.fullmatch(own_pattern, hit.group(), re.I):
+                            bad.append(f"row {i}: conflicting identity {hit.group()!r} in label/description")
+        value = row.get("value")
+        if not isinstance(value, (int, float)) or isinstance(value, bool) or not math.isfinite(value):
+            bad.append(f"row {i} value is not numeric")
+            continue
+        if round(abs(float(value)), 3) != round(abs(float(e["value"])), 3):
+            bad.append(f"row {i} {row.get('label')!r}: |value|={abs(float(value))} want |{e['value']}|")
+        if not re.search(e["endpoint_regex"], identity + " " + endpoint_context, re.I):
+            bad.append(f"row {i} misses endpoint identity")
+        # Bind report sign to the cited observation, not an unrelated mention of its magnitude.
+        owned = "\n".join(b for b in blocks(sv.get("report", "")) if e["owner"] in refs_in(b)
+                          and all(re.search(p, b, re.I) for p in e["report_identity_patterns"]))
+        form = _form_of(owned, float(e["value"]))
+        chart_form = "signed" if float(value) < 0 else "unsigned"
+        description_form = _form_of(str(row.get("description") or ""), float(e["value"]))
+        if description_form != "absent" and description_form != chart_form:
+            bad.append(f"row {i}: description sign disagrees with chart value")
+        if form == "absent":
+            bad.append(f"row {i}: report does not render the cited observation identity")
+        elif form != chart_form:
+            bad.append(f"row {i}: report is {form}, chart is {chart_form}")
+        if chart_form == "unsigned" and not re.search(r"降低|降幅|下降|reduction|decrease", owned, re.I):
+            bad.append(f"row {i}: unsigned observation lacks reduction wording")
+    if used != set(range(len(expected))):
+        bad.append(f"identified observations={sorted(used)} want={list(range(len(expected)))}")
+    return (not bad, "; ".join(bad) if bad else
+            f"{name}: {len(rows)} observations matched by drug/dose/endpoint/time/value/sign")
+
+
+
+
 
 
 def op_chart_values(sv: dict, spec: dict) -> tuple:
-    """Charted magnitudes must equal the record's, sign aside.
-
-    2026-09-18 (user ruling): `-70.5` and `降幅 70.5%` are equally acceptable renderings —
-    the convention is free, so the comparison here is sign-agnostic and the **consistency**
-    requirement lives in A-S10-sign-convention-consistent.  Digits are still compared exactly:
-    a wrong magnitude fails here under either convention (M10).
-    """
-    got = _chart_floats(sv, spec["file"])
-    if got is None:
-        if spec.get("optional_when_absent"):
-            return True, (f"{spec['file']} absent — allowed (see A-S2b-chart-or-reason)")
-        return False, f"{spec['file']} missing"
-    g, w = sorted(abs(x) for x in got), sorted(abs(round(float(v), 3)) for v in spec["values"])
-    return (g == w, f"|got|={g} |want|={w} (raw got={sorted(got)})")
+    """Legacy checklist identifier, now backed by observation identity matching."""
+    if spec.get("observations"):
+        return op_chart_observations(sv, spec)
+    return False, "chart values require observation identities; magnitude bags are not evidence"
 
 
 def _form_of(text: str, value: float) -> str:
     """How `value` is rendered in `text`: 'signed', 'unsigned' or 'absent'."""
     t = norm(text)
     lit = f"{abs(round(float(value), 3)):g}".replace(".", r"\.")
-    if re.search(rf"(?<![\d.])-\s*{lit}(?![\d])", t):
+    if re.search(rf"(?<![\d.])-\s*{lit}(?![\d.])", t):
         return "signed"
-    if re.search(rf"(?<![\d.\-]){lit}(?![\d])", t):
+    if re.search(rf"(?<![\d.\-]){lit}(?![\d.])", t):
         return "unsigned"
     return "absent"
 
 
 def op_sign_convention_consistent(sv: dict, spec: dict) -> tuple:
-    """One deliverable, one sign convention — the report and its chart must agree.
-
-    The user ruled (2026-09-18) that `−13.9` and `降幅 13.9%` are both fine, "只要自洽".
-    So the convention is not pinned; what must not happen is the report dropping the sign
-    while its chart keeps it (or the reverse): a reader then cannot tell whether the chart's
-    `-70.5` is the same quantity as the prose's `70.5`.  Only the charted magnitudes are
-    inspected — a signed confidence interval (`95% CI -19.3～-8.5`) next to an unsigned
-    point estimate (`降低 13.9%`) is the normal, self-consistent rendering, not a mix.
-    Direction *wording* is asserted under neither convention (a signed report saying
-    `升高 −13.9%` also passes today), so allowing magnitudes costs no coverage.
-    """
-    vals = [float(v) for v in spec["values"]]
-    got = _chart_floats(sv, spec.get("file", ""))
-    if got is None:
-        return True, f"{spec.get('file')} absent — convention not displayed (see A-S2b)"
-    ch = sv["charts"].get(spec["file"]) or {}
-    c_forms = set()
-    for row, v in zip((ch.get("option") or {}).get("data") or [], vals):
-        c_forms.add(_form_of(json.dumps(row.get("value")), v))
-    r_forms = {_form_of(sv["report"], v) for v in vals}
-    c_signed, r_signed = "signed" in c_forms, "signed" in r_forms
-    if c_signed != r_signed:
-        return False, (f"report renders the endpoints "
-                       f"{'signed' if r_signed else 'unsigned'} but the chart "
-                       f"{'signed' if c_signed else 'unsigned'} "
-                       f"(report forms={sorted(r_forms)}, chart forms={sorted(c_forms)}) "
-                       f"— one deliverable, one convention")
-    if "absent" in r_forms or "absent" in c_forms:
-        return True, (f"convention consistent ({'signed' if r_signed else 'unsigned'}); "
-                      f"some value absent from a surface — coverage is A-C4/A-C5's job")
-    return True, f"one convention throughout: {'signed' if r_signed else 'unsigned'} magnitudes / chart"
+    """Sign is checked per identified observation; never zip rows against expected order."""
+    if not spec.get("observations"):
+        return False, "sign check requires observation identities"
+    return op_chart_observations(sv, spec)
 
 
 def _chart_names(sv: dict, pattern: str) -> list:
@@ -487,7 +600,7 @@ def op_no_verbatim_copy(sv: dict, spec: dict) -> tuple:
     """
     art = sv.get("artifacts_dir") or ""
     n = int(spec.get("min_run", 60))
-    step = max(10, n // 3)
+    step = 1
     srcs = [p for p in sorted(glob.glob(os.path.join(art, "sources", "**", "*"), recursive=True))
             if os.path.isfile(p) and os.path.getsize(p) < 5_000_000]
     if not srcs:
@@ -503,7 +616,7 @@ def op_no_verbatim_copy(sv: dict, spec: dict) -> tuple:
             t = re.sub(r"\s+", "", norm(open(p, encoding="utf-8", errors="replace").read()))
         except Exception:                                          # noqa: BLE001
             continue
-        for i in range(0, max(0, len(t) - n), step):
+        for i in range(0, max(0, len(t) - n + 1), step):
             frag = t[i:i + n]
             if frag and frag in rep:
                 hits.append(f"{os.path.basename(p)}: {frag[:60]!r}")
@@ -540,34 +653,35 @@ def op_original_check_names_class(sv: dict, spec: dict) -> tuple:
     return True, f"原文核对 line names route and source class: {line[:110]!r}"
 
 
-def op_fulltext_fetch_is_named(sv: dict, spec: dict) -> tuple:
-    """A full text that was actually retrieved must be declared in the coverage line.
-
-    `A-P4` can still be satisfied by a line that names only the *abstract* route, so a run
-    could pull 99 KB of PMC full text into `sources/` and never tell the reader that the
-    check went beyond the abstract — or, worse, claim a full-text check it did not do. This
-    op looks at what is archived under `sources/` and requires the `原文核对：` line to carry
-    the matching token: `PMC<digits>` (or the word 全文) when a full-text body was archived.
-    Nothing archived ⇒ not triggered, passes with a note (a run that legitimately fetched
-    no full text must not be punished).
-    """
-    art = sv.get("artifacts_dir") or ""
-    srcs = [p for p in sorted(glob.glob(os.path.join(art, "sources", "**", "*"), recursive=True))
+def _source_files(art: str) -> list:
+    return [p for p in sorted(glob.glob(os.path.join(art or "", "sources", "**", "*"), recursive=True))
             if os.path.isfile(p) and os.path.getsize(p) < 20_000_000]
-    ft = []
-    for p in srcs:
-        name = os.path.basename(p).lower()
-        if "fulltext" in name or "full-text" in name or re.search(r"pmc\d", name):
-            ft.append(p); continue
-        try:
-            with open(p, "r", encoding="utf-8", errors="ignore") as fh:
-                head = fh.read(4000)
-        except OSError:
-            continue
-        if re.search(r"<article|<sec\b|<body\b", head):
-            ft.append(p)
+
+
+def _source_head(path: str, limit: int = 65536) -> str:
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+            return fh.read(limit)
+    except OSError:
+        return ""
+
+
+def _looks_like_fulltext(path: str) -> bool:
+    """Classify a nonempty archived full-text carrier without trusting its name as proof."""
+    text = _source_head(path)
+    if not text.strip():
+        return False
+    name = os.path.basename(path).lower()
+    return ("fulltext" in name or "full-text" in name or re.search(r"pmc\d", name)
+            or re.search(r"<article\b|<sec\b|<body\b", text, re.I)
+            or "plain" in name and len(text.strip()) > 100)
+
+
+def op_fulltext_fetch_is_named(sv: dict, spec: dict) -> tuple:
+    """A nonempty full-text carrier must be declared in the coverage line."""
+    ft = [p for p in _source_files(sv.get("artifacts_dir") or "") if _looks_like_fulltext(p)]
     if not ft:
-        return True, "no full-text body archived under sources/ (check not triggered)"
+        return True, "no nonempty full-text body archived under sources/ (check not triggered)"
     lines = [ln for ln in (sv["report"] or "").splitlines() if "原文核对" in ln]
     blob = "\n".join(lines) if lines else ""
     if not blob:
@@ -575,27 +689,9 @@ def op_fulltext_fetch_is_named(sv: dict, spec: dict) -> tuple:
     if re.search(r"PMC\s*\d|全文", blob):
         return True, f"full text archived ({len(ft)} file(s)) and declared"
     return False, (f"{len(ft)} full-text file(s) archived under sources/ but the 原文核对 line "
-                   f"names neither PMC<id> nor 全文 — the reader cannot tell a full-text check "
-                   f"from an abstract-only check")
+                   f"names neither PMC<id> nor 全文")
 
 
-def archived_fulltexts(art: str) -> list:
-    """Full-text bodies archived under `sources/` (same detection as `op_fulltext_fetch_is_named`)."""
-    srcs = [p for p in sorted(glob.glob(os.path.join(art or "", "sources", "**", "*"), recursive=True))
-            if os.path.isfile(p) and os.path.getsize(p) < 20_000_000]
-    ft = []
-    for p in srcs:
-        name = os.path.basename(p).lower()
-        if "fulltext" in name or "full-text" in name or re.search(r"pmc\d", name):
-            ft.append(p); continue
-        try:
-            with open(p, "r", encoding="utf-8", errors="ignore") as fh:
-                head = fh.read(4000)
-        except OSError:
-            continue
-        if re.search(r"<article|<sec\b|<body\b", head):
-            ft.append(p)
-    return ft
 
 
 PMCID_RX = re.compile(r"PMC\d+", re.I)
@@ -609,150 +705,47 @@ def link_identity(link: str) -> dict:
             "pmid": set(PMID_RX.findall(re.sub(r"PMC\d+", " ", s, flags=re.I)))}
 
 
-def body_identity(path: str) -> dict:
-    """Identity tokens carried by an archived body: file name plus the first 4 KB of content.
-
-    PMIDs are scanned after blanking `PMC<id>` tokens, because a PMCID's digits are themselves
-    7–8 digits long (`PMC11270764` would otherwise read as PMID 11270764).
-    """
-    name = os.path.basename(path)
-    try:
-        with open(path, "r", encoding="utf-8", errors="ignore") as fh:
-            head = fh.read(4000)
-    except OSError:
-        head = ""
-    stripped = re.sub(r"PMC\d+", " ", name + " " + head, flags=re.I)
-    m = re.match(r"ref_(\d+)", name.lower())
-    return {"name": name, "head": head, "ref": m.group(1) if m else "",
-            "pmcid": {i.upper() for i in PMCID_RX.findall(name + " " + head)},
-            "pmid": set(PMID_RX.findall(stripped))}
 
 
 def attribute_fulltexts(sv: dict, ctx: dict) -> tuple:
-    """Map each archived full-text body to the `ref_n` it backs; list the bodies that stay unmapped.
-
-    Four channels, tried in order — a run names its archives the way it likes (`R14` wrote
-    `PMC11270764_fulltext_jats.xml`, `input-contract.md` suggests `<esid>.<route>.xml`), and the
-    channel set *is* the fix for O29: while this op read the `ref_<n>` prefix only, it passed
-    vacuously on the very artifact that motivated it (R14 archived by PMCID, so the item reported
-    "check not triggered" and never looked at a single citation link).
-
-      1. `ref_<n>` prefix in the file name;
-      2. the record's esid in the name or the head (`check.esids` order gives esid → ref);
-      3. the same `PMC<id>` as that ref's citation link;
-      4. the same PMID as that ref's citation link.
-
-    A body none of whose tokens match anything is reported as unmapped instead of guessed at.
-    """
-    cites = sv.get("citations") or {}
-    esids = ctx.get("check", {}).get("esids") or []
-    by_ref, unmapped = {}, []
-    for p in archived_fulltexts(sv.get("artifacts_dir") or ""):
-        ident = body_identity(p)
-        refs = [f"ref_{ident['ref']}"] if ident["ref"] else []
-        blob = ident["name"] + " " + ident["head"]
-        if not refs:
-            refs = [f"ref_{i + 1}" for i, e in enumerate(esids) if e and e in blob]
-        if not refs and isinstance(cites, dict):
-            for ref, e in cites.items():
-                if not isinstance(e, dict):
-                    continue
-                li = link_identity(e.get("link"))
-                if (li["pmcid"] & ident["pmcid"]) or (li["pmid"] & ident["pmid"]):
-                    refs.append(ref)
-        if refs:
-            for r in refs:
-                by_ref.setdefault(r, []).append(p)
-        else:
-            unmapped.append(ident["name"])
-    return by_ref, unmapped
+    from fulltext import attributed
+    return attributed(sv, ctx)
 
 
 def op_cite_link_is_deepest(sv: dict, spec: dict, ctx: dict) -> tuple:
-    """A record analysed from the full text must cite the full text, not the abstract page.
-
-    `A-P5` makes the *declaration* of a full-text check mandatory; the citation `link` is the other
-    half of that promise. If a full-text body for a ref sits in `sources/` while `citations.json`
-    still points that ref at the abstract/publisher URL, whoever clicks the superscript lands on a
-    page that does not contain the numbers the report used. Attribution goes through the channels in
-    `attribute_fulltexts`; a link carrying the same `PMC<id>` as the archive is accepted too.
-    Nothing archived (or nothing attributable) ⇒ not triggered.
-    """
     by_ref, unmapped = attribute_fulltexts(sv, ctx)
-    note = (f"{len(unmapped)} full-text body(ies) archived but not attributable to a ref "
-            f"({unmapped})" if unmapped else "")
-    if not by_ref:
-        return True, note or "no full-text body archived (check not triggered)"
-    cites = sv.get("citations") or {}
-    bad = []
-    for ref in sorted(by_ref):
-        bodies = by_ref[ref]
-        base = os.path.basename(bodies[0])
-        e = cites.get(ref)
-        if not isinstance(e, dict):
-            bad.append(f"{ref} missing from citations.json (full text archived as {base})")
-            continue
-        link = str(e.get("link") or "")
-        ids = set().union(*[body_identity(p)["pmcid"] for p in bodies])
-        if not (is_fulltext_citation_link(link) or any(i in link.upper() for i in ids)):
-            bad.append(f"{ref} cites {link!r} but its full text is archived as {base}")
-    if bad:
-        return False, ("full-text body archived without pointing the citation at it: " + "; ".join(bad)
-                       + " — a record analysed from the full text must cite the full text"
-                       + (f" [{note}]" if note else ""))
-    return True, (f"{len(by_ref)} full-text ref(s) cite their full-text carrier"
-                  + (f"; {note}" if note else ""))
+    bad = [f"unproven body/source identity: {name}" for name in unmapped]
+    for ref, bodies in by_ref.items():
+        entry = (sv.get("citations") or {}).get(ref)
+        link = entry.get("link", "") if isinstance(entry, dict) else ""
+        ids = set().union(*(b["pmcid"] for b in bodies))
+        if not is_fulltext_citation_link(link) or not link_identity(link)["pmcid"] & ids:
+            bad.append(f"{ref}: full-text citation does not identify its archived source body")
+    return (not bad, "; ".join(bad) or f"{len(by_ref)} independently attributed full-text ref(s)")
 
 
 def op_fulltext_cite_has_body(sv: dict, spec: dict, ctx: dict) -> tuple:
-    """A citation that *claims* full-text depth must be backed by the fetched body (the converse of A-P6).
-
-    `A-P6` reads the archive and asks whether the link followed the analysis; this op reads the link
-    and asks whether the archive exists at all.  Without it the L3 rule is one-sided: nothing stops a
-    run from pointing `link` at a PMC article page — or fabricating one — and never fetching anything,
-    so the citation claims "we read the full text" with no bytes on disk to contradict it.  The
-    contract requires every fetched body to be copied under `/workspace/sources/` ("that path is
-    archived with the run, so the evidence stays auditable"), so the archived bytes are exactly the
-    audit trail the depth claim has to match.
-
-    A link byte-equal to the record's own `full_article_link` is **not** a depth claim — the run did
-    not choose it — and stays out of scope.  Needs the fixture (`spec['link_field']`, the record's own
-    link column) plus `check.esids` for the ref → esid order.
-    """
-    cites = sv.get("citations") or {}
-    if not isinstance(cites, dict) or not cites:
-        return True, "no citations.json (A-S3 owns that failure)"
-    body_ids = [body_identity(p)["pmcid"] for p in archived_fulltexts(sv.get("artifacts_dir") or "")]
-    esids = (ctx.get("check") or {}).get("esids") or []
-    bad, claimed, skipped = [], 0, 0
-    for ref, e in sorted(cites.items()):
-        if not isinstance(e, dict):
+    cites = sv.get("citations")
+    if not isinstance(cites, dict):
+        return False, "citations missing or malformed"
+    by_ref, _ = attribute_fulltexts(sv, ctx)
+    bad, claimed = [], 0
+    esids = ctx.get("check", {}).get("esids", [])
+    for ref, entry in cites.items():
+        if not isinstance(entry, dict) or not is_fulltext_citation_link(entry.get("link")):
             continue
-        link = str(e.get("link") or "")
-        if not is_fulltext_citation_link(link):
-            continue
+        link = entry["link"]
         m = re.fullmatch(r"ref_(\d+)", ref)
-        if m and 1 <= int(m.group(1)) <= len(esids):
-            try:
-                own = str(record_of(ctx["fixture"], esids[int(m.group(1)) - 1]).get(spec["link_field"]) or "")
-            except KeyError:
-                own = ""
-            if own == link:
-                skipped += 1
-                continue
+        own = ""
+        if m and 1 <= int(m[1]) <= len(esids):
+            own = record_of(ctx["fixture"], esids[int(m[1])-1]).get(spec["link_field"])
+        if own == link:
+            continue
         claimed += 1
         want = link_identity(link)["pmcid"]
-        if not any(want & ids for ids in body_ids):
-            bad.append(f"{ref} cites the full-text carrier {link!r} but no body under sources/ carries "
-                       f"{sorted(want) or 'that article'}")
-    if bad:
-        return False, ("full-text citation without the fetched body: " + "; ".join(bad)
-                       + " — the depth claim has no bytes behind it")
-    if not claimed:
-        return True, ("no citation points at a full-text carrier (check not triggered)"
-                      + (f"; {skipped} link(s) byte-equal to the record's own link" if skipped else ""))
-    return True, (f"{claimed} full-text citation(s) backed by an archived body"
-                  + (f"; {skipped} link(s) were the record's own" if skipped else ""))
+        if not any(want & b["pmcid"] for b in by_ref.get(ref, [])):
+            bad.append(f"{ref}: no nonempty body with independent record PMID/PMCID identity for {link}")
+    return not bad, "; ".join(bad) or f"{claimed} full-text claims backed by source-identified bodies"
 
 
 def op_report_excludes_literals(sv: dict, spec: dict) -> tuple:
@@ -831,7 +824,53 @@ def op_title_scope(sv: dict, item: dict) -> tuple:
 # --------------------------------------------------------------------------- driver
 
 
+def op_query_attempts(sv, spec):
+    """Count unique target-turn model calls; payload lookalikes are never calls."""
+    from history import target_messages
+    attempts = set()
+    try:
+        messages, scope = target_messages(sv["run_dir"])
+    except (OSError, ValueError, TypeError, AttributeError) as exc:
+        return False, f"unusable query evidence: {exc}"
+    seen = {}
+    for message in messages:
+        if message.get("kind") != "response":
+            continue
+        for part in message["parts"]:
+            if not isinstance(part, dict) or part.get("part_kind") != "tool-call":
+                continue
+            ident = part.get("tool_call_id")
+            if not isinstance(ident, str) or not ident:
+                continue
+            fingerprint = json.dumps([part.get("tool_name"), part.get("args")], sort_keys=True)
+            if ident in seen and seen[ident] != fingerprint:
+                return False, f"conflicting durable calls with ID {ident}"
+            seen[ident] = fingerprint
+            if part.get("tool_name") != spec["tool"]:
+                continue
+            args = part.get("args")
+            try:
+                args = json.loads(args) if isinstance(args, str) else args
+            except ValueError:
+                continue
+            if not isinstance(args, dict):
+                continue
+            # Current schema is esids; keep historical extra_esids without accepting
+            # strings, substring matches or contradictory dual argument names.
+            fields = [args[k] for k in ("esids", "extra_esids") if k in args]
+            if not fields or any(not isinstance(v, list) or
+                    not all(isinstance(x, str) for x in v) for v in fields):
+                continue
+            if len(fields) == 2 and set(fields[0]) != set(fields[1]):
+                continue
+            if spec["esid"] in fields[0]:
+                attempts.add(ident)
+    return (len(attempts) >= spec["min_count"],
+            f"{len(attempts)} distinct query attempts for {spec['esid']}; {scope}")
+
+
 SHAPE_OPS = {
+    "query_attempts": op_query_attempts,
     "artifact_present": op_artifact_present,
     "artifact_absent": op_artifact_absent,
     "no_verbatim_copy": op_no_verbatim_copy,
@@ -847,6 +886,8 @@ SHAPE_OPS = {
     "citations_matches_record": op_citations_matches_record,
     "citations_distinct": op_citations_distinct,
     "chart_envelope": op_chart_envelope,
+    "chart_observations": op_chart_observations,
+    "charts_structural": op_charts_structural,
     "title_scope": op_title_scope,
     "chart_values": op_chart_values,
     "sign_convention_consistent": op_sign_convention_consistent,
@@ -915,26 +956,35 @@ def eval_line(item: dict, sv: dict) -> tuple:
                    f" -- {sel[0][:90]!r}")
 
 
-def eval_sent_if(item: dict, sv: dict) -> tuple:
-    """Conditional sentence rule: *if* a sentence matches `if_regex`, it must carry all patterns.
+def _has_paired_divergence(block: str) -> bool:
+    return bool(_divergence_claims(block))
 
-    Needed for the original-source rules, which only bind when the occasion arises:
-    a divergence between original and pulled extract must show both values in one
-    sentence, but a run where nothing diverged has no such sentence and must not fail.
-    """
+
+def _divergence_claims(block):
+    # One adjacent pair only: another good claim in the paragraph must not excuse a bad one.
+    value = r"(?:[+\-]?\d+(?:\.\d+)?\s*%?|double[- ]blinded|开放|双盲|单盲)"
+    return list(re.finditer(r"原文\s*(?:值|为)?\s*" + value +
+        r"\s*[；;，,]\s*库内记录\s*(?:值|为)?\s*" + value +
+        r"\s*[）)]?\s*\{\{ref_\d+\}\}", norm(block), re.I))
+
+
+def eval_sent_if(item: dict, sv: dict) -> tuple:
     text = sv["report"]
     if not text:
         return False, "report surface is empty"
     rx = re.compile(item["if_regex"])
-    hits = [sent for b in blocks(text) for sent, _ in units(b) if rx.search(sent)]
-    if not hits:
-        return True, f"no sentence matches {item['if_regex']!r} (check not triggered)"
-    bad = [s for s in hits if any(not re.search(p, s) for p in item["patterns"])]
-    if bad:
-        return False, (f"{len(bad)}/{len(hits)} triggered sentence(s) missing patterns "
-                       f"{[p for p in item['patterns'] if not re.search(p, bad[0])]}: "
-                       f"{bad[0].strip()[:80]!r}")
-    return True, f"{len(hits)} triggered sentence(s) carry all {len(item['patterns'])} pattern(s)"
+    if item.get("paired_divergence"):
+        bad, count = [], 0
+        for block in blocks(text):
+            claims = _divergence_claims(block)
+            for hit in rx.finditer(block):
+                count += 1
+                if not any(m.start() <= hit.start() < m.end() for m in claims):
+                    bad.append(block[max(0, hit.start()-30):hit.end()+60])
+        return not bad, "; ".join(bad) or f"{count} paired divergences carry both values and a citation"
+    hits = [s for b in blocks(text) for s, _ in units(b) if rx.search(s)]
+    bad = [s for s in hits if not all(re.search(p, s) for p in item["patterns"])]
+    return not bad, "; ".join(bad) or f"{len(hits)} conditional units checked"
 
 
 def eval_attribution(item: dict, sv: dict) -> tuple:
@@ -1003,7 +1053,8 @@ def run_check(args) -> int:
         return 4
 
     files = {
-        "output/report.md": bool(sv["report"]),
+        "_art": sv["artifacts_dir"] or "",
+        "output/report.md": bool(sv["report"].strip()),
         "output/citations.json": isinstance(sv["citations"], dict),
     }
     ctx = {"fixture": fixture, "check": check}
@@ -1011,26 +1062,29 @@ def run_check(args) -> int:
     for item in check["items"]:
         sev = item.get("severity", "fail")
         kind = item["kind"]
-        if kind == "shape":
-            op = SHAPE_OPS.get(item["op"])
-            if op is None:
-                ok, detail = False, f"unknown op {item['op']}"
-            elif item["op"] in NO_CTX_OPS:
-                ok, detail = op(files if item["op"] in FILES_OPS else sv, item)
+        try:
+            if kind == "shape":
+                op = SHAPE_OPS.get(item["op"])
+                if op is None:
+                    ok, detail = False, f"unknown op {item['op']}"
+                elif item["op"] in NO_CTX_OPS:
+                    ok, detail = op(files if item["op"] in FILES_OPS else sv, item)
+                else:
+                    ok, detail = op(sv, item, ctx)
+            elif kind == "present":
+                ok, detail = eval_present(item, sv)
+            elif kind == "absent":
+                ok, detail = eval_absent(item, sv)
+            elif kind == "attribution":
+                ok, detail = eval_attribution(item, sv)
+            elif kind == "line":
+                ok, detail = eval_line(item, sv)
+            elif kind == "sent_if":
+                ok, detail = eval_sent_if(item, sv)
             else:
-                ok, detail = op(sv, item, ctx)
-        elif kind == "present":
-            ok, detail = eval_present(item, sv)
-        elif kind == "absent":
-            ok, detail = eval_absent(item, sv)
-        elif kind == "attribution":
-            ok, detail = eval_attribution(item, sv)
-        elif kind == "line":
-            ok, detail = eval_line(item, sv)
-        elif kind == "sent_if":
-            ok, detail = eval_sent_if(item, sv)
-        else:
-            ok, detail = False, f"unknown kind {kind}"
+                ok, detail = False, f"unknown kind {kind}"
+        except (TypeError, ValueError, KeyError, AttributeError, OverflowError) as exc:
+            ok, detail = False, f"malformed input: {type(exc).__name__}: {exc}"
         if not ok:
             if sev == "warn":
                 n_warn += 1
@@ -1052,7 +1106,8 @@ def run_check(args) -> int:
     for e in sv["errors"]:
         print(f"[WARN] surface: {e}")
     if args.json:
-        json.dump({"scenario": check["scenario"], "run": os.path.expanduser(args.run),
+        json.dump({"evaluator_revision": EVALUATOR_REVISION,
+                   "scenario": check["scenario"], "run": os.path.expanduser(args.run),
                    "facts_ok": ok_total, "facts_total": total,
                    "warn_ok": ok_warn, "warn_total": warn_total,
                    "verdict": verdict, "items": results},

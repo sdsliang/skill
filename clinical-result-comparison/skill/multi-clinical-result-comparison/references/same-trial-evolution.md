@@ -22,7 +22,7 @@ Create this core once. Do not repeat it for every disclosure. Keep separate coho
 
 ## Step 2: Assign source markers and source roles
 
-Assign one stable `{{ref_n}}` marker to each selected source. Classify each source on two separate axes only when explicitly supported.
+Assign one stable `{{ref_n}}` marker to each distinct retrieved esid, in selection order under `input-contract.md`. Classify each source on two separate axes only when explicitly supported.
 
 ### Disclosure form
 
@@ -134,10 +134,10 @@ For every same-trial input with two or more distinct evidence states, build the 
 - One node per evidence state (not per source); merged sources share a node with their markers listed together.
 - Node label: state name + analysis stage/disclosure form, this state's key new content, and inline `{{ref_n}}` markers.
 - Chronology on the axis comes only from source-supported data cutoff, follow-up, analysis milestone, then disclosure date; never input order. Missing timing is labeled 时间未明, never guessed.
-- Relationship and maturity direction go on the edge between consecutive states (更新/新增终点/确认/补充/取代/冲突/不确定 + 加强/基本不变/限定/削弱/无法确定).
+- Relationship and maturity direction go in the node's `description` or adjacent report text (更新/新增终点/确认/补充/取代/冲突/不确定 + 加强/基本不变/限定/削弱/无法确定); the JSON protocol does not provide labelled edges.
 - The diagram is descriptive only: no interpolation, pooling, ranking, or inferred dates. It never replaces the exact-value timeline table.
 
-> **区分：定量时点折线图 vs 证据链时间轴。** 证据链时间轴（`evidence-timeline.json`）按证据状态排布里程碑，是**描述性**的，不要求数值可比。当同一研究同一队列的同一终点存在 ≥2 个已披露时点（如 OLE 长期随访 W16→W68 的 EASI-75），用**折线图 `endpoint-line.json`** 呈现定量随时间变化（group=队列，label=时点；只连已披露时点，不跨研究/跨队列连线，不插值/补点/外推；单时点用单点模式；无对照单臂注明）。两者可同报告共存：时间轴讲证据演进，折线图讲同一队列数值随时间变化。
+> **区分：定量时点折线图 vs 证据链时间轴。** 证据链时间轴（`evidence-timeline.json`）按证据状态排布里程碑，是**描述性**的，不要求数值可比。在满足 `chart-templates.md` 的同试验定量图条件（含 ≥2 条入选结果支持）时，同一研究同一队列的同一终点存在 ≥2 个已披露时点（如 OLE 长期随访 W16→W68 的 EASI-75），用**折线图 `endpoint-line.json`** 呈现定量随时间变化（group=队列，label=时点；只连已披露时点，不跨研究/跨队列连线，不插值/补点/外推；单时点用单点模式；无对照单臂注明）。两者可同报告共存：时间轴讲证据演进，折线图讲同一队列数值随时间变化。
 
 ## Step 9: Required report content
 

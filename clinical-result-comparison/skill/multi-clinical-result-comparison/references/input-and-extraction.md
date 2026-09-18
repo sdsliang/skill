@@ -2,7 +2,7 @@
 
 ## Source authority
 
-Each selected clinical result is pulled by esid through the MCP tool `pharmcube-query-clinical-result-with-params` (`extra_esids` + strict `selected_fields`; see `references/input-contract.md`). The clinical evidence for the item is carried by the returned fields that hold clinical content (`abstract_text`, `summary`, `study_results` structured endpoint results, and the design/arms context fields) as **processed extracts**; `paper_title`, `full_article_link`, `paper_release_time`, `journal`, `doi`, `pm_id` are citation metadata. The **original source comes first** for material clinical numbers: re-check them through the whitelisted route templates in `references/input-contract.md` (*Evidence source priority*), let the original win on divergence, and name records whose original cannot be retrieved. Never guess a URL, never fetch outside those templates, and never fetch the `full_article_link` page itself.
+Each selected clinical result is pulled by esid through the MCP tool `pharmcube-query-clinical-result-with-params` (`esids` + strict `selected_fields`; see `references/input-contract.md`). The clinical evidence for the item is carried by the returned fields that hold clinical content (`abstract_text`, `summary`, `study_results` structured endpoint results, and the design/arms context fields) as **processed extracts**; `paper_title`, `full_article_link`, `paper_release_time`, `journal`, `doi`, `pm_id` are citation metadata. The **original source comes first** for material clinical numbers. `references/input-contract.md` (*Evidence source priority*) is the single authority for permitted retrieval, depth, failure handling and citation links, including its limited own-link last resort. A usable original/full text retrieved for the selected record is part of the analysis surface, including facts absent from the pulled extracts; retain each fact's time point, analysis set and population. Apply that contract's divergence and coverage rules without adding searches, retries or substitute URLs.
 
 Preserve drug names, trial names, biomarkers, companies, and other proper nouns exactly as returned. Use a Chinese equivalent only when a selected record explicitly provides it. Do not translate, transliterate, normalize, or map a proper name from memory; retain the English name in a Chinese report when it is the only source-supported form.
 
@@ -55,7 +55,8 @@ Do not substitute publication date for data cutoff. Do not treat a database orde
 - controlled or uncontrolled;
 - prospective/retrospective and interventional/observational when reported;
 - number of centers/geography when relevant;
-- enrolled, randomized, treated, and analyzed sample sizes;
+- enrolled, randomized, treated, and analyzed sample sizes, keeping total and per-arm denominators separate;
+- number of distinct treatment arms from the supported design (not `clinical_result.group_count`, which is enrollment total; see `input-contract.md`, *Source of truth*);
 - analysis population such as ITT, efficacy-evaluable, safety, per protocol, or subgroup.
 
 ### Endpoint record

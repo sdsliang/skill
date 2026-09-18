@@ -17,7 +17,7 @@
 
 ## 构建规则
 
-1. **一个节点（timeline `data[]` 一条）= 一个证据状态**，不是一篇披露。合并为同一状态的来源共享一个节点：`label` 写状态名 + 分析阶段/披露形式（如"pCR 主要分析 · 摘要/主刊"），`description` 中并列列出该状态支持来源的引用标记（如 `{{ref_1}}{{ref_3}}`）；披露数量多不代表独立验证。
+1. **一个证据状态对应一个节点**，不是一篇披露；可另加来源支持的研究里程碑（weight=0），但里程碑不计入证据状态数或 ≥2 状态出图门槛。合并为同一状态的来源共享一个节点：`label` 写状态名 + 分析阶段/披露形式（如"pCR 主要分析 · 摘要/主刊"），`description` 中并列列出该状态支持来源的引用标记（如 `{{ref_1}}{{ref_3}}`）；披露数量多不代表独立验证。
 2. **节点内容字段**（camelCase，与上游 chart-visualization-json 协议一致）：
    - `label`：证据状态名 + 分析阶段/披露形式（string，必填）；
    - `time`：本状态来源支持的时间锚点文案（数据截止/随访/披露日期），缺失写「时间未明」，不得猜测或推算日期（string，必填）；
@@ -42,8 +42,8 @@
   "type": "timeline",
   "title": "TRAIN-2（NCT01996267）证据链时间轴",
   "subTitle": "同一试验证据披露与结果演进 · 节点=合并后的证据状态",
-  "dataSource": "数据来源：所选临床结果的 params 返回字段（论文题名 / 发布时间）",
-  "describe": "节点=证据状态，weight=证据成熟度；证据边界：仅 params 返回字段",
+  "dataSource": "数据来源：所选记录的临床内容及按输入契约取得的同记录原文；交付时填写实际来源与分析深度",
+  "describe": "节点=证据状态或明确里程碑，weight=证据成熟度；证据边界遵守 references/input-contract.md",
   "legend": [
     { "key": "milestone",  "label": "研究里程碑", "shape": "empty-circle" },
     { "key": "disclosure", "label": "证据披露",   "shape": "circle" },
@@ -59,4 +59,4 @@
 }
 ```
 
-按此填写后保存为**固定文件名** `evidence-timeline.json`（写入 `/workspace/visualizations/`；**纯 JSON，无 HTML 包裹**，先跑 `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <成品>` 通过 PASS 再引用），正文用 `::visualization[标题]{path="/workspace/visualizations/evidence-timeline.json"}` 绝对路径引用，并始终保留精确数值的时间线表格。
+将示例作为 **`option` 内层**放入图表 skill 当前模板的 envelope（`id` / `iframe_template` / `option`），再保存为**固定文件名** `evidence-timeline.json`（写入 `/workspace/visualizations/`；**纯 JSON，无 HTML 包裹**，先跑 `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <成品>` 通过 PASS 再引用），正文用 `::visualization[标题]{path="/workspace/visualizations/evidence-timeline.json"}` 绝对路径引用，并始终保留精确数值的时间线表格。

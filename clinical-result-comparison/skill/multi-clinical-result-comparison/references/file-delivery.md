@@ -41,7 +41,7 @@ Two files are produced each run:
 2. **Citation file** — `/workspace/output/citations.json` (fixed path)
    - The fixed machine-readable sibling of the report; the backend hard-codes both paths, so never rename, relocate, or suffix either one.
    - Raw strict JSON, one key per **retrieved** source in selection (esid) order over the records that returned: `{"ref_1":{"title":…,"link":…,"paper_release_time_str":…},…}`. An esid that returned no record gets no key (never write an entry with an empty `title`; see `references/input-contract.md`, *Unretrievable selected items*).
-   - Same schema as the v0.8 separate citation JSON (see `references/citation-and-ref.md`); `title` and `link` are copied byte-for-byte from the pulled record's `paper_title` / `full_article_link`, and `paper_release_time_str` is the **date part only** (`YYYY-MM-DD`) of `paper_release_time` — that field returns a datetime string (`YYYY-MM-DD HH:MM:SS`), so drop the time component, never reformat further, and leave the value empty when the record has none.
+   - Same schema as the v0.8 separate citation JSON (see `references/citation-and-ref.md`); `title` is copied byte-for-byte from `paper_title`; `link` follows `references/input-contract.md`, *Citation link follows the analysis depth* (C1/C2 only for retrieved, archived PMC full text used in analysis; otherwise byte-for-byte `full_article_link`), and `paper_release_time_str` is the **date part only** (`YYYY-MM-DD`) of `paper_release_time` — that field returns a datetime string (`YYYY-MM-DD HH:MM:SS`), so drop the time component, never reformat further, and leave the value empty when the record has none.
    - Not presented as a card: it is the machine-readable source listing for downstream marker rendering. It is still a visible workspace artifact (any file under `/workspace/output/` is listed by the artifacts API and the artifact panel).
 
 ## Delivery sequence (terminal action)
@@ -55,7 +55,7 @@ Two files are produced each run:
    - every chart product sits at its fixed name (`evidence-timeline.json`, `endpoint-bar-<n>.json`, `endpoint-line-<n>.json`) and each file's JSON `type` matches its file name;
    - marker/key parity holds (every `{{ref_n}}` in the report has a matching JSON key and every key is used — see `references/citation-and-ref.md`);
    - every chart product referenced in the report exists under `/workspace/visualizations/` and passed the chart skill CLI validation;
-   - citation fields match the pulled records: `title` / `link` byte-for-byte from `paper_title` / `full_article_link`, and `paper_release_time_str` equal to the `YYYY-MM-DD` date part of `paper_release_time` (no `HH:MM:SS`, no reformatting).
+   - citation fields follow `references/input-contract.md`: `title` byte-for-byte from `paper_title`, `link` byte-for-byte from `full_article_link` or the required C1/C2 substitution backed by the retrieved, archived full text, and `paper_release_time_str` equal to the `YYYY-MM-DD` date part of `paper_release_time` (no `HH:MM:SS`, no reformatting).
 5. Call `present_artifact('/workspace/output/report.md')` as the **final tool call**. Once it succeeds, end the response immediately: do not call any further tool and do not append report text.
 
 ## Chat body rule (empty body — 方案 B)

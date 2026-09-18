@@ -41,7 +41,36 @@ actually failed (R15/R16/R17/R18 each 500'd on
 `…/europepmc/webservices/rest/PMC6933872/fullTextXML`). The gate therefore folds
 `rejected + fetch_failures` into the comparison set.
 
-## Not covered here: the receipt layer
+## Receipt scope regression (2026-09-18)
+
+`python3 evals/runner-gate/test-runner.py` runs 30 offline tests, including synthetic
+`cmd_run --resume` cases: an expired foreign-turn receipt with a pointer-free target passes
+without fetching the foreign path; a final target pointer missed by polling fails; a collected
+target pointer passes only with matching on-disk bytes and manifest hash.
+
+The collector requires the target `turn_id` and filters top-level UI message `turn_id` values.
+Local R18/R19/R20 `/messages` archives confirm a list of messages with top-level `turn_id` and
+`parts`; an explicit `messages` envelope is also supported. Foreign and unscoped poll pointers
+remain in the receipt diagnostics. Final scoped model/UI/message pointers alone define required
+coverage. Unknown final UI shapes and ambiguous multi-turn ownership fail closed; unlabelled
+final messages are inferred only when independent evidence identifies a single target turn.
+
+This fix first backed up the runner to
+`~/.local/state/toolsmith-publish/toolsmith-publish.v10.bak`. The cumulative snapshot still uses
+**original v9**, SHA-256 `7fdfe082bb3758fa4f4577ca5efe1e8a0c7437cf3c14993ae52e4feef398f9dd`:
+
+```bash
+python3 evals/runner-gate/snapshot-runner.py \
+  --baseline ~/.local/state/toolsmith-publish/toolsmith-publish.v9.bak
+```
+
+Validation: runner/test `py_compile` passed; 30 tests passed; chain gate passed with 5 comparable
+runs (36 histories, 31 skipped); applying `runner-patches/review-hardening.patch` to original v9
+reproduced the installed runner byte for byte and matched all snapshot hashes. No network or
+Git writes were performed. Changes are confined to the runner and this gate directory, plus
+the required numbered backup; no Docker action applies.
+
+## Not covered by the chain comparison: the receipt layer
 
 `tool_results/**` (params JSONL, fetched page bodies) is deleted at persist and filtered from the
 artifact archive, so this gate — which only compares the *tool chain* — would stay green while the

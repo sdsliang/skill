@@ -1,0 +1,407 @@
+{
+ "scenario": "a",
+ "run": "/home/xupeipeioo1/.local/state/toolsmith-runs/20260918-095553-r17-sign-convention",
+ "facts_ok": 42,
+ "facts_total": 43,
+ "warn_ok": 1,
+ "warn_total": 1,
+ "verdict": "FAIL",
+ "items": [
+  {
+   "id": "A-S1-artifacts",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "all present",
+   "why": "两条有效记录 >= 2，必须产出报告与引用文件；缺失即拒绝产出被误用",
+   "evidence": "skill 的输出命名契约：/workspace/output/report.md + /workspace/output/citations.json"
+  },
+  {
+   "id": "A-S2-chart-set",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "charts=['endpoint-bar-1.json'] quants=['endpoint-bar-1.json'] (cap 1) OK",
+   "why": "图表集合必须与『最多两张、timeline 有条件、定量主图可选』的规则一致；出图必须用合法文件名与合法类型（多出 timeline / 两张定量图 / 野文件名都说明模式判定或命名错了）。空集合不算违规，由 A-S2b 兜底",
+   "evidence": "两 esid 分属不同试验 → timeline 前置条件不成立；余下只有『每组至多 1 张、总量至多 1 张』的横截面柱状，且它是可选的"
+  },
+  {
+   "id": "A-S2a-chart-structure",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 chart(s) structurally valid",
+   "why": "允许的文件名本身不能证明图表可用；逐个检查所有图表和所有定量行，防止折线/空行/缺描述绕过",
+   "evidence": "每个落盘图表都必须是可渲染的 chart-visualization-json；定量行必须有标签、有限数值和可审计的描述"
+  },
+  {
+   "id": "A-S2b-chart-or-reason",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "quantitative chart present: ['endpoint-bar-1.json']",
+   "why": "这是 A-S8/A-S9『optional_when_absent』的配套闸门：没有它，『既不出图也不解释』会免费通过（空产物糊过去）。**必须命中 required 组**（正文明确写出不出图）**并且**给出一条实质理由（supporting >=1）——只查支持理由是不够的：跨试验报告天然会写『跨试验』『时点不同』，那样删掉图不说话也能过（M16 变异就是拿这个做对照）。 required 组用宽一点的词面（不输出/不生成/不绘制 + 图表/定量主图/柱状图/折线图），否则合法的『不输出定量主图』措辞会被误杀。",
+   "evidence": "chart-templates.md:91『任一条件不满足 → 只出时间轴/不出定量图，并在正文或表格说明不出定量图的原因』；R11 正文：『只能有限并列，不具备绘图条件——本报告不输出图表。两项数值的评估时点不同（第 16 周 vs 第 36 周）』"
+  },
+  {
+   "id": "A-S3-cite-keys",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "got=['ref_1', 'ref_2'] want=['ref_1', 'ref_2']",
+   "why": "引用条数必须等于可用记录数，且编号连续无空洞（曾出现 ref_2 全空的缺陷）",
+   "evidence": "每条所选结果一个 ref，共 2 条；R7/R8 实测 citations.json 恰为 ref_1/ref_2"
+  },
+  {
+   "id": "A-S4-cite-entry-keys",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "2 entries OK",
+   "why": "键集或空值偏差会直接破坏渲染端的 ref 解析",
+   "evidence": "references/citation-and-ref.md 定死的三键契约"
+  },
+  {
+   "id": "A-S5-cite-ref1-record",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "ref_1 == record 24_1_30561610",
+   "why": "引用必须逐字回抄记录字段，且日期裁成 YYYY-MM-DD；错配=把 A 的文献挂到 B 上",
+   "evidence": "记录 24_1_30561610：paper_title='Persistent arterial wall inflammation … type 9 antibody treatment.'；full_article_link='https://pubmed.ncbi.nlm.nih.gov/30561610'；paper_release_time='2018-12-19 00:00:00'"
+  },
+  {
+   "id": "A-S6-cite-ref2-record",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "ref_2 == record 24_1_36342163",
+   "why": "同 A-S5，覆盖第二条引用",
+   "evidence": "记录 24_1_36342163：paper_title='Small Interfering RNA to Reduce Lipoprotein(a) in Cardiovascular Disease.'；full_article_link='https://pubmed.ncbi.nlm.nih.gov/36342163'；paper_release_time='2022-11-08 06:00:00'"
+  },
+  {
+   "id": "A-S7-cite-distinct",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "links distinct=True",
+   "why": "防复制粘贴导致两条引用指向同一文献",
+   "evidence": "两条记录来自不同文献（PMID 30561610 / 36342163）"
+  },
+  {
+   "id": "A-S8-chart-envelope",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "envelope + option OK",
+   "why": "envelope 缺失/类型错会静默渲染失败；label 为空说明数据行没填 ｜ **2026-09-17 改为条件式**：文件不存在时本项 PASS（定量主图可选），此时『为什么不出图』由 A-S2b-chart-or-reason 断言；文件存在时本项仍然是硬断言。",
+   "evidence": "chart-visualization-json 协议 envelope：{id, iframe_template, option}；5 条数据 = 依洛尤单抗 1 组 + 奥帕司兰 4 个剂量组"
+  },
+  {
+   "id": "A-S9-chart-values",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "|got|=[13.9, 70.5, 97.4, 100.5, 101.1] |want|=[13.9, 70.5, 97.4, 100.5, 101.1] (raw got=[-101.1, -100.5, -97.4, -70.5, -13.9])",
+   "why": "图上数值必须逐值与记录一致：图是唯一可直接被读者当作数据的产物 ｜ **2026-09-17 改为条件式**：文件不存在时本项 PASS（定量主图可选），此时『为什么不出图』由 A-S2b-chart-or-reason 断言；文件存在时本项仍然是硬断言。 ｜ **2026-09-18 改为符号无关**：图表数值与记录值比**绝对值**（`|got|` vs `|want|`），因为「正幅度 + 降幅」与「负号」是等价写法；数值本身仍精确比较（M10 把 13.9 改成 19.9 翻 FAIL），报告与图表是否同一口径由 A-S10 断言。",
+   "evidence": "abstract_text：Lp(a) 降 13.9%（试验 A）；-70.5%（10 mg q12w）/ -97.4%（75 mg q12w）/ -101.1%（225 mg q12w）/ -100.5%（225 mg q24w）（试验 B）"
+  },
+  {
+   "id": "A-S9b-chart-observation-identity",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": false,
+   "detail": "row 1 description misses identity pattern '(?:第\\\\s*36\\\\s*周|36-week).*?(?:Lp\\\\(a\\\\)|Lipoprotein\\\\(a\\\\)|脂蛋白\\\\(a\\\\))'; row 2 description misses identity pattern '(?:第\\\\s*36\\\\s*周|36-week).*?(?:Lp\\\\(a\\\\)|Lipoprotein\\\\(a\\\\)|脂蛋白\\\\(a\\\\))'; row 3 description misses identity pattern '(?:第\\\\s*36\\\\s*周|36-week).*?(?:Lp\\\\(a\\\\)|Lipoprotein\\\\(a\\\\)|脂蛋白\\\\(a\\\\))'; row 4 description misses identity pattern '(?:第\\\\s*36\\\\s*周|36-week).*?(?:Lp\\\\(a\\\\)|Lipoprotein\\\\(a\\\\)|脂蛋白\\\\(a\\\\))'",
+   "why": "交换药物标签或交换同一终点的数值会保留绝对值集合，却改变临床观察的含义；逐行身份映射才能抓住该错误",
+   "evidence": "每个横档必须把药物、剂量/方案、终点、时点和该观察值绑定；不能把数值排序后脱离观察身份比较"
+  },
+  {
+   "id": "A-S10-sign-convention-consistent",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "convention consistent (signed); some value absent from a surface — coverage is A-C4/A-C5's job",
+   "why": "用户 2026-09-18 定案：**两种写法都可以，只要同一份交付物自洽**。所以口径不写死，但**报告与图表必须同一口径**——正文写 `70.5`、图上画 `-70.5` 时，读者无法确认两者是不是同一个量（反之亦然）。只检查**被画进图的那几个量**：点估计写「降低 13.9%」、置信区间写 `-19.3～-8.5` 是正常且自洽的渲染，不算混用。另外：方向**措辞**在两种口径下都没有被断言（带符号写法里「升高 −13.9%」同样能过），所以放宽为幅度写法不损失覆盖面。",
+   "evidence": "R8/R12/R15 报告写 `−13.9`（U+2212）、图表 `-13.9`；R16（2026-09-18）报告全篇写「降低 13.9%／降幅 70.5%～101.1%」、图表 `[13.9,70.5,97.4,100.5,101.1]` 全为正幅度。合同里没有关于符号/幅度的任何字（grep 无命中）⇒ 每次由模型自选"
+  },
+  {
+   "id": "A-T1-title-identifies-scope",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "theme H1 (no drug name, population + comparison marker): '# 脂蛋白(a) 升高人群降脂治疗跨试验对比报告'",
+   "why": "标题是唯一被引注规则豁免的位置（无 `{{ref_n}}`），所以必须单独断言：它得让读者知道**在比什么**。2026-09-18 修 O20：旧实现只认「两个药名都出现」，把主题式标题（人群 + 治疗类别/机制 + 对比）判 FAIL —— 而模板第 1 行本来就写的是 `# [比较主题]跨试验对比报告`，主题式是合规写法。新口径三选一：① 两个 subject 都点名 => PASS；② 一个药名都不点、但点了共同人群/适应症 + 对比标记 => PASS（主题式）；③ **只点了一个** subject => FAIL，无论主题写得多好 —— 这正是本条存在的理由（把两条记录写成同一个药，M06 仍在证明）。标题既不点两个 subject 也不点主题（例如 `# 结果对比报告`）同样 FAIL（M26 证明）。",
+   "evidence": "记录 A drugs[0].drug_earth_name_cn='依洛尤单抗'，记录 B drugs[0].drug_earth_name_cn='奥帕司兰'；R8/R12/R15 标题两个药名都点了（`# Lp(a) 升高人群的降 Lp(a) 治疗：… vs … 跨试验对比报告`），R16/R17 只用主题式标题（`# 脂蛋白(a) 升高人群降脂治疗跨试验对比报告`，一个药名都没有）"
+  },
+  {
+   "id": "A-C1-trial-identity-A",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "2 pattern(s) matched",
+   "why": "报告必须交代『这条记录是什么试验、什么药』，否则读者无法定位证据",
+   "evidence": "记录 24_1_30561610：projects[0].associate_ids=['NCT02729025','EudraCT2015-003731-35','PMCT00652711']；arms[0].drugs[0].drug_earth_name_en='evolocumab'（依洛尤单抗）"
+  },
+  {
+   "id": "A-C2-trial-identity-B",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "3 pattern(s) matched",
+   "why": "同 A-C1；两试验身份必须分别落到各自的引用锚点上",
+   "evidence": "记录 24_1_36342163：trial_abbreviation=['OCEAN(a)-DOSE']；projects[0].associate_ids 含 'NCT04270760'；arms[1].drugs[0].drug_earth_name_cn='奥帕司兰'"
+  },
+  {
+   "id": "A-C3-mechanism",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "2 pattern(s) matched",
+   "why": "机制差异是『跨试验不可直接对齐』的主要理由，报告必须显式写出",
+   "evidence": "记录 A：abstract 'proprotein convertase subtilisin/kexin type 9 antibody treatment'、drugs[0].target_name=['PCSK9']；记录 B：abstract 'Olpasiran is a small interfering RNA that reduces lipoprotein(a) synthesis'"
+  },
+  {
+   "id": "A-C4-primary-A",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "3 pattern(s) matched",
+   "why": "试验 A 唯一可用于跨试验对齐的疗效数字；漏掉或漏掉区间都削弱可核查性 ｜ **2026-09-18 放宽为符号无关**（用户口径：`−13.9` 与「降幅 13.9%」等价，\"只要自洽就行\"）：符号 +（负号）与「降低/降幅 + 无符号幅度」是同一量的两种写法；`[\\u2212-]?` 让两种写法都能命中，数值本身仍逐位精确（M01 把 13.9 改成 19.9 仍翻 FAIL）。**跨产物口径一致性**由 A-S10 负责，不在这里。",
+   "evidence": "记录 A study_results：Lipoprotein(a) | percentage change; Week 16 的相对行 compare_result='-13.9'、compare_result_ci='95%CI -19.3 to -8.5'（abstract 同值）（2026-09-18 用户口径：符号写法自由）"
+  },
+  {
+   "id": "A-C5-primary-B-4doses",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "4 pattern(s) matched",
+   "why": "剂量依赖性降幅是试验 B 的核心结论，只报一个数会失真 ｜ **2026-09-18 放宽为符号无关**（用户口径：`−13.9` 与「降幅 13.9%」等价，\"只要自洽就行\"）：符号 +（负号）与「降低/降幅 + 无符号幅度」是同一量的两种写法；`[\\u2212-]?` 让两种写法都能命中，数值本身仍逐位精确（M01 把 13.9 改成 19.9 仍翻 FAIL）。**跨产物口径一致性**由 A-S10 负责，不在这里。",
+   "evidence": "记录 B study_results 四条主要终点行：-70.5 / -97.4 / -101.1 / -100.5（%）；abstract 对应 10/75/225 mg q12w、225 mg q24w 四个剂量（2026-09-18 用户口径：符号写法自由）"
+  },
+  {
+   "id": "A-C6-primary-B-placebo",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "2 pattern(s) matched",
+   "why": "降幅必须与对照和显著性一起读，否则无法判断效应量级；也防止把 +3.6% 写成下降",
+   "evidence": "记录 B study_results：安慰剂组 3.6%（主要终点 single 行）、相对行 p_value='＜0.001'；abstract 'increased by a mean of 3.6% in the placebo group … (P<0.001 …)'"
+  },
+  {
+   "id": "A-C7-timepoints",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "2 pattern(s) matched",
+   "why": "时点不同是硬性可比性限制，两个时点都必须出现",
+   "evidence": "记录 A 终点行 endpoint_label 含 'Week 16'；记录 B endpoint_label='36-week'"
+  },
+  {
+   "id": "A-C8-not-head-to-head",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "2 pattern(s) matched",
+   "why": "跨试验并列最危险的错误是给出头对头优效结论；这条是反 gaming 的核心护栏",
+   "evidence": "两条记录分属不同试验、无共同随机化：记录 A projects[0].associate_ids=['NCT02729025'…]、记录 B projects[0].associate_ids=['NCT04270760'…]"
+  },
+  {
+   "id": "A-C9-mds-tbr-A",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "4 pattern(s) matched",
+   "why": "『血管炎症未被削弱』的全部证据都在这四个数上，漏掉 p 值会变成没有边界的阴性结论",
+   "evidence": "记录 A study_results：MDS TBR percentage change Week 16 → 试验组 -8.3、安慰剂 -5.3、相对行 compare_result '-3.0' + compare_result_ci '95%CI -7.4 to 1.4' + p_value '=0.18'（abstract 同）"
+  },
+  {
+   "id": "A-C10-mds-tbr-B-absent",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 pattern(s) matched",
+   "why": "『B 没做该终点』必须写成缺测，而不是留空让读者以为可比",
+   "evidence": "记录 B 无 MDS TBR / 影像学炎症字段（study_results 只有 Lp(a) 与未命名次要终点行；abstract 未提及）"
+  },
+  {
+   "id": "A-C11-sample-size",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 pattern(s) matched",
+   "why": "样本量是可比性的基本维度",
+   "evidence": "记录 A abstract '129 patients … were randomized'；group_count='129'"
+  },
+  {
+   "id": "A-C11b-sample-size-B",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 pattern(s) matched",
+   "why": "同上",
+   "evidence": "记录 B abstract 'Among the 281 enrolled patients'；arms: 安慰剂 54 例、奥帕司兰 58/58/56/55 例（合计 281）"
+  },
+  {
+   "id": "A-C12-two-records-not-five",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 pattern(s) matched",
+   "why": "把重复行当独立结果会虚增证据数（本次记录 5 行的真实陷阱） ｜ 2026-09-17：pattern 由 `2 ?条` 放宽为 `2 ?(条|项)`（R11 写『2 项来源记录』，语义等同）。",
+   "evidence": "请求 2 个 esid；平台实际返回 5 行（同一结果因关联项目重复），真值是 2 条结果"
+  },
+  {
+   "id": "A-N1-no-five-records",
+   "kind": "absent",
+   "severity": "fail",
+   "ok": true,
+   "detail": "3 pattern(s) absent",
+   "why": "重复行不得被叙述成 5 条结果",
+   "evidence": "同 A-C12"
+  },
+  {
+   "id": "A-N2-no-sign-flip",
+   "kind": "absent",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 pattern(s) absent",
+   "why": "安慰剂组写成 -3.6% 会让方向性结论整体失真",
+   "evidence": "记录 B 安慰剂组为 '3.6'（升高 3.6%，abstract 'increased by a mean of 3.6%'）"
+  },
+  {
+   "id": "A-C13-safety",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 pattern(s) matched",
+   "why": "安全性域唯一有内容的证据不能丢",
+   "evidence": "记录 B abstract 'The most common olpasiran-related adverse events were injection-site reactions, primarily pain.'；'The overall incidence of adverse events was similar across the trial groups.'"
+  },
+  {
+   "id": "A-C14-safety-gap-A",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 pattern(s) matched",
+   "why": "缺测必须显式写出，避免读者误认为该试验安全无毒",
+   "evidence": "记录 A 无安全性字段（abstract 只报疗效影像；无 AE 数值）"
+  },
+  {
+   "id": "A-C15-pkpd-pro-gap",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "3 pattern(s) matched",
+   "why": "域级缺口是报告的组成部分，不能靠沉默处理",
+   "evidence": "两条记录均无 PK/PD 与 PRO 字段（requested fields 全部为 null / 未返回）"
+  },
+  {
+   "id": "A-C16-hard-outcome-gap",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "2 pattern(s) matched",
+   "why": "替代终点不得外推为临床获益，这是本 skill 的红线之一",
+   "evidence": "记录 A abstract 无事件数据（随访至第 16 周）；记录 B abstract 'Longer and larger trials will be necessary to determine the effect of olpasiran therapy on cardiovascular disease.'"
+  },
+  {
+   "id": "A-ATTR-misattribution",
+   "kind": "attribution",
+   "severity": "fail",
+   "ok": true,
+   "detail": "77 token/unit pairings correctly attributed",
+   "why": "带引注的行必须只讲它引的那条记录：把 B 的数字挂在 ref_1 上是本清单最想抓的错配（单看数字无法发现，故用引注锚点做归属校验）。**2026-09-18 修 O19 假阳性（R15 实测）**：一句里同时点了「引注记录自己的药」和对方的药时——典型如比较句、排除句「该构念与 B 的终点不是同一构念」——这句其实是在**讲记录 A**，不是因为错配才提 B。R15 的整段结论就是这种形状，被旧实现判成错配。现在：unit 里点了**引注记录自己的 subject（药名）** => 跳过该 unit（记 `unit(s) skipped as mixed`）。**仍然要抓的**：引注 A 却只提 B 且全句不提 A（M06 把标题里的「奥帕司兰」改成「依洛尤单抗」、M15 在 ref_2 单引注表格行里写「优于依洛尤单抗」）——两条变异继续证明这一条翻得动。**subject 标记 = 「这条 token 是记录的身份证」**（药名 + 登记号/试验名），豁免只对**身份证对**生效：引注 ref_2 的 unit 里若点名了 ref_2 自己的身份证（药名或登记号），则该 unit 是在**比较两条记录**，句尾 marker 挂在哪一侧是写法问题，不是事实错配（R12「安全性维度只有 OCEAN(a)-DOSE…{{ref_2}}，NCT02729025 未报告…」、R15「…与奥帕司兰的 Lp(a) 降幅终点不是同一构念{{ref_1}}」都是这个形状）。**数值对不享受豁免**：unit 引注 ref_2 却带着 ref_1 的数值（或反之）照旧 FAIL（M27 证明），引注一侧却完全不点自己的身份证也照旧 FAIL（M15 证明）。**数值 token 符号无关**（`[\\u2212-]`）：实测三份真产物正文一律用 U+2212 减号（`−13.9`），而旧 token 写的是 ASCII `-13.9`，导致这一对**从未命中过任何产物**（打分器漏洞，台账 O28 记账）——修正后 M27 才能证明「豁免不是全免」。",
+   "evidence": "两试验各自的药/试验号/数值见记录（见 A-C1…A-C9 的 evidence）（2026-09-18 起 subject 标记见下）"
+  },
+  {
+   "id": "A-W1-dose-mapping",
+   "kind": "present",
+   "severity": "warn",
+   "ok": true,
+   "detail": "3 pattern(s) matched",
+   "why": "推断性事实，不计入 keep/discard；只提醒读者这条映射是推理而非字段直读",
+   "evidence": "剂量名在 abstract 中与降幅成对给出；但记录里 arm 与剂量的绑定只能靠 arms 顺序 + arm_count(58/58/56/55) 与 study_results 臂顺序推得，记录本身未直接给出 arm_id↔剂量"
+  },
+  {
+   "id": "A-P1-original-check-line",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 pattern(s) matched",
+   "why": "原文优先必须留可核对痕迹；没有这一行，'声称复核过' 与 '没复核' 在下游不可区分，规则等于装饰",
+   "evidence": "原文优先规则要求证据范围段（unified 模板 `证据范围` / cross-trial 模板 `比较口径`）写一行复核覆盖：`原文核对：` + 已复核/总条数 + 未复核原因类"
+  },
+  {
+   "id": "A-P2-divergence-shows-both",
+   "kind": "sent_if",
+   "severity": "fail",
+   "ok": true,
+   "detail": "no sentence matches '库内记录' (check not triggered)",
+   "why": "只写库内值而不写原文值，等于把降级悄悄咽下；这条把分歧写成必须双值并附引用",
+   "evidence": "固定写法：原文与库内不一致时必须写 `原文 <值>；库内记录 <值>{{ref_n}}`；未触发（本轮无不一致）时自动通过"
+  },
+  {
+   "id": "A-P3-no-long-verbatim",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "no fetched original archived under sources/ (check not triggered)",
+   "why": "放开原文读取后必须同时上版权/文体闸门，否则就是把出版方正文搬进交付物",
+   "evidence": "原文抓取落盘 /workspace/sources/（随 run 归档）；报告正文不得出现与源文一致的 >=60 连续字符（版权 + 文体）。未抓取原文时不触发"
+  },
+  {
+   "id": "A-P4-original-check-names-route-and-class",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "原文核对 line names route and source class: '> **比较口径：** 本报告以研究间指标对齐为主线——各研究的试验组方案是主比较对象，研究内对照只用于解释该研究自身的效应与可信度，不把不同研究的对照组拼成头对头比较；所有比较结论均带可比性与证据强度标签，跨试验方向性'",
+   "why": "A-P1 只查`有没有这一行+有没有数字`；空壳写法「原文核对：2/2 条已复核」能一路通过却什么都没说。这条把'哪些记录走了哪条路/属于哪类来源'变成必须写明的内容",
+   "evidence": "覆盖行必须点名取回路径（PMID / DOI / 登记号 / 注册平台 API / PMC 全文 / 库内正文即原文）与来源类（esid 中段 src=1/2/37/49/120/187/245/398 或原因类）；实测按源类分化：src=1 PubMed 即使有摘要也要尝试 R6→R7 取 PMC 全文（抽查 100 条 56% 有 PMCID；R7 实测 4/5 成功、63–99 KB JATS 全文）、src=49 新闻稿与 uuid 遗留行库内正文即通稿原文（无需外部抓取）、src=2/187 库内即注册平台结果 JSON、src=37 会议与 numeric 遗留行库内即摘要原文、src=398 SEC 的 EDGAR 页 403 不可复核、src=245 库内空且无路由键"
+  },
+  {
+   "id": "A-P5-fulltext-fetch-is-declared",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "no nonempty full-text body archived under sources/ (check not triggered)",
+   "why": "只点名摘要路径、实际却取了全文（或反过来声称取了全文但没取）无法从交付物分辨；这条把'核的是全文还是摘要'变成必须写明的机械事实",
+   "evidence": "只要 /workspace/sources/ 下归档了全文正文（文件名含 pmc<数字>/fulltext，或内容含 <article>/<sec>/<body>），覆盖行就必须出现 `PMC<号>` 或「全文」字样；未归档全文时不触发。平台侧实测 src=1 走 R7 可拿到 PMC 全文，所以「抓了全文却只写 PMID」是可复现的空壳/含糊形态"
+  },
+  {
+   "id": "A-P6-cite-link-is-deepest",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "no attributable full-text body archived (check not triggered)",
+   "why": "用户 2026-09-17 的 L3 决策：基于全文分析的记录，ref 必须指真正的全文，而不是原来的 PubMed 摘要页——否则点开上标链接的人看到的页面里没有报告用到的数值。与 A-P5（覆盖行必须声明全文）互补：一个管正文声明，一个管引用落点",
+   "evidence": "/workspace/sources/ 下每份全文正文（文件名含 fulltext/pmc<数字>，或前 4 KB 含 <article>/<sec>/<body>）都必须先归到某个 ref：文件名 `ref_<n>` 前缀 / 文件名或正文里的 esid / 与 citation link 相同的 PMC<id> / 与 citation link 相同的 PMID，四条通道任一命中即归位；归位后 citations.json 里该 ref 的 link 必须指向全文载体（白名单：https://pmc.ncbi.nlm.nih.gov/articles/PMC<id>/ 或 https://www.ebi.ac.uk/europepmc/webservices/rest/PMC<id>/fullTextXML），或至少带同一个 PMC<id>。未归档全文、或归档了但四条通道都归不到任何 ref 时不触发（其 link 仍逐字节来自 full_article_link）；归不到的具体文件名会写进诊断信息"
+  },
+  {
+   "id": "A-P7-no-template-spec-in-report",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "no template spec wording in report (3 phrases checked)",
+   "why": "交付物面向读者，出现「原文优先于库内加工字段」「不静默取一侧」这类规则说明即为指令泄漏；A-P2 也会因其中含「库内记录」而报错，但那条的诊断信息（缺引用）指不到真正的原因",
+   "evidence": "模板把原文优先规则写成规格句放在 `原文核对：` 槽位旁边（`[...]` 括号内）；R15（2026-09-18，已发布 v1.6/1.0.7）把括号外那句「原文优先于库内加工字段，不一致处同时写出原文值与库内记录值；」照抄进了交付报告正文 ⇒ 交付物里混入指令性文字。四个模板已把这三句挪进 `[...]` 规格括号；本条是防回归的机械闸门（三句均为指令口吻，正常报告不会出现）"
+  },
+  {
+   "id": "A-P8-no-rule-metastatement",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "no rule-shaped statement about the library side (库内… + 一致…, digits-free)",
+   "why": "覆盖行要交代的是每条记录的复核路径、分析深度与未复核原因；把「本合同的规则」写进交付物，读者看到的是指令残留而不是证据，而且它同时说明这一行没被认真写",
+   "evidence": "交付物里不得出现**关于规则本身的句子**（点名库内一侧 + 谈一致/不一致 + 通篇无数字）。R16（2026-09-18，模板逐字回抄已修后的首次真跑）覆盖行写成「未发现原文与库内记录在同一指标、同一口径上的数值不一致；」——既没有数值也没有引用，读者拿不到任何信息；真实分歧必带双值 + `{{ref_n}}`，因此「有库内一侧 + 有『一致』字样 + 无数字」正是元话语这一档。A-P7 抓逐字回抄，本条抓改写（同一模型上一轮照抄、这一轮改写，说明只靠字面表抓不住）"
+  },
+  {
+   "id": "A-P9-fulltext-cite-has-body",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "no citation points at a full-text carrier (check not triggered)",
+   "why": "A-P6 只有单向：归档了全文 ⇒ 引用必须指全文。于是没有东西阻止一份产物把 link 写成 PMC 全文页（甚至凭空写一个 PMC 号）而其实一个字都没取——引用声称「按全文分析」，磁盘上没有任何东西能反驳。补上反向（声明深度 ⇒ 必须有字节）才算闭环：A-P9 管「到底取了没有」、A-P5 管「有没有向读者声明」、A-P6 管「引用落点对不对」。反例对照：M28（凭空写 PMC 全文链接、无归档）必须翻这条，N28（归档 + 链接指全文 + 覆盖行声明，即 R14 的真实形态）必须保持绿",
+   "evidence": "L3 决策的反向：citations.json 的 link 一旦指向全文载体（白名单同 A-P6），就必须有对应正文落在 /workspace/sources/ 下（文件名或前 4 KB 里出现同一个 PMC<id>）；link 逐字节等于记录自身 full_article_link 时不算深度声明、跳过。依据：input-contract.md 要求 web_fetch 取回的正文一律拷到 /workspace/sources/（随 run 归档 ⇒ 可审计），所以「按全文分析」这个声明在磁盘上必须能对上字节"
+  }
+ ]
+}

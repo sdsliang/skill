@@ -17,7 +17,8 @@ Skips (printed, not failures):
   * `--resume` runs — no `stream.tap` was written at all (nothing was POSTed).
 
 Usage:  python3 evals/runner-gate/verify-run-chain.py
-Exit:   0 all comparable runs agree; 1 any mismatch (prints which check failed and why).
+Exit:   0 comparable runs agree; 1 mismatch; 2 no comparable samples.
+        v2 behavior is covered by test-runner.py, not by an empty SSE comparison.
 """
 import collections
 import glob
@@ -36,6 +37,7 @@ ldr.exec_module(ts)
 
 bad = 0
 seen = 0
+compared = 0
 for d in sorted(glob.glob(os.path.join(RUNS, "2026*"))):
     hist = os.path.join(d, "debug-history.json")
     if not os.path.exists(hist):
@@ -56,6 +58,7 @@ for d in sorted(glob.glob(os.path.join(RUNS, "2026*"))):
         print(f"{os.path.basename(d):28s} SKIP (v2 run: tap carries no tool events)"
               f"  history_attempts={n['attempts']}")
         continue
+    compared += 1
     # (O32) the attempts the tap cannot see are BOTH the argument-refused calls and the
     # external fetch failures the framework re-prompted (i.e. `retries` in the raw history).
     rej = {r["tool_call_id"] for r in n["rejected"] + n["fetch_failures"]}
@@ -72,7 +75,7 @@ for d in sorted(glob.glob(os.path.join(RUNS, "2026*"))):
     }
     ok = all(checks.values())
     bad += 0 if ok else 1
-    print(f"{os.path.basename(d):28s} attempts={n['attempts']} returned={len(n['calls']) - len(rej)} "
+    print(f"{os.path.basename(d):28s} attempts={n['attempts']} returned={n['returned']} "
           f"rejected={len(rej)} errors={len(n['errors'])} tap={o['events'].get('tool-input-start')} calls "
           f"-> {'OK' if ok else 'MISMATCH ' + str([k for k, v in checks.items() if not v])}")
     print("    " + " ".join(f"{k}x{v}" for k, v in collections.Counter(c[1] for c in n["calls"]).most_common()))
@@ -83,6 +86,7 @@ for d in sorted(glob.glob(os.path.join(RUNS, "2026*"))):
 
 if not seen:
     print("no run directories found; nothing to compare")
-print("\nGATE:", "PASS — durable chain == v1 SSE chain (+ the schema-rejected attempts the tap hides)"
-      if not bad else f"FAIL ({bad})")
-sys.exit(1 if bad else 0)
+print(f"\nSamples: {seen} histories; {compared} comparable; {seen - compared} skipped")
+print("GATE:", f"FAIL ({bad})" if bad else
+      f"PASS ({compared} comparable runs)" if compared else "NO SAMPLES (no comparable SSE chain)")
+sys.exit(1 if bad else 0 if compared else 2)

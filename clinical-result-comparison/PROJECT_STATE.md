@@ -1,19 +1,33 @@
 # Project State
 
+## 当前快照：2026-09-18 全项目审查后
+
+**本节是当前状态；后文各轮日期下的分数、哈希、已发布/待发布描述均为历史快照，不覆盖本节。** 完整审查见 [project-review-2026-09-18.md](docs/project-review-2026-09-18.md)，台账 F7 / O33–O38。
+
+- **本地已修、线上未发布**：本轮没有 `publish`、没有新线上 `run`，不能声称 R21 验证完成。`status` 实读 **OUT OF SYNC / exit 3** 属预期：线上 prompt **1.6 / 53,347 B / b9bfcec19538**；skill **1.0.7 / ad75ec2c44334f389a0394895a47b765**，旧 dist `404dbccf5058`，19 个文件中 16 个与本地不同。
+- **待发布字节**：prompt **54,311 B / 2ff672b5aa9b**；dist **85,633 B / 19 entries / SHA-256 `4d20d48faeeee012c347aa28eb5956e5238a3e95020999c6b9bd6084fba53b1e`**，已重建并检查。需具体授权 prompt + skill 原地发布，回读一致后再跑 A/B；质量结论仍需 A×3。
+- **上游适配**：live `deps` 确认 params 参数 **`+esids -extra_esids`**。旧提示词明文要求 `extra_esids`，R19/R20 拒参不能再归因为模型凭空发明。schema 镜像已 live 重生成，17 份运行规则/模板文件已适配；`deps --accept` 仅接受本地基线，**不是发布**。`group_count` 是总体入组人数，不是臂数；L3 权威归 `input-contract.md`，已抓取全文的引用落点随之更新，500/缺 PMCID 不足以判非 OA。
+- **runner**：路径穿越/符号链接防护、目标 turn 隔离、缺返回失败、回执重试/哈希/最终收集线程 join、空产物/错误图表引用/缺支持文件清单失败、错误分类正则已加固。回执必需集来自最终目标 turn，而非轮询命中；0 poll pointers 不再自行证明 n/a。先后备份 **v9、v10**；仓库累计补丁仅应用于**原始 v9**，见 `evals/runner-gate/runner-patches/`。
+- **评估器新基线**：`2026-09-18-r2`，A **43 fail + 1 warn**、B **12 fail + 1 warn**；旧 41→43 **不代表质量提升**。R17/R18 离线重判 **43/43**，R20 **12/12**；R14 输入不是场景 A，不能用强制 A 总分评价它，其两条定向全文核验通过。详见 [EVALUATOR_REVISION.md](evals/fact-check/EVALUATOR_REVISION.md)。
+- **验证**：97 测试全过（runner 30 / scorer 27 / tools 19 / Node 21）；63 mutation controls PASS（A 43/43、B 12/12）；历史链 5 可比 / 36 histories / 31 skipped / 4 no-history，无样本 exit 2。上游 chart **1.0.12** 三模板 `validateVisualizationFile` 本地 PASS，Zod **4.6.5** 在隔离目录 `~/.local/state/clinical-comparison-review-20260918/node_modules`，不是 TS 运行环境验证。
+- **保留限制**：慢速持续响应仍可能突破预期墙钟上限；全文回执不证明报告数字确实来自全文；C/D 无判分基线；本地 citation renderer 既非生产实现，也非 HTML sanitizer。
+- **A10**：仅提供示例 **`24_1_39054491_1`**，库内盲态「开放」与原文 double-blind 冲突；上下文误抽只是可能解释，未证明抽取根因。未写数据库、未发送问题单。
+- **Git / Docker**：分支 `v0.15-remove-html`，本轮工作区待父任务统一提交；本子任务不 commit/push。未发现 Docker 配置，不构建/推送镜像。
+
 ## Repository
 
 - Git repository: `git@github.com:sdsliang/skill.git`
 - Project subdirectory: `clinical-result-comparison/`
-- Branch: `main`
+- Branch: `v0.15-remove-html`
 - Migrated from `/home/xupeipeioo1/apps/clinical-result-comparison` and pushed as root commit `08440ad`.
 
 
-Build the first Tool Smith Agent for reconstructing complete trial interpretations from multiple user-selected clinical result records, using only their original `source_full_text` and preserving source-level linked citation traceability.
+Build the Tool Smith Agent for evidence-grounded synthesis of selected esids, using params records and the deepest available original source under the L3 input contract, with source-linked citation traceability.
 
 ## Housekeeping conventions
 
 - **叫法约定（用户 2026-09-16 要求，硬性）**：本项目涉及 ToolSmith 时只用四个词，**禁用“工具本体”这种含糊说法**：
-  **runner** = 本机 CLI `~/.local/bin/toolsmith-publish`（**我们能改**，改前先备份 + `py_compile` + `python3 /tmp/verify_v2.py` 回归 + 台账 `R<n>`）；
+  **runner** = 本机 CLI `~/.local/bin/toolsmith-publish`（**我们能改**，改前先备份 + `py_compile` + `python3 evals/runner-gate/verify-run-chain.py` 回归 + 台账 `R<n>`）；
   **TS 平台** = 远端 ToolSmith 服务与只读参考仓 `~/apps/tool-smith`（**改不了**，只写问题单）；
   **TS 资产** = 平台上已发布的 prompt / 技能（能改，**每次先问**）；
   **仓库资产** = `skill/`、`system-prompts/`、`evals/`、`docs/`（能改，`commit`/`push` 本项目免确认）。
@@ -30,7 +44,7 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 > 3. **`R18` 真跑（验证这次发布）**：prompt `解读这几个结果 24_1_30561610 24_1_36342163` + `--web`，thread `f0ac7f8a-…`，**17/17 PASS**，墙钟 198.1 s server / 204.8 s polled，32 次调用尝试（30 returned + 2 schema-rejected），产物 `report.md` 15,658 B + `citations.json` 513 B + 1 张图；事实分 **`facts 41/41 warn 1/1 -> PASS`**。
 > 4. **不把 B1 判成回归**：R17（27 calls / 41/41）→ R18（32 calls / 41/41）成本 +5、事实分不动；两轮差异不止 B1 那几行，n=1 ⇒ 记「待样本」，按 §8.2 要 A×3 才谈噪声带。
 > 5. **B4 harness 骨架（仓库）**：`tools/replay-run.py`（把 `debug-history.json` 变成成本/质量全字段 + `--tsv` + `--score`，离线零网络）、`tools/pack-dist.py`（打包入仓，`--check` 当闸门）；**7 行基线 TSV 已回填**（`docs/evidence/autoresearch-baseline-tsv-backfill-2026-09-18.txt`），§6 的开放问题「成本升了质量升了没」现在有答案：+18 calls 换 +2 条事实（38→40/41），是**交换不是白赚**。
-> 6. **`O30`（runner 层，已落地并验证）**：`tool_results/**` 回执在 turn 结束后**不可恢复**（平台 persist 删 + 产物面板过滤 ⇒ `file-download` 恒 404；离线扫描 28 个 run 目录 **109 指针 / 107 不可恢复**）。修法 = runner（`~/.local/bin/toolsmith-publish`）新增 `ReceiptArchiver`：5 s 轮询持久化消息抠指针即时下载 → `<run>/tool_results/**` + `receipts.jsonl` + `run.json.receipts`，两条判定路径各加断言 `tool_results receipts archived`（0 指针 = PASS 且注明 n/a）。**R19 先暴露「目录假指针」→ R20 `12/12 PASS`**（回执在**第 7.4 s** 落盘，31,407 B），`GATE: PASS`。证据 `docs/evidence/receipt-layer-2026-09-18.txt`。
+> 6. **`O30`（runner 层，已落地并验证）**：`tool_results/**` 回执在 turn 结束后**不可恢复**（平台 persist 删 + 产物面板过滤 ⇒ `file-download` 恒 404；离线扫描 28 个 run 目录 **109 指针 / 107 不可恢复**）。修法 = runner（`~/.local/bin/toolsmith-publish`）新增 `ReceiptArchiver`：5 s 轮询持久化消息抠指针即时下载 → `<run>/tool_results/**` + `receipts.jsonl` + `run.json.receipts`，两条判定路径各加断言 `tool_results receipts archived`（当时按轮询观测判 0 指针 = PASS；**F7 已收紧为最终目标 turn 必需集，不能以 0 polls 推定 n/a**）。**R19 先暴露「目录假指针」→ R20 `12/12 PASS`**（回执在**第 7.4 s** 落盘，31,407 B），`GATE: PASS`。证据 `docs/evidence/receipt-layer-2026-09-18.txt`。
 > 7. **B5 常驻 program.md**：仓库根新增 **`AGENTS.md`**（三层资产归属 + 冻结面 + 场景集 A/B/C/D + `results.tsv` 列口径 + 一轮一假设纪律 + 反「假绿」清单 + 命令速查）；`docs/autoresearch-iteration-plan.md` 的 §5/§6/§7/§8.1/§8.3/§13/§14 同步更新（S0/S1/S4 标已完成、S2/S3 未开始）。
 > 8. **`O31` + `O32`（runner 层，已修，离线零新 run）**：修 `verification.md` 里「schema-rejected」那行**只有工具名没有原因**——`retry-prompt` 的 `content` 近期是 pydantic **字符串**、早期是错误 dict **列表**，三处渲染器都按「list of dict」迭代 ⇒ 原因永远为空（`O31`，纯展示层）。顺藤摸出**更要紧的**：框架在「参数被拒」和「工具自身失败」两种情况下都会重发，旧代码一律记成 schema-rejected 并在 `output-error` 回路按 id 跳过 ⇒ **外部抓取失败在 `errors` 里不可见**，FAIL 级 `no tool errors` 对 500/403 完全失效：R15/R16/R17/R18 各有一条 `web_fetch` 抓 `…/europepmc/webservices/rest/PMC6933872/fullTextXML` 收 **500**，**四轮全绿**（产物侧其实都写在核对覆盖行里了，坏的只是闸门的可见性）。修法：分三桶 `args-refused` / `fetch-failed`（可见 + 打印 + 入 `verification.md`，不判 FAIL）/ 其余落 `errors`（仍 FAIL）；断言 18→19、12→13 项；`verify-run-chain.py` 同步（`rejected + fetch_failures` 都算「tap 看不到的尝试」）⇒ **`GATE: PASS`**；五种原因形状的离线单测通过（含「工具真崩」仍落 `errors`）。备份 `toolsmith-publish.v8.bak`；重读明细进 `docs/evidence/autoresearch-baseline-tsv-backfill-2026-09-18.txt` 注 7/注 8。
 > 9. **本轮到 `4a60aba` 已 commit + push**（branch `v0.15-remove-html`）：`AGENTS.md` + `tools/*` + 两份 evidence + README/PROJECT_STATE/plan/台账/gate README 更新；B1 的 sys/skill 改动同一提交（TS 平台已 in-place 发布，`status` 回读 **in sync**：prompt `v1.6` 53,347 B / skill `v1.0.7` 19 文件全同 / dist 86,285 B `404dbccf5058`）。
@@ -345,7 +359,7 @@ esid 形如 `YY_SRC_KEY`，**中段就是摄入 source id**。这个 id 不需�
 - Chart validation entry: `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <product.json>`（前端仓库别名 `pnpm validate:chart -- <path>`）；自研 `validate-chart.py` 已退役。
 - **`dist/multi-clinical-result-comparison-v0.12-temp-preview.zip` 已删除（v0.15，用户要求）**：v0.12 调试期双写包（含 `render-preview.py`，写 `.preview.html` 孪生页）；双写已在 v0.14 撤销、HTML 已在 v0.15 全销，该包随之下线。它从未入库，删除后不可恢复。
 - v0.13 轻量版：**弃用但未删除**（源码 `docs/legacy-v0.13/`，归档 `dist/multi-clinical-result-comparison-v0.13.zip`）。
-- 当前 dist：`dist/multi-clinical-result-comparison-v0.15.zip`（19 文件，系统提示词不入包），SHA-256 `50477adfe10228b5a230c01495683a789db1c2e95ec39b06c664228d07059b6c`（86,084 B；上一版 `a1b65809eb8b` / 85,544 B，再上一版 `c55321ad4619` / 84,991 B，**第十轮（`A-P8` + 覆盖行规格）后的包，逐文件 sha256 == 工作区**；历史：`c55321ad4619…`（84,991 B）＝第九轮 `A-P7` 修复后 in-place 上线的那版、`d5afb1f00320…`（84,994 B）＝L3 那版；2026-09-17 重打四次：原文优先 → 按来源类细化 → 库内即原文/`src=1` PMC 全文例外 → **L3 分析面 + 引用落点**；中间版 `c9dc143908d6` / 82,004 B、`3c2919fc22ce` / 79,927 B、`7b1dd5ec5f45` / 77,711 B 与更早 `de7c16b44910` / 73,385 B 作废）（HTML 清理版 + 子代理委派规则（触发 >5 / 每块 ≤5）+ 图表 envelope 契约 + 空目录兜底 + 上游 v1.0.9 对齐 / 渲染配置归图表 skill + `::visualization` 标签不进实体锚点覆盖 + **A 组六项硬化 / 同试验图表张数上限** + **分享复盘第二轮硬化（标记粒度、混合图数去歧义、shell 参数措辞、渲染期断言、嵌套锚点断言）**；70301 B）。2026-09-11 共重打两次：A 组落地后为 `b9b46d8a…` / 69254 B；同日第二轮硬化改了 3 个入包运行文件（`SKILL.md`、`references/{citation-and-ref,chart-templates,entity-inline-reference}.md`）后重打为当前 SHA。当日上午复盘上游 v1.0.10 时那次重打与 `0deda5d3…` 逐字节相同（dist 只装运行文件、当时未改运行文件）。`dist/…-v0.14.zip`（`c0a7d4c0…`，含「输出文件固定命名」契约）及更早自动降为历史归档。
+- **历史 dist（第十一轮，非当前；当前见文首）**：`dist/multi-clinical-result-comparison-v0.15.zip`（19 文件，系统提示词不入包），SHA-256 `50477adfe10228b5a230c01495683a789db1c2e95ec39b06c664228d07059b6c`（86,084 B；上一版 `a1b65809eb8b` / 85,544 B，再上一版 `c55321ad4619` / 84,991 B，**第十轮（`A-P8` + 覆盖行规格）后的包，逐文件 sha256 == 工作区**；历史：`c55321ad4619…`（84,991 B）＝第九轮 `A-P7` 修复后 in-place 上线的那版、`d5afb1f00320…`（84,994 B）＝L3 那版；2026-09-17 重打四次：原文优先 → 按来源类细化 → 库内即原文/`src=1` PMC 全文例外 → **L3 分析面 + 引用落点**；中间版 `c9dc143908d6` / 82,004 B、`3c2919fc22ce` / 79,927 B、`7b1dd5ec5f45` / 77,711 B 与更早 `de7c16b44910` / 73,385 B 作废）（HTML 清理版 + 子代理委派规则（触发 >5 / 每块 ≤5）+ 图表 envelope 契约 + 空目录兜底 + 上游 v1.0.9 对齐 / 渲染配置归图表 skill + `::visualization` 标签不进实体锚点覆盖 + **A 组六项硬化 / 同试验图表张数上限** + **分享复盘第二轮硬化（标记粒度、混合图数去歧义、shell 参数措辞、渲染期断言、嵌套锚点断言）**；70301 B）。2026-09-11 共重打两次：A 组落地后为 `b9b46d8a…` / 69254 B；同日第二轮硬化改了 3 个入包运行文件（`SKILL.md`、`references/{citation-and-ref,chart-templates,entity-inline-reference}.md`）后重打为当前 SHA。当日上午复盘上游 v1.0.10 时那次重打与 `0deda5d3…` 逐字节相同（dist 只装运行文件、当时未改运行文件）。`dist/…-v0.14.zip`（`c0a7d4c0…`，含「输出文件固定命名」契约）及更早自动降为历史归档。
 - Git：分支 `v0.15-remove-html`（从 `main` 的 `16cbb96` 切出）；`main` 已含 v0.14 提交 `e4f3bb7` 与记账提交 `16cbb96`，且已 push（`origin/main` = `16cbb96`）。v0.15 提交链 **`da5b157`（HTML 全销）→ `aa05104`（子代理委派边界，含阈值二次校准）→ `d65abdf`（记账）→ `4040ff3`（上游 v1.0.9 对齐 + 渲染配置归 Skill + 重打 dist）→ `87a2afb`（记账）→ **`49f00d9`（`::visualization` 标签不进实体锚点覆盖 + 重打 dist）→ `dc0afd0`（上游 v1.0.10 负值修复记账）→ 本轮 A 组六项硬化 + 图表张数上限（同轮把 `vendor/README.md` 入库）→ `ec8f653`（A 组 + dist `b9b46d8a`）→ `f5a479d`（R1–R5 落地 + dist `58a66abc`）→ `e9bd331`（记账）→ `59ce4a0`（引用日期裁 `YYYY-MM-DD` + O2/O3/O6，dist `8159b1d8`）→ **`4cea33d`（空结果不是来源：O7/O8 + 断言论 `title` 非空 + `run --expect refusal` + in-place 发布，dist `de7c16b4`）**）** 全部按用户授权 push 到 `origin/v0.15-remove-html`；**按要求不合回 `main`、不开 PR**（不合并分支）。
 - **本轮（`4cea33d`）已 commit + push**（用户 2026-09-14 授权：“可以 commit push 吧”）：11 个文件 / 142 insertions / 30 deletions；`59ce4a0..4cea33d`，工作区 clean。
 - 已提交 / 已发布：**第二轮硬化（R1–R5）已 commit `f5a479d` 并 push 到 `origin/v0.15-remove-html`**，并已通过个人令牌 API 发布到 ToolSmith（prompt `1.5` / skill `1.0.6`，回读逐字节一致）——三者（工作区 / git / 线上）当前一致。`vendor/` 处置已按用户 2026-09-11 拍板定案：**`vendor/README.md` 入库**（只含 provenance / 差异表 / 发布 ID，不含上游源码），**上游源码副本 `vendor/chart-visualization-json/{1.0.9,1.0.10}/` 继续 gitignore**。无 `Dockerfile`/compose，不涉及镜像。发布通道的常态规则（改完先问要不要推 ToolSmith，再问 commit & push）已记入工作区 `AGENTS.md` 与本节。
@@ -380,7 +394,7 @@ esid 形如 `YY_SRC_KEY`，**中段就是摄入 source id**。这个 id 不需�
 
 ### 只读实测：esid → params 工具的字段与取值（2026-09-17，回答用户「长格式 esid 会不会查不到」）
 
-工具链只有一条：**`pharmcube-query-clinical-result-with-params`**，参数 **`extra_esids`**（精确过滤 `clinical_result.extra_esid`）+
+工具链只有一条：**`pharmcube-query-clinical-result-with-params`**，当前参数 **`esids`**（精确过滤 `clinical_result.extra_esid`；2026-09-18 live schema 更正，历史 `extra_esids` 已失效）+
 **`selected_fields`**（白名单，48 个顶层名，离线镜像 `docs/params-tool-schema.md`；嵌套字段如 `projects.*` / `arms.drugs.*` /
 `study_results.*` 以顶层名写）。只读通道 = `POST /api/tools/debug`（不写任何数据）。实测结论：
 
@@ -417,7 +431,7 @@ esid 形如 `YY_SRC_KEY`，**中段就是摄入 source id**。这个 id 不需�
 - **护栏一（配置层）**：`projects.json` 条目必须显式 `"owned": true`，**默认只读**；命令行传的 `--prompt-family` / `--skill-family` 与配置不一致时直接中止（跨项目写被拒）。
 - **护栏二（平台层）**：写前用 `/api/auth/me` + `skills/list` / `prompts/{family}` 核对 `owner` 必须是当前用户；实测把 skill 家族指向他人资源（`7cefbe2a…`）**硬拒**。
 - **门禁（deps）**：`toolsmith-publish deps` 扫本仓库 `skill/` + `system-prompts/` 文本实际引用的上游资源（技能名整词匹配，避免 `chart-visualization` 误配 `-json`），指纹存 `~/.config/toolsmith/deps.json`；`publish` 会自动先跑，**有漂移就停手**并列出「技能升版 / 工具 schema 变 / 参数增删」，须 `--force` 或适配后 `deps --accept`。`deps` 只读，漂移时 **exit 3**。
-- **当前基线**（2026-09-13 重建）：skill `chart-visualization-json` v1.0.10；MCP `pharmcube-query-clinical-result-with-params` 18 参数 + schema SHA；内置 **16 个**——按**项目实际启用的工具集**统计（`GET /api/agent/info?project_id=…` → `tools`），不再靠文档文本匹配（旧口径只命中 10 个，漏掉了运行期高频调用的 `read_file`）。
+- **当前依赖基线**（2026-09-18 live 核对并 `deps --accept`）：skill `chart-visualization-json` v1.0.12；MCP `pharmcube-query-clinical-result-with-params` 已从 `extra_esids` 适配为 `esids`，镜像 live 重生成；内置 **16 个**——按**项目实际启用的工具集**统计（`GET /api/agent/info?project_id=…` → `tools`），不再靠文档文本匹配（旧口径只命中 10 个，漏掉了运行期高频调用的 `read_file`）。
 - **`docs/params-tool-schema.md` 改为自动生成**：新增 `toolsmith-publish tool-doc`（默认工具取配置 `params_tool`，输出 `<repo>/docs/params-tool-schema.md`）——参数表 + 参数完整 schema + ALLOWED_FIELD_NAMES（73 个）+ ALLOWED_FIELDS 逐字段含义表（73 条）+ MCP 返回封装；幂等（同 schema 二次运行输出 unchanged）。**与旧手贴档对账通过**：73/73 字段名一致、18/18 参数一致；文件 499 行/20,792 B → 326 行/44,003 B（增量来自逐字段含义表）。
 - **为什么不把脚本放进仓库**：它跨多个 skill 项目复用，且令牌/平台 id 属本机环境，不属于任何单个项目；入仓反而会把平台 id 固化进公共代码。
   - **推荐流程**：改仓库 → `publish` → `status` 绿 → 再 commit。

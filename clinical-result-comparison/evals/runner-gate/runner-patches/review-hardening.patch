@@ -1,0 +1,709 @@
+--- a/toolsmith-publish
++++ b/toolsmith-publish
+@@ -178,7 +178,7 @@
+             die("no token: set TS_TOKEN or put it in ~/.secrets")
+         self.base, self.token, self.dry_run = base.rstrip("/"), token, dry_run
+ 
+-    def _req(self, method, path, data=None, ctype=None, soft=False, attempts=None):
++    def _req(self, method, path, data=None, ctype=None, soft=False, attempts=None, timeout=300):
+         """GETs are retried (idempotent); a POST gets exactly one attempt so a flaky socket
+         can never turn into a double write. `soft=True` returns HTTP 0 instead of exiting,
+         for endpoints that only decorate a record (O23)."""
+@@ -191,7 +191,7 @@
+                          "Accept": "application/json",
+                          **({"Content-Type": ctype} if ctype else {})})
+             try:
+-                with urllib.request.urlopen(req, timeout=300) as r:
++                with urllib.request.urlopen(req, timeout=timeout) as r:
+                     return r.status, r.read()
+             except urllib.error.HTTPError as e:
+                 return e.code, e.read()
+@@ -205,10 +205,10 @@
+             return 0, b""
+         die(f"{method} {path} failed: {last}")
+ 
+-    def json_call(self, method, path, payload=None, soft=False):
++    def json_call(self, method, path, payload=None, soft=False, **request_options):
+         s, raw = self._req(method, path,
+                            json.dumps(payload or {}, ensure_ascii=False).encode(),
+-                           "application/json", soft=soft)
++                           "application/json", soft=soft, **request_options)
+         if s == 0:
+             return 0, {"_error": "endpoint unreachable after retries"}
+         try:
+@@ -232,8 +232,8 @@
+         except json.JSONDecodeError:
+             return s, {"_raw": raw[:400].decode(errors="replace")}
+ 
+-    def download(self, path) -> bytes:
+-        s, raw = self._req("GET", path)
++    def download(self, path, **request_options) -> bytes:
++        s, raw = self._req("GET", path, **request_options)
+         if s >= 300:
+             die(f"GET {path} -> HTTP {s}: {raw[:200].decode(errors='replace')}")
+         return raw
+@@ -741,10 +741,65 @@
+ # (O32) how to read a framework `retry-prompt`: were the arguments refused, did an external
+ # fetch fail, or did the chain itself break?
+ ARG_REFUSED_RX = re.compile(
+-    r"validation error for call\[|Unknown tool name|Field required"
+-    r"|Extra inputs are not permitted|Unexpected keyword argument|\[Tool error\] INVALID_INPUT",
+-    re.I)
++    r"^(?:\d+ validation errors? for call\[[^\]\n]+\]\n|Unknown tool name\b|"
++    r"\[Tool error\] INVALID_INPUT\b)", re.I)
+ FETCH_FAIL_RX = re.compile(r"^Failed to fetch\b", re.I)
++
++
++def retry_kind(reason):
++    # Classify the original structured value, never the truncated display renderer.
++    if isinstance(reason, list) and reason and all(
++            isinstance(e, dict) and isinstance(e.get("type"), str)
++            and isinstance(e.get("loc"), (list, tuple))
++            and isinstance(e.get("msg"), str) for e in reason):
++        return "rejected"
++    if isinstance(reason, str):
++        if FETCH_FAIL_RX.match(reason):
++            return "fetch_failures"
++        if ARG_REFUSED_RX.match(reason):
++            return "rejected"
++    return "errors"
++
++
++def ui_message_rows(payload):
++    """Recognize UI message lists (or an explicit messages envelope), never guess ownership."""
++    if isinstance(payload, dict):
++        payload = payload.get("messages")
++    if not isinstance(payload, list) or any(not isinstance(m, dict) for m in payload):
++        return [], "unsupported UI messages shape"
++    return payload, ""
++
++
++def scope_history(b, turn_id):
++    """Only infer ownership for an independently evidenced single-turn thread."""
++    h = b.get("history") or {}
++    model = h.get("raw_model_messages") or []
++    ui, ui_error = ui_message_rows(h.get("raw_ui_messages", []))
++    messages, messages_error = ui_message_rows(b.get("messages", []))
++    if ui_error or messages_error:
++        return {}, ui_error or messages_error
++    if not isinstance(model, list) or any(not isinstance(m, dict) for m in model):
++        return {}, "unsupported durable model messages shape"
++    known = {m.get("turn_id") for m in ui + messages +
++             ((b.get("timing") or {}).get("turns") or []) if m.get("turn_id")}
++    known.update(m.get("turn_id") for m in model if m.get("turn_id"))
++    if not turn_id or turn_id not in known or not model:
++        return {}, "missing target turn or durable model evidence"
++    if any(not m.get("turn_id") for m in model):
++        if known != {turn_id}:
++            return {}, "unscopable multi-turn raw_model_messages: missing turn_id"
++        selected = model
++    else:
++        selected = [m for m in model if m.get("turn_id") == turn_id]
++    if len(known) > 1 and any(not m.get("turn_id") for m in ui + messages):
++        return {}, "unscopable multi-turn UI messages: missing turn_id"
++    if not selected:
++        return {}, "no model messages for target turn"
++    return {"raw_model_messages": selected,
++            "raw_ui_messages": [m for m in ui if m.get("turn_id") == turn_id
++                                or (not m.get("turn_id") and known == {turn_id})],
++            "messages": [m for m in messages if m.get("turn_id") == turn_id
++                         or (not m.get("turn_id") and known == {turn_id})]}, ""
+ 
+ 
+ def tool_chain_from_history(history):
+@@ -756,6 +811,8 @@
+     """
+     msgs = (history or {}).get("raw_model_messages") or []
+     calls, outs, errors, retries, open_calls = [], {}, [], [], {}
++    return_status = {}
++    call_ids = set()
+     for m in msgs:
+         for p in (m.get("parts") or []):
+             kind, nm, cid = p.get("part_kind"), p.get("tool_name"), p.get("tool_call_id")
+@@ -764,10 +821,19 @@
+                     arg = json.loads(p.get("args") or "{}")
+                 except (json.JSONDecodeError, TypeError):    # noqa: BLE001
+                     arg = p.get("args")
++                if not cid or cid in call_ids:
++                    errors.append({"tool": nm, "outcome": "invalid-call-id",
++                                   "text": str(cid), "part": p})
++                call_ids.add(cid)
+                 calls.append((cid, nm, arg))
+                 open_calls[cid] = nm
+             elif kind == "tool-return":
++                if cid not in open_calls or open_calls[cid] != nm:
++                    errors.append({"tool": nm, "outcome": "orphan-or-duplicate-return",
++                                   "text": str(cid), "part": p})
++                    continue
+                 outs[cid] = p.get("content")
++                return_status[cid] = p.get("outcome") or "success"
+                 open_calls.pop(cid, None)
+                 if (p.get("outcome") or "success") != "success":
+                     errors.append({"tool": nm, "outcome": p.get("outcome") or "?",
+@@ -791,21 +857,31 @@
+     #                    declared in the deliverable's coverage line (not a harness defect)
+     #   errors         — the harness/tool chain itself broke (FAIL-level)
+     reason_of = {r["tool_call_id"]: r["content"] for r in retries}
++    for cid, count in collections.Counter(r["tool_call_id"] for r in retries).items():
++        if count > 1:
++            errors.append({"tool": open_calls.get(cid), "outcome": "duplicate-retry",
++                           "text": str(cid), "part": {"tool_call_id": cid}})
+     rejected, fetch_failures = [], []
+     for cid, nm, arg in calls:
+         if cid not in rej:
+             continue
+         rec = {"tool_call_id": cid, "tool_name": nm, "args": arg, "reason": reason_of.get(cid)}
+-        # the same field is a pydantic *string* on recent runs and a list of error dicts on
+-        # older ones — normalise before matching
+-        txt = rec["reason"] if isinstance(rec["reason"], str) else rej_text(rec["reason"], 99)
+-        if FETCH_FAIL_RX.search(txt or ""):
++        bucket = retry_kind(rec["reason"])
++        if cid in outs:
++            errors.append({"tool": nm, "outcome": "conflicting-terminal-parts",
++                           "text": str(cid), "part": rec})
++            continue
++        if bucket == "fetch_failures":
+             fetch_failures.append(rec)
+-        elif ARG_REFUSED_RX.search(txt or ""):
++        elif bucket == "rejected":
+             rejected.append(rec)
+         else:
+             errors.append({"tool": nm, "outcome": "re-prompted",
+                            "text": rej_text(rec["reason"]), "part": rec})
++    for r in retries:
++        if r["tool_call_id"] not in call_ids or open_calls.get(r["tool_call_id"]) != r["tool_name"]:
++            errors.append({"tool": r["tool_name"], "outcome": "unmatched-retry",
++                           "text": str(r["tool_call_id"]), "part": r})
+     skip = {r["tool_call_id"] for r in rejected + fetch_failures}
+     for m in (history or {}).get("raw_ui_messages") or []:
+         for p in (m.get("parts") or []):
+@@ -813,10 +889,12 @@
+                 nm = (p.get("type") or "tool-?")[len("tool-"):]
+                 if p.get("toolCallId") in skip:
+                     continue                      # already recorded above
+-                if not any(e["tool"] == nm for e in errors):
++                if not any((e.get("part") or {}).get("tool_call_id") == p.get("toolCallId")
++                           for e in errors):
+                     errors.append({"tool": nm, "outcome": "output-error",
+                                    "text": str(p.get("output"))[:600], "part": p})
+-    return {"calls": calls, "outputs": outs, "errors": errors, "retries": retries,
++    return {"calls": calls, "outputs": outs, "return_status": return_status,
++            "returned": len(outs), "errors": errors, "retries": retries,
+             "rejected": rejected, "fetch_failures": fetch_failures, "attempts": len(calls),
+             "unmatched": [{"tool_call_id": cid, "tool_name": nm}
+                           for cid, nm in open_calls.items() if cid not in rej]}
+@@ -854,7 +932,32 @@
+ # the durable messages, 0 files recoverable; `file-download?path=/workspace/tool_results/...`
+ # -> HTTP 404). The only window in which a receipt exists is therefore *while the run is live*,
+ # so the runner polls the persisted messages during the run and pulls every pointer it sees.
+-TOOL_RESULTS_RX = re.compile(r"/workspace/tool_results/[A-Za-z0-9._\-]+/[A-Za-z0-9._\-]+\.[A-Za-z0-9]{1,8}")
++TOOL_RESULTS_RX = re.compile(r"/workspace/tool_results/[^\s\"'<>`{}\[\](),;]+")
++
++
++def receipt_relpath(pointer):
++    prefix = "/workspace/tool_results/"
++    if not isinstance(pointer, str) or not pointer.startswith(prefix):
++        raise ValueError("invalid receipt prefix")
++    parts = pointer[len(prefix):].split("/")
++    if (len(parts) != 2 or any(p in ("", ".", "..") for p in parts)
++            or not all(re.fullmatch(r"[A-Za-z0-9._-]+", p) for p in parts)
++            or not re.search(r"\.[A-Za-z0-9]{1,8}$", parts[-1])):
++        raise ValueError("unsafe or unsupported receipt path")
++    return "/".join(parts)
++
++
++def receipt_destination(out_dir, pointer):
++    rel = receipt_relpath(pointer)
++    base = os.path.abspath(os.path.join(out_dir, "tool_results"))
++    dest = os.path.join(base, rel)
++    # Reject pre-existing symlink components as well as lexical traversal.
++    for path in (base, os.path.dirname(dest), dest):
++        if os.path.islink(path):
++            raise ValueError("symlink receipt destination")
++    if os.path.commonpath([os.path.realpath(base), os.path.realpath(dest)]) != os.path.realpath(base):
++        raise ValueError("receipt escapes archive")
++    return dest
+ 
+ 
+ def _iter_strings(obj):
+@@ -880,7 +983,10 @@
+     out = set()
+     for s in _iter_strings(obj):
+         for hit in TOOL_RESULTS_RX.findall(s):
+-            out.add(hit.rstrip(".,;)"))
++            hit = hit.rstrip(".")
++            # Ignore directory mentions, but keep unsafe file pointers to fail validation.
++            if hit and not hit.endswith("/") and "." in hit.rsplit("/", 1)[-1]:
++                out.add(hit)
+     return sorted(out)
+ 
+ 
+@@ -897,12 +1003,17 @@
+     """
+ 
+     TICK = 5.0
+-
+-    def __init__(self, c, tid, out_dir, tick=None):
++    MAX_ATTEMPTS = 3
++    REQUEST_TIMEOUT = 10
++
++    def __init__(self, c, tid, out_dir, tick=None, *, turn_id=None):
+         self.c, self.tid, self.out_dir = c, tid, out_dir
++        self.turn_id = turn_id
++        self.foreign, self.uncertain, self.scope_errors = set(), set(), set()
+         self.tick = tick or self.TICK
+         self.t0 = time.time()
+         self.seen, self.ok, self.failed = set(), 0, 0
++        self.files, self.attempts, self.invalid = {}, collections.Counter(), set()
+         self.bytes = 0
+         self.polls = 0
+         self._closed = False
+@@ -936,46 +1047,73 @@
+ 
+     def poll(self):
+         self.polls += 1
+-        s, msgs = self.c.json_call("GET", f"/api/threads/{self.tid}/messages", soft=True)
+-        if s == 0 or not isinstance(msgs, (list, dict)):
++        s, msgs = self.c.json_call("GET", f"/api/threads/{self.tid}/messages", soft=True,
++                                   timeout=self.REQUEST_TIMEOUT, attempts=1)
++        if not 200 <= s < 300 or not isinstance(msgs, (list, dict)):
+             self._record("", "messages-unreachable", note=f"http={s}")
+             return
+-        for p in receipt_pointers(msgs):
+-            if p in self.seen:
++        rows, scope_error = ui_message_rows(msgs)
++        if scope_error:
++            self.scope_errors.add(scope_error)
++            self.uncertain.update(receipt_pointers(msgs))
++            self._record("", "scope-uncertain", note=scope_error)
++        for m in rows:
++            pointers = set(receipt_pointers(m))
++            owner = m.get("turn_id")
++            if not self.turn_id or not owner:
++                bucket, status = self.uncertain, "scope-uncertain"
++            elif owner != self.turn_id:
++                bucket, status = self.foreign, "foreign-turn"
++            else:
++                self.seen.update(pointers)
+                 continue
+-            self.seen.add(p)
+-            rel = p.split("/workspace/tool_results/", 1)[-1]
+-            dest = os.path.join(self.out_dir, "tool_results", rel)
++            for p in sorted(pointers - bucket):
++                self._record(p, status, note=f"turn_id={owner!r}")
++            bucket.update(pointers)
++        for p in sorted(self.seen):
++            if self._stop.is_set():
++                break
++            if p in self.files or p in self.invalid or self.attempts[p] >= self.MAX_ATTEMPTS:
++                continue
++            try:
++                dest = receipt_destination(self.out_dir, p)
++            except ValueError as e:
++                self.invalid.add(p)
++                self._record(p, "invalid-path", note=str(e))
++                continue
++            self.attempts[p] += 1
+             os.makedirs(os.path.dirname(dest), exist_ok=True)
+             url = (f"/api/threads/{self.tid}/artifacts/file-download"
+                    f"?path={urllib.parse.quote(p, safe='/')}")
+             try:
+-                raw = self.c.download(url)
+-            except SystemExit as e:            # download() dies on HTTP >= 300
+-                self.failed += 1
+-                self._record(p, "http-error", note=str(e)[:200])
++                raw = self.c.download(url, timeout=self.REQUEST_TIMEOUT, attempts=1)
++                with open(dest, "wb") as fh:
++                    fh.write(raw)
++            except (SystemExit, Exception) as e:
++                self._record(p, "fetch-error", note=str(e)[:200])
+                 continue
+-            except Exception as e:             # noqa: BLE001 — never abort the run for a receipt
+-                self.failed += 1
+-                self._record(p, "fetch-error", note=repr(e)[:200])
+-                continue
+-            with open(dest, "wb") as fh:
+-                fh.write(raw)
++            self.files[p] = {"bytes": len(raw), "sha256": sha(raw)}
+             self.ok += 1
+             self.bytes += len(raw)
+             self._record(p, "ok", size=len(raw))
+ 
+     def stop(self):
+-        """Last call happens *before* the turn is persisted; the thread never blocks shutdown."""
++        """Wait for the in-flight bounded request before closing its log or taking a snapshot."""
+         self._stop.set()
+         if self._thread:
+-            self._thread.join(timeout=30)
++            self._thread.join()
+ 
+     def summary(self, wall_s=None):
+         self.stop()
+         self._closed = True
+         self._log.close()
++        self.failed = len(self.seen - self.files.keys())
+         return {"pointers": sorted(self.seen), "fetched": self.ok, "failed": self.failed,
++                "turn_id": self.turn_id, "foreign_pointers": sorted(self.foreign),
++                "uncertain_pointers": sorted(self.uncertain),
++                "scope_errors": sorted(self.scope_errors),
++                "files": dict(self.files), "attempts": dict(self.attempts),
++                "invalid": sorted(self.invalid),
+                 "bytes": self.bytes, "polls": self.polls, "log": os.path.basename(self.log_path),
+                 "wall_s": wall_s, "tick_s": self.tick,
+                 "note": ("tool_results is runtime-only (deleted at persist, filtered from the "
+@@ -1064,7 +1202,8 @@
+                         cut(json.dumps(p.get("input"), ensure_ascii=False, indent=1), max_tool),
+                         "```", "→", "```", cut(p.get("output"), max_tool), "```", ""]
+         out.append("")
+-    open(path, "w", encoding="utf-8").write("\n".join(out))
++    with open(path, "w", encoding="utf-8") as fh:
++        fh.write("\n".join(out))
+     return path
+ 
+ 
+@@ -1087,29 +1226,52 @@
+         f"outcome={run.get('outcome')} source={run.get('outcome_source', 'messages')}"
+         + (f" — {run['outcome_detail'][:220]}" if run.get("outcome_detail") else ""))
+ 
+-    msgs = (b.get("history") or {}).get("raw_model_messages") or []
+-    deck = next((m.get("instructions") for m in msgs if m.get("instructions")), "")
+-    local = open(a.sys, encoding="utf-8").read().rstrip("\n")
+-    add(deck.startswith(local), "deployed system prompt == local",
++    h, scope_error = scope_history(b, run.get("turn_id"))
++    add(not scope_error, "durable evidence belongs to the target turn", scope_error)
++    st = tool_chain_from_history(h)
++    msgs = h.get("raw_model_messages") or []
++    decks = [m["instructions"] for m in msgs if m.get("instructions")]
++    deck = decks[0] if decks and isinstance(decks[0], str) else ""
++    with open(a.sys, encoding="utf-8") as fh:
++        local = fh.read().rstrip("\n")
++    add(bool(local) and bool(decks) and all(isinstance(d, str) and d.startswith(local)
++                                          for d in decks), "deployed system prompt == local",
+         f"{os.path.basename(a.sys)} {len(local)} ch + platform tail {len(deck) - len(local)} ch; "
+         f"deployed sha={sha(deck.encode())[:12]}")
+ 
+-    body = next((p.get("content") or "" for m in msgs for p in m.get("parts", [])
+-                 if p.get("part_kind") == "tool-return" and p.get("tool_name") == "load_skill"), "")
++    bodies = [p.get("content") for m in msgs for p in m.get("parts", [])
++              if p.get("part_kind") == "tool-return" and p.get("tool_name") == "load_skill"
++              and st["return_status"].get(p.get("tool_call_id")) == "success"
++              and isinstance(p.get("content"), str)
++              and p["content"].startswith(f'<skill name="{a.skill_name}">\n')]
++    body = bodies[-1] if bodies else ""
+     if not body:
+         add(False, "deployed skill == local tree", "the turn never loaded a skill")
+     else:
+         inner = re.sub(r'\n</skill>.*$', "", re.sub(r'^<skill name="[^"]+">\n', "", body),
+                        flags=re.S).strip()
+         lp = os.path.join(a.repo, "skill", a.skill_name, "SKILL.md")
+-        loc = re.sub(r"^---\n.*?\n---\n", "", open(lp, encoding="utf-8").read(),
+-                     flags=re.S).strip() if os.path.exists(lp) else ""
++        loc = ""
++        if os.path.exists(lp):
++            with open(lp, encoding="utf-8") as fh:
++                loc = re.sub(r"^---\n.*?\n---\n", "", fh.read(), flags=re.S).strip()
+         add(inner == loc, "deployed skill body == local SKILL.md",
+             f"{len(inner)} vs {len(loc)} chars")
+-        rows = re.findall(r"- /workspace/skills/[^/]+/(\S+) \(([\d.]+) KB\)", body)
++        root = os.path.join(a.repo, "skill", a.skill_name)
++        rows = re.findall(r"- /workspace/skills/" + re.escape(a.skill_name)
++                          + r"/(\S+) \((\d+(?:\.\d+)?) KB\)", body)
++        expected = {os.path.relpath(os.path.join(dp, f), root)
++                    for dp, _dirs, fs in os.walk(root) for f in fs
++                    if os.path.relpath(os.path.join(dp, f), root) != "SKILL.md"}
++        listed = [rel for rel, _kb in rows]
+         bad = []
++        if set(listed) != expected or len(listed) != len(set(listed)):
++            bad.append(f"manifest mismatch: missing={sorted(expected - set(listed))}; "
++                       f"extra={sorted(set(listed) - expected)}; duplicates={len(listed)-len(set(listed))}")
+         for rel, kb in rows:
+-            fp = os.path.join(a.repo, "skill", a.skill_name, rel)
++            if rel not in expected:
++                continue
++            fp = os.path.join(root, rel)
+             if not os.path.exists(fp):
+                 bad.append(f"{rel}: not local")
+             elif abs(os.path.getsize(fp) / 1024 - float(kb)) > 0.06:
+@@ -1123,11 +1285,11 @@
+     texts = [p.get("content") or "" for m in msgs for p in m.get("parts", [])
+              if p.get("part_kind") == "text"]
+     reply = texts[-1].strip() if texts else ""
+-    # non-fatal, but worth seeing: a call with no return, and schema-rejected arguments
++    # Missing terminal evidence is fatal; known retry classes remain visible.
+     add(not st["unmatched"], "every tool call either returned or was re-prompted (nothing lost)",
+         f"{st['attempts']} attempts; " + "; ".join(
+-            f"no return for {u['tool_name']}({u['tool_call_id'][:18]}…)"
+-            for u in st["unmatched"][:5]), warn=True)
++            f"no return for {u['tool_name']}({str(u['tool_call_id'])[:18]}…)"
++            for u in st["unmatched"][:5]))
+     add(True, f"arguments refused by the tool (re-issued) = {len(st['rejected'])}",
+         "; ".join(f"{r['tool_name']}({r['tool_call_id'][:18]}…) {rej_text(r['reason'], 2)}"
+                    for r in st["rejected"][:3]))
+@@ -1146,27 +1308,39 @@
+             reply[:200].replace("\n", " "))
+         add(not st["errors"], "no tool errors",
+             "; ".join(err_text(e) for e in st["errors"])[:300])
+-        chk.append(receipt_check(run))
++        chk.append(receipt_check(run, h, getattr(a, "out", None)))
+         return chk
+ 
+     add(need <= names, "output contract: fixed deliverable paths",
+         f"missing {sorted(need - names)}" if need - names else ", ".join(sorted(need)))
+-    rep = b["zip"].read("output/report.md").decode() if "output/report.md" in names else ""
++    try:
++        rep = b["zip"].read("output/report.md").decode() if "output/report.md" in names else ""
++    except UnicodeError:
++        rep = ""
++    add(bool(rep.strip()), "report contains nonempty content")
+     charts = sorted(n for n in names if n.startswith("visualizations/"))
+     badname = [os.path.basename(n) for n in charts if not CHART_NAME_RE.match(os.path.basename(n))]
+     add(not badname, f"chart file names ({len(charts)} charts)",
+         "; ".join(badname) or ", ".join(os.path.basename(c) for c in charts) or "no chart")
+     badchart, iframes = [], set()
+     for cpath in charts:
+-        d = json.loads(b["zip"].read(cpath))
+-        o = d.get("option") or {}
++        try:
++            d = json.loads(b["zip"].read(cpath))
++            if not isinstance(d, dict) or not isinstance(d.get("option"), dict):
++                raise ValueError("chart and option must be objects")
++        except (ValueError, UnicodeError) as e:
++            badchart.append(f"{cpath}: {e}")
++            continue
++        o = d["option"]
+         if sorted(d) != ["id", "iframe_template", "option"]:
+             badchart.append(f"{os.path.basename(cpath)}: envelope keys {sorted(d)}")
+         if d.get("id") != ENVELOPE_ID:
+             badchart.append(f"{os.path.basename(cpath)}: id={d.get('id')!r}")
+-        if not d.get("iframe_template"):
+-            badchart.append(f"{os.path.basename(cpath)}: empty iframe_template")
+-        iframes.add("/".join((d.get("iframe_template") or "").rstrip("/").split("/")[-2:]))
++        template = d.get("iframe_template")
++        if not isinstance(template, str) or not template:
++            badchart.append(f"{os.path.basename(cpath)}: invalid iframe_template")
++            template = ""
++        iframes.add("/".join(template.rstrip("/").split("/")[-2:]))
+         m = re.match(r"^endpoint-(bar|line)-\d+\.json$", os.path.basename(cpath))
+         if m and o.get("type") != m.group(1):
+             badchart.append(f"{os.path.basename(cpath)}: name says {m.group(1)}, "
+@@ -1174,16 +1348,26 @@
+     add(not badchart, "chart envelope + filename/type agreement",
+         "; ".join(badchart) or f"iframe release: {sorted(iframes)}")
+     nviz = rep.count("::visualization[")
+-    add(nviz == len(charts), "::visualization tags == chart files",
+-        f"{nviz} tags / {len(charts)} files")
++    targets = re.findall(r'::visualization\[[^\]\n]*\]\{path="(/workspace/[^"\n]+)"\}', rep)
++    add(nviz == len(targets) and collections.Counter(targets) ==
++        collections.Counter("/workspace/" + c for c in charts),
++        "::visualization targets == chart files (one each)",
++        f"{nviz} tags / {len(charts)} files; targets={targets}")
+     left = sorted({m for m in re.findall(r"\{\{[^}]*\}\}", rep)
+                    if not re.fullmatch(r"\{\{ref_\d+\}\}", m)})
+     add(not left, "no leftover template placeholder in report", "; ".join(left[:6]))
+     nanc = len(re.findall(r"\]\(entity:", rep))
+     add(not re.search(r"\]\(entity:[^)]*\]\(entity:", rep), "no nested entity anchor",
+         f"{nanc} anchors")
+-    cites = (json.loads(b["zip"].read("output/citations.json"))
+-             if "output/citations.json" in names else {})
++    try:
++        cites = (json.loads(b["zip"].read("output/citations.json"))
++                 if "output/citations.json" in names else {})
++        if not isinstance(cites, dict):
++            raise ValueError("citations must be an object")
++        add(bool(cites), "citations contains nonempty source entries")
++    except (ValueError, UnicodeError) as e:
++        cites = {}
++        add(False, "citations contains nonempty source entries", str(e))
+     used = {int(x) for x in re.findall(r"\{\{ref_(\d+)\}\}", rep)}
+     keyed = {int(k.split("_")[1]) for k in cites if re.fullmatch(r"ref_\d+", k)}
+     add(used == keyed, "every ref marker has a citation entry",
+@@ -1191,6 +1375,8 @@
+         f" unused={sorted(keyed - used)}")
+     badc = []
+     for k, v in sorted(cites.items()):
++        if not re.fullmatch(r"ref_\d+", k):
++            badc.append(f"{k}: invalid reference key")
+         if not isinstance(v, dict) or sorted(v) != ["link", "paper_release_time_str", "title"]:
+             badc.append(f"{k}: keys {sorted(v) if isinstance(v, dict) else type(v).__name__}")
+             continue
+@@ -1198,37 +1384,55 @@
+             if not isinstance(vv, str):
+                 badc.append(f"{k}.{kk}: not a string")
+         r = v.get("paper_release_time_str") or ""
+-        if r and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", r):
++        if isinstance(r, str) and r and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", r):
+             badc.append(f"{k}.paper_release_time_str={r!r}")
+-        if not (v.get("title") or "").strip():
++        if not isinstance(v.get("title"), str) or not v["title"].strip():
+             badc.append(f"{k}: empty title — a citation for a source that never came back")
+     add(not badc, "citations: exact keys + date-only time + every entry has a title",
+         "; ".join(badc) or f"{len(cites)} refs, all titled")
+-    last = st["calls"][-1][1] if st["calls"] else ""
+-    add(last == "present_artifact", "present_artifact is the final tool call", f"last={last!r}")
++    cid, last, args = st["calls"][-1] if st["calls"] else (None, "", {})
++    add(last == "present_artifact" and isinstance(args, dict)
++        and args.get("path") in ("/workspace/output/report.md", "output/report.md")
++        and st["return_status"].get(cid) == "success",
++        "present_artifact is the final successful call for output/report.md",
++        f"last={last!r} args={args!r} status={st['return_status'].get(cid)!r}")
+     add(not st["errors"], "no tool errors",
+         "; ".join(err_text(e) for e in st["errors"])[:300])
+-    chk.append(receipt_check(run))
++    chk.append(receipt_check(run, h, getattr(a, "out", None)))
+     return chk
+ 
+ 
+-def receipt_check(run):
+-    """Receipt layer (O30): `tool_results/**` is deleted at persist and filtered from the artifact
+-    archive, so the runner pulls it mid-run. `0 pointers` is a legitimate PASS: a selection that
+-    needed no params/web call has nothing to archive — say so instead of pretending success."""
++def receipt_check(run, history=None, out_dir=None):
++    """Final durable pointers, not polling success or aggregate counts, define coverage."""
+     rec = run.get("receipts") or {}
+-    seen_n, ok_n, fail_n = len(rec.get("pointers") or []), rec.get("fetched", 0), rec.get("failed", 0)
++    name = "tool_results receipts archived"
++    if history is None or not history.get("raw_model_messages"):
++        return ("FAIL", name, "no scoped final durable history for receipt reconciliation")
++    expected = set(receipt_pointers(history))
+     if not rec:
+-        return ("FAIL", "tool_results receipts archived", "no receipt record in run.json")
+-    if seen_n == 0:
+-        return ("PASS", "tool_results receipts archived",
+-                f"n/a — no tool_results pointer in the durable messages ({rec.get('polls', 0)} polls);"
+-                " nothing to archive")
+-    return ("PASS" if (ok_n == seen_n and fail_n == 0) else "FAIL",
+-            "tool_results receipts archived",
+-            f"{ok_n}/{seen_n} fetched, {fail_n} failed, {rec.get('bytes', 0)} B →"
+-            f" `tool_results/` ({rec.get('polls', 0)} polls @ {rec.get('tick_s')}s)"
+-            + ("" if ok_n == seen_n else "; see " + str(rec.get("log"))))
++        return ("FAIL", name, "no receipt record in run.json")
++    poll_only = (set(rec.get("pointers") or [])
++                 | set(rec.get("foreign_pointers") or [])
++                 | set(rec.get("uncertain_pointers") or [])) - expected
++    files = rec.get("files") or {}
++    bad = []
++    for p in sorted(expected):
++        try:
++            receipt_relpath(p)
++            if not out_dir:
++                raise ValueError("no archive directory supplied")
++            dest = receipt_destination(out_dir, p)
++            with open(dest, "rb") as fh:
++                raw = fh.read()
++            meta = files.get(p) or {}
++            if not raw or meta.get("bytes") != len(raw) or meta.get("sha256") != sha(raw):
++                raise ValueError("missing manifest, empty receipt, or size/hash mismatch")
++        except (OSError, ValueError) as e:
++            bad.append(f"{p}: {e}")
++    return ("FAIL" if bad else "PASS", name,
++            f"{len(expected)} final durable pointers; {len(poll_only)} poll-only diagnostic pointers; "
++            + ("; ".join(bad) if bad else "all archived and hash-verified"
++               if expected else "no pointers in final durable history"))
+ 
+ 
+ def cmd_run(c, a):
+@@ -1278,7 +1482,8 @@
+                    "started_at": stamp, "resumed_from": prev_dir,
+                    "enable_web": prev.get("enable_web", bool(a.web))}, mode=0o644)
+         if prompt:
+-            open(os.path.join(out_dir, "prompt.txt"), "w", encoding="utf-8").write(prompt)
++            with open(os.path.join(out_dir, "prompt.txt"), "w", encoding="utf-8") as fh:
++                fh.write(prompt)
+         tap = {"http": 0, "tap_status": "skipped (--resume)", "tap_events": 0, "tap": None}
+         print(f"resume thread {tid}\nturn   {turn_id or '(unknown: derived from /timing)'}\n"
+               f"out    {out_dir}")
+@@ -1289,7 +1494,8 @@
+         prompt = a.prompt or open(a.prompt_file, encoding="utf-8").read()
+         out_dir = a.out or os.path.join(RUNS, f"{stamp}-{a.tag or 'run'}")
+         os.makedirs(out_dir, exist_ok=True)
+-        open(os.path.join(out_dir, "prompt.txt"), "w", encoding="utf-8").write(prompt)
++        with open(os.path.join(out_dir, "prompt.txt"), "w", encoding="utf-8") as fh:
++            fh.write(prompt)
+         turn_id = a.turn_id or str(uuid.uuid4())
+         tid = create_thread(c, a)
+         # persist the idempotency key BEFORE the network call that starts the run
+@@ -1300,11 +1506,17 @@
+                    "enable_web": bool(a.web)}, mode=0o644)
+         print(f"out    {out_dir}")
+         tap = post_turn(c, a, tid, turn_id, prompt, out_dir)
+-    receipts = ReceiptArchiver(c, tid, out_dir)
++    receipts = ReceiptArchiver(c, tid, out_dir, turn_id=turn_id)
+     receipts.start()
+     # the archiver runs its own thread — passing `on_poll` too would double-GET the same route
+-    run = wait_for_run(c, a, tid, turn_id, uid)
+-    run["receipts"] = receipts.summary(wall_s=run.get("wall_clock_s"))
++    try:
++        run = wait_for_run(c, a, tid, turn_id, uid)
++    finally:
++        receipt_summary = receipts.summary()
++    run["turn_id"] = turn_id
++    a.out = out_dir
++    receipt_summary["wall_s"] = run.get("wall_clock_s")
++    run["receipts"] = receipt_summary
+     print(f"receipts     : {run['receipts']['fetched']} fetched / {run['receipts']['failed']} failed"
+           f" / {len(run['receipts']['pointers'])} pointer(s) seen in {run['receipts']['polls']}"
+           f" polls (tool_results is runtime-only, so this is the only window) → "
+@@ -1332,14 +1544,23 @@
+         run["kind"] = outcome
+         run["outcome_source"] = "persisted messages"
+     run["outcome"], run["outcome_detail"] = outcome, odetail
+-    st = tool_chain_from_history(b.get("history"))
++    scoped_history, scope_error = scope_history(b, turn_id)
++    run["receipts"]["final_pointers"] = receipt_pointers(scoped_history)
++    run["receipts"]["final_missing"] = sorted(set(run["receipts"]["final_pointers"])
++                                              - run["receipts"].get("files", {}).keys())
++    st = tool_chain_from_history(scoped_history)
++    if scope_error:
++        st["errors"].append({"tool": "history", "outcome": "unscopable",
++                             "text": scope_error, "part": {}})
+     # (O25) a schema-rejected call is re-issued as a NEW call, so it must not be counted as
+     # a *returned* call nor smuggled into the returned histogram: 30 attempts were
+     # 29 returned + 1 rejected, and the old line printed "30 attempts = 30 returned + 1".
+-    _rej_ids = {r["tool_call_id"] for r in st["rejected"] + st["fetch_failures"]}
+-    hist = collections.Counter(nm for cid, nm, _inp in st["calls"] if cid not in _rej_ids)
++    hist = collections.Counter(nm for cid, nm, _inp in st["calls"] if cid in st["outputs"])
+     hist_rej = collections.Counter(r["tool_name"] for r in st["rejected"])
+-    ret_n = len(st["calls"]) - len(_rej_ids)
++    ret_n = st["returned"]
++    other_n = st["attempts"] - ret_n - len(st["rejected"]) - len(st["fetch_failures"])
++    count_tail = (f" + {len(st['rejected'])} args-refused"
++                  f" + {len(st['fetch_failures'])} fetch-failed + {other_n} unresolved/error")
+     srv, srv_permanent = turn_completed_ms(b, turn_id)
+     srv /= 1000
+     info = b.get("info") or {}
+@@ -1361,7 +1582,7 @@
+               f"conv={est.get('conversation_tokens')} cache_rate={est.get('cache_rate')}")
+     hist_fetch = collections.Counter(r["tool_name"] for r in st["fetch_failures"])
+     print(f"tool calls   : {st['attempts']} attempts = {ret_n} returned"
+-          + (f" + {len(st['rejected'])} args-refused" if st["rejected"] else "")
++          + count_tail
+           + "  " + ", ".join(f"{k}x{v}" for k, v in hist.most_common())
+           + ("" if not hist_rej else
+              "  [args-refused: " + ", ".join(f"{k}x{v}" for k, v in hist_rej.most_common()) + "]")
+@@ -1380,7 +1601,7 @@
+         for r in st["rejected"]:
+             print(f"  - {r['tool_name']}: {rej_text(r['reason'])}")
+     if st["fetch_failures"]:
+-        print("\nexternal fetch failures (expected for non-OA / blocked hosts — the deliverable "
++        print("\nexternal fetch failures (cause not inferred — the deliverable "
+               "must declare them in its coverage line):")
+         for r in st["fetch_failures"]:
+             print(f"  - {r['tool_name']}: {rej_text(r['reason'])}")
+@@ -1422,7 +1643,7 @@
+                  f"cost={(b.get('usage') or {}).get('cost')}\n"
+                  f"- context estimate: {json.dumps(est, ensure_ascii=False)}\n"
+                  f"- tool calls: {st['attempts']} attempts = {ret_n} returned"
+-                 + (f" + {len(st['rejected'])} args-refused" if st["rejected"] else "")
++                 + count_tail
+                  + "  (" + ", ".join(f"{k}x{v}" for k, v in hist.most_common()) + ")"
+                  + ("" if not hist_rej else " + args-refused "
+                     + ", ".join(f"{k}x{v}" for k, v in hist_rej.most_common()))
+@@ -1434,7 +1655,7 @@
+                  + f"\n- receipts (tool_results, runtime-only: pulled mid-run): "
+                  + (f"{rec_ok}/{rec_seen} fetched, {rec_fail} failed, {rec_bytes} B → "
+                     f"`tool_results/` ({rec_polls} polls @ {rec_tick}s)"
+-                    if rec_seen else "n/a — no tool_results pointer in the durable messages")
++                    if rec_seen else "no pointers observed by collector; see final durable receipt check")
+                  + "\n\n## Poll log\n\n")
+         for p in run["polls"]:
+             fh.write(f"- {p['t']}s: status={p['status']} steps={p['steps']}\n")

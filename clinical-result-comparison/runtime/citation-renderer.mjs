@@ -13,7 +13,8 @@ export function renderCitationReport(report, citationJson) {
   return renderCitationMarkers(report, citations);
 }
 
-/** Validate a report file + citation file pair without rendering (v0.9 file delivery). */
+/** Validate the current report/citation contract; this does not sanitize HTML
+ * or verify citation metadata against the retrieved source records. */
 export function validateCitationPair(report, citationJson) {
   if (typeof report !== "string") throw new TypeError("report must be a string");
   const citations = parseCitationJson(citationJson);
@@ -22,6 +23,8 @@ export function validateCitationPair(report, citationJson) {
 }
 
 
+/** Substitute markers in trusted content only. Metadata escaping and URL protocol
+ * checks do not sanitize the surrounding HTML or make arbitrary insertion contexts safe. */
 export function renderCitationMarkers(html, citations) {
   if (typeof html !== "string") throw new TypeError("html must be a string");
   validateCitationObject(citations);
@@ -38,12 +41,39 @@ export function renderCitationMarkers(html, citations) {
 
 function validateCitations(body, citations) {
   validateCitationObject(citations);
-  const markerKeys = new Set([...body.matchAll(markerPattern)].map((match) => match[1]));
+  // Reject unresolved/malformed tokens rather than silently ignoring them. The
+  // brace boundaries prevent a valid-looking substring in {{{ref_1}}} passing.
+  const strictMarkers = /(?<!\{)\{\{(ref_[1-9]\d*)\}\}(?!\})/g;
+  const remainder = body.replace(strictMarkers, "");
+  if (/\{\{|\}\}|\{\s*ref_|ref_[^\s{}]*\s*\}/.test(remainder)) {
+    throw new Error("citation_marker_invalid");
+  }
+  const markerKeys = new Set([...body.matchAll(strictMarkers)].map((match) => match[1]));
   const citationKeys = new Set(Object.keys(citations));
 
   if (!sameSet(markerKeys, citationKeys)) {
     throw new Error("citation_marker_key_mismatch");
   }
+  for (let n = 1; n <= citationKeys.size; n++) {
+    if (!citationKeys.has(`ref_${n}`)) throw new Error("citation_keys_not_contiguous");
+  }
+  for (const citation of Object.values(citations)) {
+    if (!citation.title.trim()) throw new Error("citation_title_empty");
+    if (citation.paper_release_time_str !== "" && !isCalendarDate(citation.paper_release_time_str)) {
+      throw new Error("citation_date_invalid");
+    }
+    // Empty links are part of the contract and remain inert when rendered.
+    if (citation.link !== "" && (!/^https?:\/\//i.test(citation.link) ||
+        /[\s\u0000-\u001f\u007f]/u.test(citation.link) || !isSafeHttpUrl(citation.link))) {
+      throw new Error("citation_link_invalid");
+    }
+  }
+}
+
+function isCalendarDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
 }
 
 function validateCitationObject(citations) {

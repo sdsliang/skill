@@ -1,5 +1,13 @@
 # `evals/fact-check/` — 必含事实清单与离线打分器
 
+> **当前基线：2026-09-18-r2**，A 为 **43 fail + 1 warn**，B 为 **12 fail + 1 warn**。
+> 以下历史章节保留迭代过程；当前实现与完整验证以 [EVALUATOR_REVISION.md](EVALUATOR_REVISION.md) 为准。
+> 独立复核补修：查询只统计目标轮次的持久化模型调用（兼容 `esids` / `extra_esids`）；
+> 明文 PMID/PMCID 仅是待核实声明，需独立 JATS/元数据佐证；图表标签与描述允许分工，但已知身份冲突必须失败。
+> 离线验证：27 项回归、63 项变异/合法对照；R17/R18 43/43，B 12/12，R14 两种全文载体均通过定向核验。
+> `rescore_revision.py` 自动刷新 `revision-evidence/rescore.txt` 与 `sha256.json`，遇适用基线或 R14 核验回归返回非零。
+
+
 给 `clinical-result-comparison` 补上 autoresearch 范式里唯一缺失的东西：**一个能自动判分的真值标量**。
 `docs/autoresearch-iteration-plan.md` §9 定了两层指标，其中成本层（`calls` / `wall_s` / `tokens`）由
 `toolsmith-publish run` 直接产出，而质量层原本只有「布尔门」（跑没跑完、有没有产物）。本目录把质量层

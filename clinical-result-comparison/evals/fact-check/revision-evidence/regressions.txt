@@ -1,0 +1,32 @@
+test_correct_description_cannot_hide_wrong_label (test_regressions.ChartTests) ... ok
+test_every_chart_including_unknown_names (test_regressions.ChartTests) ... ok
+test_malformed_json_preserved_as_failed_surface (test_regressions.ChartTests) ... ok
+test_order_independent (test_regressions.ChartTests) ... ok
+test_unsigned_equivalent (test_regressions.ChartTests) ... ok
+test_value_label_sign_time_endpoint_mutations (test_regressions.ChartTests) ... ok
+test_abstract_json_is_not_body (test_regressions.EvidenceTests) ... ok
+test_empty_and_metadata_only (test_regressions.EvidenceTests) ... ok
+test_jats_valid_and_wrong_source (test_regressions.EvidenceTests) ... ok
+test_plaintext_derivative_with_jats (test_regressions.EvidenceTests) ... ok
+test_plaintext_fetch_corroboration_is_scoped_and_matches_source (test_regressions.EvidenceTests) ... ok
+test_plaintext_header_cannot_self_corroborate (test_regressions.EvidenceTests) ... ok
+test_plaintext_needs_independent_mapping (test_regressions.EvidenceTests) ... ok
+test_plaintext_wrong_jats_content_stays_unmapped (test_regressions.EvidenceTests) ... ok
+test_reference_list_pmid_does_not_identify_article (test_regressions.EvidenceTests) ... ok
+test_wrong_deep_link (test_regressions.EvidenceTests) ... ok
+test_missing_both_baselines_cannot_pass (test_regressions.HarnessTests) ... ok
+test_query_ambiguous_legacy_and_argument_shapes (test_regressions.HarnessTests) ... ok
+test_query_attempts_are_not_transcript_mentions (test_regressions.HarnessTests) ... ok
+test_query_current_legacy_and_counterfeit_scope (test_regressions.HarnessTests) ... ok
+test_query_legacy_ui_timestamp_maps_target_turn (test_regressions.HarnessTests) ... ok
+test_citation_null_not_nonempty_string (test_regressions.TextTests) ... ok
+test_divergence (test_regressions.TextTests) ... ok
+test_empty_forbidden_artifacts (test_regressions.TextTests) ... ok
+test_unknown_citation_marker (test_regressions.TextTests) ... ok
+test_unsigned_owner_and_numeric_boundaries (test_regressions.TextTests) ... ok
+test_verbatim_exact_threshold_and_unsampled_offset (test_regressions.TextTests) ... ok
+
+----------------------------------------------------------------------
+Ran 27 tests in 0.102s
+
+OK

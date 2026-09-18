@@ -91,4 +91,4 @@ ToolSmith 前端（`EntityAnchor`）识别的格式是 Markdown 内联链接：
 
 v0.10 只启用三类：**药品（drug）、公司（company）、临床试验注册号（trial）**。适应症、靶点等类型在实体字段提供前不引用。
 
-v0.11 在 trial 类型上增加**试验简称展示名**：`entity:trial:` 的 ID 仍是注册号（`projects.associate_ids`），但当 `trial_abbreviation` 存在时展示名用简称；无简称则回退注册号。试验简称同样只在报告正文/表格中使用，不写进图表 JSON。
+v0.11 在 trial 类型上增加**试验简称展示名**：`entity:trial:` 的 ID 仍是注册号（`projects.associate_ids`），但当 `trial_abbreviation` 存在时展示名用简称；无简称则回退注册号。试验简称在正文/表格中按实体格式引用；图表 JSON 可用来源支持的纯文本简称，但不写 `entity:` 链接。

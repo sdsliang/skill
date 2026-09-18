@@ -1,0 +1,129 @@
+{
+ "evaluator_revision": "2026-09-18-r2",
+ "scenario": "b",
+ "run": "/home/xupeipeioo1/.local/state/toolsmith-runs/20260914-174145-b2-refusal",
+ "facts_ok": 12,
+ "facts_total": 12,
+ "warn_ok": 1,
+ "warn_total": 1,
+ "verdict": "PASS",
+ "items": [
+  {
+   "id": "B-S1-no-report",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "nothing written out of ['output/report.md', 'output/citations.json']",
+   "why": "这是本场景的核心断言：拒绝必须是『真的什么都没产出』，而不是口头拒绝、文件照写",
+   "evidence": "记录 fixture：24_1_45608045 返回 0 行，可用记录 1 条；skill 规则『<2 条可用记录 → 不写 report.md / citations.json，不调 present_artifact』"
+  },
+  {
+   "id": "B-S2-no-charts",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "got=[] want=[]",
+   "why": "拒绝场景不得留下任何图表产物（图表也会被渲染成可见交付物）",
+   "evidence": "同上"
+  },
+  {
+   "id": "B-T1-queried-then-refused",
+   "kind": "shape",
+   "severity": "fail",
+   "ok": true,
+   "detail": "2 distinct query attempts for 24_1_45608045; target turn 6fc61df5-b241-47e5-beb2-14a93eaacac9",
+   "why": "Distinct archived query tool calls must carry the esid in extra_esids; repeated prompt/transcript text is not a query attempt.",
+   "evidence": "R5/R6 实测：模型对失败 esid 做了两次取数（批量 + 单独复核）后才拒绝"
+  },
+  {
+   "id": "B-A1-name-dead-esid",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 pattern(s) matched",
+   "why": "不点名等于让用户自己猜哪条没进来",
+   "evidence": "用户点名了两个 esid，必须逐一点名交代下场"
+  },
+  {
+   "id": "B-A2-say-no-record",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 pattern(s) matched",
+   "why": "必须把『取不到』说清楚，否则用户不知道是系统问题还是自己选错",
+   "evidence": "探针实测 actual_result_count 不含 24_1_45608045（0 行）"
+  },
+  {
+   "id": "B-A3-say-cannot-produce",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 pattern(s) matched",
+   "why": "拒绝的理由必须是『可用记录不足』这一条契约，而不是随意措辞",
+   "evidence": "skill 规则：合成/对比解读至少需要 2 条可用记录"
+  },
+  {
+   "id": "B-A4-name-live-esid",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 pattern(s) matched",
+   "why": "有效记录不能被连坐说成取不到",
+   "evidence": "记录 fixture：24_1_30561610 正常返回 3 行（同一记录按疾病词条展开）"
+  },
+  {
+   "id": "B-A5-ask-user",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 pattern(s) matched",
+   "why": "拒绝要可操作：给出用户的下一步，而不是只报错",
+   "evidence": "R5/R6 实测拒绝话术均给出『请重新核对/勾选，或按注册号重取』"
+  },
+  {
+   "id": "B-A6-no-fabricated-facts",
+   "kind": "absent",
+   "severity": "fail",
+   "ok": true,
+   "detail": "2 pattern(s) absent",
+   "why": "反幻觉：不得为取不到的记录补内容",
+   "evidence": "该 esid 无任何记录字段可引用"
+  },
+  {
+   "id": "B-A7-no-production-claim",
+   "kind": "absent",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 pattern(s) absent",
+   "why": "与 B-S1 互为正反面：文件不落地，也不能声称落地",
+   "evidence": "本场景不应产出任何文件"
+  },
+  {
+   "id": "B-A8-state-nothing-written",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 pattern(s) matched",
+   "why": "必须显式告诉用户『本次没有任何文件产出』，否则用户会去工作区找文件",
+   "evidence": "R5/R6 实测原话：『我没有生成报告文件，也没有输出引用文件』『因此我没有写入 /workspace/output/report.md 与 /workspace/output/citations.json』"
+  },
+  {
+   "id": "B-C1-live-record-facts-sane",
+   "kind": "present",
+   "severity": "fail",
+   "ok": true,
+   "detail": "1 pattern(s) matched",
+   "why": "描述那条有效记录时不能连药名都说错（拒绝≠可以乱讲）",
+   "evidence": "记录 24_1_30561610 arms[0].drugs[0].drug_earth_name_en='evolocumab'、drug_earth_name_cn='依洛尤单抗'"
+  },
+  {
+   "id": "B-W1-recheck-attempt",
+   "kind": "present",
+   "severity": "warn",
+   "ok": true,
+   "detail": "1 pattern(s) matched",
+   "why": "第二次复核取数是优选做法而非契约明文，故降级为 warn",
+   "evidence": "R5/R6 实测均有『先批量、再单独复核』的第二次取数"
+  }
+ ]
+}

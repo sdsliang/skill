@@ -6,11 +6,16 @@
 >
 > 一次验证 = 一条 `R<n>` 记录。**没有新记录就等于这次改动没验证过。**
 
+## 当前状态（2026-09-18 全项目审查）
+
+本地修复与离线验证见 **F7 / O33–O38**，完整审查见 [project-review-2026-09-18.md](project-review-2026-09-18.md)。**本轮没有发布、没有线上 run，也没有已完成的 R21**；旧 R 记录的断言数、分数、哈希均按当时版本保留。评估器 r2 为显式新基线，A 41→43 不是质量提升。当前 `status` exit 3 是预期的真实差异，不能用历史 in-sync 覆盖。
+
 ## 0. 流程（标准动作）
 
 ```bash
 cd /home/xupeipeioo1/apps/skill/clinical-result-comparison
-python3 /home/xupeipeioo1/tmp/pack15b.py   # 重打 dist（幂等：只改文档时 SHA 不变）
+python3 tools/pack-dist.py                 # 重打 dist；文档改动不进入包
+# 每次先取得明确的 prompt/skill 发布授权：
 toolsmith-publish publish                  # 默认原地更新当前版本；deps 门禁会自动挡上游漂移
 toolsmith-publish status                   # 必须 in sync（版本号标签不变）
 printf '解读这几个结果 <esid…>' > ~/.local/state/toolsmith-runs/ask.txt
@@ -31,10 +36,10 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 `stream.tap`（有界 tap，仅存档、**不作为任何断言的输入**）、`debug-history.json`、`info.json` / `timing.json` / `usage.json`、
 `artifacts.zip` + 解包目录、`verification.md`（含轮询日志与分级断言）、`transcript.md`（人读的对话回放）。
 
-退出码：**0** 全过 / **3** 跑完了但有断言失败（或非 schema 拒参的工具报错）/ **4** `not_started`（turn 从未进库，POST 没落地）/ **5** `inconclusive`（错过平台 300–360 s 的终态窗口）或 `timeout`。
+退出码：**0** 全过 / **3** 跑完了但有断言失败（或非 schema 拒参的工具报错）/ **4** `not_started`（turn 从未进库，POST 没落地）/ **5** `inconclusive`（缺少可确认完成的 durable 记录）或 `timeout`。
 
 > **2026-09-16 起 `run` 不再消费 SSE**：`POST /api/chat` 只读到 `data-turn-start` 就断连，之后按 ≤60 s 轮询
-> `GET /api/threads/{tid}/info` 的 `status` 判终态（平台把 run 当独立任务跑，客户端断连只摘订阅者、**不 cancel**）。
+> `GET /api/threads/{tid}/info` 观察活动状态，并以 `/timing.completed_at` 判完成；`idle` 不代表成功（平台把 run 当独立任务跑，客户端断连只摘订阅者、**不 cancel**）。
 > 证据一律从持久化消息（`/debug/history`、`/messages`）与产物重建；`stream.sse` 不再产生。超时**绝不重发 POST**，只能 `--resume`。
 
 ### 为什么走 API 而不是看分享链接
@@ -51,17 +56,16 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 
 > **2026-09-16 起分级**：只有 **FAIL** 影响退出码（exit 3）；**WARN** 只打印。另外新增两项：
 > ① **终态必须 `completed`**（轮询判定的结局，`inconclusive`/`timeout` 另走 exit 5）；
-> ② **每个 tool-call 要么有 tool-return、要么没拿到返回**（没返回的**分两桶**记，都是 WARN/INFO 而非 tool error：
+> ② **每个目标 turn tool-call 必须有实际 tool-return，或有可识别的拒参/抓取失败记录**；无解释的缺返回 FAIL。已分类的无返回分两桶记：
 > `args-refused` 参数被工具拒（形状/字段名/取值）由框架重发、`fetch-failed` 外部抓取失败——4xx/5xx、主机不可达；
 > 旧版把两者都印成“schema-rejected”**并从 `errors` 里藏掉**，于是 FAIL 级的 `no tool errors` 在抓取已经 500 的情况下
-> 仍然全绿，见 runner O32）。
+> 仍然全绿，见 runner O32。未知归属、歧义或其它工具错误不能进入豁免桶。
 >
 > **2026-09-18 起再加一项（产出物路径 17 → 18 项 / 拒绝路径 11 → 12 项）**：**`tool_results` 回执归档**
 > —— 平台在 turn 结束时删掉 `tool_results/**`、又在产物面板里过滤掉它（`fs_workspace_store._remove_runtime_paths`
 > + `chat_service._ARTIFACT_IGNORE_DIR_NAMES`），所以它**只在 run 存续期间可读**；runner 新增 `ReceiptArchiver`
 > 每 5 s 轮询持久化消息抠指针并即时下载（第一次命中在第 7.4 s，见 R19/R20 与 `docs/evidence/receipt-layer-2026-09-18.txt`）。
-> 断言 `tool_results receipts archived`：**0 个指针 = PASS 并注明「n/a」**（没有 params/web 调用的选择本来就无回执可归档），
-> 有指针却一条都没取回 = FAIL。
+> 断言 `tool_results receipts archived`：**F7 已收紧**，必需指针由最终目标 turn 的持久化证据重建，不由轮询数量定义。目标证据完整且无指针才可 n/a；漏轮询、归属歧义、缺 manifest、缺文件或字节/哈希不符均 FAIL。
 >
 > **2026-09-17 起再加一项（产出物路径 16 → 17 项 / 拒绝路径 10 → 11 项）**：
 > ① **turn 的结局必须是 `succeeded`** —— 平台 `30306cb` 把 `/info.status` 的终态值整个删掉（只剩
@@ -1090,8 +1094,7 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 → **回执在第 7.4 s 落盘**，即 run 还活着的窗口内；首行内容是带 `clinical_result_study_results` 数组的完整记录
 （不是摘要预览）。
 
-**这两轮的「schema-rejected=1」在 O32 之后重读为 `args-refused`**（`extra_esids`：记录字段是
-`clinical_result.extra_esid`，而工具参数名是 `esids`，模型第一发按记录字段名写 → pydantic 拒 → 第二发自愈）。
+**这两轮的「schema-rejected=1」在 O32 之后重读为 `args-refused`**。**2026-09-18 F7 归因更正**：live `deps` 确认 schema 已 `+esids -extra_esids`，但旧 sys/skill **明文要求 `extra_esids`**。记录字段仍是 `clinical_result.extra_esid`；第一发被拒、改用 `esids` 后自愈是事实，原记「模型按记录字段名发明参数」**不成立/证据不足**。本次已适配仓库规则、live 重生成镜像并接受本地 deps 基线；尚未发布。
 同一批重读还暴露出 R15/R16/R17 各有一条 `web_fetch` 抓欧洲 PMC 全文 XML 的 500，此前它们在 `errors` 里不可见。
 
 **runner 侧改动**（我们自己的层）：`~/.local/bin/toolsmith-publish` 新增 `ReceiptArchiver`
@@ -1136,8 +1139,7 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
   `Unknown tool name` / `Field required` / `Extra inputs are not permitted` / `[Tool error] INVALID_INPUT`）、
   `fetch_failures`（`^Failed to fetch`：可见、打印、写进 `verification.md`，但**不**判 FAIL）、
   其余（真正的工具链故障）落回 `errors`（**仍是 FAIL 级**）。
-- **事实层没坏**：被藏起来的那次 500，交付物其实**已经写在核对覆盖行**里（R17「R7 全文接口返回 500（该刊非 OA）」、
-  R18「R7 返回 500 … 未取回全文的原因类为「非 OA」」）⇒ 这次修的是**闸门的可见性**，不是产物质量。
+- **当时已确认的事实**：交付物确实披露了 500（R17/R18 覆盖行）；**F7 更正其边界**：这只能证明失败可见，不能证明「非 OA」归因正确。HTTP 500 或缺 PMCID 本身均不足以判非 OA，当前仓库规则已纠正，尚未线上验证。O32 的桶名描述技术失败类型，不证明由模型发明参数。
 - 影响面：`verification.md` 断言清单多一项 INFO 行（**产出物路径 18 → 19 项 / 拒绝路径 12 → 13 项**）；
   `tool calls:` 行改为「N attempts = M returned + a args-refused + f fetch-failed …」；`--details` 增加 `web=on|off`。
 - 备份：`~/.local/state/toolsmith-publish/toolsmith-publish.v8.bak`（O31 的 `rej_text` 补丁前）。
@@ -1151,13 +1153,30 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 - **注意（老 run 目录）**：`receipts` 记录是 O30 之后才有的，拿 O30 之前的老 run 目录重跑 `check_run`
   会让 `tool_results receipts archived` 判 FAIL（无记录）——属预期，不要当成回归。
 
+### F7 — 2026-09-18，全项目审查与本地修复（离线验证 + 只读 live 核对；无发布、无新 run）
+
+用户范围：「A10 给我个示例 id，别的你都改。另外 6-astra 你来，审查整个项目」。本轮修改 **runner + 仓库资产**，不改 TS 平台，不写 TS 资产。A10 仅交付 `24_1_39054491_1`，不写数据库、不发问题单。详细发现、文件和复验边界见 [全项目审查](project-review-2026-09-18.md)。
+
+- **O33 runner 安全/回执**：拒绝路径逃逸与符号链接；回执必需集取自最终目标 turn 的持久化消息，不取自 poll 命中；下载重试、终止收集线程 join、落盘字节/哈希验证。外 turn 指针不污染当前 turn，未知形状/歧义失败。备份先 v9 后 v10；`evals/runner-gate/runner-patches/review-hardening.patch` 为**相对原始 v9 的累计补丁**，不能叠加到 v10。
+- **O34 runner 断言/归因**：实际 tool-return 计数；未知缺返回与 turn 归属歧义失败；空产物、错误图表引用、缺支持文件清单失败；错误分类正则加固。历史链无可比样本 exit 2，不能假绿。
+- **O35 评估器**：观察值绑定药物/剂量/试验/时间/数值，单点符号翻转和错误显示标签失败；全文需正文与独立身份支撑，查询证据限定目标 turn；补无基线/空文件/错引用/边界对照。**显式新基线 `2026-09-18-r2`**，A 43 fail + 1 warn，B 12 fail + 1 warn，旧 41→43 不是质量增长；详见 [修订及证据](../evals/fact-check/EVALUATOR_REVISION.md)。
+- **O36 本地 tools**：打包路径/符号链接和缺输入检查、replay 调用/场景/评分失败处理加固；19 tests PASS，dist 重建可重复。
+- **O37 本地引用/实体校验**：引用值/URL、marker parity 与实体检查加固，21 Node tests PASS。`runtime/citation-renderer.mjs` 不是生产实现或 HTML sanitizer，不能由这些测试推导生产前端安全结论。
+- **O38 运行规则适配**：live `deps` 证实 `+esids -extra_esids`；旧提示词要求失效参数，R19/R20 不能归咎模型发明。17 份运行文件纠正参数、`group_count` 入组人数语义、L3 统一权威、全文引用与非 OA 推断；live schema 镜像重生成，本地 `deps --accept` 已接受。三 chart templates 对上游 1.0.12 的 `validateVisualizationFile` PASS，使用隔离 Zod 4.6.5（不是 TS runtime）。
+
+**验证汇总（父任务实跑，本次文档整理据此记账）**：runner 30 + scorer 27 + tools 19 + Node 21 = **97 tests PASS**；mutation **63 controls / A 43/43 / B 12/12 PASS**；历史链 **5 comparable / 36 histories / 31 skipped / 4 no-history**。R17/R18 r2 重判 **43/43**、R20 **12/12**；R14 不是 A，只有两条定向全文核验适用且通过，不能写成 A 满分或回归。
+
+**部署对照（只读）**：本地 prompt **54,311 B / 2ff672b5aa9b**，dist **85,633 B / 19 entries / `4d20d48faeeee012c347aa28eb5956e5238a3e95020999c6b9bd6084fba53b1e`**。线上仍 prompt **1.6 / 53,347 B / b9bfcec19538**，skill **1.0.7 / ad75ec2c44334f389a0394895a47b765**，旧 dist `404dbccf5058`；16/19 文件不同，**status exit 3 为预期**。无 publish、无在线 run，**不创建虚构 R21 记录**。待具体授权发布 prompt + skill，回读一致后 A/B 真跑留真实 R 记录。
+
+**剩余风险**：慢速持续响应仍非硬墙钟 deadline；全文来源/回执验证不证明每个数字的提取来源；C/D 无判分基线。Git 当前 `v0.15-remove-html`，本轮不 commit/push，父任务统一处理。无 Docker 配置，无镜像动作。
+
 ## 3. 我们自己能改的
 
 | # | 现象（证据） | 改法 | 状态 |
 |---|---|---|---|
 | O1 | `deps` 基线漏掉 `read_file`：R1/R2 实际调用 21+9 次，但基线内置工具 10 个里没有它 —— `collect_deps` 只做**文档文本匹配**，而我们的 sys/skill 从不提 `read_file` | `toolsmith-publish` 的内置工具指纹改为取**项目实际启用的工具集**（`GET /api/agent/info?project_id=…` → `tools`，16 个），不再靠文本命中；顺带修了漂移输出把 `NEW builtin` 打成 `NEW buil` 的截断 | **已落地**（基线 16 个，`deps` 复跑 exit 0） |
 | O2 | digest 翻页：R1 里 **12/50** 次调用在按 offset 读同一个 105 KB / 510 行 `digest.txt`（offset 60→499，limit 30–60） | sys `Step discipline` #1 收尾加一句：**每个 digest 文件要能一次读完**（目标 ≤ ~300 行 / 几十 KB）；超了就拆成「每记录一文件」或「index + 每记录文件」，**不要对单个大 digest 反复 offset 读** | **已落地**（sys v0.15，2026-09-14） |
-| O3 | 发明字段：R1 出现 `clinical_result.line_count` → `INVALID_INPUT`（原文见平台 P3），靠重试自愈 | 字段名的**运行期权威 = params 工具自身的 `selected_fields` 参数描述**；逐字复制，**禁止发明**；概念确无字段时取**最接近的真实字段**（组/臂数 → `clinical_result.group_count`，线数 → `clinical_result.therapy_line_cn`/`_en`）或**留空并记「未报告」**。`docs/params-tool-schema.md` 只是维护者镜像（不在部署端包内），明确禁止规划运行期去读它。落到 `SKILL.md`、`references/input-contract.md`、`references/entity-inline-reference.md`、sys | **已落地**（2026-09-14） |
+| O3 | 发明字段：R1 出现 `clinical_result.line_count` → `INVALID_INPUT`（原文见平台 P3），靠重试自愈 | 字段名的**运行期权威 = params 工具自身的 `selected_fields` 参数描述**；逐字复制，**禁止发明**；概念确无字段时取**最接近的真实字段**（线数 → `clinical_result.therapy_line_cn`/`_en`）或**留空并记「未报告」**。**F7 更正：旧「组/臂数 → group_count」建议错误，该字段是入组人数，当前规则已删除臂数映射。**`docs/params-tool-schema.md` 只是维护者镜像（不在部署端包内），明确禁止规划运行期去读它。落到 `SKILL.md`、`references/input-contract.md`、`references/entity-inline-reference.md`、sys | **已落地**（2026-09-14） |
 | O4 | 正文句子级返工：R1 的 19 次 `execute` 里 8 次是 `s.replace()` **就地改写 `build_report.py` 里的模板字面量**，另有 3 次 `edit_file`；都是内容打磨（不是规则返工） | 暂不改规则。若要压：把「正文与渲染分离」（正文放 md/data，脚本只做 token 替换 + 断言）写成硬规则 | **待样本**（再攒 3–5 次运行） |
 | O5 | 小样本不便宜：1 个 esid 也要 21 次调用 / 173 s / 26k reasoning tokens（14 个 esid 是 50 次 / 299 s / 32k）；成本由"读 skill + 套模板"主导，不随结果数线性 | 暂不改。若体感贵，可考虑给"单结果解读"一条更轻的模板路径 | **待样本** |
 | O6 | 台账里写的本地产物路径（`/tmp/toolsmith-runs/...`）全部失效：`/tmp` 被系统清空，早期的 `R1/R2` 产物离线后无法复核（只剩平台侧 thread id 能回捞） | `toolsmith-publish` 的 `WORK` / `RUNS` 改到 `~/.local/state/toolsmith-publish` 与 `~/.local/state/toolsmith-runs`（不用 `/tmp`）；`run --out` 仍可覆盖 | **已落地**（2026-09-14，R3 起生效） |
@@ -1188,6 +1207,13 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O30 | **`tool_results/**` 回执在 run 结束后不可恢复**（2026-09-18 E0 回测）：平台 persist 时删、产物面板过滤 ⇒ `file-download?path=…` 对已结束 run 恒 404；离线扫描 28 个 run 目录 **109 个指针、107 个不可恢复**。而报告里的数字（params JSONL / 抓回来的正文）恰恰只在回执里 | **不进平台问题单**（删/滤是设计如此，属运行期草稿）：runner（`~/.local/bin/toolsmith-publish`）新增 `ReceiptArchiver`，5 s 节奏轮询消息抠指针即时下载 → `<run>/tool_results/**` + `receipts.jsonl` + `run.json.receipts`；两条判定路径各加断言 `tool_results receipts archived`（0 指针 = PASS 且注明 n/a） | **已落地并验证**（R19 暴露目录假指针 → R20 12/12 PASS） |
 | O31 | **拒绝原因印不出来**（2026-09-18，**已修**）：`retry-prompt` 的 `content` 在近期 run 是 pydantic **字符串**、早期 run 是错误 dict 的**列表**，而三处渲染器都按「list of dict」迭代 ⇒ 对字符串迭代再筛 dict，原因永远是空（R18/R19/R20 只印 `- toolname:`） | 新增 `rej_text(reason, n)` 助手（str → 压空白 / list → 合并 dict / None → 显式说明），断言 detail、console、`verification.md` 三处共用；**仅展示层，统计值不变** | 已修（备份 `toolsmith-publish.v8.bak`） |
 | O32 | **`retry-prompt` 归因过粗导致假绿**（2026-09-18，**已修**）：框架在「参数被拒」和「工具自身失败」两种情况下都会重发，旧代码一律记成 schema-rejected，并在 `output-error` 回路按 id 跳过 ⇒ 外部抓取失败**在 `errors` 里不可见**，FAIL 级 `no tool errors` 对 500/403 完全失效（R15/R16/R17/R18 各有一条欧洲 PMC 全文 XML **500**，四轮全绿；产物侧其实已在覆盖行说明了 500） | 分三桶：`rejected`（参数被拒）/ `fetch_failures`（抓取失败：可见 + 打印 + 入 `verification.md`，不判 FAIL）/ 其余落 `errors`（仍 FAIL）；`verify-run-chain.py` 同步把 `rejected + fetch_failures` 当作「tap 看不到的尝试」 | 已修（`GATE: PASS`；断言 18→19 / 12→13 项） |
+| O33 | runner 路径逃逸、符号链接、回执漏采/跨 turn/哈希假绿 | 最终目标 turn 必需集 + 安全落盘 + 重试/join + 文件哈希校验；F7 | 本地已修，30 runner tests PASS；无新线上 run |
+| O34 | runner 缺返回/空产物/错误引用/缺 manifest/归因误判 | 实际 return 计数、目标 turn 隔离、歧义失败、正则加固；F7 | 本地已修；历史链 5 comparable PASS，无样本 exit 2 |
+| O35 | scorer 观察值错配、伪全文、跨 turn 查询与边界假绿 | r2 新基线 + 身份/正文/观察值绑定；F7 | 27 tests / 63 controls PASS；不作质量提升声明 |
+| O36 | pack/replay 安全及不完整输入可能假绿 | 安全打包、调用/场景/评分失败检查；F7 | 19 tests PASS，dist 已重建 |
+| O37 | 本地 citation/entity 校验缺口 | 引用值、URL、marker/entity 检查；F7 | 21 Node tests PASS；不代表生产渲染器或 HTML 清洗 |
+| O38 | 旧参数/臂数字段/L3 规则冲突与过度非 OA 推断 | live `esids` 适配、入组语义、canonical input-contract；F7 | 本地规则及 deps 基线已改；TS 发布与真跑待授权 |
+
 ## 4. 平台侧（转开发）
 
 完整、可直接转发的版本见 Obsidian：

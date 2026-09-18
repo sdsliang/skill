@@ -11,7 +11,7 @@ least one item, the mutated run must exit 3, and the union over all mutations mu
 cover every fail-severity item in the checklist.
 
 Arm A: the report-producing run R17 (2026-09-18, 2 valid esids, sign-convention round).  It is a
-real, fully-passing artifact (41/41 fail-severity items) and it already carries the
+real, fully-passing artifact (43/43 under evaluator r2) and it already carries the
 `原文核对：` line, so the baseline is scored as recorded — nothing is seeded into the copy.
 `NEG_A` gives the same arm four *must stay green* controls: the two O19 mixed-sentence shapes,
 the O20 "both subjects named" title, and the legal L3 full-text shape (N28 = archive + full-text
@@ -58,9 +58,10 @@ def fresh(name, src, files, with_artifacts):
             os.path.join(d, "artifacts", "visualizations"))
 
 
-# A minimal JATS body used by M21/M22/N28 to put a real full text under `sources/`.
-FT_XML = ('<?xml version="1.0"?>\n<article><front><article-title>t</article-title></front>'
-          '<body><sec><title>Results</title><p>ORR was 35.0% (95% CI, 23.1-48.4).</p></sec></body></article>\n')
+# Synthetic nonclinical carrier; never a source fixture or evidence of an actual article.
+FT_XML = ('<?xml version="1.0"?>\n<article><front><article-title>Synthetic blocks</article-title></front>'
+          '<body><sec><title>Results</title><p>Colored wooden blocks were sorted by shape on a table. '
+          'This is a synthetic nonclinical evaluator test.</p></sec></body></article>\n')
 # The full-text-depth declaration M22/N28 write into the coverage line (A-P5 stays satisfied there,
 # so the only thing under test is where the citation points and whether bytes exist).
 FT_LINE = ("> **原文核对：** 2/2 条已复核（src=1 取 PMC 全文 PMC11270764；"
@@ -68,18 +69,18 @@ FT_LINE = ("> **原文核对：** 2/2 条已复核（src=1 取 PMC 全文 PMC112
 
 
 def ft_body(pmid, pmcid="PMC11270764"):
-    """A JATS body that identifies itself (PMCID + PMID), the way Europe PMC's `fullTextXML` does.
+    """Synthetic nonclinical JATS: IDs exercise mapping logic, never establish source facts.
 
-    Identity matters since O29: the scorer attributes an archived body to a ref through the
-    `ref_<n>` prefix, an esid, a matching `PMC<id>`, or a matching PMID.  A body carrying no id at
-    all cannot be attributed to any record, so it proves nothing about the citation link.
+    This is not the paper at the supplied PMID/PMCID. Only test copies receive it.
+    Real R14 evidence is independently checked by rescore_revision.py.
     """
     return ('<?xml version="1.0" encoding="UTF-8"?>\n'
             '<article xml:lang="en" article-type="research-article"><front><article-meta>'
             f'<article-id pub-id-type="pmcid">{pmcid}</article-id>'
             f'<article-id pub-id-type="pmid">{pmid}</article-id>'
             '</article-meta></front><body><sec><title>Results</title>'
-            '<p>ORR was 35.0% (95% CI, 23.1-48.4).</p></sec></body></article>\n')
+            '<p>SYNTHETIC TEST ONLY: colored wooden blocks were sorted by shape on a table. '
+            'The inventory recorded square, round and triangular blocks separately.</p></sec></body></article>\n')
 
 
 def archive_fulltext(d, c, pmcid="PMC11270764"):
@@ -118,13 +119,14 @@ def sub_lit(path, literal, rep, count=1):
 
 
 def score(run_dir, scenario):
-    subprocess.run([sys.executable, CK, "--run", run_dir, "--scenario", scenario,
-                    "--json", os.path.join(run_dir, "score.json")],
-                   capture_output=True, text=True)
+    proc = subprocess.run([sys.executable, CK, "--run", run_dir, "--scenario", scenario,
+                           "--json", os.path.join(run_dir, "score.json")],
+                          capture_output=True, text=True)
+    if proc.returncode not in (0, 3):
+        raise RuntimeError(f"scorer unusable rc={proc.returncode}: {proc.stderr or proc.stdout}")
     res = json.load(open(os.path.join(run_dir, "score.json"), encoding="utf-8"))
     bad = [i["id"] for i in res["items"] if not i["ok"] and i["severity"] == "fail"]
-    return subprocess.run([sys.executable, CK, "--run", run_dir, "--scenario", scenario],
-                          capture_output=True, text=True).returncode, bad, res
+    return proc.returncode, bad, res
 
 
 # --------------------------------------------------------------- arm A mutations
@@ -367,7 +369,129 @@ def M28(d, r, c, v):  # claim full-text depth without fetching anything (the con
     return 1
 
 
+def M29(d, r, c, v):
+    """Swap two chart labels while leaving the sorted magnitude bag unchanged."""
+    p = os.path.join(v, "endpoint-bar-1.json")
+    j = json.load(open(p, encoding="utf-8"))
+    j["option"]["data"][0]["label"], j["option"]["data"][1]["label"] = (
+        j["option"]["data"][1]["label"], j["option"]["data"][0]["label"])
+    json.dump(j, open(p, "w"), ensure_ascii=False, indent=1)
+    return 1
+
+
+def M30(d, r, c, v):
+    """Flip one chart observation's sign without changing its magnitude."""
+    p = os.path.join(v, "endpoint-bar-1.json")
+    j = json.load(open(p, encoding="utf-8"))
+    j["option"]["data"][1]["value"] = abs(j["option"]["data"][1]["value"])
+    json.dump(j, open(p, "w"), ensure_ascii=False, indent=1)
+    return 1
+
+
+def M31(d, r, c, v):
+    """Replace the expected bar chart with a wrong line chart."""
+    p = os.path.join(v, "endpoint-bar-1.json")
+    j = json.load(open(p, encoding="utf-8"))
+    j["option"]["type"] = "line"
+    os.rename(p, os.path.join(v, "endpoint-line-1.json"))
+    json.dump(j, open(os.path.join(v, "endpoint-line-1.json"), "w"), ensure_ascii=False, indent=1)
+    return 1
+
+
+def M32(d, r, c, v):
+    """Attach an unsigned B value to ref_1, the reviewer-found ownership hole."""
+    return sub(r, r"\Z", "\n\n依洛尤单抗降低 70.5%{{ref_1}}。\n")
+
+
+def M33(d, r, c, v):
+    """Use an empty PMC filename and matching citation URL: filename equality is not evidence."""
+    j = json.load(open(c, encoding="utf-8"))
+    j["ref_1"]["link"] = "https://pmc.ncbi.nlm.nih.gov/articles/PMC99999999/"
+    json.dump(j, open(c, "w"), ensure_ascii=False, indent=1)
+    src = os.path.join(d, "artifacts", "sources")
+    os.makedirs(src, exist_ok=True)
+    open(os.path.join(src, "PMC99999999_fulltext_jats.xml"), "w", encoding="utf-8").write("")
+    return 1
+
+
+def M34(d, r, c, v):
+    """Archive nonempty full-text-shaped content with no independent PMID/PMCID."""
+    src = os.path.join(d, "artifacts", "sources")
+    os.makedirs(src, exist_ok=True)
+    open(os.path.join(src, "PMC99999999_fulltext_jats.xml"), "w", encoding="utf-8").write(
+        "<article><body><p>nonempty body without independent article mapping</p></body></article>")
+    return 1
+
+
+def M35(d, r, c, v):
+    """A different allowed bar filename must not bypass observation validation."""
+    M29(d, r, c, v)
+    os.rename(os.path.join(v, "endpoint-bar-1.json"), os.path.join(v, "endpoint-bar-7.json"))
+    return 1
+
+
+def M36(d, r, c, v):
+    """Matching PMCID but a different article PMID cannot back the selected source."""
+    j = archive_fulltext(d, c, "PMC99999999")
+    path = os.path.join(d, "artifacts", "sources", "PMC99999999_fulltext_jats.xml")
+    open(path, "w", encoding="utf-8").write(ft_body("87654321", "PMC99999999"))
+    j["ref_1"]["link"] = "https://pmc.ncbi.nlm.nih.gov/articles/PMC99999999/"
+    json.dump(j, open(c, "w"), ensure_ascii=False)
+    return 1
+
+
+def M37(d, r, c, v):
+    open(os.path.join(v, "endpoint-bar-1.json"), "w").write("{broken")
+    return 1
+
+
+def M38(d, r, c, v):
+    return sub(r, r"\Z", "\n原文 36.0；库内记录 18.5{{ref_1}}。库内记录 90{{ref_1}}。\n")
+
+
+def chart_tooltip_conflict(v, label):
+    path = os.path.join(v, "endpoint-bar-1.json")
+    chart = json.load(open(path, encoding="utf-8"))
+    row = chart["option"]["data"][0]
+    row["description"] = row["label"] + " " + row["description"]
+    row["label"] = label
+    json.dump(chart, open(path, "w"), ensure_ascii=False)
+    return 1
+
+
+def M39(d, r, c, v):
+    return chart_tooltip_conflict(v, "奥帕司兰")
+
+
+def M40(d, r, c, v):
+    return chart_tooltip_conflict(v, "依洛尤单抗 75 mg")
+
+
+def M41(d, r, c, v):
+    return chart_tooltip_conflict(v, "依洛尤单抗 第 36 周")
+
+
+def M42(d, r, c, v):
+    j = json.load(open(c, encoding="utf-8"))
+    pmid = re.search(r"pubmed\.ncbi\.nlm\.nih\.gov/(\d+)", j["ref_1"]["link"])[1]
+    j["ref_1"]["link"] = "https://pmc.ncbi.nlm.nih.gov/articles/PMC99999999/"
+    json.dump(j, open(c, "w"), ensure_ascii=False)
+    src = os.path.join(d, "artifacts", "sources")
+    os.makedirs(src, exist_ok=True)
+    open(os.path.join(src, "PMC99999999_plain.txt"), "w").write(
+        f"PMC99999999 PMID:{pmid}\nMethods\n" + "x" * 200)
+    return 1
+
+
 MUTS_A = [
+    ("M39 tooltip-hides-wrong-drug", M39, "A-S9b-chart-observation-identity"),
+    ("M40 tooltip-hides-wrong-dose", M40, "A-S9b-chart-observation-identity"),
+    ("M41 tooltip-hides-wrong-time", M41, "A-S9b-chart-observation-identity"),
+    ("M42 plaintext-self-claimed-PMID", M42, "A-P9-fulltext-cite-has-body"),
+    ("M35 renamed-label-swap", M35, "A-S9b-chart-observation-identity"),
+    ("M36 wrong-source-fulltext", M36, "A-P9-fulltext-cite-has-body"),
+    ("M37 malformed-chart", M37, "A-S2a-chart-structure"),
+    ("M38 paired-claim-no-blanket-exemption", M38, "A-P2-divergence-shows-both"),
     ("M01 minus139", M01, "A-C4-primary-A"),
     ("M02 signflip", M02, "A-N2-no-sign-flip"),
     ("M03 drop-trial-id", M03, "A-C2-trial-identity-B"),
@@ -396,6 +520,12 @@ MUTS_A = [
     ("M25 split-convention", M25, "A-S10-sign-convention-consistent"),
     ("M26 generic-title", M26, "A-T1-title-identifies-scope"),
     ("M27 value-misattribution-under-exemption", M27, "A-ATTR-misattribution"),
+    ("M29 chart-label-swap", M29, "A-S9b-chart-observation-identity"),
+    ("M30 chart-sign-flip", M30, "A-S9b-chart-observation-identity"),
+    ("M31 wrong-line-chart", M31, "A-S2-chart-set"),
+    ("M32 unsigned-wrong-owner", M32, "A-ATTR-misattribution"),
+    ("M33 empty-fulltext-filename", M33, "A-P9-fulltext-cite-has-body"),
+    ("M34 unmapped-fulltext-body", M34, "A-P6-cite-link-is-deepest"),
 ]
 
 # --------------------------------------------------------------- arm B mutations
@@ -464,7 +594,57 @@ def MB11(d, r, c, v):
     return sub(p, "evolocumab", "某降脂单抗")
 
 
+def mutate_b_calls(d, mode):
+    path = os.path.join(d, "debug-history.json")
+    history = json.load(open(path, encoding="utf-8"))
+    calls = []
+    for message in history["raw_model_messages"]:
+        parts = message["parts"]
+        matching = [p for p in parts if p.get("part_kind") == "tool-call" and
+                    p.get("tool_name") == "pharmcube-query-clinical-result-with-params"]
+        if mode == "current":
+            for part in matching:
+                args = part["args"]
+                args = json.loads(args) if isinstance(args, str) else args
+                args["esids"] = args.pop("extra_esids")
+                part["args"] = args
+        else:
+            calls.extend(matching)
+            message["parts"] = [p for p in parts if p not in matching]
+    if mode == "nested":
+        history["raw_model_messages"].append({'kind': 'request', 'parts': [
+            {'part_kind': 'tool-return', 'tool_name': 'execute', 'content': calls}]})
+    elif mode == "foreign":
+        target = history['raw_ui_messages'][0]['turn_id']
+        json.dump({'turn_id': target}, open(os.path.join(d, 'run.json'), 'w'))
+        history['raw_model_messages'].append({'kind': 'response', 'turn_id': 'foreign', 'parts': calls})
+    elif mode == "ambiguous":
+        history['raw_ui_messages'].append({'role': 'user', 'turn_id': 'foreign', 'parts': []})
+        history['raw_model_messages'].append({'kind': 'response', 'parts': calls})
+    json.dump(history, open(path, 'w'), ensure_ascii=False)
+    return 1
+
+
+def MB12(d, r, c, v):
+    return mutate_b_calls(d, 'foreign')
+
+
+def MB13(d, r, c, v):
+    return mutate_b_calls(d, 'nested')
+
+
+def MB14(d, r, c, v):
+    return mutate_b_calls(d, 'ambiguous')
+
+
+def NB01(d, r, c, v):
+    return mutate_b_calls(d, 'current')
+
+
 MUTS_B = [
+    ("MB12 foreign-turn-calls", MB12, "B-T1-queried-then-refused"),
+    ("MB13 nested-counterfeit-calls", MB13, "B-T1-queried-then-refused"),
+    ("MB14 ambiguous-target-turn", MB14, "B-T1-queried-then-refused"),
     ("MB01 writes-report", MB01, "B-S1-no-report"),
     ("MB02 writes-chart", MB02, "B-S2-no-charts"),
     ("MB03 claims-produced", MB03, "B-A7-no-production-claim"),
@@ -485,12 +665,10 @@ MUTS_B = [
 # (N28 = the legal L3 full-text shape) — regression guards for exemptions and for attribution, which
 # the positive list cannot express.
 def N28(d, r, c, v):
-    """**Legal L3 shape (R14, 2026-09-18)** — archive + full-text link + declaration all stay green.
+    """Synthetic positive control for archive + source identity + full-text link + declaration.
 
-    R14 is the real artifact the L3 rule came from: `PMC11270764_fulltext_jats.xml` in `sources/`
-    (named by PMCID, no `ref_` prefix), `citations.json` pointing ref_1 at the PMC article page, the
-    coverage line naming the PMCID and 全文.  Positive control for the whole chain — A-P5 (declared),
-    A-P6 (link is the deepest, attributed through the PMCID), A-P9 (the bytes exist).
+    It borrows R14's archive naming layout only. Its wooden-block body is synthetic;
+    the separately archived R14 originals are tested by rescore_revision.py.
     """
     j = archive_fulltext(d, c)
     j["ref_1"]["link"] = "https://pmc.ncbi.nlm.nih.gov/articles/PMC11270764/"
@@ -498,27 +676,45 @@ def N28(d, r, c, v):
     return sub(r, r"原文核对：[^\n]*\n", FT_LINE)
 
 
+def N29(d, r, c, v):
+    """Legal paired divergence split at Chinese semicolon remains green."""
+    return sub(r, r"\Z", "\n\n原文 36.0；库内记录 18.5{{ref_1}}。\n")
+
+
+def N30(d, r, c, v):
+    path = os.path.join(v, "endpoint-bar-1.json")
+    chart = json.load(open(path))
+    chart["option"]["data"].reverse()
+    os.unlink(path)
+    json.dump(chart, open(os.path.join(v, "endpoint-bar-7.json"), "w"), ensure_ascii=False)
+    return 1
+
+
 NEG_A = [
+    ("N30 renamed-reordered-chart", N30, "A-S9b-chart-observation-identity"),
     ("N25 mixed-sentence-not-misattributed", N25, "A-ATTR-misattribution"),
     ("N26 theme-title-accepted", N26, "A-T1-title-identifies-scope"),
     ("N27 trial-id-contrast-sentence", N27, "A-ATTR-misattribution"),
     ("N28 fulltext-claim-with-bytes", N28, "A-P6-cite-link-is-deepest"),
+    ("N29 paired-divergence", N29, "A-P2-divergence-shows-both"),
 ]
-NEG_B = []
+NEG_B = [("NB01 current-esids-schema", NB01, "B-T1-queried-then-refused")]
 NEG = {"a": NEG_A, "b": NEG_B}
 
 
 def arm(scenario, src, files, with_artifacts, muts):
     if not os.path.isdir(src):
-        print(f"arm {scenario}: SKIP (run dir not found: {src})")
-        return True, [], []
+        print(f"arm {scenario}: FAIL (required baseline run dir not found: {src})")
+        return False, ["<baseline-missing>"], [("baseline", "recorded run directory", [])]
     # Score the recorded run copy *as recorded*: arm A's baseline (R17) postdates the
     # original-source contract and already carries the `原文核对：` line, so no seeding is needed
     # (before 2026-09-18 arm A was R8 and one line had to be injected — see the README history).
     bd, _, _, _ = fresh("baseline", src, files, with_artifacts)
     rc0, bad0, base = score(bd, scenario)
     shutil.rmtree(bd, ignore_errors=True)
-    assert rc0 == 0 and not bad0, f"baseline {scenario} not clean: rc={rc0} bad={bad0}"
+    if rc0 != 0 or bad0:
+        print(f"arm {scenario}: FAIL (baseline not clean: rc={rc0} bad={bad0})")
+        return False, ["<baseline-not-clean>"], [("baseline", "clean recorded run", bad0)]
     total = {i["id"] for i in base["items"] if i["severity"] == "fail"}
     print(f"baseline {scenario}: {len(total)} fail-severity items, all PASS")
     covered, mismatch, ok = set(), [], True

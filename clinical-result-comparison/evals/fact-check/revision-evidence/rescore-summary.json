@@ -1,0 +1,105 @@
+{
+  "R14": {
+    "evaluator_revision": "2026-09-18-r2",
+    "run": "20260918-092000-resume-r14-l3-recollect",
+    "entry_score": "28/43",
+    "revised_score": "26/43",
+    "failures": [
+      "A-S5-cite-ref1-record",
+      "A-S6-cite-ref2-record",
+      "A-T1-title-identifies-scope",
+      "A-C1-trial-identity-A",
+      "A-C2-trial-identity-B",
+      "A-C3-mechanism",
+      "A-C4-primary-A",
+      "A-C5-primary-B-4doses",
+      "A-C6-primary-B-placebo",
+      "A-C7-timepoints",
+      "A-C9-mds-tbr-A",
+      "A-C11-sample-size",
+      "A-C11b-sample-size-B",
+      "A-C13-safety",
+      "A-C16-hard-outcome-gap",
+      "A-P6-cite-link-is-deepest",
+      "A-P9-fulltext-cite-has-body"
+    ],
+    "applicability": "NOT scenario A; overall score is diagnostic only, not a quality baseline",
+    "focused_fulltext": {
+      "op_cite_link_is_deepest": {
+        "ok": true,
+        "detail": "1 independently attributed full-text ref(s)"
+      },
+      "op_fulltext_cite_has_body": {
+        "ok": true,
+        "detail": "1 full-text claims backed by source-identified bodies"
+      },
+      "bodies": [
+        {
+          "name": "PMC11270764_plain.txt",
+          "valid": true,
+          "pmid": [
+            "39054491"
+          ],
+          "pmcid": [
+            "PMC11270764"
+          ]
+        },
+        {
+          "name": "PMC11270764_fulltext_jats.xml",
+          "valid": true,
+          "pmid": [
+            "39054491"
+          ],
+          "pmcid": [
+            "PMC11270764"
+          ]
+        }
+      ],
+      "source_context": {
+        "check": {
+          "esids": [
+            "24_1_39054491_1",
+            "24_1_42477684_1"
+          ]
+        },
+        "fixture": {
+          "response": {
+            "result": {
+              "data": [
+                {
+                  "clinical_result_extra_esid": "24_1_42477684_1",
+                  "clinical_result_full_article_link": "https://pubmed.ncbi.nlm.nih.gov/42477684"
+                },
+                {
+                  "clinical_result_extra_esid": "24_1_39054491_1",
+                  "clinical_result_full_article_link": "https://pubmed.ncbi.nlm.nih.gov/39054491"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "R17": {
+    "evaluator_revision": "2026-09-18-r2",
+    "run": "20260918-095553-r17-sign-convention",
+    "entry_score": "42/43",
+    "revised_score": "43/43",
+    "failures": []
+  },
+  "R18": {
+    "evaluator_revision": "2026-09-18-r2",
+    "run": "20260918-110804-r18-abstract-size",
+    "entry_score": "42/43",
+    "revised_score": "43/43",
+    "failures": []
+  },
+  "B": {
+    "evaluator_revision": "2026-09-18-r2",
+    "run": "20260914-174145-b2-refusal",
+    "entry_score": "12/12",
+    "revised_score": "12/12",
+    "failures": []
+  }
+}

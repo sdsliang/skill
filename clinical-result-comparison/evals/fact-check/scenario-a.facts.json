@@ -33,12 +33,10 @@
       "pattern": "visualizations/*.json",
       "allowed": [
         "endpoint-bar-*.json",
-        "endpoint-line-*.json",
         "evidence-timeline.json"
       ],
       "quant_globs": [
-        "endpoint-bar-*.json",
-        "endpoint-line-*.json"
+        "endpoint-bar-*.json"
       ],
       "max_quant": 1,
       "forbidden": [
@@ -47,6 +45,21 @@
       "forbidden_why": "evidence-timeline 的前置条件是『所有入选结果同属一个试验且 >=2 个不同证据状态』；本场景两 esid 分属不同试验",
       "evidence": "两 esid 分属不同试验 → timeline 前置条件不成立；余下只有『每组至多 1 张、总量至多 1 张』的横截面柱状，且它是可选的",
       "rationale": "图表集合必须与『最多两张、timeline 有条件、定量主图可选』的规则一致；出图必须用合法文件名与合法类型（多出 timeline / 两张定量图 / 野文件名都说明模式判定或命名错了）。空集合不算违规，由 A-S2b 兜底"
+    },
+    {
+      "id": "A-S2a-chart-structure",
+      "kind": "shape",
+      "op": "charts_structural",
+      "chart_id": "chart-visualization-json",
+      "iframe_template_regex": "^https://\\S+$",
+      "quant_globs": [
+        "endpoint-bar-*.json"
+      ],
+      "quant_types": [
+        "bar"
+      ],
+      "evidence": "每个落盘图表都必须是可渲染的 chart-visualization-json；定量行必须有标签、有限数值和可审计的描述",
+      "rationale": "允许的文件名本身不能证明图表可用；逐个检查所有图表和所有定量行，防止折线/空行/缺描述绕过"
     },
     {
       "id": "A-S2b-chart-or-reason",
@@ -153,7 +166,8 @@
       },
       "evidence": "chart-visualization-json 协议 envelope：{id, iframe_template, option}；5 条数据 = 依洛尤单抗 1 组 + 奥帕司兰 4 个剂量组",
       "rationale": "envelope 缺失/类型错会静默渲染失败；label 为空说明数据行没填 ｜ **2026-09-17 改为条件式**：文件不存在时本项 PASS（定量主图可选），此时『为什么不出图』由 A-S2b-chart-or-reason 断言；文件存在时本项仍然是硬断言。",
-      "optional_when_absent": true
+      "optional_when_absent": true,
+      "pattern": "endpoint-bar-*.json"
     },
     {
       "id": "A-S9-chart-values",
@@ -168,8 +182,193 @@
         -100.5
       ],
       "evidence": "abstract_text：Lp(a) 降 13.9%（试验 A）；-70.5%（10 mg q12w）/ -97.4%（75 mg q12w）/ -101.1%（225 mg q12w）/ -100.5%（225 mg q24w）（试验 B）",
-      "rationale": "图上数值必须逐值与记录一致：图是唯一可直接被读者当作数据的产物 ｜ **2026-09-17 改为条件式**：文件不存在时本项 PASS（定量主图可选），此时『为什么不出图』由 A-S2b-chart-or-reason 断言；文件存在时本项仍然是硬断言。 ｜ **2026-09-18 改为符号无关**：图表数值与记录值比**绝对值**（`|got|` vs `|want|`），因为「正幅度 + 降幅」与「负号」是等价写法；数值本身仍精确比较（M10 把 13.9 改成 19.9 翻 FAIL），报告与图表是否同一口径由 A-S10 断言。",
-      "optional_when_absent": true
+      "rationale": "Evaluator r2: values are compared per observation identity, never as a sorted magnitude bag. This legacy item and A-S10 delegate to the same identity check and are not independent evidence.",
+      "optional_when_absent": true,
+      "pattern": "endpoint-bar-*.json",
+      "observations": [
+        {
+          "value": -13.9,
+          "identity_patterns": [
+            "依洛尤单抗|evolocumab",
+            "(?<!\\d)420\\s*mg",
+            "(?:每月|QM)",
+            "NCT02729025",
+            "(?:第\\s*16\\s*周|Week\\s*16|16-week)"
+          ],
+          "report_identity_patterns": [
+            "依洛尤单抗|evolocumab",
+            "(?<!\\d)420\\s*mg",
+            "(?:每月|QM)"
+          ],
+          "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
+          "owner": "ref_1"
+        },
+        {
+          "value": -70.5,
+          "identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)10\\s*mg",
+            "Q12W",
+            "OCEAN\\(a\\)-DOSE|NCT04270760",
+            "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
+          ],
+          "report_identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)10\\s*mg",
+            "Q12W"
+          ],
+          "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
+          "owner": "ref_2"
+        },
+        {
+          "value": -97.4,
+          "identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)75\\s*mg",
+            "Q12W",
+            "OCEAN\\(a\\)-DOSE|NCT04270760",
+            "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
+          ],
+          "report_identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)75\\s*mg",
+            "Q12W"
+          ],
+          "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
+          "owner": "ref_2"
+        },
+        {
+          "value": -100.5,
+          "identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)225\\s*mg",
+            "Q24W",
+            "OCEAN\\(a\\)-DOSE|NCT04270760",
+            "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
+          ],
+          "report_identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)225\\s*mg",
+            "Q24W"
+          ],
+          "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
+          "owner": "ref_2"
+        },
+        {
+          "value": -101.1,
+          "identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)225\\s*mg",
+            "Q12W",
+            "OCEAN\\(a\\)-DOSE|NCT04270760",
+            "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
+          ],
+          "report_identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)225\\s*mg",
+            "Q12W"
+          ],
+          "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
+          "owner": "ref_2"
+        }
+      ]
+    },
+    {
+      "id": "A-S9b-chart-observation-identity",
+      "kind": "shape",
+      "op": "chart_observations",
+      "file": "endpoint-bar-1.json",
+      "optional_when_absent": true,
+      "observations": [
+        {
+          "value": -13.9,
+          "identity_patterns": [
+            "依洛尤单抗|evolocumab",
+            "(?<!\\d)420\\s*mg",
+            "(?:每月|QM)",
+            "NCT02729025",
+            "(?:第\\s*16\\s*周|Week\\s*16|16-week)"
+          ],
+          "report_identity_patterns": [
+            "依洛尤单抗|evolocumab",
+            "(?<!\\d)420\\s*mg",
+            "(?:每月|QM)"
+          ],
+          "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
+          "owner": "ref_1"
+        },
+        {
+          "value": -70.5,
+          "identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)10\\s*mg",
+            "Q12W",
+            "OCEAN\\(a\\)-DOSE|NCT04270760",
+            "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
+          ],
+          "report_identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)10\\s*mg",
+            "Q12W"
+          ],
+          "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
+          "owner": "ref_2"
+        },
+        {
+          "value": -97.4,
+          "identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)75\\s*mg",
+            "Q12W",
+            "OCEAN\\(a\\)-DOSE|NCT04270760",
+            "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
+          ],
+          "report_identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)75\\s*mg",
+            "Q12W"
+          ],
+          "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
+          "owner": "ref_2"
+        },
+        {
+          "value": -100.5,
+          "identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)225\\s*mg",
+            "Q24W",
+            "OCEAN\\(a\\)-DOSE|NCT04270760",
+            "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
+          ],
+          "report_identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)225\\s*mg",
+            "Q24W"
+          ],
+          "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
+          "owner": "ref_2"
+        },
+        {
+          "value": -101.1,
+          "identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)225\\s*mg",
+            "Q12W",
+            "OCEAN\\(a\\)-DOSE|NCT04270760",
+            "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
+          ],
+          "report_identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)225\\s*mg",
+            "Q12W"
+          ],
+          "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
+          "owner": "ref_2"
+        }
+      ],
+      "evidence": "每个横档必须把药物、剂量/方案、终点、时点和该观察值绑定；不能把数值排序后脱离观察身份比较",
+      "rationale": "交换药物标签或交换同一终点的数值会保留绝对值集合，却改变临床观察的含义；逐行身份映射才能抓住该错误",
+      "pattern": "endpoint-bar-*.json"
     },
     {
       "id": "A-S10-sign-convention-consistent",
@@ -184,7 +383,96 @@
         -100.5
       ],
       "evidence": "R8/R12/R15 报告写 `−13.9`（U+2212）、图表 `-13.9`；R16（2026-09-18）报告全篇写「降低 13.9%／降幅 70.5%～101.1%」、图表 `[13.9,70.5,97.4,100.5,101.1]` 全为正幅度。合同里没有关于符号/幅度的任何字（grep 无命中）⇒ 每次由模型自选",
-      "rationale": "用户 2026-09-18 定案：**两种写法都可以，只要同一份交付物自洽**。所以口径不写死，但**报告与图表必须同一口径**——正文写 `70.5`、图上画 `-70.5` 时，读者无法确认两者是不是同一个量（反之亦然）。只检查**被画进图的那几个量**：点估计写「降低 13.9%」、置信区间写 `-19.3～-8.5` 是正常且自洽的渲染，不算混用。另外：方向**措辞**在两种口径下都没有被断言（带符号写法里「升高 −13.9%」同样能过），所以放宽为幅度写法不损失覆盖面。"
+      "rationale": "Check each identified drug/dose/endpoint/time observation against its cited report observation; signs are independent of row order. Positive magnitude requires reduction wording.",
+      "pattern": "endpoint-bar-*.json",
+      "observations": [
+        {
+          "value": -13.9,
+          "identity_patterns": [
+            "依洛尤单抗|evolocumab",
+            "(?<!\\d)420\\s*mg",
+            "(?:每月|QM)",
+            "NCT02729025",
+            "(?:第\\s*16\\s*周|Week\\s*16|16-week)"
+          ],
+          "report_identity_patterns": [
+            "依洛尤单抗|evolocumab",
+            "(?<!\\d)420\\s*mg",
+            "(?:每月|QM)"
+          ],
+          "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
+          "owner": "ref_1"
+        },
+        {
+          "value": -70.5,
+          "identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)10\\s*mg",
+            "Q12W",
+            "OCEAN\\(a\\)-DOSE|NCT04270760",
+            "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
+          ],
+          "report_identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)10\\s*mg",
+            "Q12W"
+          ],
+          "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
+          "owner": "ref_2"
+        },
+        {
+          "value": -97.4,
+          "identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)75\\s*mg",
+            "Q12W",
+            "OCEAN\\(a\\)-DOSE|NCT04270760",
+            "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
+          ],
+          "report_identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)75\\s*mg",
+            "Q12W"
+          ],
+          "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
+          "owner": "ref_2"
+        },
+        {
+          "value": -100.5,
+          "identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)225\\s*mg",
+            "Q24W",
+            "OCEAN\\(a\\)-DOSE|NCT04270760",
+            "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
+          ],
+          "report_identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)225\\s*mg",
+            "Q24W"
+          ],
+          "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
+          "owner": "ref_2"
+        },
+        {
+          "value": -101.1,
+          "identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)225\\s*mg",
+            "Q12W",
+            "OCEAN\\(a\\)-DOSE|NCT04270760",
+            "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
+          ],
+          "report_identity_patterns": [
+            "奥帕司兰|olpasiran",
+            "(?<!\\d)225\\s*mg",
+            "Q12W"
+          ],
+          "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
+          "owner": "ref_2"
+        }
+      ],
+      "optional_when_absent": true
     },
     {
       "id": "A-T1-title-identifies-scope",
@@ -352,7 +640,7 @@
         "ref_1"
       ],
       "patterns": [
-        "129"
+        "(?<![\\d.])129(?![\\d.])"
       ],
       "evidence": "记录 A abstract '129 patients … were randomized'；group_count='129'",
       "rationale": "样本量是可比性的基本维度"
@@ -365,7 +653,7 @@
         "ref_2"
       ],
       "patterns": [
-        "281"
+        "(?<![\\d.])281(?![\\d.])"
       ],
       "evidence": "记录 B abstract 'Among the 281 enrolled patients'；arms: 安慰剂 54 例、奥帕司兰 58/58/56/55 例（合计 281）",
       "rationale": "同上"
@@ -476,11 +764,15 @@
           "subject": true
         },
         {
-          "token": "[\\u2212-]70\\.5|-97\\.4|-101\\.1|-100\\.5",
+          "token": "(?<![\\d.])(?:[−-]\\s*)?70\\.5(?![\\d.])",
           "owner": "ref_2"
         },
         {
-          "token": "[\\u2212-]13\\.9|-8\\.3|-5\\.3",
+          "token": "(?<![\\d.])(?:[−-]\\s*)?(?:97\\.4|101\\.1|100\\.5)(?![\\d.])",
+          "owner": "ref_2"
+        },
+        {
+          "token": "(?<![\\d.])(?:[−-]\\s*)?(?:13\\.9|8\\.3|5\\.3)(?![\\d.])",
           "owner": "ref_1"
         }
       ],
@@ -517,6 +809,7 @@
       "id": "A-P2-divergence-shows-both",
       "kind": "sent_if",
       "surface": "report",
+      "paired_divergence": true,
       "if_regex": "库内记录",
       "patterns": [
         "原文",
@@ -552,7 +845,7 @@
       "id": "A-P6-cite-link-is-deepest",
       "kind": "shape",
       "op": "cite_link_is_deepest",
-      "evidence": "/workspace/sources/ 下每份全文正文（文件名含 fulltext/pmc<数字>，或前 4 KB 含 <article>/<sec>/<body>）都必须先归到某个 ref：文件名 `ref_<n>` 前缀 / 文件名或正文里的 esid / 与 citation link 相同的 PMC<id> / 与 citation link 相同的 PMID，四条通道任一命中即归位；归位后 citations.json 里该 ref 的 link 必须指向全文载体（白名单：https://pmc.ncbi.nlm.nih.gov/articles/PMC<id>/ 或 https://www.ebi.ac.uk/europepmc/webservices/rest/PMC<id>/fullTextXML），或至少带同一个 PMC<id>。未归档全文、或归档了但四条通道都归不到任何 ref 时不触发（其 link 仍逐字节来自 full_article_link）；归不到的具体文件名会写进诊断信息",
+      "evidence": "Evaluator r2: sources must contain a nonempty article body with its own metadata. Attribute to the frozen record PMID, using JATS article-meta PMID/PMCID pairs or independently archived structured mapping responses for plaintext. Filenames, bibliography identifiers and generated citation URLs are never identity evidence.",
       "rationale": "用户 2026-09-17 的 L3 决策：基于全文分析的记录，ref 必须指真正的全文，而不是原来的 PubMed 摘要页——否则点开上标链接的人看到的页面里没有报告用到的数值。与 A-P5（覆盖行必须声明全文）互补：一个管正文声明，一个管引用落点",
       "severity": "fail"
     },
@@ -580,10 +873,12 @@
       "kind": "shape",
       "op": "fulltext_cite_has_body",
       "link_field": "clinical_result_full_article_link",
-      "evidence": "L3 决策的反向：citations.json 的 link 一旦指向全文载体（白名单同 A-P6），就必须有对应正文落在 /workspace/sources/ 下（文件名或前 4 KB 里出现同一个 PMC<id>）；link 逐字节等于记录自身 full_article_link 时不算深度声明、跳过。依据：input-contract.md 要求 web_fetch 取回的正文一律拷到 /workspace/sources/（随 run 归档 ⇒ 可审计），所以「按全文分析」这个声明在磁盘上必须能对上字节",
+      "evidence": "Evaluator r2: sources must contain a nonempty article body with its own metadata. Attribute to the frozen record PMID, using JATS article-meta PMID/PMCID pairs or independently archived structured mapping responses for plaintext. Filenames, bibliography identifiers and generated citation URLs are never identity evidence.",
       "rationale": "A-P6 只有单向：归档了全文 ⇒ 引用必须指全文。于是没有东西阻止一份产物把 link 写成 PMC 全文页（甚至凭空写一个 PMC 号）而其实一个字都没取——引用声称「按全文分析」，磁盘上没有任何东西能反驳。补上反向（声明深度 ⇒ 必须有字节）才算闭环：A-P9 管「到底取了没有」、A-P5 管「有没有向读者声明」、A-P6 管「引用落点对不对」。反例对照：M28（凭空写 PMC 全文链接、无归档）必须翻这条，N28（归档 + 链接指全文 + 覆盖行声明，即 R14 的真实形态）必须保持绿",
       "severity": "fail"
     }
   ],
-  "revision": "2026-09-17（O17 修复，用户批准）：A-S2/A-S8/A-S9 原期望『必出 endpoint-bar-1.json』是从 R8 那一份产物倒推出来的，与规则文本 references/chart-templates.md:91 冲突（定量主图是可选补充，条件是同一终点/同一口径/可明确对齐的时点）。改成：出图则类型/文件名/封套/数值必须自洽（chart_set_allowed + 条件式 envelope/values）；不出图则正文必须写明原因（A-S2b-chart-or-reason，≥2 组关键词）。变异 M16 证明『删图且不解释』仍会 FAIL。R11（2026-09-17）不画图的理由：第 16 周 vs 第 36 周、人群与给药方案不同 → 按规则合规。"
+  "revision": "2026-09-17（O17 修复，用户批准）：A-S2/A-S8/A-S9 原期望『必出 endpoint-bar-1.json』是从 R8 那一份产物倒推出来的，与规则文本 references/chart-templates.md:91 冲突（定量主图是可选补充，条件是同一终点/同一口径/可明确对齐的时点）。改成：出图则类型/文件名/封套/数值必须自洽（chart_set_allowed + 条件式 envelope/values）；不出图则正文必须写明原因（A-S2b-chart-or-reason，≥2 组关键词）。变异 M16 证明『删图且不解释』仍会 FAIL。R11（2026-09-17）不画图的理由：第 16 周 vs 第 36 周、人群与给药方案不同 → 按规则合规。",
+  "evaluator_revision": "2026-09-18-r2",
+  "revision_note": "Explicit evaluator revision/new baseline: 43 fail items; record ground truth unchanged. See EVALUATOR_REVISION.md."
 }

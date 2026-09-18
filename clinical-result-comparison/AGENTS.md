@@ -9,16 +9,23 @@
 
 ---
 
-## 1. 三层资产，改哪层要说清（别用「工具本体」这种含糊说法）
+## 当前交接（2026-09-18 全项目审查后）
+
+本地修复与离线验证已完成，**TS 资产尚未发布，未新增线上 run**。当前分支 `v0.15-remove-html`；本轮不执行 Git commit/push，由父任务统一处理。完整发现与限制见 [项目审查](docs/project-review-2026-09-18.md) 和台账 F7 / O33–O38。
+
+评估器已明确开新基线 **`2026-09-18-r2`**：A **43 fail + 1 warn**、B **12 fail + 1 warn**。41→43 是评估器修订，**不是质量提高**；跨基线不可直接比较。详见 [修订记录](evals/fact-check/EVALUATOR_REVISION.md)。本次一次性审查含冻结面修复，不属于「一轮一个变量」的规则实验；后续迭代以 r2 冻结。
+
+## 1. 四层资产，改哪层要说清（别用「工具本体」这种含糊说法）
 
 | 层 | 实体 | 我们能改吗 | 改动前的必要动作 |
 |---|---|---|---|
 | **仓库资产** | 本仓库 `skill/`、`system-prompts/`、`evals/`、`docs/`、`tools/` | ✅ 改，`commit`/`push` 本项目免确认 | 改完更新本文件 + `PROJECT_STATE.md` + 台账 |
 | **TS 资产** | 平台上已发布的 prompt / 技能内容 | ✅ 改，但**每次都要先问、拿到明确同意** | `tools/pack-dist.py` → `toolsmith-publish publish`（默认 **in-place**）→ `status` 回读必须绿 → 真跑留 `R<n>` |
-| **TS 平台** | 远端 ToolSmith 服务后端 | ❌ 改不了 | 写问题单（全文进 Obsidian，仓库只留摘要 + 指向），**只报功能性缺陷，不报文档缺口** |
+| **TS 平台** | 远端 ToolSmith 服务后端 | ❌ 改不了 | 写问题单（全文进 Obsidian，仓库只留摘要 + 指向），**功能性缺陷与文档缺口均记录，由开发判断是否处理** |
 | **runner** | 本机 CLI `~/.local/bin/toolsmith-publish` | ✅ 改，但先备份到 `~/.local/state/toolsmith-publish/toolsmith-publish.v*.bak` | `python3 -m py_compile` → `evals/runner-gate/verify-run-chain.py` 必须 `GATE: PASS` → 台账留 `R`/`O` 记录 |
 
-**唯一必须逐次点头的写动作**：`publish` / `push-prompt` / `push-skill`（往平台写 skill/prompt）。
+**TS 资产写入必须逐次点头**：`publish` / `push-prompt` / `push-skill`（往平台写 skill/prompt）。
+Git 免确认仅限本项目 `commit` / `push`；`revert`、merge、rebase、分支操作等仍须明确授权。本次任务明确不 commit/push。
 `run` 会创建线程，按写动作处理；`status` / `deps` / `tools` / `instructions` / 离线脚本都是只读。
 
 ---
@@ -43,7 +50,7 @@
 
 | 场景 | 输入（用户话术） | 期望 | 判分 | 成本 |
 |---|---|---|---|---|
-| **A** | `解读这几个结果 24_1_30561610 24_1_36342163` | `output/report.md` + 1 图 + `output/citations.json` | `check.py --scenario a`（**41 条 fail 级 + 1 warn**） | ~200 s / ~30 calls；**质量结论需 A×3** |
+| **A** | `解读这几个结果 24_1_30561610 24_1_36342163` | `output/report.md` + 1 图 + `output/citations.json` | `check.py --scenario a`（**43 条 fail 级 + 1 warn**） | ~200 s / ~30 calls；**质量结论需 A×3** |
 | **B** | `解读这几个结果 24_1_30561610 24_1_45608045` | **拒绝产出**（1 有效 1 无效） | `check.py --scenario b`（**12 条 fail 级 + 1 warn**） | ~33 s / 8 calls —— **每次改动后都跑，当廉价闸门** |
 | **C** | 18 esid 跨试验 | 多图 + 分组契约 | 尚无清单（跑之前先补） | 贵，只在改图表/委派时跑 |
 | **D** | 4 esid 同试验 | 时间轴图 ≤1 且稳定 | 尚无清单 | 只测「图数是否被规则钉住」 |
@@ -97,7 +104,7 @@ tools/replay-run.py --tsv --score \
 4. `run`（场景 A；质量结论要 A×3 取噪声带；场景 B 每次都跑）。
 5. **看两层数**：成本层 `calls` / `wall_s`，质量层 `facts_ok/facts_total` + 断言 gate。
    - 成本降、事实分掉 → **discard**；成本不降、事实分升 → keep；两者都不动 → 待样本，别宣布胜利。
-6. **keep**：前进并提交。**discard**：`git revert` 该改动 + in-place 重发上一版内容。
+6. **keep**：前进并提交（遵守当次任务的 Git 限制）。**discard**：先准备回退方案；`git revert` 须取得授权，in-place 重发上一版也须单独取得 TS 发布授权。
 7. 台账记一条 `R<n>`（线程/模型/墙钟/调用/token/产物/断言）+ 一行 TSV（§4）。
 8. 发现缺陷按两栏记：**我们自己能改的（O 编号）** / **平台侧（问题单）**。
 
@@ -114,11 +121,13 @@ tools/replay-run.py --tsv --score \
 - 只认 `ref_<n>` 前缀的归档文件名 ⇒ 真产物（`PMC11270764_fulltext_jats.xml`）根本不匹配 ⇒
   规则**空转还 PASS**（O29 就是这么来的）⇒ 变异的**命名必须照真产物的来**。
 - 负向对照必须断言**整轮干净**（`rc == 0 && flipped == []`），不能只说「我这条没翻」。
+- 回执要求由**最终目标 turn** 的持久化消息推导，不以轮询是否看到指针为准；0 polls / 0 poll pointers 不能证明无需回执。要求匹配落盘文件、字节与哈希；缺失清单、缺失回执、未知形状或归属歧义均失败。无指针仅在目标 turn 的最终证据明确完整时才可 n/a。
+- `returned` 数实际 tool-return；未归入已知拒参/抓取失败的无返回调用仍 FAIL，不能靠减法补成「已返回」。调用与回执均限定目标 turn。
 - 回执类断言只能证明「取回来了」，不能证明「数字取自它」——写边界，别越界宣称。
 - **只统计「有 tool-return 的调用」的断言会被「工具自身失败」骗过去**（O32）：抓取 500 / 主机不可达时框架
   直接重发、不留 tool-return，若把这类事件塞进「schema 被拒」桶再从 `errors` 里跳过，`no tool errors`
   就成大号空转（R15–R18 四轮全绿而每轮都有一条欧洲 PMC 全文 500）⇒ 归因必须按**原因文本**分桶，
-  且失败类要**可见**（打印 + 入 `verification.md`），只有「工具链自崩」才判 FAIL。
+  且失败类要**可见**（打印 + 入 `verification.md`）；未解释的缺返回、未知归属和其它工具错误仍判 FAIL。`args-refused` 只说明参数被拒，不说明模型发明参数：R19/R20 的 `extra_esids` 是旧提示词明文要求，live schema 已改为 `esids`（F7 更正）。
 
 ---
 

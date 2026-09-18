@@ -6,7 +6,7 @@ Each selected clinical result is delivered to the Agent as a **clinical-result e
 `clinical_result.extra_esid`), not as an attached `.md` file and not as inline JSON in a message. The
 frontend sends the selected esid list in the user turn (in user-selection order); the Agent then pulls
 the detail records itself through the MCP tool `pharmcube-query-clinical-result-with-params`, filtering
-by `extra_esids` and keeping the returned payload small via a strict `selected_fields` allowlist.
+by `esids` and keeping the returned payload small via a strict `selected_fields` allowlist.
 
 Rationale: a user may select several results (up to about 20). A single params response with many
 unselected fields can exceed the context budget (`MCP_TOOL_RESULT_MAX_CHARS`); per-esid `{{ref_n}}`
@@ -17,27 +17,37 @@ citation mapping stable (3rd retrieved esid in selection order → `{{ref_3}}`).
 
 - MCP tool name: `pharmcube-query-clinical-result-with-params`.
 - Data source: 医药魔方 TrialiCube (`clinical_trial_result_structured`).
-- `extra_esids` = exact-filter by clinical-result ID (each selected esid = one clinical result / one
-  disclosure of a trial).
+- `esids` = exact-filter tool argument for clinical-result IDs (each selected esid = one clinical result /
+  one disclosure of a trial). `clinical_result.extra_esid` is the returned/requestable record field,
+  not an argument name. Do not send the returned field name as a tool argument; check the runtime schema and argument-error details.
 - `selected_fields` = array of field-name strings, **each copied verbatim** from the
   ALLOWED_FIELD_NAMES list that the params tool itself publishes in its `selected_fields`
   parameter description (visible in the tool schema at run time; the repo mirror
   `docs/params-tool-schema.md` is maintainer documentation, not a runtime file). Field names are
   case-sensitive and must not be descriptions.
   **Never invent a field name.** A concept the report needs (`线数`, `中位随访`, `亚组`…) does not
-  imply a field exists: pick the closest real field on the list (group/arm counts →
-  `clinical_result.group_count`, treatment line → `clinical_result.therapy_line_cn`/`_en`) or leave
-  the field out and record the result as not reported. An invented name
-  (e.g. `clinical_result.line_count`) is rejected and costs the whole pull.
+  imply a field exists: use a field only when its documented meaning matches the concept
+  (enrollment total → `clinical_result.group_count`, treatment line →
+  `clinical_result.therapy_line_cn`/`_en`), otherwise extract it from the permitted evidence or mark it
+  not reported. `group_count` means **受试者入组人数 (total enrollment)**, never number of arms or
+  per-arm sample size. Arm count comes from the source-supported design / distinct arms; each arm's
+  sample size needs its own reported population, analysis set and time point. Never divide total
+  enrollment by arm count or randomization ratio to invent arm denominators.
+  On `INVALID_INPUT` / unknown fields, read the runtime
+  `selected_fields` schema (`ALLOWED_FIELD_NAMES` and `ALLOWED_FIELDS`), correct or remove only the
+  invalid fields, and retry the same selected esids; do not guess replacement names or treat an
+  argument/field error as an empty result.
   **Anchor field for selection: `clinical_result.extra_esid`.**
-- The response injects the record `_id`; per-record fields appear under their selected names
-  (nested: `arms`, `projects`, `study_results`, …).
+- The response injects record identifiers; selected fields may be returned with flattened names
+  (e.g. `clinical_result_extra_esid`, `clinical_result_group_count`, `clinical_result_arms`). Inspect the
+  actual response keys when reading; keep dotted schema names in `selected_fields`. `arms`, `projects`
+  and `study_results` contain nested values.
 
 ## Pull protocol
 
 1. Read the selected esid list from the user turn (input order = `{{ref_n}}` assignment order, over the records that return).
 2. Call the tool with:
-   - `extra_esids: [ ...selected esids in input order ... ]`;
+   - `esids: [ ...selected esids in input order ... ]`;
    - `selected_fields`: the recommended minimal set below (trim further if a run is huge).
 3. Keep the returned payload small: never request the whole record, never request fields you do not
    need, never re-pull the same esids speculatively once the needed fields are present.
@@ -48,7 +58,7 @@ citation mapping stable (3rd retrieved esid in selection order → `{{ref_3}}`).
 
 ### Row fan-out: one esid can return several rows
 
-`extra_esids` is an exact filter on the clinical-result ID, but **one esid can come back as more than one row**.
+`esids` is an exact filter on the clinical-result ID, but **one esid can come back as more than one row**.
 When `selected_fields` contains `clinical_result.indication_name` (or `clinical_result.indication_name_en`),
 the backend joins a disease dimension and returns **one row per disease id** attached to the record, while every
 requested field keeps the *identical* value on every row (the row carries the record's whole indication-name
@@ -76,7 +86,7 @@ The params tool answers `ok: true` with an **empty `data` array and no error** w
 exist, is not visible, or was deleted — an empty result is silent, so it is on you to detect it.
 
 - **One batched pull, at most one confirmation.** Pull the whole selection in the single
-  `extra_esids` call above. If some esids come back without a record, re-issue **exactly those esids
+  `esids` call above. If some esids come back without a record, re-issue **exactly those esids
   together** in at most one further call, then stop. Never probe variant spellings, guessed ids,
   neighbouring ids, or other tools, and never loop call-per-esid: a retry that changes the spelling of
   an id is not a retry, it is a guess, and a series of them burns the run without new information. Do
@@ -101,6 +111,7 @@ exist, is not visible, or was deleted — an empty result is silent, so it is on
 Pick the subset needed for the actual run; these cover trial identity, design/arms, evidence text and
 structured results. Field names below are verbatim from ALLOWED_FIELD_NAMES.
 
+- Record mapping (always include): `clinical_result.extra_esid`.
 - Citation: `clinical_result.paper_title`, `clinical_result.full_article_link`,
   `clinical_result.paper_release_time` (+ `clinical_result.journal`, `clinical_result.doi`,
   `clinical_result.pm_id` when needed).
@@ -110,7 +121,8 @@ structured results. Field names below are verbatim from ALLOWED_FIELD_NAMES.
 - Design/arms/population: `clinical_result.arms` (nested: arm type / `drugs[].drug_earth_id` +
   names + target/moa as needed), `clinical_result.randomized`, `clinical_result.blinded`,
   `clinical_result.trial_control`, `clinical_result.positive_placebo_control`,
-  `clinical_result.group_count`, `clinical_result.random_ratio`, `clinical_result.multi_center`,
+  `clinical_result.group_count` (enrollment total, not arm count or per-arm n),
+  `clinical_result.random_ratio`, `clinical_result.multi_center`,
   `clinical_result.clinical_stage_cn`, `clinical_result.therapy_line_cn`,
   `clinical_result.indication_name`, `clinical_result.evidence_source`, `clinical_result.evaluation`.
 - Evidence text + structured results (core clinical content):
@@ -127,6 +139,10 @@ multiplies the returned rows (see *Row fan-out*) — de-duplicate by `clinical_r
 dropping the field, which has no substitute.
 
 ### Evidence source priority: the original source comes first (原文优先)
+
+This section is the **single authority** for evidence scope, external retrieval permissions and budgets,
+analysis depth, failure reasons, and the C1/C2 citation-link exception. Extraction, charts, report templates
+and delivery checks follow it; none introduces additional research routes.
 
 The pulled clinical-content fields are **pipeline-processed extracts**: the backend's own parsing of the
 source can drop a field, normalize a unit, or misread a table. The **original source** is therefore the
@@ -148,22 +164,23 @@ analysis surface (PubMed → PMC full text below).
 
 **Know the source class.** The middle segment of `clinical_result.extra_esid` (`YY_<src>_…`) is the
 **ingestion source id**; it decides what "the original" is and which route is worth spending. Classes not
-listed here follow the same principle — pulled body first, then a route key, then the record's own link
-once.
+listed here remain unclassified: use their pulled body when usable; if it is missing, record the
+source-class limitation without inventing a route.
 
 | src | Source class | What the pulled `abstract_text` is | Fuller external original | What to do |
 |---|---|---|---|---|
 | `1` | PubMed / journal paper | the journal abstract, verbatim (median ~1.8 K chars) | **yes — PMC full text**; 56 of 100 sampled rows carry a `pmcid` | **always try R6 → R7**, even when `abstract_text` is non-empty, and **analyse the full text** when it comes back |
-| `2`, `187` | ClinicalTrials.gov registration results | the registry's **structured-results JSON**, not prose (src `187` measured 100% empty) | the same data, possibly a newer posted version | no fetch; R2 only to confirm the registry version/date |
+| `2`, `187` | ClinicalTrials.gov registration results | when present, the registry's **structured-results JSON**, not prose (src `187` measured 100% empty) | the same data, possibly a newer posted version | use a usable pulled body without fetching; R2 only to confirm the registry version/date; if the body is missing, declare the gap |
 | `37` | conference abstract (ASCO/ESMO/ASH/…) | the conference abstract, verbatim (median ~2.8 K chars) | none reachable (meeting sites answer 403 / JS-shell) | no fetch; R3 only if the pulled body is empty or truncated |
 | `49`, uuid-only legacy rows | news / company press release | **the release body, copied verbatim** at ingestion (wire dateline `(GLOBE NEWSWIRE) --`, `/PRNewswire/`, `(BUSINESS WIRE)--` present) | wire pages mostly unreachable | no fetch — check the report against the pulled body |
 | numeric-only legacy rows | mostly ClinicalTrials.gov / conference material | registry JSON or abstract text | as the matching class above | same as `2` / `37` |
 | `120` | manual entry (人工补录) | measured 100% empty | company-owned pages reachable, wire hosts not | **R3** if a `doi` exists, else the record's own link (once) |
 | `245`, `398`, other unlisted ids | unclassified ingestion source / SEC filing | measured empty or no usable sample | unknown / EDGAR answers `403`, `data.sec.gov/…json` carries filing **indexes only** | no fetch → record the reason class |
 
-**Retrieval routes.** Only these templates, and only with values that already came back in the pulled
-record. Never invent a URL, never change a host or path, never add, drop or reorder query parameters,
-never use a search engine, and never re-try the same content through a different route.
+**Retrieval routes.** Fetch only these templates or the record's own link under the last-resort rules
+below; template keys must already be returned in the record, except R7's PMCID obtained through R6.
+Never invent a URL, change a host or path, add/drop/reorder query parameters, use a search engine,
+or re-try the same content through a different route.
 
 | # | Template | Build from | Returns | Measured (2026-09-17) |
 |---|---|---|---|---|
@@ -171,8 +188,8 @@ never use a search engine, and never re-try the same content through a different
 | R3 | `https://api.openalex.org/works/doi:{doi}` | `clinical_result.doi` | publisher-deposited **abstract** + OA locations; works for journal papers *and* conference abstracts | works: 5/6, 25–49 KB (one returned `abstract_inverted_index: null` — reachable but no abstract) |
 | R4 | `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{pm_id}&resultType=core&format=json` | `clinical_result.pm_id` | abstract (`abstractText`), `pmcid`, `isOpenAccess` | works: 1/1 |
 | R5 | `https://api.crossref.org/works/{doi}` | `clinical_result.doi` | **bibliographic metadata only** — never clinical evidence | works: 1/1 |
-| R6 | `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{pm_id}&resultType=core&format=json` | `clinical_result.pm_id` | abstract + **`pmcid`** + `inPMC` — the key that unlocks full text | works: 1/1 |
-| R7 | `https://www.ebi.ac.uk/europepmc/webservices/rest/{PMCID}/fullTextXML` | the `pmcid` that **R6** just returned | the **PMC full text** as JATS XML: sections, tables, endpoint numbers | works: 4/5, 63–99 KB — the single failure is per record (`500` when that paper is not in PMC/OA), not a dead route |
+| R6 | `https://www.ebi.ac.uk/europepmc/webservices/rest/search?query=EXT_ID:{pm_id}&resultType=core&format=json` | `clinical_result.pm_id` | abstract + **`pmcid`** + `inPMC` + `isOpenAccess`; use only the entry matching the selected paper's PMID | works: 1/1 |
+| R7 | `https://www.ebi.ac.uk/europepmc/webservices/rest/{PMCID}/fullTextXML` | the `pmcid` that **R6** just returned | the **PMC full text** as JATS XML: sections, tables, endpoint numbers | works: 4/5, 63–99 KB; one HTTP `500` shows a failed fetch, not that the paper is non-OA or absent from PMC |
 
 **The analysis surface is the deepest body you can obtain — depth is not comparability.** A scientific fact
 does not become a different fact because it was disclosed in an abstract rather than in a full text, so
@@ -187,11 +204,14 @@ the analysis surface**, not a cross-check on the abstract. Measured 2026-09-17 o
   **88–99 % of the full text's numbers appear nowhere in the abstract** (absent dimensions included PFS,
   HR / ORR / DoR, TTR, p = / n =, subgroup and grade-3 safety; see
   `docs/evidence/source-link-accessibility-2026-09-17.json`, `pmc_fulltext_information_gain`).
-- **Every other class keeps its measured deepest body** and needs no extra call: `37` / `49` / uuid rows —
-  the pulled `abstract_text` *is* the deepest carrier that exists; `2` / `187` — the pulled body already *is*
-  the registry JSON, so the registry holds no deeper layer for you.
-- A paper where R6 returns no `pmcid`, or `inPMC: N`, stays at abstract depth and is reported as its own
-  reason class (无 PMCID / **非 OA**) instead of being counted as a failed fetch.
+- **Every other class starts with its usable pulled body** and needs no extra call when it is complete;
+  missing/truncated bodies follow only the source-class permissions above.
+- If R6 has no matching PMID/PMCID or says `inPMC: N`, stop the PMC chain and state
+  无匹配记录 / 无 PMCID / 未收录 PMC as observed. These do **not** establish OA status.
+  Say **非 OA** only when explicit metadata for the matched paper states it (e.g. `isOpenAccess: N`).
+  An HTTP `500` (or any fetch failure) means **全文抓取失败**, never proof of non-OA; keep the HTTP
+  outcome separate from OA metadata. Without a usable retrieved full-text body, remain at abstract
+  depth and keep the original citation link.
 
 **Facts that exist only in the full text are allowed — but they must carry their own label.** When a number
 comes from a deeper body than the pulled fields, write its 时点 / 分析集 / 人群 next to it, and name a
@@ -202,7 +222,8 @@ error: when the two are different disclosure versions (different cutoff, cohort 
 as a version difference and name it — only a same-metric, same-label conflict is written
 `原文 <值>；库内记录 <值>{{ref_n}}`.
 
-**Citation link follows the analysis depth.** When a record's facts rest on a retrieved full text, its
+**Citation link follows the analysis depth.** When a record's facts rest on a usable full text retrieved
+for the matching paper and archived under `/workspace/sources/`, its
 `citations.json` entry must point at that full text instead of the abstract/publisher page — otherwise the
 reader who clicks the superscript lands on a page that does not contain the numbers the report used. Exactly
 one substitution per record, built only from the `PMCID` that R6 returned:
@@ -229,13 +250,15 @@ page" as one thing:
   `pubmed.ncbi.nlm.nih.gov` (cookie wall), `www.chinadrugtrials.org.cn`, `library.ehaweb.org`,
   `sabcs.org`, `oncologypro.esmo.org`. Record the reason class instead. (This is the *human-facing* host
   class; the API endpoints above, including R7's full text, are unaffected. An earlier note that PMC
-  `fullTextXML` was "unusable (500/502)" was wrong — that `500` is per record, see R7.)
+  `fullTextXML` was "unusable (500/502)" was wrong: successes show the route works; the failed
+  request alone establishes neither the cause nor the paper's OA status.)
 - **These work**: `prnewswire.com` ✅ (a 55.8 K-char release carrying the trial numbers) and **company-owned
   news pages** ✅ (`bioinvent.com`, `hanchorbio.com` both returned the release body with analysis numbers).
-- So fetch the record's own link **at most once per record**, and only when (i) the record carries no usable
+- So fetch the record's own link **at most once per record**, only for a missing/truncated pulled body
+  in a source class that permits it, and only when (i) the record carries no usable
   route key (`doi` / `pm_id` / registration id), or (ii) its host is in the working class above or is
-  unknown. One attempt, no retry, no substitute URL. Full article text is normally out of reach — retrieve
-  the abstract- or registry-level original (or the press-release body) and say so.
+  unknown. The blocked-host list always takes precedence. One attempt, no retry, no substitute URL;
+  record the depth actually obtained.
 - **`src=49` needs no external fetch at all**: the pulled `abstract_text` *is* the press-release text, so
   "checking it against the original" means checking that the report stays faithful to that body — fetching
   the wire page adds nothing and usually fails.
@@ -246,7 +269,7 @@ the two calls are the **primary** retrieval, not a fallback for a missing body.
 Whole-run cap: **40** `web_fetch` calls. If the selection is larger than the budget, fetch for the records
 that carry the key conclusions first and state the coverage. A failed fetch is dropped — no retry, no alternative route,
 no substitute URL — and its reason class is recorded. `web_fetch` writes each response under
-`/workspace/tool_results/web_fetch/…`: copy what you need to `/workspace/sources/<esid>.<route>.json|md`
+`/workspace/tool_results/web_fetch/…`: copy what you need to `/workspace/sources/<esid>.<route>.json|md|xml`
 (that path is archived with the run, so the evidence stays auditable) and **digest it with a script** —
 never paste a response body into the context.
 
@@ -255,7 +278,7 @@ states differently from the pulled fields (endpoint value, unit, p-value, CI, HR
 analysis time point). Then the **original wins** and the report writes both values in the fixed form
 `原文 <值>；库内记录 <值>{{ref_n}}` — never silently pick one. Absence in the original is **not** evidence
 that the pulled value is wrong (abstract-level originals are the norm and omit detail): keep the pulled
-value and add no marker. Original text never enters the report body — at most a short phrase, never a
+value with its normal citation; do not add a divergence warning merely for that absence. Original text never enters the report body — at most a short phrase, never a
 paragraph (a mechanical ≥60-character verbatim guard runs in `evals/fact-check`).
 
 **Say it in the evidence scope.** The evidence-scope block (unified template's `证据范围`, cross-trial /
@@ -264,15 +287,17 @@ were re-checked against the original, **naming the route or the source class per
 could not be, grouped by reason class (抓取受限 / 无登记号或 DOI / 该来源不公开 / 无 PMCID / 非 OA). A
 non-fetch path is still a named path: `库内正文即原文摘要（src=1，未取 PMC 全文）` is a valid entry. For every
 `src=1` group the line must also state the PMC outcome — full text taken (`PMC11270764`), no `pmcid`, or not
-OA — and if a full text was archived under `/workspace/sources/`, both the PMID/PMCID and the word 全文 must
+OA (only with explicit metadata), not in PMC, or a failed fetch with its observed reason — and if a full text was archived under `/workspace/sources/`, both the PMID/PMCID and the word 全文 must
 appear, so a reader can tell "checked against the actual full text" from "checked against the abstract".
 **State the depth per record, not just per group**: say how many records were analysed at full-text depth
 ("2 条按全文分析 / 1 条仅摘要级"), so that a fact missing from the report can be attributed to the source
 ("the full text does not state it") rather than to the run ("we never looked") — the two must stay
 distinguishable in the deliverable, and a record whose citation `link` was pointed at the full text (C1/C2)
 is exactly such a full-text-depth record.
-Example: `原文核对：3/3 条已复核（src=1 取 PMC 全文 PMC11270764、PMC8449961；1 条无 PMCID 仅核库内摘要；
-src=37 库内正文即会议摘要原文）；1 条未复核（src=49 新闻稿：库内正文即通稿原文，未做外部抓取）`. A run that
+Example: `原文核对：4/4 条已复核（记录1：src=1，PMC11270764 全文；记录2：src=1，无 PMCID，仅核库内摘要；
+记录3：src=37，库内会议摘要；记录4：src=49，库内通稿原文）；1 条按全文分析，2 条仅摘要级，1 条通稿正文级；
+无未复核记录`. Reading and checking a usable pulled original counts as re-checked without an external fetch.
+A run that
 re-checked none must say so, and a run that fetched nothing because a source class is structurally
 unreachable must name that class instead of reporting a generic failure. The line reports **routes, depths
 and reason classes only**: never restate this rule inside the deliverable. A sentence such as
@@ -350,13 +375,14 @@ title, URL, or release time — a missing value stays empty in the citation JSON
 When the deployment exposes the `task` tool (backend `SubAgentCapability` registered and
 `capabilities_config.subagents` enabled) and the number of selected esids is more than 5, the Agent
 MAY delegate extraction to subagents to keep the main-thread context
-bounded. This is a performance strategy, **not a change to the evidence boundary**: only the pulled
-fields (`abstract_text`/`summary`/`study_results`/design context) are evidence, and every extracted
-value must still carry its source esid / marker number.
+bounded. This is a performance strategy, **not a change to the evidence boundary**: the pulled clinical
+content plus permitted originals under *Evidence source priority* remain the evidence, and every
+extracted value must carry its source esid / marker. The main Agent remains responsible for the same
+original-source checks, retrieval budget and depth labels when extraction is delegated.
 
 - **Chunking**: split the esid list by input order into **balanced chunks of at most 5 esids**
-  (6 esids → 3+3; 20 esids → 5+5+5+5). Never split finer than 5 — each chunk costs one serial subagent
-  turn — and avoid a one-esid remainder when the split can be balanced. Chunk boundaries must never
+  (6 esids → 3+3; 20 esids → 5+5+5+5). Use the fewest chunks that satisfy the cap — each chunk costs
+  one serial subagent turn — and avoid a one-esid remainder when the split can be balanced. Chunk boundaries must never
   reorder markers.
 - **One `task` call per chunk**: `subagent_type: "general-purpose"`, with a fully self-contained
   `description` stating exactly which esids to pull (or the tool call parameters), the exact
