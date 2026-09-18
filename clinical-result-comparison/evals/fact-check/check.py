@@ -595,6 +595,27 @@ def op_report_excludes_literals(sv: dict, spec: dict) -> tuple:
     return True, f"no template spec wording in report ({len(spec['literals'])} phrases checked)"
 
 
+def op_no_rule_metastatement(sv: dict, spec: dict) -> tuple:
+    """A deliverable must not carry a sentence about the rule itself.
+
+    R16 (2026-09-18, deployed v1.6 / v1.0.7 with the templates already fixed for the *verbatim* echo)
+    rendered 「未发现原文与库内记录在同一指标、同一口径上的数值不一致；」 inside its coverage line: this is
+    meta text about our contract, not a finding — no values, no ref, nothing a reader can act on.  A real
+    divergence always carries both values plus a `{{ref_n}}`, so "names the library side AND talks about
+    一致/不一致 BUT holds no digit" is exactly the meta register.  `A-P7` catches the verbatim echo; this
+    catches the paraphrase, because in one run the model copied our sentence and in the next it rewrote it.
+    """
+    rep = sv.get("report") or ""
+    side = re.compile(spec.get("side_regex", r"库内记录|库内抽取|库内字段|库内值"))
+    word = re.compile(spec.get("word_regex", r"不一致|一致"))
+    bad = [t for blk in blocks(rep) for t in sentences(blk)
+           if side.search(t) and word.search(t) and not re.search(r"\d", t)]
+    if bad:
+        return False, ("report states the rule instead of a finding: "
+                       + "; ".join(repr(b[:80]) for b in bad[:3]))
+    return True, "no rule-shaped statement about the library side (库内… + 一致…, digits-free)"
+
+
 SHAPE_OPS = {
     "artifact_present": op_artifact_present,
     "artifact_absent": op_artifact_absent,
@@ -603,6 +624,7 @@ SHAPE_OPS = {
     "fulltext_fetch_is_named": op_fulltext_fetch_is_named,
     "cite_link_is_deepest": op_cite_link_is_deepest,
     "report_excludes_literals": op_report_excludes_literals,
+    "no_rule_metastatement": op_no_rule_metastatement,
     "glob_count": op_glob_count,
     "citations_keys_exact": op_citations_keys_exact,
     "citations_entry_key_set": op_citations_entry_key_set,

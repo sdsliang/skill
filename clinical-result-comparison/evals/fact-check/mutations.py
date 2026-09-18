@@ -231,6 +231,9 @@ def M21(d, r, c, v):  # archive a PMC full text but declare only the abstract ro
 def M23(d, r, c, v):  # echo the template's own spec wording into the delivered report
     return sub(r, r"\Z", "\n\n> **补充说明：** 原文优先于库内加工字段，不一致处同时写出原文值与库内记录值。\n")
 
+def M24(d, r, c, v):  # state the rule itself (reworded, not verbatim) instead of a finding
+    return sub(r, r"\Z", "\n\n> **补充说明：** 未发现原文与库内记录在同一指标、同一口径上的数值不一致。\n")
+
 
 def M22(d, r, c, v):  # full text archived AND declared, but the citation still points at the abstract
     src_dir = os.path.join(d, "artifacts", "sources")
@@ -267,6 +270,7 @@ MUTS_A = [
     ("M21 fulltext-archived-but-undeclared", M21, "A-P5-fulltext-fetch-is-declared"),
     ("M22 fulltext-archived-but-abstract-link", M22, "A-P6-cite-link-is-deepest"),
     ("M23 template-spec-echo", M23, "A-P7-no-template-spec-in-report"),
+    ("M24 rule-metastatement", M24, "A-P8-no-rule-metastatement"),
 ]
 
 # --------------------------------------------------------------- arm B mutations

@@ -397,6 +397,85 @@ Recommended `selected_fields` 收尾一句；② `SKILL.md` 输入契约段加�
 **结论**：L3 在平台上**已验证生效**（不是「规则写了」）。仍开着的两条：① 只压到 1 条全文记录 + 1 条无 PMCID 记录，样本窄；
 ② `A-P6` 只覆盖「已归档全文」方向，反向（引用指全文却无归档）仍无断言 —— 等更多样本再决定是否加。
 
+### R16 — 2026-09-18，**模板修复上线后的场景 A 收口复跑**（同输入第三跑：`A-P7` 复验通过；又挖出一类「换措辞」泄漏 + 一类「数值写法口径」缺口）
+
+**跑法（含一次 shell 中断的处置）**：先 `toolsmith-publish push-skill --version 1.0.7`（in-place，回读 `19 identical / 0 differing`，`STATUS: in sync`）把 `A-P7` 修复上线；
+随后用**与 R12/R15 完全相同的输入**跑 `run` —— POST 已发出（thread `b31bdfb7…`）后我的 shell 被中断，`20260918-094215-r16-templates-fixed/` 只留下
+`prompt.txt`/`run.json`/`stream.tap`（O15 同类冻结残档，**不重跑**）；按 O23 的做法用 `run --resume b31bdfb7-a457-4f7d-8a09-23b0e91e373c --tag r16-resume` **重新收集**成完整记录。
+
+| 项 | 值 |
+|---|---|
+| 命令 | `toolsmith-publish run --resume b31bdfb7-a457-4f7d-8a09-23b0e91e373c --tag r16-resume --web` |
+| thread / turn | `b31bdfb7-a457-4f7d-8a09-23b0e91e373c` / `11072d2c-9eb3-4180-8100-fb9e56377923` |
+| 终态 / 结局 | `completed` / `succeeded`（8 次轮询；tap: skipped (--resume)） |
+| 墙钟 | 206.4 s server / 144.8 s polled |
+| 调用 | **30 次尝试 = 28 返回 + 2 schema 被拒**：`execute`×12、`read_file`×10、`web_fetch`×2、`load_skill`×1、`params`×1、`write_file`×1、`present_artifact`×1；被拒 2 次 = `bash`×1、`web_fetch`×1（O25 新口径渲染，计数自洽） |
+| token | thread in 110,828；turn in 1,772,089 / out 39,986 / reasoning 24,031；cache 96.6%；上下文 total 110,828（sys 22,835 / mcp 5,919 / tools 56,761 / skill 22,610 / conv 2,703） |
+| 产物 | `output/report.md`、`output/citations.json`、`visualizations/endpoint-bar-1.json` |
+| 断言 | **18/18 PASS（exit 0）**，含「部署端 prompt 逐字节 == 本地」「部署端 skill 正文 + 18 个支持文件逐字节 == 本地」 |
+| 事实分 | `SCORE scenario=a facts 32/39 warn 1/1 -> FAIL`（同期清单 38 → 39 条 fail 级，见下） |
+| 记录 | `~/.local/state/toolsmith-runs/20260918-094333-resume-r16-resume/`（冻结残档：`~/.local/state/toolsmith-runs/20260918-094215-r16-templates-fixed/`） |
+
+**①`O24` 的修复在真跑里得到确认（本轮主要目的）**
+
+- 三个 `A-P7` 字面（`原文优先于库内加工字段` / `不静默取一侧` / `库内记录值`）在 `report.md` 里 **0 次命中**；
+- 覆盖行不再是规格句，而是实质内容：`原文核对：2/2 条检索记录均已按原文复核，两条同属 PubMed 来源类（src=1），复核路径为 Europe PMC 题录核对后尝试 PMC 全文：1 条（PMID 30561610）返回 PMCID PMC6933872，但全文取回失败（该记录非 OA，全文接口返回 500），未归档全文；1 条（PMID 36342163）…`（`A-P4` PASS）；
+- 部署端断言「skill 正文 + 18 支持文件逐字节 == 本地」PASS ⇒ 线上确实换成了修好的模板。
+
+**②`A-C16` 说明：本节第二条 L3 反向证据（非 OA）在这一跑里再次成立**：`24_1_30561610` 依旧命中 `PMC6933872`、依旧非 OA、依旧没有构造链接（`citations.json` 两条 `link` 与 R15 逐字节相同）。
+
+**③ 新缺陷（我们自己的资产，与 O24 同类但换了写法）：规则句被「换措辞」照写进交付物**
+
+覆盖行末尾出现：`未发现原文与库内记录在同一指标、同一口径上的数值不一致；` —— 没有数值、没有 `{{ref_n}}`，读者拿不到任何信息；
+它是模型把我们的规则**改写**了一遍（R15 逐字照抄、R16 换措辞，说明只靠字面表抓不住）。修法（仓库资产，三处）：
+
+| 文件 | 改动 |
+|---|---|
+| `templates/*.md`（4 个） | `原文核对：` 规格括号内补一句：本行只写复核路径/分析深度/未能复核的原因类，**不复述本规则措辞、不写「未发现不一致」这类规则性表述**（没有实际分歧就不写任何谈分歧的句子） |
+| `references/input-contract.md` | *Say it in the evidence scope* 段补同义规则（英文）：该行只报 path/depth/reason class，规则本身绝不进交付物；没分歧就没有分歧句 |
+| `system-prompts/...-v0.15.md` | original-check 那条 bullet 同步补一句 |
+| `evals/fact-check/check.py` | 新算子 `no_rule_metastatement`：句子同时点名库内一侧（`库内记录`/`库内抽取`/`库内字段`/`库内值`）与「一致/不一致」、且**通篇无数字** ⇒ FAIL（真实分歧必带双值 + ref，「无数字」正好切开元话语与结论） |
+| `evals/fact-check/scenario-a.facts.json` | 新条目 `A-P8-no-rule-metastatement` → **40 条（39 fail + 1 warn）** |
+| `evals/fact-check/mutations.py` | 新变异 **M24**（把改写版规则句写进报告）→ 实测 `flipped=['A-P2', 'A-P8']`；M23 现在带动 `['A-P2', 'A-P7', 'A-P8']` |
+
+**这一条在**真产物**上也有效**：`check.py --run …r16-resume --scenario a` 直接报 `[FAIL] A-P8-no-rule-metastatement report states the rule instead of a finding: '未发现原文与库内记录在同一指标、同一口径上的数值不一致；'` ⇒ 不是只对着变异有牙。
+
+**④ 新缺口（不是缺陷，是**合同没定死的口径**）：数值「符号 vs 幅度」写法随 run 漂移**
+
+同一输入三次跑，数值写法不一致，而清单 `A-C4` / `A-C5` / `A-S9` 绑定的是**带符号**写法：
+
+| run | 报告写法 | 图表数值 |
+|---|---|---|
+| R8（2026-09-16） | `−13.9` | `-13.9` / `-70.5` |
+| R12 / R15 | `−13.9`（5 处，U+2212 减号） | `-13.9`（带符号） |
+| **R16** | `下降 13.9%` / `降幅 13.9%`（全篇无符号，内部自洽） | `13.9`、`70.5`、`97.4`、`100.5`、`101.1`（全为正幅度） |
+
+- 合同里**根本没有**关于符号/幅度的任何字（`grep -rn "同号\|负号\|降幅\|符号\|正值" skill/ system-prompts/` → 无命中），所以这是**模型每次自己选**的口径；
+- 两种写法都自洽、都能读懂（`降幅 + 幅度` 与 `带符号值` 语义等价），但**同一输入不同 run 输出不同符号**这件事本身是交付一致性问题；
+- 按「**不得为了迁就产物放宽清单**」的规矩，本轮**没有**去放宽 `A-C4/A-C5/A-S9`，也没有擅自把口径写死；记 **O26** 等口径拍板。
+- `A-C16-hard-outcome-gap` 的 FAIL 同源：R16 写「**心血管结局**事件（如 MACE）」（表格里明确标注两侧「未报告」「未对齐」），而条目的正则只认 `硬结局|心血管事件` ⇒ 术语变体漏判，记 **O27**（与 O20 同类：清单绑定了某一次 run 的写法）。
+
+**离线闸门（全部绿）**
+
+```
+python3 -m py_compile evals/fact-check/{check,mutations}.py            → PYC_OK
+python3 evals/fact-check/mutations.py                                  → baseline a: 39 fail-severity items, all PASS
+                                                                         arm a: flipped 39/39; never flipped []
+                                                                         arm b: flipped 12/12; never flipped []
+                                                                         GATE: PASS
+python3 evals/runner-gate/verify-run-chain.py                          → GATE: PASS
+python3 evals/fact-check/check.py --run …r16-resume --scenario a        → facts 32/39 warn 1/1（A-P8 在真产物上命中；A-C4/A-C5/A-S9/A-C16/A-T1 为写法口径问题，见 ④）
+python3 tmp/pack15b.py + 逐文件 sha256 比对                             → dist 19 entries / 85,544 B
+                                                                         sha256 a1b65809eb8b98c4e2a2cc223dc3f9c99e4e8c6fcef85b951c64e13e0f010938
+                                                                         mismatch vs worktree: []
+```
+
+**发布状态（诚实标注）**：R16 跑的时候线上是 `prompt v1.6`（sha `0ae72c9302b3`）+ `skill v1.0.7`（dist `c55321ad4619`，即已含 `A-P7` 修复的模板）；
+本轮又改了 4 个模板 + `input-contract.md` + **sys v0.15**（本地已重打成 `a1b65809eb8b` / 85,544 B）⇒ **prompt 与 skill 都需再次授权**才能发布（prompt 原地更新 v1.6、skill 原地更新 v1.0.7）。
+
+**`MUT_RUN_A` 仍然不能换**：本跑带着 ③ 的规则句（`A-P8` FAIL）与 ④ 的写法口径问题（`A-C4/A-C5/A-S9` FAIL），整份清单下不干净；
+`A-ATTR`（O19 假阳性）也还在。
+
 ### R15 — 2026-09-18，**L3 发布后 · 场景 A 同输入复跑**（与 R12 对照；发现并修掉一个我们自己的资产缺陷）
 
 R14 用的是尿路上皮癌那对输入（L3 需要 `src=1` + PMC 全文），因此事实清单（场景 A 绑定 `24_1_30561610` + `24_1_36342163`）在 R14 上是 N/A。
@@ -760,8 +839,10 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 
 | O22 | **全文深度分层 → 已定级 L3（2026-09-17）**：用户提问「字段值基于摘要生成，PMC 能取到的能不能直接读全文」⇒ 实测成立：3 篇 R6 返回 pmcid 的记录，全文独立数值 **334 / 334 / 249**，其中 **92% / 88% / 99%** 不在摘要里，且 `PFS`/`DoR`/`HR`/`TTR`/亚组/`Grade 3` 等维度摘要根本不出现。**用户选 L3 并驳掉「长短即不可比」**：科学事实不因披露载体改变 ⇒ 规则改为「分析面 = 可得最深载体」，且**基于全文分析的记录其引用 `link` 指向全文**（C1 `pmc.ncbi.nlm.nih.gov/articles/{PMCID}/` 只写不取 / C2 ebi REST fullTextXML 为实际读取源），覆盖行须按记录声明深度。新断言 `A-P6-cite-link-is-deepest`（M22 证明可翻）。证据：`docs/evidence/source-link-accessibility-2026-09-17.json` 的 `l3_decision` / `pmc_fulltext_information_gain`。 | W6 | 仓库已改，**未发布** | **待用户发布授权**（发布后跑 R14 才算已验证） |
 | O23 | **runner 韧性缺口：次要端点抖一下就把整次验证毁掉**（2026-09-18 实测发现）：`run` 收集阶段顺序 GET `/timing`、`/usage`、`/info`、`/artifacts`、`/limits`、`/messages`，其中 `/usage` 一次 `urlopen` 超时（`Errno 110`）触发 `die()` ⇒ 进程直接退出，**后面的产物归档、17 项断言、`verification.md` 全部丢失**（`20260918-091057-r14-l3` 只剩 `run.json`/`timing.json`，而 turn 本身已成功完成）。改法（只动 runner）：① `_req` 对 **GET 重试 3 次**（退避 3/6 s）后仍失败才 `die`；**POST 保持单次**，保证抖动不可能变成重复写入；② `usage`/`limits` 这两个**纯装饰**端点标 `soft=True`，失败返回 HTTP 0 并在记录里落 `{"_error": …}`，`verification.md` 新增一行 `collection gaps (decorative endpoints unreachable, evidence intact)`；③ 承载证据的 `/timing`、`/info`、`/messages`、`/artifacts`、`debug/history`、`artifacts/archive` **仍保持硬失败**（宁可红也不假绿）。备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v5.bak` | W6/R14 | 已修 | 已修并回填：不改 runner 的条件下用 `run --resume <thread>` 把这线程重新收集成 `…092000-resume-r14-l3-recollect/`（17/17 PASS） |
-| O24 | **模板规格句被照抄进交付报告**（2026-09-18 `R15` 发现，**已修**）：报告覆盖行出现「原文优先于库内加工字段，不一致处同时写出原文值与库内记录值；」—— 模板第 5 行把规则写在 `**原文核对：** [...]` 括号外，模型当正文照抄。四个模板已移进规格括号；新增清单项 `A-P7-no-template-spec-in-report`（`op_report_excludes_literals`）+ 专属变异 `M23`（实测同时带动 `A-P2`）。备份/闸门：`arm a 38/38`、`arm b 12/12`、`GATE: PASS`、`verify-run-chain GATE: PASS`、dist `c55321ad4619` / 84,991 B 逐字节校验。**线上仍是旧模板** ⇒ 需再次授权 `push-skill`（in-place） | R15 / W6 | 已修（仓库） | 未发布：发布后跑 R16 复验 |
+| O24 | **模板规格句被照抄进交付报告**（2026-09-18 `R15` 发现，**已修**）：报告覆盖行出现「原文优先于库内加工字段，不一致处同时写出原文值与库内记录值；」—— 模板第 5 行把规则写在 `**原文核对：** [...]` 括号外，模型当正文照抄。四个模板已移进规格括号；新增清单项 `A-P7-no-template-spec-in-report`（`op_report_excludes_literals`）+ 专属变异 `M23`（实测同时带动 `A-P2`）。备份/闸门：`arm a 38/38`、`arm b 12/12`、`GATE: PASS`、`verify-run-chain GATE: PASS`、dist `c55321ad4619` / 84,991 B 逐字节校验。**线上仍是旧模板** ⇒ 需再次授权 `push-skill`（in-place） | R15 / R16 | 已修（仓库 + 已上线一版） | **R16 已复验：三个字面在真产物里 0 命中**；但 R16 又暴露**同类换措辞**写法（`未发现原文与库内记录…不一致`）⇒ 已按 `A-P8` + `M24` + 合同/模板/sys 三处补规则，**待再次发布 + R17 复验** |
 | O25 | **runner 工具调用计数口径自相矛盾**（2026-09-18 核 R15 数字时发现，**已修**）：schema 被拒的 call 会被框架重发成**新 call**，它既在 durable `calls` 里（无返回）、又不是「已返回」的一次；旧代码两处都印成 `attempts = len(calls) returned + len(rejected)` ⇒ R15 印出「30 attempts = 30 returned + 1 schema-rejected」，且被拒的那次被算进 returned 直方图（`web_fetch`×3，实为 2 次返回 + 1 次被拒）。修法：`ret_n = len(calls) - len(rej_ids)`，直方图剔除被拒项，另加 `[rejected: web_fetch×1]` 单列。备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v6.bak`（95,169 B，**O23 之后 / O25 之前**的状态，由 O25 三处 hunk 反向重建并 `py_compile` 通过）；`verify-run-chain.py` 仍 `GATE: PASS`；`run --resume`（R15 线程）实测新口径输出「29 returned + 1 schema-rejected (…web_fetch×2…) + rejected web_fetch×1」 | R15 | 已修（仅 runner 本地） |
+| O26 | **数值「符号 vs 幅度」写法没被合同定死 ⇒ 同输入不同 run 符号漂移**（2026-09-18 `R16` 对比 R8/R12/R15 发现）：三次同输入跑，R8/R12/R15 报告写 `−13.9`（U+2212）、图表 `-13.9`；R16 全篇写「降幅 13.9%／70.5%…」、图表全为正幅度。合同里**没有任何**关于符号/幅度的字（`grep -rn "同号\|负号\|降幅\|符号\|正值"` 无命中）⇒ 每次由模型自选；但清单 `A-C4-primary-A` / `A-C5-primary-B-4doses` / `A-S9-chart-values` 绑定的是**带符号**写法，于是 R16 掉 3 条（32/39 而非 35/39）。两种写法语义等价且各自内部自洽，**不是内容缺口**；按「不得为了迁就产物放宽清单」的规矩本轮未放宽、也未擅自把口径写死。**待你拍板**：(a) 合同写死「数值同库内字段同号、方向用文字补充」（推荐：贴近逐字忠实、避免混方向终点歧义、消除 run 间漂移），随后清单保持带符号期望；或 (b) 允许两种写法 ⇒ 清单 `A-C4/A-C5` 正则放宽为「可带符号」+ 邻近出现方向词，`A-S9` 加符号归一化（两条都要补/改变异，且不能让 `A-N2-no-sign-flip` 失效） | R8/R12/R15/R16 | 未改（等口径） | **待判**（证据：三次跑产物对照，本地可复现） |
+| O27 | **清单条目 `A-C16-hard-outcome-gap` 术语绑定过窄**（2026-09-18 `R16` 暴露，与 O20 同类）：R16 在表格里明确写了「心血管结局事件（如 MACE）」并标注两侧「未报告／未对齐」，但条目正则只认 `硬结局|心血管事件` ⇒ 被判 0 命中。要防的是「硬结局缺口不写」这件事实，不是某个词形 | 正则放宽为 `硬结局|心血管事件|心血管结局`（仍要求出现在正文），配套检查 M-变异仍能翻 | **待批**（证据：R16 报告第 4.3 节 + 表格行；1 份产物） |
 ## 4. 平台侧（转开发）
 
 完整、可直接转发的版本见 Obsidian：

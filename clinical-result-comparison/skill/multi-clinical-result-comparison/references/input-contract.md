@@ -274,7 +274,12 @@ is exactly such a full-text-depth record.
 Example: `原文核对：3/3 条已复核（src=1 取 PMC 全文 PMC11270764、PMC8449961；1 条无 PMCID 仅核库内摘要；
 src=37 库内正文即会议摘要原文）；1 条未复核（src=49 新闻稿：库内正文即通稿原文，未做外部抓取）`. A run that
 re-checked none must say so, and a run that fetched nothing because a source class is structurally
-unreachable must name that class instead of reporting a generic failure.
+unreachable must name that class instead of reporting a generic failure. The line reports **routes, depths
+and reason classes only**: never restate this rule inside the deliverable. A sentence such as
+`未发现原文与库内记录不一致` is meta text — no value, no ref, nothing a reader can use — and when nothing
+diverged, no divergence sentence belongs in the body at all (R16, 2026-09-18, rendered exactly that).
+`evals/fact-check` guards this twice: `A-P7` (verbatim echo of the spec) and `A-P8` (the same statement
+reworded).
 
 ## Consumer-field mapping (v0.11 attachment fields → params fields)
 
