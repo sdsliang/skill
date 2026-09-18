@@ -51,7 +51,7 @@ Do not substitute publication date for data cutoff. Do not treat a database orde
 
 - phase;
 - randomized or non-randomized;
-- blinded or open label;
+- blinded or open label; explicitly compare the registry-based `blinded`, `randomized`, `trial_control` and `positive_placebo_control` with this study's Methods/design in the available original before using them. Follow `input-contract.md` (*Study-design verification*) for paper-first reporting, attributed differences and unconfirmed aspects; do not infer original extraction errors from registry/paper disagreement;
 - controlled or uncontrolled;
 - prospective/retrospective and interventional/observational when reported;
 - number of centers/geography when relevant;

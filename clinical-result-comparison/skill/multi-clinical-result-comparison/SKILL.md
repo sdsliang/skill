@@ -60,7 +60,7 @@ In the finished report, every material number and source-dependent conclusion mu
 Build an internal worksheet for each source. Capture only explicitly supported:
 
 - trial identity, disease, stage, treatment setting and eligibility;
-- design, phase, randomization, blinding, sites and comparator;
+- design, phase, randomization, blinding, sites and comparator; explicitly re-check registry-based blinding, randomization, control design and active/placebo control against the selected paper's Methods in the deepest available permitted original. Follow `references/input-contract.md` (*Study-design verification*): the paper's design governs the report; disclose actual differences as `原文：…；登记平台记录：…{{ref_n}}`, distinguish role/period/version differences, and mark unconfirmed aspects rather than assuming agreement or an extraction error;
 - intervention dose, schedule, combination and maintenance;
 - enrolled, randomized, treated and analyzed populations;
 - endpoint hierarchy, definition, assessment method and analysis set;

@@ -11,6 +11,17 @@
 
 ## 当前交接（2026-09-18 全项目审查后）
 
+**三组已跑完（覆盖下文运行中状态）**：R27 4/4、R28 18/18、R29 14/14 均产出报告。R27断言全过；R28写文件冲突导致断言FAIL；R29无FAIL但3次拒参/2次全文500已披露。设计冲突披露部分生效，三组内容审查均有待改项，不宣称全绿。详见台账 R27–R29。以后固定全跑三组。Git本轮仅提交任务相关资产/证据文档，Docker未涉及。
+
+**最新：已授权原地发布，固定三组回归运行中。** prompt v1.6（55,885 B / `50b870badd16`）、skill v1.0.7（skill_id `ad75ec2c44334f389a0394895a47b765`）已更新并回读一致，19/19 文件匹配仓库 v0.15。用户要求以后每次迭代固定执行 `evals/fixed-regression-inputs.json` 全部三组（4/18/14 条），流程见 `docs/fixed-regression.md`；保持历史 A/B 基线。32 个唯一输入 SQL 全命中，无 ID 变化；本轮 R27/R28/R29 运行中，尚未宣布验收通过。下文待发布表述是历史阶段。
+
+
+**最新追加：设计复核规则已落实本地、待发布。** 用户指出仅记录决定不足，现已修改 Skill 正文、`input-contract.md`、`input-and-extraction.md` 和系统提示词 v0.15，逐项核对登记来源的盲法/随机化/对照设计/阳性安慰剂对照，冲突原文优先并披露来源，缺失标未确认。deps 无变化，19 文件包 86,621 B 重建一致、diff 检查通过；尚无新版在线 R，须经发布授权后真跑样本，不能把旧版本运行算验证。测试 ID 转换仍只在测试前做。下文“未改运行资产”是上一轮历史状态。见 [决策与验证计划](docs/test-input-resolution.md)。
+
+
+用户最新决定：试验设计相关 MCP 字段来自登记平台，重点对照原文，冲突以原文为准并披露差异。测试输入缺真实 `_id` 的兼容只在调用 TS 前用只读 SQL 解析，**不加入 Skill**；显式字段按该字段匹配，未标字段按 `_id OR extra_esid` 匹配，真实 `_id` 去重后传 `esids`，未解析项单列。故意无效 ID 的冻结拒绝测试保持原始输入。决策与证据见 [test-input-resolution.md](docs/test-input-resolution.md)。本轮仅文档与本地证据，未改运行资产/runner、未发布、无需 Docker；转换清单已核对 86 命中/68 未解析。
+
+
 本地修复与线上原地发布已完成，部署回读 in sync；R26 拒绝契约与回执归档通过。R22/R23 的报告内容人工复核仍有缺陷，不能宣称标准 A/全文验收全绿。完整验收记录见 [online-acceptance-2026-09-18.md](docs/evidence/online-acceptance-2026-09-18.md)。
 
 评估器已明确开新基线 **`2026-09-18-r2`**：A **43 fail + 1 warn**、B **12 fail + 1 warn**。41→43 是评估器修订，**不是质量提高**；跨基线不可直接比较。详见 [修订记录](evals/fact-check/EVALUATOR_REVISION.md)。本次一次性审查含冻结面修复，不属于「一轮一个变量」的规则实验；后续迭代以 r2 冻结。
@@ -25,7 +36,7 @@
 | **runner** | 本机 CLI `~/.local/bin/toolsmith-publish` | ✅ 改，但先备份到 `~/.local/state/toolsmith-publish/toolsmith-publish.v*.bak` | `python3 -m py_compile` → `evals/runner-gate/verify-run-chain.py` 必须 `GATE: PASS` → 台账留 `R`/`O` 记录 |
 
 **TS 资产写入必须逐次点头**：`publish` / `push-prompt` / `push-skill`（往平台写 skill/prompt）。
-Git 免确认仅限本项目 `commit` / `push`；`revert`、merge、rebase、分支操作等仍须明确授权。本次任务明确不 commit/push。
+Git 免确认仅限本项目 `commit` / `push`；`revert`、merge、rebase、分支操作等仍须明确授权。
 `run` 会创建线程，按写动作处理；`status` / `deps` / `tools` / `instructions` / 离线脚本都是只读。
 
 ---
