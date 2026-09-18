@@ -284,6 +284,59 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 - **意义**：质量层从「布尔门」升级为 `facts_ok/facts_total` 标量（`docs/autoresearch-iteration-plan.md` §9），
   后续 keep/discard 先看事实分不掉。
 
+### F3 — 2026-09-18，**arm A 基线从「补过一行的 R8 副本」换成真产物 R17**（离线，零新 run、零发布）
+
+用户 2026-09-18 授权「做呗」。改动只在**仓库评测资产**（`evals/fact-check/mutations.py` + `README.md`），
+**没碰 `skill/`、`system-prompts/`、runner、平台** ⇒ dist 无变化 ⇒ 不需要重新打包，也不需要发布授权。
+清单条目与 `check.py` **一个字没改**——这次换的是**基线产物**和**变异措辞**，不是判分口径。
+
+**为什么要换**：arm A 的基线一直是 R8（`20260916-104943-v2-poll`，2026-09-16）的**临时副本**，且
+`fresh()` 会往副本里注入一行 `原文核对：`（`seed_original_check`）——因为 R8 早于原文优先规则，产物里不可能有这一行，
+不补的话基线自己就会因 `A-P1` 而不干净。R17（`20260918-095553-r17-sign-convention`，数值口径定案后 in-place
+发布跑出来的那一版）是**逐条全绿**的真产物，且**原生带** `原文核对：` 行 ⇒ 基线可以「原样判分」，
+`seed_original_check` 的存在理由随之消失。
+
+**做了什么**
+
+- `SRC_A` 默认值 → `~/.local/state/toolsmith-runs/20260918-095553-r17-sign-convention`（仍可用 `MUT_RUN_A` 覆盖）；
+  删除 `seed_original_check()` / `SEED_ORIGINAL_CHECK` 常量、`fresh()` 里的调用、`arm()` 里「baseline is seeded」的注释。
+- 6 条变异按 R17 的真实字节重写（README 里有 R8 版 ↔ R17 版对照表）：
+  `M01`（`13\.9` 全替）、`M03`（替 `[OCEAN(a)-DOSE](entity:trial:NCT04270760)`，`count=0`）、
+  `M06`（H1 只点一个药，走 `A-T1` 的「只点一个 subject」FAIL 分支）、`M07`（`2 ?条` 全替）、
+  `M15`（ref_2 行的药名单元格换成 ref_1 的药名）、`M21`（加全文归档**并**把覆盖行改写成只声明摘要路径）、
+  `N26`（改用「两个 subject 都点名」的标题——R17 的基线本身就是主题式标题，旧的 N26 在它身上是空转）。
+- 新增 `FT_XML` 常量（M21/M22 共用的最小 JATS 正文），避免两处字面量各写一遍。
+
+**证据（负向对照闸门，`python3 evals/fact-check/mutations.py`）**
+
+```
+baseline a: 40 fail-severity items, all PASS
+[OK ] M01 minus139 / M02 signflip / M03 drop-trial-id / M04 timepoint / M05 wrong-ref / M06 …
+[OK ] N25 mixed-sentence-not-misattributed  rc=0 kept A-ATTR-misattribution green
+[OK ] N26 theme-title-accepted             rc=0 kept A-T1-title-identifies-scope green
+[OK ] N27 trial-id-contrast-sentence        rc=0 kept A-ATTR-misattribution green
+arm a: flipped 40/40; never flipped []
+baseline b: 12 fail-severity items, all PASS
+arm b: flipped 12/12; never flipped []
+GATE: PASS
+```
+（完整输出 48 行、41 个 `OK` 行，**已落库**：`docs/evidence/mutation-gate-2026-09-18-r17-baseline.txt`；
+harness 每次跑都把 run 目录重新复制到临时目录，可重复，退出码 0。）
+
+真产物直接判分（口径未变）：`SCORE scenario=a facts 40/40 warn 1/1 -> PASS`。
+
+**两次踩坑（都留了痕，正是「变异必须真能翻出对应 FAIL」的价值）**
+
+1. `M01` 第一版只替带负号的 `−13.9` ⇒ `A-C4` 仍是绿的：R17 散文里有一处「与 [依洛尤单抗] 的 `13.9%` 之差」不带负号，
+   而 `A-C4` 的图案本就是 `[\u2212-]?`（符号可选，见 O26）。改成 `(?<![\d.])13\.9` 全替后翻出 `A-C4`。
+   ——顺带记一条判分器性质：**符号可选的图案，只替一种写法等于没改**。
+2. `M03` 第一版用 `sub_lit(...)` 没给 `count`，默认 `count=1`，22 处只改了 1 处 ⇒ harness 报
+   `[BAD] M03 drop-trial-id  rc=0 flipped=[]`，闸门直接 FAIL（`A-C2` 要 3 个图案**全中**，只打掉一处不够）。
+   改成 `count=0` 后翻出 `A-C2`。
+
+**与 F2 的关系**：F2 记的是打分器两类假阳性（O19/O20）+ O28 的修复；当时明确写了「`MUT_RUN_A` 仍指向带 seed 的 R8 副本，
+换基线是一件独立的事」。本条就是那件独立的事，`O20` 行的状态随之补一句，F2 的「没做的（有意）」段落后加了一条指向本条的备注。
+
 ### F2 — 2026-09-18，**打分器两类假阳性修复（O19 / O20）+ 顺手挖出的 O28**（离线，零新 run、零发布）
 
 用户 2026-09-18 授权「O19-20 都可以改」。三处全在**仓库评测资产**（`evals/fact-check/`），
@@ -331,6 +384,7 @@ GATE: PASS
 （`M01 minus139` / `M06` 首个药名 / `M07`「2 条」/ `M15`「试验 B {{ref_2}}」表格行在 R17 产物里匹配不到或改不动），
 且 `M21` 依赖「基线不提全文」这个前提，而 R17 的覆盖行本来就写了「R7 全文接口返回 500（该刊非 OA）」。
 换基线＝按 R17 真实字节重写这几条变异，是一件独立的事，记在 `O20` 条目里等下一步做。
+（**后续**：2026-09-18 用户授权后已做——见 `### F3`：基线重指 R17、`seed_original_check` 删除、6 条变异重写。）
 
 ### R11 — 2026-09-17，**platform `30306cb` 契约变更后的 runner 适配**（只读复测 N1–N4 + 1 次真跑 + 拒绝路径复核）
 
@@ -496,7 +550,7 @@ Recommended `selected_fields` 收尾一句；② `SKILL.md` 输入契约段加�
 
 **`MUT_RUN_A` 的状态更新**：R17 是**第一份除 O20 外全绿的场景 A 真产物**（且原生带 `原文核对：` 行 ⇒ `seed_original_check` 的存在理由消失）。
 但直接指过去前必须先确认 `M21`/`M22` 的自足性 —— R17 没归档任何全文（非 OA），`A-P5`/`A-P6` 在它身上不触发，
-两个变异必须自己 plant 全文归档才能保持「arm a 40/40 全翻」。**这一步等你对 O20 的一句话判定之后再做**。
+两个变异必须自己 plant 全文归档才能保持「arm a 40/40 全翻」（`M21`/`M22` 本来就是这样写的）。**已于 2026-09-18 完成 → `### F3`**。
 
 ### R16 — 2026-09-18，**模板修复上线后的场景 A 收口复跑**（同输入第三跑：`A-P7` 复验通过；又挖出一类「换措辞」泄漏 + 一类「数值写法口径」缺口）
 
@@ -935,7 +989,7 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O17 | **清单条目 `A-S2-chart-set` 是「基线污染」**（期望从 R8 产物倒推，而不是从规则文本推）·**已按用户批准修正**：它期望场景 A 必出 `endpoint-bar-1.json`，但 `chart-templates.md:91` 的规则是「定量主图**可选**，需 ≥2 条入选结果给出**同一终点、同一口径（可明确对齐的时点）**的纯数值」，而场景 A 的两条记录是**第 16 周 vs 第 36 周**——R11 据此明确写了「不具备绘图条件——本报告不输出图表」并给了理由；R8（同一输入）反而画了图。**这就是「清单必须先于产物撰写」要防的那个坑** | **已落地**（2026-09-17）：① `A-S2` 改为 `chart_set_allowed`（文件名合法 + 禁 timeline（跨试验前置条件不成立）+ 定量图 ≤1 张；**空集合不算违规**）；② 新增 **`A-S2b-chart-or-reason`**：没有定量图时正文必须**明确写出不出图**（`required_groups`）且给 ≥1 条实质理由（`supporting_groups`）——只查支持理由不够（跨试验报告天然写「跨试验」「时点不同」，删图不说话也能过）；③ `A-S8/A-S9` 加 `"optional_when_absent": true`（文件在则硬断言封套/数值，不在则 PASS 并指向 A-S2b）；④ `A-C12` pattern `2 ?条` → **`2 ?(条\|项)`**；⑤ 新增变异 **`M16 drop-chart-silent`** | **已落地**（2026-09-17；判据：R8/R9 新基线 **31/31**、R11 由 25/30 → **30/31**（只剩 `A-C6`）、B 仍 12/12、`mutations.py` arm A **16** 个变异覆盖 31/31 + arm B 11 个覆盖 12/12 → **GATE PASS**；正向对照「删图 + 写明原因」手动跑 → 31/31 PASS） |
 | O18 | **`run` 无法进入「联网状态」**：`post_turn` 把请求级 `enable_web` 硬编码为 `False`，而平台只在「项目能力 + 请求级开关」双开时才注入 `web_search`/`web_fetch`（`capabilities/web.py:140`）—— 项目能力本项目已开（`/api/agent/info?…&enable_web=true` 注入 `## Web Tools`），所以唯一的闸门正好是本机验证器碰不到的那一个；后果是无法用 `run` 验证「联网时 skill 行为」（路线 C 的前置条件），之前只能靠临时探针脚本 `/tmp/webtest.py` | `run` 新增全局 `--web`（写进请求体 `enable_web`，`run.json` 与 `verification.md` 均留痕；`--resume` 打印无效提示），CLI docstring 与 plan doc 同步 | **已落地**（2026-09-17，用户先点头后才改；改前备份 `.v4.bak`，92,618 B）→ 证据见 **W1** |
 | O19 | **打分器在「一句多 marker」上假阳性**：R12 报告里 `… NCT02729025 的机制终点未达显著{{ref_1}}，其结论不能外推至 OCEAN(a)-DOSE{{ref_2}}` 被判 `A-ATTR-misattribution` FAIL（`'NCT02729025' in unit citing ['ref_2']`）——而 sys 明文允许「一句确实混用多来源时可挂多个 marker」（`system-prompts/…-v0.15.md:203`）。判分器只看「token 的 owner 是否等于该 unit 的**唯一** ref」，与契约文本冲突 | 方案改过：**不是**按「refs 集合大小」放松（实测 R12/R15 的假阳性 unit 都只挂**一个** marker），而是按「**这条 unit 在讲哪条记录**」放松 —— `pairs` 标 `"subject": true` 的 token＝记录身份证（药名 + 登记号）；**身份对**在「unit 同时点了引注记录自己的身份证」时豁免（比较句/排除句），**数值对永不豁免**（M27 证明），`M06`/`M15` 照旧翻（豁免没把牙拔掉）。另加假阳性回归对照 `N25`/`N27` + `arm()` 的「必须保持绿」断言 | **已修**（2026-09-18 用户「O19-20 都可以改」）→ 证据 **F2**；R12 由 `37/40` 升到 `39/40`、R15 `36→37/40`、R17 `39→40/40` |
-| O20 | **清单条目 `A-T1-title-names-both` 期望过窄**：R12 的 H1 是主题式标题「Lp(a) 升高人群降 Lp(a) 治疗：跨试验对比报告」→ FAIL；但两个药名都在正文锚点里（`A-C1/C2` PASS）。该条的理由是「标题无引注、不受归因保护」，真正要防的是**两药混成一个**；而「H1 必须点名两个药」是从 R8 那份标题倒推的写法偏好（与 O17 同类基线污染） | 落地为 `kind: shape` / `op: title_scope`，条目改名 `A-T1-title-identifies-scope`：两个 subject 都点 ⇒ PASS；一个都不点但命中 `theme_all`（人群 + 对比标记）⇒ PASS；**只点一个 ⇒ FAIL**；两者都不占 ⇒ FAIL。专属变异 `M26`（`# 结果对比报告`）与 `M06`（药名换另一个）双双证明有牙，假阳性回归对照 `N26`（主题式标题）保持绿 | **已修**（2026-09-18 用户授权；R12/R15/R16/R17 四份产物证据齐）→ 证据 **F2** |
+| O20 | **清单条目 `A-T1-title-names-both` 期望过窄**：R12 的 H1 是主题式标题「Lp(a) 升高人群降 Lp(a) 治疗：跨试验对比报告」→ FAIL；但两个药名都在正文锚点里（`A-C1/C2` PASS）。该条的理由是「标题无引注、不受归因保护」，真正要防的是**两药混成一个**；而「H1 必须点名两个药」是从 R8 那份标题倒推的写法偏好（与 O17 同类基线污染） | 落地为 `kind: shape` / `op: title_scope`，条目改名 `A-T1-title-identifies-scope`：两个 subject 都点 ⇒ PASS；一个都不点但命中 `theme_all`（人群 + 对比标记）⇒ PASS；**只点一个 ⇒ FAIL**；两者都不占 ⇒ FAIL。专属变异 `M26`（`# 结果对比报告`）与 `M06`（药名换另一个）双双证明有牙，假阳性回归对照 `N26`（主题式标题）保持绿 | **已修**（2026-09-18 用户授权；R12/R15/R16/R17 四份产物证据齐）→ 证据 **F2**。**后续**：arm A 基线已重指 R17、`seed_original_check` 删除（清单/打分器未动）→ 证据 **F3** |
 | O21 | **A2 追问的实现路径（分诊完成：政策已放开，规则已改仓库，等发布）**：① **`source_full_link` 字段不存在** —— 那是 v0.11 附件契约的名字（`source_url`/`source_full_text`），现行 params 工具里只有 `clinical_result.full_article_link`（描述「临床结果论文的URL」）；写错名字的后果是整次取数 `INVALID_INPUT`。② 原计划「优先 `abstract_text` → 再访问 `full_article_link`」与**旧** sys:50「citation metadata only」冲突，且对人类可读页面实测不可用（W2-a/W2-c：pubmed cookie 墙、CT.gov JS 骨架、5 个出版域 403）。③ 只有 **API 端点**可用（W2-b/d：CT.gov v2 真原文含结果数值、OpenAlex 按 DOI 拿到原文摘要含会议摘要、Europe PMC 按 pmid 拿摘要；`fullTextXML` 当时误判为 500/不可用，已在 `### W5` 更正为「记录级、路由可用」），而 API 端点必须由 `pm_id`/`doi`/登记号**拼 URL**，与「URL 只逐字用、不得构造」冲突 ⇒ 必须开白名单模板。三个开关已定：**(a) 政策 = 放开**（用户 2026-09-17：字段值是加工的、可能出错，原文第一优先级）；**(b) 可追溯性承载 = 报告正文**（`citations.json` 保持严格 3 键、不加键，因此不破 `A-S4`）；**(c) 冲突/降级语义 = 原文为准 + 分歧必须双值写明 + 抓不到必须点名原因类**。 | 规则已写入仓库（清单见 `### W3`），开白名单模板 R2/R3/R4/R5；**并按来源类细化**（`### W4`：`1` PubMed / `2`/`187` CT.gov / `37` 会议 / `49` 新闻稿=库内即原文 / `120` 补录 / `398` SEC 不可复核），把「link 页一律禁抓」改成「16 主机封锁清单 + 每记录最多 1 次自身 link（仅无路由键或主机可用/未知）」。**第四轮（`### W5`）再收窄**：默认改为「**先读库内 `abstract_text`——实测多数类它就是原文**（期刊摘要 alnum 1.000/0.992、会议摘要 0.991/0.976、登记结果小数 102/102、通稿带线报日期），所以默认不抓」；唯一例外 **`src=1` PubMed 即使有摘要也走 `R6`→`R7` 取 PMC 全文**（100 条抽样 56% 有 PMCID；平台侧 R7 4/5 成功、63–99 K JATS 全文；无 PMCID/非 OA 记原因类不计失败）；预算改「每条 ≤1、`src=1` ≤2、整批 ≤40」；覆盖行必须写 PMC 结果，归档全文就必须点名 `PMC<号>`/「全文」（新断言 `A-P5` + M21 证明有牙） | **已定案 → 待发布授权 + 真 run（R13）**（2026-09-17；证据 W2、W3、W4、W5 + 字段实测） |
 
 | O22 | **全文深度分层 → 已定级 L3（2026-09-17）**：用户提问「字段值基于摘要生成，PMC 能取到的能不能直接读全文」⇒ 实测成立：3 篇 R6 返回 pmcid 的记录，全文独立数值 **334 / 334 / 249**，其中 **92% / 88% / 99%** 不在摘要里，且 `PFS`/`DoR`/`HR`/`TTR`/亚组/`Grade 3` 等维度摘要根本不出现。**用户选 L3 并驳掉「长短即不可比」**：科学事实不因披露载体改变 ⇒ 规则改为「分析面 = 可得最深载体」，且**基于全文分析的记录其引用 `link` 指向全文**（C1 `pmc.ncbi.nlm.nih.gov/articles/{PMCID}/` 只写不取 / C2 ebi REST fullTextXML 为实际读取源），覆盖行须按记录声明深度。新断言 `A-P6-cite-link-is-deepest`（M22 证明可翻）。证据：`docs/evidence/source-link-accessibility-2026-09-17.json` 的 `l3_decision` / `pmc_fulltext_information_gain`。 | W6 | 仓库已改，**未发布** | **待用户发布授权**（发布后跑 R14 才算已验证） |

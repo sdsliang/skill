@@ -10,9 +10,12 @@ applied to a throwaway copy of a real run dir; the scorer must report FAIL for a
 least one item, the mutated run must exit 3, and the union over all mutations must
 cover every fail-severity item in the checklist.
 
-Arm A: the report-producing run R8 (2026-09-16, 2 valid esids).
-`NEG_A` gives the same arm two *must stay green* controls: the O19 mixed-sentence shape and the
-O20 theme-title shape, so an over-eager exemption shows up as a BAD line instead of a silent pass.
+Arm A: the report-producing run R17 (2026-09-18, 2 valid esids, sign-convention round).  It is a
+real, fully-passing artifact (40/40 fail-severity items) and it already carries the
+`原文核对：` line, so the baseline is scored as recorded — nothing is seeded into the copy.
+`NEG_A` gives the same arm three *must stay green* controls: the two O19 mixed-sentence shapes and
+the O20 "both subjects named" title, so an over-eager exemption shows up as a BAD line instead of a
+silent pass.
 Arm B: the correctly refusing v1 run R6 (1 valid + 1 unusable esid).
 """
 import json
@@ -26,8 +29,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 CK = os.path.join(HERE, "check.py")
 RUNS = os.path.expanduser("~/.local/state/toolsmith-runs")
 WORK = os.environ.get("MUT_WORK", "/tmp/fact-check-mutations")
-# Arm A = a report-producing run (R8) ; arm B = a run that correctly refused (R6).
-SRC_A = os.environ.get("MUT_RUN_A", os.path.join(RUNS, "20260916-104943-v2-poll"))
+# Arm A = a report-producing run (R17) ; arm B = a run that correctly refused (R6).
+SRC_A = os.environ.get("MUT_RUN_A", os.path.join(RUNS, "20260918-095553-r17-sign-convention"))
 SRC_B = os.environ.get("MUT_RUN_B", os.path.join(RUNS, "20260914-174145-b2-refusal"))
 COPY_A = ["messages.json", "transcript.md"]
 COPY_B = ["debug-history.json"]
@@ -48,32 +51,15 @@ def fresh(name, src, files, with_artifacts):
         shutil.copytree(os.path.join(src, "artifacts"), os.path.join(d, "artifacts"))
     else:
         os.makedirs(os.path.join(d, "artifacts", "visualizations"), exist_ok=True)
-    r = os.path.join(d, "artifacts", "output", "report.md")
-    if with_artifacts and os.path.isfile(r):
-        seed_original_check(r)
-    return (d, r,
+    return (d,
+            os.path.join(d, "artifacts", "output", "report.md"),
             os.path.join(d, "artifacts", "output", "citations.json"),
             os.path.join(d, "artifacts", "visualizations"))
 
 
-# The recorded baseline run (R8, 2026-09-16) predates the original-source contract, so it
-# cannot already contain the `原文核对：` line that contract now requires.  Seed that one line
-# into the throwaway baseline copy: every content item still sees the real run's bytes, and the
-# four original-source items each keep their own mutation (M17-M20) proving they can flip.
-# The seed line deliberately avoids the literal `库内记录`, which would arm the conditional
-# divergence item A-P2 on a line that is not a divergence, and it names both a route and a
-# source class so that A-P4 (route + class) is satisfied by the seed rather than by accident.
-# It deliberately contains neither `PMC<digits>` nor 全文, so M21 can flip A-P5 off the baseline.
-SEED_ORIGINAL_CHECK = ("> **原文核对：** 1/2 条已按原文复核（src=1 库内正文即摘要原文，未取更多：无 PMCID）；"
-                       "1 条未能复核（src=49 新闻稿：库内正文即通稿原文，未做外部抓取）。\n")
-
-
-def seed_original_check(report_path):
-    t = open(report_path, encoding="utf-8").read()
-    lines = t.splitlines(keepends=True)
-    lines.insert(1, "\n" + SEED_ORIGINAL_CHECK)
-    open(report_path, "w", encoding="utf-8").write("".join(lines))
-    return 1
+# A minimal JATS body, used by M21/M22 to put a real full text under `sources/`.
+FT_XML = ('<?xml version="1.0"?>\n<article><front><article-title>t</article-title></front>'
+          '<body><sec><title>Results</title><p>ORR was 35.0% (95% CI, 23.1-48.4).</p></sec></body></article>\n')
 
 
 def sub(path, pat, rep, count=0):
@@ -107,16 +93,23 @@ def score(run_dir, scenario):
 
 # --------------------------------------------------------------- arm A mutations
 
-def M01(d, r, c, v):
-    return sub(r, "[\u2212-]13\\.9", "\u221219.9")
+def M01(d, r, c, v):  # bill the primary endpoint with a value that is not the record's
+    # Both renderings must go: R17 writes `−13.9%（95% CI …）` in the tables *and* a bare
+    # `13.9%` in the direction paragraph, and A-C4's pattern makes the sign optional —
+    # replacing only the signed form left the item green (first draft of this rewrite).
+    return sub(r, r"(?<![\d.])13\.9", "19.9")
 
 
 def M02(d, r, c, v):
     return sub(r, "\\+\\s*3\\.6", "\u22123.6")
 
 
-def M03(d, r, c, v):
-    return sub(r, "NCT04270760", "NCT00000000")
+def M03(d, r, c, v):  # strip record B's registration identity out of every ref_2 block
+    # A-C2 needs *all three* of its patterns inside blocks citing ref_2, so dropping the two
+    # identity strings is enough; the drug name alone cannot satisfy it.
+    # `count=0` = all 22 occurrences (sub_lit defaults to 1).
+    return sub_lit(r, "[OCEAN(a)-DOSE](entity:trial:NCT04270760)",
+                   "[该项研究](entity:trial:NCT99999999)", count=0)
 
 
 def M04(d, r, c, v):
@@ -127,12 +120,16 @@ def M05(d, r, c, v):
     return sub(r, "\\{\\{ref_1\\}\\}", "{{ref_9}}")
 
 
-def M06(d, r, c, v):
-    return sub(r, "奥帕司兰", "依洛尤单抗", count=1)
+def M06(d, r, c, v):  # an H1 that names exactly one of the two subjects
+    # The "写成同一个药" branch of A-T1-title-identifies-scope (O20): a theme title is legal, a
+    # title naming *one* drug is not.  M26 exercises the "identifies nothing" branch.
+    return sub(r, r"^# [^\n]*", "# 依洛尤单抗 跨试验对比报告", count=1)
 
 
-def M07(d, r, c, v):
-    return sub(r, "2 ?条", "5 条")
+def M07(d, r, c, v):  # narrate the duplicated rows as five records
+    # Replaces every `2 条` (纳入结果, 原文核对 `2/2 条`, `2 条仅摘要级`) so the forbidden
+    # `5 条记录` register appears and A-C12's `2 条/项` disappears in the same stroke.
+    return sub(r, r"2 ?条", "5 条记录")
 
 
 def M08(d, r, c, v):
@@ -185,10 +182,12 @@ def M14(d, r, c, v):
     return 1
 
 
-def M15(d, r, c, v):  # cross-attribution inside a ref_2-only table row
-    return sub_lit(os.path.join(d, "artifacts/output/report.md"),
-                   "| 试验 B {{ref_2}} |",
-                   "| 试验 B（优于依洛尤单抗）{{ref_2}} |")
+def M15(d, r, c, v):  # cross-attribution inside a ref_2-only table row (identity, not a value)
+    # R17's row is `| [OCEAN(a)-DOSE](…) | [奥帕司兰](drug:11859) 10 mg Q12W | … | −70.5%…{{ref_2}} |`;
+    # swapping the drug cell to the *other* record's drug leaves the cell citing ref_2 alone, so the
+    # identity exemption cannot fire (no ref_2 identity is named any more) and A-ATTR must flag it.
+    return sub_lit(r, "| [奥帕司兰](entity:drug:11859) 10 mg Q12W |",
+                   "| [依洛尤单抗](entity:drug:3128) 10 mg Q12W |")
 
 
 def M16(d, r, c, v):  # drop the quantitative chart and say nothing about charts
@@ -219,15 +218,17 @@ def M20(d, r, c, v):  # keep a hollow coverage line: right shape, no route/class
     return sub(r, r"原文核对：[^\n]*\n", "> **原文核对：** 2/2 条已复核。\n")
 
 
-def M21(d, r, c, v):  # archive a PMC full text but declare only the abstract route
+def M21(d, r, c, v):  # full text archived, but the coverage line declares only the abstract route
+    # R17's own coverage line already names `PMCID PMC6933872` and 全文 (it records that R7 came back
+    # 500 for a non-OA journal), so merely archiving a body cannot flip A-P5 here.  The mutation
+    # therefore also rewrites the line into an explicit abstract-only declaration — which is exactly
+    # the shape the item exists to catch: a 99 KB PMC body on disk, a reader told it was all abstracts.
     src_dir = os.path.join(d, "artifacts", "sources")
     os.makedirs(src_dir, exist_ok=True)
-    open(os.path.join(src_dir, "ref_1.pmc-fulltext.xml"), "w", encoding="utf-8").write(
-        '<?xml version="1.0"?>\n<article><front><article-title>t</article-title></front>'
-        '<body><sec><title>Results</title><p>ORR was 35.0% (95% CI, 23.1-48.4).</p></sec></body></article>\n')
-    assert "全文" not in open(r, encoding="utf-8").read(), (
-        "baseline already mentions 全文 — M21 could pass by accident")
-    return 1
+    open(os.path.join(src_dir, "ref_1.pmc-fulltext.xml"), "w", encoding="utf-8").write(FT_XML)
+    return sub(r, r"原文核对：[^\n]*\n",
+               "> **原文核对：** 2/2 条已复核（src=1：PMID 30561610 按库内摘要核对，该刊非 OA；"
+               "src=1：PMID 36342163 按库内摘要核对，非 OA 不可复核）。\n")
 
 
 def M23(d, r, c, v):  # echo the template's own spec wording into the delivered report
@@ -256,24 +257,29 @@ def M26(d, r, c, v):  # an H1 that identifies nothing
 
 
 def N25(d, r, c, v):
-    """**False-positive regression (O19)** — a mixed sentence must NOT count as misattribution.
+    """**False-positive regression (O19, shape 1)** — a mixed sentence must NOT count as misattribution.
 
-    Shape taken from R15's real conclusion paragraph: one sentence cites `ref_1`, takes ref_1's own
-    drug as its subject, and mentions the other trial's drug in an exclusion clause.  The scorer
-    must leave A-ATTR-misattribution green (`arm()` asserts that via NEG_A).  Before the O19
-    exemption this exact shape failed.
+    Shape taken from R15's real conclusion: one sentence cites `ref_1`, takes ref_1's own drug as its
+    subject, and mentions the other trial's drug in an exclusion clause.  The scorer must leave
+    A-ATTR-misattribution green (`arm()` asserts that via NEG_A).  Before the O19 exemption this exact
+    shape failed.  Appended as its own sentence so the unit cites `ref_1` alone (in R17 every prose
+    sentence carrying a marker already cites both records, which would make the control vacuous).
     """
-    return sub(r, r"\{\{ref_1\}\}",
-               "{{ref_1}}（该构念与奥帕司兰的 Lp(a) 降幅终点不是同一构念，"
-               "与依洛尤单抗记录的可比性也不成立）", count=1)
+    return sub(r, r"\Z",
+               "\n\n- 该影像学结果与[奥帕司兰](entity:drug:11859) 的 Lp(a) 降幅终点不是同一构念，"
+               "[依洛尤单抗](entity:drug:3128) 一栏因此不作优效推断{{ref_1}}。\n")
 
 
 def N26(d, r, c, v):
-    """**False-positive regression (O20)** — a theme title with *no* drug name must pass A-T1.
+    """**False-positive regression (O20)** — the *other* legal H1 shape: both subjects named.
 
-    R16/R17 render `# 脂蛋白(a) 升高人群降脂治疗跨试验对比报告`; the old item failed it.
+    R17's baseline is already a theme title (`# 脂蛋白(a) 升高人群降脂治疗跨试验对比报告`), so the
+    baseline run itself proves that branch; this control proves the first branch (both subjects named)
+    still passes after the O20 rewrite, without touching the theme branch.
     """
-    return sub(r, r"^# [^\n]*", "# 脂蛋白(a) 升高人群降脂治疗跨试验对比报告", count=1)
+    return sub(r, r"^# [^\n]*",
+               "# Lp(a) 升高人群降脂治疗：[依洛尤单抗](entity:drug:3128) vs "
+               "[奥帕司兰](entity:drug:11859) 跨试验对比报告", count=1)
 
 
 def M27(d, r, c, v):
@@ -290,11 +296,15 @@ def M27(d, r, c, v):
 
 
 def N27(d, r, c, v):
-    """**False-positive regression (O19, second shape)** — R12's real sentence: a contrast clause
-    that names the *other* record's trial id in a cited unit (`安全性维度只有 …{{ref_2}}，NCT02729025 未报告…`).
+    """**False-positive regression (O19, shape 2)** — R12's real sentence: a contrast clause that
+    names the *other* record's registration number inside a unit that cites only ref_2.
+
+    The unit names ref_2's own trial first, which is what makes the trailing contrast legal.
     """
-    return sub(r, r"\{\{ref_1\}\}",
-               "{{ref_1}}（另一试验 NCT04270760 未报告该指标，无法判定）", count=1)
+    return sub(r, r"\Z",
+               "\n\n- 安全性维度只有 [OCEAN(a)-DOSE](entity:trial:NCT04270760) 一方直接报告总体不良事件"
+               "发生率组间相似，[NCT02729025](entity:trial:NCT02729025) 未报告安全性数据，"
+               "无法判定谁更安全{{ref_2}}。\n")
 
 
 def M24(d, r, c, v):  # state the rule itself (reworded, not verbatim) instead of a finding
@@ -304,9 +314,7 @@ def M24(d, r, c, v):  # state the rule itself (reworded, not verbatim) instead o
 def M22(d, r, c, v):  # full text archived AND declared, but the citation still points at the abstract
     src_dir = os.path.join(d, "artifacts", "sources")
     os.makedirs(src_dir, exist_ok=True)
-    open(os.path.join(src_dir, "ref_1.pmc-fulltext.xml"), "w", encoding="utf-8").write(
-        '<?xml version="1.0"?>\n<article><front><article-title>t</article-title></front>'
-        '<body><sec><title>Results</title><p>ORR was 35.0% (95% CI, 23.1-48.4).</p></sec></body></article>\n')
+    open(os.path.join(src_dir, "ref_1.pmc-fulltext.xml"), "w", encoding="utf-8").write(FT_XML)
     # declare the full-text depth so A-P5 stays satisfied: only the citation link is wrong here
     return sub(r, r"原文核对：[^\n]*\n",
                "> **原文核对：** 2/2 条已复核（src=1 取 PMC 全文 PMC11270764；src=37 库内正文即会议摘要原文）。\n")
@@ -440,8 +448,9 @@ def arm(scenario, src, files, with_artifacts, muts):
     if not os.path.isdir(src):
         print(f"arm {scenario}: SKIP (run dir not found: {src})")
         return True, [], []
-    # Score a seeded *copy* as the baseline: the recorded run predates the original-source
-    # contract, so its own bytes cannot satisfy A-P1 (see seed_original_check).
+    # Score the recorded run copy *as recorded*: arm A's baseline (R17) postdates the
+    # original-source contract and already carries the `原文核对：` line, so no seeding is needed
+    # (before 2026-09-18 arm A was R8 and one line had to be injected — see the README history).
     bd, _, _, _ = fresh("baseline", src, files, with_artifacts)
     rc0, bad0, base = score(bd, scenario)
     shutil.rmtree(bd, ignore_errors=True)
