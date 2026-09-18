@@ -56,7 +56,9 @@ for d in sorted(glob.glob(os.path.join(RUNS, "2026*"))):
         print(f"{os.path.basename(d):28s} SKIP (v2 run: tap carries no tool events)"
               f"  history_attempts={n['attempts']}")
         continue
-    rej = {r["tool_call_id"] for r in n["rejected"]}
+    # (O32) the attempts the tap cannot see are BOTH the argument-refused calls and the
+    # external fetch failures the framework re-prompted (i.e. `retries` in the raw history).
+    rej = {r["tool_call_id"] for r in n["rejected"] + n["fetch_failures"]}
     # dropping the rejected attempts from the new chain must reproduce the old one exactly
     keep = [c for c in n["calls"] if c[0] not in rej]
     same = [(a[1], a[2]) for a in o["calls"]] == [(b[1], b[2]) for b in keep]
@@ -74,8 +76,8 @@ for d in sorted(glob.glob(os.path.join(RUNS, "2026*"))):
           f"rejected={len(rej)} errors={len(n['errors'])} tap={o['events'].get('tool-input-start')} calls "
           f"-> {'OK' if ok else 'MISMATCH ' + str([k for k, v in checks.items() if not v])}")
     print("    " + " ".join(f"{k}x{v}" for k, v in collections.Counter(c[1] for c in n["calls"]).most_common()))
-    for r in n["rejected"]:
-        print(f"    rejected(hidden from v1): {r['tool_name']} "
+    for r in n["rejected"] + n["fetch_failures"]:
+        print(f"    hidden from v1: {r['tool_name']} "
               f"{json.dumps(r['args'], ensure_ascii=False)[:80]} -> "
               f"{json.dumps(r['reason'], ensure_ascii=False)[:160]}")
 

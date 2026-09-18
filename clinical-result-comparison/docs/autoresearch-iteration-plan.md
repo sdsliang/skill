@@ -26,7 +26,7 @@
 | 6 | **现在无法离线核「引用真的来自拉取结果」**：params 的 tool-return 是「预览 + 落盘指针」，`artifacts.zip` **不含 `tool_results/**`** | §7 |
 | 7 | sys prompt 44516 B 里涉委派/子代理段落 **2 段 = 6908 B = 15.5%**，而 5 个 run **一次都没委派** → 可做「删段实验」 | §6/§10 E2 |
 | 8 | 真正的结构性差距只有一条：autoresearch 有 `val_bpb`，我们**只有 13 项布尔断言 + 人工读产物** → 只能判「契约破没破」，判不了「这轮改动值不值得 keep」 | §5 映射表 |
-| 9 | **差距已部分补上（S1.5，2026-09-16）**：`evals/fact-check/` = 必含事实清单 + 离线打分器，输出 `facts_ok/facts_total`；基线 A 31/31、B 12/12（2026-09-17 清单修订后；修订前 A 30/30），负向对照 GATE PASS（每条都能翻 FAIL） | `evals/fact-check/README.md` |
+| 9 | **差距已部分补上（S1.5，2026-09-16）**：`evals/fact-check/` = 必含事实清单 + 离线打分器，输出 `facts_ok/facts_total`；基线 A **41/41**、B 12/12（2026-09-18 第十四轮修订后；此前 A 31/31 → 30/30，旧口径数字保留在台账），负向对照 GATE PASS（每条都能翻 FAIL） | `evals/fact-check/README.md` |
 
 ---
 
@@ -109,7 +109,7 @@ STATUS: OUT OF SYNC — publish needed          # exit 3
 |---|---|---|
 | `train.py`（agent 唯一可改） | `system-prompts/*-v0.15.md` + `skill/multi-clinical-result-comparison/**` | 改完 in-place 重发 |
 | `prepare.py`（只读：数据 + tokenizer + `evaluate_bpb`） | **冻结面**：场景集（§8）+ `evals/fixtures` + 断言 harness + `runtime/citation-renderer.mjs` + `test/` + params 工具 schema（字段名权威） | ⚠️ **现在没明文冻结**，谁都能改 |
-| `program.md`（人改） | 工作区 `AGENTS.md` 规则 + `docs/toolsmith-verification-log.md` §0 流程 | 已有雏形，就是我们的 program.md |
+| `program.md`（人改） | **仓库根 `AGENTS.md`**（冻结面 + 场景集 + TSV 列 + 循环纪律，2026-09-18 落地）+ `docs/toolsmith-verification-log.md` §0 流程 | ✅ 已常驻 |
 | 固定 5 分钟预算 | 单轮 run 的**成本上限**（墙钟 / 调用数） | 有数据，**无预算线** |
 | `val_bpb`（单一可比标量） | **缺失** ← 唯一结构性差距 | 只有 13 项布尔断言 + 人工读产物 |
 | `results.tsv` | `docs/toolsmith-verification-log.md` 的 `R<n>` | 有记录，**无「每轮一个数」** |
@@ -130,6 +130,14 @@ STATUS: OUT OF SYNC — publish needed          # exit 3
 | `173947-b-refusal`（场景 B） | 17:39 | `b3050f32` | 8 | 8 | 33s | 3 | 0 | 0 | 3 |
 | `174145-b2-refusal`（场景 B） | 17:41 | `1998f37d`（== 本地） | 7 | 8 | 32s | 4 | 0 | 0 | 2 |
 | `174222-a2-2valid`（场景 A） | 17:42 | `1998f37d`（== 本地） | 34 | **41** | 207s | **18** | 13 | **5** | 2 |
+
+> **已回填（2026-09-18，`tools/replay-run.py`）**：上表扩到 **7 行**并补上**质量列**
+> `facts_ok/facts_total`（离线 `check.py`，不新增 run）：`173645-a-2valid` **38/41**、
+> `174222-a2-2valid` **40/41**、`171953-cite-date` 3/12（场景 b 未收敛仍交付，记 `b?`）、
+> 三个 refusal 行均 **12/12**，另加 `20260918-095553-r17-sign-convention` **41/41 @ 27 calls**、
+> `20260918-110804-r18-abstract-size` **41/41 @ 32 calls**。原始 TSV + 复现命令：
+> `docs/evidence/autoresearch-baseline-tsv-backfill-2026-09-18.txt`。
+> **§6 的开放问题「成本升了质量升了没」现在有答案**：+18 calls 换来 +2 条事实（38→40/41），是**交换不是白赚**。
 
 **三条结论**：
 
@@ -154,7 +162,7 @@ A2 = `digest/records.txt` + `scripts/build_report.py`，且 A2 多花 10 次 exe
 
 ---
 
-## 7. ⚠️ 闸门 2 / harness 缺口：receipt 通道没归档
+## 7. ✅ 闸门 2 / harness 缺口：receipt 通道（**已补，2026-09-18**）
 
 `pharmcube` 的 tool-return **不是全文**，而是「预览 + 落盘指针」：
 
@@ -171,8 +179,14 @@ A2 = `digest/records.txt` + `scripts/build_report.py`，且 A2 多花 10 次 exe
 - 初步观察（**待样本、勿当结论**）：A1 的 `ref_2`、A2 的 `ref_1` 的 title/link 都没出现在各自工具返回**预览**里。
   两种解释未区分：① 预览截断；② 条目并非来自本次拉取。补齐归档后即可定论。
 
-**要做的**：run harness 增加归档 `/workspace/tool_results/**/*.jsonl`（或在 run 结束时落一份），
-receipt 类断言一律从**工具返回真值**取，不从产物自述取。
+**已做（E0 回测通过，2026-09-18；证据 `docs/evidence/receipt-layer-2026-09-18.txt`）**：
+`tool_results/**` **只在 run 存续期间可读** —— 结束后 `file-download?path=…`（含目录本身）一律 **HTTP 404**，
+listing 端点又把它按 `_ARTIFACT_IGNORE_DIR_NAMES` 过滤掉；全量离线扫描 28 个 run 目录共 **109 个
+`tool_results` 指针，107 个永久不可恢复**。但**跑动中可读**：runner 里新增 `ReceiptArchiver` 以 5 s 节奏轮询
+`/threads/<tid>/messages` 抠指针并即时下载，R20 实测第一份回执在 **第 7.4 s** 落盘（31,407 B，30 s 的 run 内）。
+→ 归档落在 **runner（`~/.local/bin/toolsmith-publish`）**，不是平台缺陷（平台删/滤 `tool_results` 是设计如此）；
+断言 `tool_results receipts archived` 已进两条判定路径（产物路径 17→18 项、拒绝路径 11→12 项）。
+**边界**：这只证明回执**被取回**，不证明报告数字**取自**回执（后者是 §9 里「数字是否取自回执」的交叉核对，尚未实现）。
 
 ---
 
@@ -182,20 +196,20 @@ receipt 类断言一律从**工具返回真值**取，不从产物自述取。
 
 | 场景 | 输入（用户话术） | 期望 | 用途 |
 |---|---|---|---|
-| **A** | `解读这几个结果 24_1_30561610 24_1_36342163` | 出 `report.md` + 1 图 + `citations.json` | 主战场，**需 3 次重复**取噪声带；判分 `check.py --scenario a`（30 条 fail 级事实） |
-| **B** | `解读这几个结果 24_1_30561610 24_1_45608045` | **拒绝产出**（1 有效 1 无效） | 廉价回归闸门（~30 s）；判分 `check.py --scenario b`（12 条 fail 级事实） |
+| **A** | `解读这几个结果 24_1_30561610 24_1_36342163` | 出 `report.md` + 1 图 + `citations.json` | 主战场，**需 3 次重复**取噪声带；判分 `check.py --scenario a`（**41 条 fail 级事实 + 1 warn**） |
+| **B** | `解读这几个结果 24_1_30561610 24_1_45608045` | **拒绝产出**（1 有效 1 无效） | 廉价回归闸门（~30 s）；判分 `check.py --scenario b`（**12 条 fail 级事实 + 1 warn**） |
 | **C** | 18 esid 跨试验 | 多图 + 分组契约 | 只在改图表/委派时跑（贵）；**尚无清单** |
 | **D** | 4 esid 同试验 | 时间轴图 ≤1 且稳定 | 只测「图数是否被规则钉住」；**尚无清单** |
 
 **事实清单（S1.5，已落地）**：`evals/fact-check/` —— ground truth 来自 `POST /api/tools/debug` 的真实返回
 （`records/*.json`），清单先于产物撰写，`check.py` 离线判分并输出 `SCORE scenario=<a|b> facts <ok>/<total>`；
-`mutations.py` 用负向对照证明每条都能翻 FAIL（当前 A 31/31、B 12/12）。用法见 `evals/fact-check/README.md`。
+`mutations.py` 用负向对照证明每条都能翻 FAIL（当前 A **28 条变异 + 4 条 NEG 对照**、B 11 条 → `flipped 12/12`）。用法见 `evals/fact-check/README.md`。
 
 ### 8.2 一轮 = 一个假设（硬纪律；A 组六项一起改就是反例）
 
 1. **写假设**：改哪条规则 → 期望动哪个指标 → 方向。
 2. **只改一个变量**。
-3. `pack`（打包脚本，见 `docs/toolsmith-verification-log.md`）→ `publish`（in-place）→ `status` 必须绿。
+3. `tools/pack-dist.py`（确定性打包，`--check` 可当闸门）→ `publish`（in-place）→ `status` 必须绿。
 4. `toolsmith-publish run --prompt-file … --tag r<n>`（场景 A；质量可疑时 A×3）。
 5. 读 harness 分数 → **keep**（前进）或 **discard**（`git revert` 该改动 + in-place 重发上一版）。
 6. 在 `docs/toolsmith-verification-log.md` 记一条 `R<n>` + 一行 TSV。
@@ -208,7 +222,10 @@ receipt 类断言一律从**工具返回真值**取，不从产物自述取。
 r  commit  deployed_sys_sha  scenario  turns  calls  wall_s  params_calls  execute  edit_file  thinking_chars  gate_pass  facts_ok  facts_total  status  description
 ```
 
-全部字段可从 `debug-history.json` 离线抽（§13.1）。§6 的 5 行可直接回填（**零新 run**）。
+全部字段可从 `debug-history.json` 离线抽，已脚本化：`tools/replay-run.py --tsv [--score] [--details]`
+（`deployed_sys_sha` = **装配后** instructions 的 sha256[:12]，与 §6/§7 历史同源；`--details` 另报本地哪份
+prompt 是其字节前缀）。§6 的 5 行 + R17/R18 共 **7 行已回填**（**零新 run**），见
+`docs/evidence/autoresearch-baseline-tsv-backfill-2026-09-18.txt`。
 
 ---
 
@@ -216,7 +233,7 @@ r  commit  deployed_sys_sha  scenario  turns  calls  wall_s  params_calls  execu
 
 - **成本层（唯一「可比的数」）**：`calls`（辅助 `turns`、`wall_s`）—— 在质量门不掉的前提下越低越好。
   它扮演 `val_bpb` 的角色，但**只在成本维度**。
-- **质量层（gate，布尔，不进总分）**：现有 13 项断言 + 新增 receipt 类（§7）。
+- **质量层（gate，布尔，不进总分）**：现有 **18 项断言**（含新增 receipt 类；拒绝路径 12 项）+ `check.py`。
 - **质量层现在另有一个离线标量（S1.5，已落地）**：`evals/fact-check` 的 `facts_ok/facts_total`。它不同于
   `val_bpb`：只衡量「清单里写明的事实说对了多少条」，不含任何与成本无关的加权；用途是给 keep/discard 提供一个
   不随 run 抖动的下界（同样两段报告，一条把 `−13.9%` 写成 `−19.9%`，只有它会掉分）。**成本层仍不能拿它换**：
@@ -249,7 +266,7 @@ r  commit  deployed_sys_sha  scenario  turns  calls  wall_s  params_calls  execu
 | **E4** | `params` 调用纪律可收敛到 ≤2 | 同版内 2 ↔ 8；`cite-date` 8 次只拉 2 个 esid | 现有「最多再一次批调用」硬化 | **`params_calls ≤ 2` 可硬断言** | 1 publish + 3 run | 误伤「确认缺失」合法路径 |
 | **E5** | 图表张数受规则钉住 | 场景 A 两次都是 1 张 bar；A7 上限规则只观测 1 次 | 无（复用 E1 的 run 观测） | 图数方差 | 0（搭 E1） | 无 |
 | **E6** | B8–B10 对外沟通项（bar 负值问题单 / `{{ref_n}}` 前端报备 / CLI 路径口径） | 用户已拍板「攒着」 | — | — | — | **不做** |
-| **E7** | **删规则也能赢**：在事实清单不掉分的前提下压 `calls` | S1.5 基线分已拿到（A 31/31、B 12/12） | sys/skill 各一段 | `facts_ok` 不掉 + `calls` 降 | 1 publish + 3 run + 0 新 run 判分 | 事实分掉了就 revert（这正是清单存在的意义） |
+| **E7** | **删规则也能赢**：在事实清单不掉分的前提下压 `calls` | S1.5 基线分已拿到（A 41/41、B 12/12） | sys/skill 各一段 | `facts_ok` 不掉 + `calls` 降 | 1 publish + 3 run + 0 新 run 判分 | 事实分掉了就 revert（这正是清单存在的意义） |
 
 ---
 
@@ -266,15 +283,16 @@ r  commit  deployed_sys_sha  scenario  turns  calls  wall_s  params_calls  execu
 
 | 步 | 内容 | 写动作 | 授权 | 成本 |
 |---|---|---|---|---|
-| **S0** | 修 `toolsmith-publish` 5 处键名 → `status` 应 exit 0 | 改工具本体 | 需用户点头 | 分钟级 |
-| **S1** | harness 骨架 + §6 五行离线回填 TSV；补 `tool_results/**` 归档 → 跑 E0 receipts 回测 | 新增脚本（**不动 skill**） | 需点头 | 0 新 run |
-| ~~**S1.5**~~ | ✅ **已完成 2026-09-16**：必含事实清单 + 离线打分器 + 负向对照 → `evals/fact-check/`（A 30 条 / B 12 条，基线全 PASS，`mutations.py` GATE PASS） | 新增 eval 资产（**不动 skill/sys**） | 已执行 | 0 新 run |
+| **S0** | ✅ **已完成**：修 `toolsmith-publish`（**runner 层**）4 处键名 + `status` 回读 → `STATUS: in sync` | 改 runner | 已执行 | 分钟级 |
+| ~~**S1**~~ | ✅ **已完成 2026-09-18**：harness 骨架（`tools/replay-run.py`、`tools/pack-dist.py`）+ §6 共 7 行离线回填 TSV（含事实分）+ runner 内 `tool_results/**` 归档（`ReceiptArchiver`）→ E0 回测通过（R19/R20） | 新增脚本 + 改 runner（**不动 skill**） | 已执行 | 0 新 run（R19/R20 仅验证归档） |
+| ~~**S1.5**~~ | ✅ **已完成 2026-09-16**：必含事实清单 + 离线打分器 + 负向对照 → `evals/fact-check/`（A 41 条 / B 12 条，基线全 PASS，`mutations.py` GATE PASS） | 新增 eval 资产（**不动 skill/sys**） | 已执行 | 0 新 run |
 | **S2** | 场景 A ×3 取噪声带（E1）；顺带白拿 E5 图数方差 | 3 次 `run`（创建线程） | 需点头 | ~10 min 墙钟 |
 | **S3** | 按噪声带选 2 个最稳实验（建议 E2 删段 + E3 返工），一次一个变量 | publish ×2 + run 若干 | 每次 publish/run 前确认 | 半天内 |
-| **S4** | 把「冻结面 + 场景集 + TSV 列」写进 `AGENTS.md`/`PROJECT_STATE.md`，形成常驻 program.md | 文档 | 需点头 | 分钟级 |
+| **S4** | ✅ **已完成 2026-09-18**：仓库根新增 `AGENTS.md`（冻结面 + 场景集 + TSV 列 + 循环纪律），`PROJECT_STATE.md` 留指针 | 仓库文档（`commit`/`push` 本项目免确认） | 已执行 | 分钟级 |
 
-**未授权事项一律不做**：本文写完后**没有** commit、没有 publish、没有 run、没有改 skill/sys。
-按仓库规矩，任何 git 写动作（commit/push）与 ToolSmith 发布**都要单独再确认**。
+**授权现状**：本项目 `commit` / `push` 免确认；**往 ToolSmith 平台写 skill/prompt（publish / push-prompt /
+push-skill）仍需逐次点头**；`run` 会创建线程，按写动作处理。S1/S4 已在用户授权范围内完成
+（2026-09-18），S2/S3 尚未开始。
 
 ---
 
@@ -328,3 +346,23 @@ curl -sS -H "Authorization: Bearer $TS_TOKEN" "$TS_BASE/api/prompts/91febc286412
   | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['current_version_id'], [ (v['version'], len(v['content'])) for v in d['versions'] ])"
 curl -sS -H "Authorization: Bearer $TS_TOKEN" "$TS_BASE/api/projects/a7cdda6508e0423c8b7afaaf3a68e50d/resources" | python3 -m json.tool
 ```
+
+### 14.5 离线重放 / TSV / 打包（2026-09-18 起，零网络）
+
+```bash
+tools/replay-run.py --tsv --score <run-dir|run-name>…      # 一行一个 run；--score 调 check.py
+tools/replay-run.py --details <run>                        # 全字段 + 本地哪份 prompt 是其字节前缀
+tools/replay-run.py --pointer-only <run>…                  # tool_results 指针 + 是否已归档
+tools/pack-dist.py --check                                 # dist/*.zip 是否为当前仓库字节（闸门）
+```
+
+**归因三桶（runner O32，2026-09-18）**：一次没拿到 tool-return 的调用，原因文本决定它进哪一桶 ——
+`args-refused`（参数被拒）/ `fetch-failed`（外部抓取 4xx/5xx、主机不可达，**可见但不判 FAIL**）/ 其余落
+`errors`（FAIL）。**别再把「抓取失败」读成「schema 被拒」**：那是旧口径，它让 FAIL 级的 `no tool errors`
+在每轮都有一条欧洲 PMC 全文 500 的情况下连续四轮全绿。`--details` 另打 `web=on|off`，因为
+`deployed_sys_sha` 只在同一 web 设定下可比（详见 `AGENTS.md` §4 与台账 §3 `O31`/`O32`）。
+
+**receipt 归档**：`tool_results/**` 只在 run 存续期可读（结束后 404，见
+`docs/evidence/receipt-layer-2026-09-18.txt`）。要拿回执必须**跑动中**取 —— 由 runner 的
+`ReceiptArchiver`（5 s 节奏轮询 `/threads/<tid>/messages`，见 `~/.local/bin/toolsmith-publish`）
+自动落到 `<run>/tool_results/**`，离线侧不再需要单独脚本。

@@ -376,9 +376,14 @@ value must still carry its source esid / marker number.
   `selected_fields`, the fields to extract, and the output format in full; recursive depth is limited
   (do not nest delegation deeper than one level); multiple `task` calls in one message execute
   **serially**, so treat delegation as a context-saving device rather than a parallel speed-up.
-- **Small selections favor direct pulls**: with 6–8 selected esids whose records are small (a few
-  endpoints each, short `abstract_text`/`study_results`), pulling them directly in one or two
-  `selected_fields`-bounded calls is usually faster and at least as accurate as delegating. Delegation is a
+- **Small selections favor direct pulls — but “small” is a property of the source class, not of the
+  esid count**: `1` PubMed and `37` conference `abstract_text` bodies are abstract-sized (measured
+  medians 1.8 K / 2.8 K chars, max ~10 K), while the registration classes (`2`/`187`, and the unlisted
+  number/uuid shapes) put the **ClinicalTrials.gov structured-results JSON** in that same field
+  (measured medians 30–60 K chars, max 1.9 M, 77 % of that slice being JSON rather than prose). A 6–8
+  esid selection therefore says nothing about payload size: persist the payload (the bounded call
+  writes it under `/workspace/tool_results/…`) and digest the file with a script, pulling bodies
+  straight into context only when they are already known to be abstract-sized. Delegation is a
   context-bounding device for genuinely heavy payloads (or for a persisted file a script cannot digest),
   not a default for every selection above 5.
 - **Fallback**: if the `task` tool is not visible/available, ignore this section and pull every

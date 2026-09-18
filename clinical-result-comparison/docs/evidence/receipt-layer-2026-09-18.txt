@@ -1,0 +1,84 @@
+# Receipt layer E0 — can `tool_results/**` still be recovered after a run?  (2026-09-18)
+#
+# Why this file exists: every report claim rests on a raw tool response (params JSONL, fetched
+# page). Plan §7 listed "the receipt channel is not archived" as the second harness gap, and
+# defined E0 as the backtest that decides *whether it can be* archived at all, before any
+# assertion is written on top of it. Answer: only mid-run. Evidence below, in four parts.
+#
+# ---------------------------------------------------------------------------------------------
+# 1. Post-hoc: not recoverable (probe on a finished turn, re-run 2026-09-18)
+#
+#   $ TID=7549e95f-f481-465f-ba2b-99f161233de1      # R17, completed 2026-09-18T01:58Z
+#   $ curl -s -H "Authorization: Bearer $TS_TOKEN" --get \
+#       --data-urlencode "path=/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_ab4aaec33142.jsonl" \
+#       "$TS_BASE/api/threads/$TID/artifacts/file-download"
+#   HTTP 404 31B
+#   {"detail":"Artifact not found"}
+#
+#   same for /workspace/tool_results/web_fetch/call_41926c5283e6.md   -> HTTP 404
+#   same for the directory /workspace/tool_results                     -> HTTP 404
+#
+#   And the listing endpoint does not even honour the path filter (it returns the workspace
+#   listing, minus the ignored dirs):
+#   $ curl -s -H "Authorization: Bearer $TS_TOKEN" "$TS_BASE/api/threads/$TID/artifacts?path=/workspace/tool_results"
+#   [{"path":"/workspace/output/citations.json",...},{"path":"/workspace/output/report.md",...},
+#    {"path":"/workspace/visualizations/endpoint-bar-1.json",...},{"path":"/workspace/work/digest.txt",...},
+#    {"path":"/workspace/work/digest2.txt",...},{"path":"/workspace/work/gen_report.py",...}]
+#   -> no tool_results entry: `chat_service._ARTIFACT_IGNORE_DIR_NAMES` filters it.
+#
+# ---------------------------------------------------------------------------------------------
+# 2. Scale of the loss (offline, zero new runs) — tools/replay-run.py --pointer-only over all runs
+#
+#   $ tools/replay-run.py --pointer-only $(ls -d ~/.local/state/toolsmith-runs/2026* | xargs -n1 basename)
+#   pointers=109  missing=107  archived=2
+#
+#   109 distinct `/workspace/tool_results/...` paths are referenced in the durable messages of
+#   28 run dirs (the model names them when it reports where its data came from). Before
+#   2026-09-18 every one of them was unrecoverable: the run dir keeps the pointer, never the file.
+#   The 2 archived ones are R19/R20 below.
+#
+#   (109, not 115: prose appends punctuation — "…call_ab4a.jsonl." — and those variants collapse
+#    once stripped; getting this wrong made the first run of the archiver 404 on a "pointer" that
+#    was really the directory. Same class of bug as a stale fixture.)
+#
+# ---------------------------------------------------------------------------------------------
+# 3. Mid-run: recoverable (R19 = first attempt, R20 = validated)
+#
+#   $ toolsmith-publish run --prompt "解读这几个结果 24_1_30561610 24_1_45608045" \
+#       --expect refusal --tag r20-receipts-assert --timeout 420 --poll-interval 8
+#   receipts     : 1 fetched / 0 failed / 1 pointer(s) seen in 6 polls
+#   [PASS] tool_results receipts archived — 1/1 fetched, 0 failed, 31407 B -> `tool_results/` (6 polls @ 5.0s)
+#
+#   $ cat ~/.local/state/toolsmith-runs/20260918-112135-r20-receipts-assert/receipts.jsonl
+#   {"t": 7.4, "pointer": "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_227215585a9a.jsonl",
+#    "status": "ok", "bytes": 31407, "note": ""}
+#
+#   The receipt landed 7.4 s into a 29 s run, i.e. while `include_active=True` still had a live
+#   session workspace to read. R19 fetched 30,816 B of the same shape. Content spot-check:
+#   the JSONL's first line is the full record with `clinical_result_study_results` arrays — the
+#   exact bytes behind the report's numbers, not a summary.
+#
+# ---------------------------------------------------------------------------------------------
+# 4. Consequence (what changed in the runner, and what the assertion can and cannot claim)
+#
+#   * `~/.local/bin/toolsmith-publish` (runner layer, backup `toolsmith-publish.v7.bak`):
+#     `ReceiptArchiver` polls `/api/threads/<tid>/messages` on a 5 s tick for the whole run and
+#     fetches every new `<tool>/<name>.<ext>` pointer via `artifacts/file-download?path=…`,
+#     writing `<run>/tool_results/...` + `receipts.jsonl` + a `receipts` block in `run.json`.
+#     It runs on its own tick, not on the `/info` poll: the info cadence is up to 60 s, so riding
+#     it would miss the last params call of a 30 s refusal run.
+#   * It is deliberately non-fatal: an unreachable endpoint is recorded, never raised, because the
+#     run itself is the expensive part (a 404 must not throw away a 200 s artifact set).
+#   * Assertion added to both check paths: the artifacts path goes 17 -> 18, the refusal path
+#     11 -> 12 (measured: R18 verification.md lists 17 items, R20 lists 12). Name:
+#     `tool_results receipts archived`. `0 pointers seen` is a PASS
+#     that says so — a selection needing no params/web call has nothing to archive, and inventing
+#     a success message for that case is exactly the vacuous-green failure mode of §14/round 14.
+#   * Boundary of the claim: this proves receipts are *fetched*, not that they were *used*.
+#     Proving a report number came from the receipt (not from prose/abstract) needs a separate
+#     cross-check (§7.3); this file only closes the "channel does not exist" gap.
+#
+# Platform side: nothing to file. `fs_workspace_store._remove_runtime_paths()` deleting `skills`
+# and `tool_results` at persist, and `chat_service._ARTIFACT_IGNORE_DIR_NAMES` filtering
+# `tool_results`, are both deliberate (runtime scratch, not deliverables). Recorded as runner-side
+# gap O30 in docs/toolsmith-verification-log.md, not as a platform bug.

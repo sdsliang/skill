@@ -51,7 +51,17 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 
 > **2026-09-16 起分级**：只有 **FAIL** 影响退出码（exit 3）；**WARN** 只打印。另外新增两项：
 > ① **终态必须 `completed`**（轮询判定的结局，`inconclusive`/`timeout` 另走 exit 5）；
-> ② **每个 tool-call 要么有 tool-return、要么被工具 schema 拒**（后者单列成“schema-rejected”，是 WARN/INFO 而非 tool error）。
+> ② **每个 tool-call 要么有 tool-return、要么没拿到返回**（没返回的**分两桶**记，都是 WARN/INFO 而非 tool error：
+> `args-refused` 参数被工具拒（形状/字段名/取值）由框架重发、`fetch-failed` 外部抓取失败——4xx/5xx、主机不可达；
+> 旧版把两者都印成“schema-rejected”**并从 `errors` 里藏掉**，于是 FAIL 级的 `no tool errors` 在抓取已经 500 的情况下
+> 仍然全绿，见 runner O32）。
+>
+> **2026-09-18 起再加一项（产出物路径 17 → 18 项 / 拒绝路径 11 → 12 项）**：**`tool_results` 回执归档**
+> —— 平台在 turn 结束时删掉 `tool_results/**`、又在产物面板里过滤掉它（`fs_workspace_store._remove_runtime_paths`
+> + `chat_service._ARTIFACT_IGNORE_DIR_NAMES`），所以它**只在 run 存续期间可读**；runner 新增 `ReceiptArchiver`
+> 每 5 s 轮询持久化消息抠指针并即时下载（第一次命中在第 7.4 s，见 R19/R20 与 `docs/evidence/receipt-layer-2026-09-18.txt`）。
+> 断言 `tool_results receipts archived`：**0 个指针 = PASS 并注明「n/a」**（没有 params/web 调用的选择本来就无回执可归档），
+> 有指针却一条都没取回 = FAIL。
 >
 > **2026-09-17 起再加一项（产出物路径 16 → 17 项 / 拒绝路径 10 → 11 项）**：
 > ① **turn 的结局必须是 `succeeded`** —— 平台 `30306cb` 把 `/info.status` 的终态值整个删掉（只剩
@@ -714,7 +724,7 @@ R14 用的是尿路上皮癌那对输入（L3 需要 `src=1` + PMC 全文），�
 | thread / turn | `e0d198b3-22c8-43fd-82ef-cd1199644f20` / `bcc4e1ae-696a-4c37-b7fa-1b84648a6b70` |
 | 终态 / 结局 | `completed`（durable `timing.completed_at`）/ `succeeded` |
 | 墙钟 | 191.7 s server / 202.4 s polled（11 次轮询：`running`×10 → `idle`） |
-| 调用 | **30 次尝试 = 29 返回 + 1 schema 被拒**：`execute`×15、`read_file`×9、`web_fetch`×2、`load_skill`×1、`params`×1、`present_artifact`×1；被拒的那次是 `web_fetch`（参数被 schema 拒 → 框架重发为新 call，无返回）。**注**：run 目录里的 `verification.md` 是 O25 修复前的渲染，那行印成「30 attempts = 30 returned + 1 schema-rejected」（自相矛盾，见 O25）；上表是修正后的口径，已用 `--resume` 重收验证 |
+| 调用 | **30 次尝试 = 29 返回 + 1 schema 被拒**：`execute`×15、`read_file`×9、`web_fetch`×2、`load_skill`×1、`params`×1、`present_artifact`×1；被拒的那次是 `web_fetch`（**2026-09-18 O32 修正**：它不是参数被拒，而是抓取失败——欧洲 PMC 全文 XML 返回 500；参数被拒与抓取失败现在分两桶记 → 框架重发为新 call，无返回）。**注**：run 目录里的 `verification.md` 是 O25 修复前的渲染，那行印成「30 attempts = 30 returned + 1 schema-rejected」（自相矛盾，见 O25）；上表是修正后的口径，已用 `--resume` 重收验证 |
 | token | thread in 113,908；turn in 1,881,535 / out 34,851 / reasoning 22,817；cache 96.7%；上下文 total 113,908（sys 22,835 / mcp 5,919 / tools 55,195 / skill 28,767） |
 | 产物 | `output/report.md`、`output/citations.json`、`visualizations/endpoint-bar-1.json` |
 | 断言 | **17/17 PASS（exit 0）**，含「部署端 == 本地」与「citations 键集/日期/`title`」 |
@@ -913,7 +923,7 @@ dist d5afb1f00320（84,994 B / 19 entries / mismatch vs worktree: []）
 
 run `20260917-200934-webprobe-coverage`：**10/11 FAIL**，只有题录类成功。
 
-- **更正 W2-a/b 的推断**：`web_fetch` 在**失败时确实带 HTTP 状态码文本**（如 businesswire / jitc.bmj.com 返回 `403 Forbidden`），只是**成功时不回状态码**；失败抓取计入「schema-rejected」而不是普通 tool 调用（所以「0 schema-rejected」不能单独当健康指标）。
+- **更正 W2-a/b 的推断**：`web_fetch` 在**失败时确实带 HTTP 状态码文本**（如 businesswire / jitc.bmj.com 返回 `403 Forbidden`），只是**成功时不回状态码**；失败抓取计入「schema-rejected」而不是普通 tool 调用（所以「0 schema-rejected」不能单独当健康指标）。**（2026-09-18 O32 后修正）**：抓取失败已拆成独立桶 `fetch-failed`，与「参数被拒」不再混计。
 - 逐域结果：`ascopubs / sciencedirect / annalsofoncology / jitc.bmj / businesswire` → `403`；`clinicaltrials.gov` 人读页 / `cslide / abstractsonline` → JS 骨架；`pubmed` → cookie 墙；`doi.org` 重定向类 → 抓取错误。
 - 另一发现：写到 `output/` 的探针文件**会随 run 归档**（`output/fetch-probe.json` 在 `artifacts.zip` 里），而 `tool_results/` **不归档** → 证据落盘必须主动搬到 `output/` 或 `sources/`（后来专门验证，见 W2-e）。
 
@@ -1038,6 +1048,109 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 **对本项目的影响**：CT.gov 路线 C（运行期用 `web_fetch` 拉官方全量 JSON）**现在本机可验证了** —— 政策/引用口径
 一旦拍板，就能用 `run --web` 测「skill 在联网下是否照规矩引用」；当前仍 parked 等产品。
 
+### R18 — 2026-09-18，**B1（「短 `abstract_text`」假设修正）in-place 发布后的真跑**（17/17 PASS，事实 41/41）
+
+**这一轮改的是 TS 资产**（sys + `references/input-contract.md`），先 `pack-dist.py` 重打包，再
+`publish` **原地更新**（prompt `v1.6` 内容替换、skill `v1.0.7` 内容替换，版本号标签不动），
+`status` 回读 `in sync`（prompt 逐字节、技能包 19 个文件全同）——发布动作经用户 2026-09-18 明确同意
+（「B1,4,5都可以原地」）。
+
+- 改了什么：把「挑 6–8 个小 esid（records 小、`abstract_text` 短）」这条**按 esid 个数**的措辞，
+  换成**按来源类**的实测口径（PubMed / 会议摘要体量 1–4 K 字符；登记号类 `2`/`187` 带 CT.gov
+  结构化 results JSON，中位 30–60 K、最大 1.9 M、77% 是 JSON 不是散文；`49` 号新闻稿 ≤78 K）。
+  数据源：`docs/evidence/abstract-text-by-source-2026-09-17.json`。
+- 真跑：thread `f0ac7f8a-2ea4-4ea6-b257-3e6ffc018f2a`，turn `8eefc445-069e-4468-a714-6b5e02f6e6d3`，
+  prompt `解读这几个结果 24_1_30561610 24_1_36342163`，`--web`，DeepSeek Flash，**exit 0**。
+- 记录：**17/17 PASS**；墙钟 **198.1 s server / 204.8 s polled**；**32 次调用尝试** = 30 returned
+  + 1 `args-refused`（`pharmcube-query-clinical-result-with-params`：模型发明字段 `clinical_result.moa`，
+  工具回 `INVALID_INPUT: Invalid fields selected`，O3 那条规则的自愈路径）
+  + 1 `fetch-failed`（`web_fetch` 抓 `…/europepmc/webservices/rest/PMC6933872/fullTextXML` 收 500）
+  = `execute`11 · `read_file`8 · `write_file`3 ·
+  `params`2 · `web_fetch`2 · `edit_file`2 · `load_skill`1 · `present_artifact`1；产物 `report.md` 15,658 B、
+  `citations.json` 513 B、`visualizations/endpoint-bar-1.json` 1 张（`sources=0`）。
+- 事实分（离线 `check.py --scenario a`）：**`facts 41/41 warn 1/1 -> PASS`**（exit 0）。
+- **没有把这次改动判成回归**：R17（27 calls / 41/41）→ R18（32 calls / 41/41），成本 +5 次而事实分不动；
+  两轮差的不只是 B1 那几行（params 调用 1→3、execute 9→11），n=1，按 §8.2 要 A×3 才谈噪声带
+  → 记「**待样本**」，不改规则。
+
+### R19 / R20 — 2026-09-18，**runner 新增 `tool_results` 回执归档**（E0 回测；先失败一次，改对后通过）
+
+**背景（先立事实，再写代码）**：`tool_results/**` 是「工具返回的完整 JSONL/正文」，但平台在 turn 结束时
+删它、产物面板也过滤它 ⇒ `file-download?path=…` 对**已结束**的 run 一律 **HTTP 404**（R17 thread
+`7549e95f-…` 两个真实指针 + 目录本身实测 404）。离线全量扫描 28 个 run 目录：**109 个 `tool_results` 指针，
+107 个永久不可恢复**（证据 `docs/evidence/receipt-layer-2026-09-18.txt`）。
+
+**R19（第一次，暴露一个假指针）**：thread `787494b5-967a-492b-be7d-c5452078e79b`，场景 B 拒产，
+33 次轮询、看到 2 个「指针」、取回 1 份 30,816 B；另一个是 `…/tool_results/<tool>/`（**目录**，不是文件）
+→ 404。这说明指针正则必须要求「末段是带扩展名的文件名」。同轮 11/11 断言 PASS（当时还没加回执断言）。
+
+**R20（改对后）**：thread `ffb43fde-f912-4fb0-a58d-b47f2d02a7e1`，场景 B 拒产，`--expect refusal`，
+**12/12 PASS**（含新增 `[PASS] tool_results receipts archived — 1/1 fetched, 0 failed, 31407 B → tool_results/ (6 polls @ 5.0s)`）；
+墙钟 29.4 s server / 32.8 s polled。`receipts.jsonl` 第一行：`{"t": 7.4, …, "status": "ok", "bytes": 31407}`
+→ **回执在第 7.4 s 落盘**，即 run 还活着的窗口内；首行内容是带 `clinical_result_study_results` 数组的完整记录
+（不是摘要预览）。
+
+**这两轮的「schema-rejected=1」在 O32 之后重读为 `args-refused`**（`extra_esids`：记录字段是
+`clinical_result.extra_esid`，而工具参数名是 `esids`，模型第一发按记录字段名写 → pydantic 拒 → 第二发自愈）。
+同一批重读还暴露出 R15/R16/R17 各有一条 `web_fetch` 抓欧洲 PMC 全文 XML 的 500，此前它们在 `errors` 里不可见。
+
+**runner 侧改动**（我们自己的层）：`~/.local/bin/toolsmith-publish` 新增 `ReceiptArchiver`
+（5 s 独立线程轮询 `/threads/<tid>/messages` → `artifacts/file-download` → `<run>/tool_results/**` +
+`receipts.jsonl` + `run.json.receipts`），**永不致命**（取不到只记账，不丢整轮产物）；
+`py_compile` 通过、`evals/runner-gate/verify-run-chain.py` **GATE: PASS**（改动前后各跑一次）。
+备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v7.bak`（95,879 B）。
+**边界**：只证明回执**被取回**，不证明报告数字**取自**回执（那是另一条断言的事）。
+
+### F5 — 2026-09-18，**autoresearch harness 骨架 + §6 基线离线回填**（离线，零新 run、零发布）
+
+- **产物（仓库）**：`tools/replay-run.py`（`debug-history.json` → 成本/质量全字段 + `--tsv` + `--score` 调 `check.py`）、
+  `tools/pack-dist.py`（**入仓**的确定性打包器，`--check` 当闸门）、
+  `docs/evidence/autoresearch-baseline-tsv-backfill-2026-09-18.txt`（**7 行** TSV）、
+  `docs/evidence/receipt-layer-2026-09-18.txt`（E0 四段证据）。
+- **回填结果（§6 的开放问题现在有答案）**：场景 A `173645-a-2valid` **38/41** @ 23 calls；
+  `174222-a2-2valid` **40/41** @ 41 calls（+18 calls 换 +2 条事实 = **交换，不是白赚**）；
+  R17 **41/41** @ 27 calls；R18 **41/41** @ 32 calls；三个场景 B 行均 **12/12** @ 8/8/8 calls、33–36 s；
+  `171953-cite-date` 3/12（场景 b 未收敛仍交付，记 `b?`）。
+- **两个口径坑（已写进证据文件，避免下一轮误比）**：① `turns` 在 2026-09-15 前后语义不同（`/info` 的
+  `stats.turns` vs 老 harness 数模型轮次）⇒ `--details` 另报 `model_turns`；② `deployed_sys_sha` 是**装配后**
+  instructions 的 sha（≠ 本地文件哈希，`--details` 才报「哪份本地 prompt 是其字节前缀」）。
+- **`tools/pack-dist.py --check`**：`dist/multi-clinical-result-comparison-v0.15.zip` 与重建结果**逐字节相同**
+  （86,285 B / sha `404dbccf5058`）⇒ B1 那次发布的内容与仓库 dist 一致，打包可复现。
+- **意义**：`val_bpb` 缺席这件事从「无解」变成「有两层数可读」——成本层 `calls/wall_s`、质量层
+  `facts_ok/facts_total`（gate，不进总分）。
+
+### F6 — 2026-09-18，**runner 归因修正：`retry-prompt` 分三桶（O31 + O32）**（离线，零新 run、零发布）
+
+**起因**：R19/R20 的 `verification.md` 里「schema-rejected」那行只有工具名、没有原因，翻 R18 也一样。
+
+- **O31（渲染 bug）**：durable `retry-prompt` 的 part 键是 **`content`**（近期 run 里是 pydantic 的**字符串**，
+  更早的 run 是错误 dict 的**列表**）；三处渲染器都在按「list of dict」迭代 `reason` ⇒ 对字符串迭代再筛 dict
+  ⇒ 原因永远印不出来（R18/R19/R20 都只印了 `- toolname:`）。修法：统一走 `rej_text(reason, n)` 助手
+  （str → 压空白取 300 字符；list → 合并 dict；None → `(no reason recorded)`），断言 detail 与 console 共用。
+  **纯展示层，统计值不变**。
+- **O32（归因 bug，更重要）**：框架的 `retry-prompt` 有**三种**成因，旧代码全归成「schema-rejected」，
+  且在 `raw_ui_messages` 的 `output-error` 回路里按 id 跳过 ⇒ 这些事件**在 `errors` 里也不出现**，
+  于是 FAIL 级的 `no tool errors` 断言对「外部抓取失败」完全失效。实测：R15/R16/R17/R18 各有一条
+  `web_fetch` 抓 `…/europepmc/webservices/rest/PMC6933872/fullTextXML` 收 **500**，**四轮全绿**。
+  修法：按原因文本分三桶 —— `rejected`（参数被拒：pydantic `validation error for call[…]` /
+  `Unknown tool name` / `Field required` / `Extra inputs are not permitted` / `[Tool error] INVALID_INPUT`）、
+  `fetch_failures`（`^Failed to fetch`：可见、打印、写进 `verification.md`，但**不**判 FAIL）、
+  其余（真正的工具链故障）落回 `errors`（**仍是 FAIL 级**）。
+- **事实层没坏**：被藏起来的那次 500，交付物其实**已经写在核对覆盖行**里（R17「R7 全文接口返回 500（该刊非 OA）」、
+  R18「R7 返回 500 … 未取回全文的原因类为「非 OA」」）⇒ 这次修的是**闸门的可见性**，不是产物质量。
+- 影响面：`verification.md` 断言清单多一项 INFO 行（**产出物路径 18 → 19 项 / 拒绝路径 12 → 13 项**）；
+  `tool calls:` 行改为「N attempts = M returned + a args-refused + f fetch-failed …」；`--details` 增加 `web=on|off`。
+- 备份：`~/.local/state/toolsmith-publish/toolsmith-publish.v8.bak`（O31 的 `rej_text` 补丁前）。
+  `py_compile` 通过；`evals/runner-gate/verify-run-chain.py` **GATE: PASS**（gate 自己也要改：把
+  `rejected + fetch_failures` 一起当作「SSE tap 看不到的尝试」，否则 5 个 v1 run 里带 500 的那次会对不上）。
+- 离线重读（零网络）逐 run 结果见 `docs/evidence/autoresearch-baseline-tsv-backfill-2026-09-18.txt` 注 7/注 8。
+- **验收方式**：① 五类原因形状的合成单测（pydantic 串 / 错误 dict 列表 / `Unknown tool name` / `Failed to fetch` /
+  `[Tool error] RuntimeError`）→ 前四类归入对应桶、「工具真崩」仍落 `errors`；② 用 R18 真 run 目录**离线**重建
+  bundle 调 `check_run` → **19 项**、新增两行 INFO 正常渲染（`args-refused = 1` 带 `clinical_result.moa` 原文、
+  `external fetch failures = 1` 带 500 原文）。
+- **注意（老 run 目录）**：`receipts` 记录是 O30 之后才有的，拿 O30 之前的老 run 目录重跑 `check_run`
+  会让 `tool_results receipts archived` 判 FAIL（无记录）——属预期，不要当成回归。
+
 ## 3. 我们自己能改的
 
 | # | 现象（证据） | 改法 | 状态 |
@@ -1072,6 +1185,9 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O27 | **清单条目 `A-C16-hard-outcome-gap` 术语绑定过窄**（2026-09-18 `R16` 暴露，与 O20 同类）：R16 在表格里明确写了「心血管结局事件（如 MACE）」并标注两侧「未报告／未对齐」，但条目正则只认 `硬结局|心血管事件` ⇒ 被判 0 命中。要防的是「硬结局缺口不写」这件事实，不是某个词形 | 正则放宽为 `硬结局|心血管事件|心血管结局`（仍要求出现在正文），配套检查 M-变异仍能翻 | **待批**（证据：R16 报告第 4.3 节 + 表格行；1 份产物） |（**R17 用「心血管事件」词面 ⇒ 该条 PASS**，故现为 1 失败 / 1 通过，仍按「待样本」不动） |
 | O28 | **`A-ATTR` 的「数值对」分支从未命中过任何产物**（2026-09-18 核 `M27` 时发现，**已修**）：token 写 ASCII `-13\.9`，四份真产物正文一律 U+2212（`−13.9`：R8/R12 各 5 处、R16 有符号式、R17 9 处）⇒ 静默漏检（假绿方向）；改成 `[\u2212-]13\.9` 后四份产物重打**无新增 FAIL**（说明真产物数值归属本来就干净，缺的只是这层检查），`M27` 现在能翻 `A-ATTR` | F2 | 已修（仅仓库评测资产） |
 | O29 | **`A-P6` 在**真产物**上空转（假绿）**（2026-09-18 核 L3 时发现，**已修**）：旧实现只把「文件名以 `ref_<n>` 开头」的归档算作某条 ref 的全文正文（`op_cite_link_is_deepest` 里的 `re.match(r"ref_(\d+)", …)`），而**真产物从不这么命名**（`R14` 是 `PMC11270764_fulltext_jats.xml`）⇒ 拿 `R14` 原产物重打时它报 `no per-ref full-text body archived (check not triggered)` 并 PASS，**一个 citation link 都没看**——而 `R14` 正是催生 L3 规则的那份产物。更麻的是它**能过闸门**：`M21`/`M22` 用的是 harness 自己拼的 `ref_1.pmc-fulltext.xml`，即「拿自己的假设自证」。同时发现规则**只有一个方向**（归档 ⇒ 引用必须指全文），没有任何东西防「引用声称读了全文而一个字没取」 | ① `A-P6` 归位拆**四条通道**（`ref_` 前缀 / esid / 正文 `PMC<id>` 对链接 `PMC<id>` / 正文 PMID 对链接 PMID），归不上不猜、只记诊断；`PMC\d+` 先抹掉再扫 PMID（否则 PMCID 数字会被当 PMID 命中）；② 新增反向断言 **`A-P9-fulltext-cite-has-body`**（`link` 指全文载体 ⇒ `sources/` 里必须有同 `PMC<id>` 的字节；`link` 逐字节等于记录自带 `full_article_link` 时不算深度声明）；③ 变异改用**真产物命名**并新增 `M28`（只翻 `A-P9`）/ `N28`（`R14` 合法形状需三条全绿）；④ `NEG_A` 判据从「我那一条没翻」收紧为「**整轮干净** `rc==0 && flipped==[]`」（旧版下、负向对照把别条目打翻也会报 `[OK]`） | **已修**（2026-09-18，仅仓库评测资产：`check.py` / `scenario-a.facts.json` / `mutations.py` / `README.md` + 两份 evidence）→ 证据 **F4** |
+| O30 | **`tool_results/**` 回执在 run 结束后不可恢复**（2026-09-18 E0 回测）：平台 persist 时删、产物面板过滤 ⇒ `file-download?path=…` 对已结束 run 恒 404；离线扫描 28 个 run 目录 **109 个指针、107 个不可恢复**。而报告里的数字（params JSONL / 抓回来的正文）恰恰只在回执里 | **不进平台问题单**（删/滤是设计如此，属运行期草稿）：runner（`~/.local/bin/toolsmith-publish`）新增 `ReceiptArchiver`，5 s 节奏轮询消息抠指针即时下载 → `<run>/tool_results/**` + `receipts.jsonl` + `run.json.receipts`；两条判定路径各加断言 `tool_results receipts archived`（0 指针 = PASS 且注明 n/a） | **已落地并验证**（R19 暴露目录假指针 → R20 12/12 PASS） |
+| O31 | **拒绝原因印不出来**（2026-09-18，**已修**）：`retry-prompt` 的 `content` 在近期 run 是 pydantic **字符串**、早期 run 是错误 dict 的**列表**，而三处渲染器都按「list of dict」迭代 ⇒ 对字符串迭代再筛 dict，原因永远是空（R18/R19/R20 只印 `- toolname:`） | 新增 `rej_text(reason, n)` 助手（str → 压空白 / list → 合并 dict / None → 显式说明），断言 detail、console、`verification.md` 三处共用；**仅展示层，统计值不变** | 已修（备份 `toolsmith-publish.v8.bak`） |
+| O32 | **`retry-prompt` 归因过粗导致假绿**（2026-09-18，**已修**）：框架在「参数被拒」和「工具自身失败」两种情况下都会重发，旧代码一律记成 schema-rejected，并在 `output-error` 回路按 id 跳过 ⇒ 外部抓取失败**在 `errors` 里不可见**，FAIL 级 `no tool errors` 对 500/403 完全失效（R15/R16/R17/R18 各有一条欧洲 PMC 全文 XML **500**，四轮全绿；产物侧其实已在覆盖行说明了 500） | 分三桶：`rejected`（参数被拒）/ `fetch_failures`（抓取失败：可见 + 打印 + 入 `verification.md`，不判 FAIL）/ 其余落 `errors`（仍 FAIL）；`verify-run-chain.py` 同步把 `rejected + fetch_failures` 当作「tap 看不到的尝试」 | 已修（`GATE: PASS`；断言 18→19 / 12→13 项） |
 ## 4. 平台侧（转开发）
 
 完整、可直接转发的版本见 Obsidian：
@@ -1091,7 +1207,7 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 - **P6** `POST /api/tools/debug` 的必填字段与 schema 不一致：源码里 `ToolDebugRequest.mcp_server_id: str | None = None`（OpenAPI 呈现为 `anyOf[string,null]`、不在 `required`），但 `origin == "MCP"` 时不传就被 `model_validator` 拦下，422 原文
   `"mcp_server_id is required for MCP tool debug"` —— 调用方只能从报错反推。
 
-- **P10（新，2026-09-17，待用户决定是否转开发）`web_fetch` 对主流医药信源的人读页面基本不可用，失败语义不清**：实测（W2-a/c/d；W2-c 更正：**失败时确实返回状态码文本**，如 `403 Forbidden`，只有成功时不回状态码）——PubMed 人读页返回反爬拦截页 `Cookies must be enabled … reload this page to continue.`；ClinicalTrials.gov 人读页（含 `?tab=results`）只返回 JS 骨架（`Show glossary` / `Study record managers: …`），拿不到试验记录；失败抓取会计入「schema-rejected」计数（正常 0 schema-rejected 的健康指标会因此失真）；沙箱自身无外网（`Could not resolve host` ⇒ `web_fetch` 为平台侧代抓）。
+- **P10（新，2026-09-17，待用户决定是否转开发）`web_fetch` 对主流医药信源的人读页面基本不可用，失败语义不清**：实测（W2-a/c/d；W2-c 更正：**失败时确实返回状态码文本**，如 `403 Forbidden`，只有成功时不回状态码）——PubMed 人读页返回反爬拦截页 `Cookies must be enabled … reload this page to continue.`；ClinicalTrials.gov 人读页（含 `?tab=results`）只返回 JS 骨架（`Show glossary` / `Study record managers: …`），拿不到试验记录；失败抓取会计入「schema-rejected」计数（正常 0 schema-rejected 的健康指标会因此失真）—— **我方已修**：runner O32 把「抓取失败」拆成独立桶 `fetch-failed`，可见且打印，不再冒充 schema 拒绝（详见 §3 O32）。本条**其余部分**（人读页不可用、失败语义不清）仍属平台侧，待转开发；沙箱自身无外网（`Could not resolve host` ⇒ `web_fetch` 为平台侧代抓）。
   - **可用替代（我们实测能通）**：CT.gov v2 API `https://clinicaltrials.gov/api/v2/studies/<NCT>`（返回完整协议 JSON）、Europe PMC REST `…/rest/search?query=EXT_ID:<pmid>&resultType=core&format=json`（返回 `abstractText`/`pmcid`/`isOpenAccess`）。
   - **建议**（开发定）：`web_fetch` 至少回传状态码/失败原因；若能力允许，对已知医药域名提供「API 端点优先 / 简单渲染」路径。
 

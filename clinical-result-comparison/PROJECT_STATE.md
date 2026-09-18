@@ -18,9 +18,22 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
   **TS 资产** = 平台上已发布的 prompt / 技能（能改，**每次先问**）；
   **仓库资产** = `skill/`、`system-prompts/`、`evals/`、`docs/`（能改，`commit`/`push` 本项目免确认）。
   回答“要不要改 X”时必须点名哪一层 + 具体文件。详见 `/home/xupeipeioo1/AGENTS.md`。
+- **常驻 program.md = 仓库根 `AGENTS.md`**（2026-09-18 新增，autoresearch 循环的冻结面 / 场景集 / TSV 列口径 / 一轮一假设纪律）。
+  新会话先读它，再读本文件（实现快照）与 `docs/toolsmith-verification-log.md`（台账）；`tools/` 下是本轮的离线 harness 脚本。
 - 从 NP Clinical 拉取的示例数据（`evals/**/np-clinical-*/`）不入库：`.gitignore` 已忽略，`fetch-np-clinical-attachments.mjs` 可随时重拉。已提交的历史版本也已从跟踪移除（commit 63c031c）。
 
 ## ⏳ 开放事项总表（2026-09-17 整理；各条详情仍以下面正文各节为准）
+
+> **第十五轮（2026-09-18）· 你授权「B1,4,5 都可以原地」→ B1 已 in-place 发布并真跑验证（`R18`）；B4/B5 的 autoresearch harness 骨架已落地（新 `O30`，只改 runner + 仓库）**
+> 1. **B1（TS 资产，已发布）**：把「挑 6–8 个小 esid（records 小、`abstract_text` 短）」这条**按 esid 个数**的措辞，换成**按来源类**的实测口径（PubMed / 会议摘要 1–4 K 字符；登记号类 `2`/`187` 带 CT.gov 结构化 results JSON，中位 30–60 K、最大 1.9 M、77% 是 JSON 而非散文；`49` 号新闻稿 ≤78 K）。改 `system-prompts/...-v0.15.md` + `skill/.../references/input-contract.md`。数据源 `docs/evidence/abstract-text-by-source-2026-09-17.json`。
+> 2. **in-place 发布 + 回读**：`tools/pack-dist.py`（**新入仓的确定性打包器**）重建 dist `86,285 B / sha 404dbccf5058` → `publish` 原地更新（prompt `v1.6` 内容替换 `53,347 B / sha b9bfcec19538`；skill `v1.0.7` 内容替换）→ `status` 回读 `in sync`（prompt 逐字节、技能包 19 文件全同）。**skill 更新接口回包 `files=0 commit_id=None` 是接口怪癖，以回读为准。**
+> 3. **`R18` 真跑（验证这次发布）**：prompt `解读这几个结果 24_1_30561610 24_1_36342163` + `--web`，thread `f0ac7f8a-…`，**17/17 PASS**，墙钟 198.1 s server / 204.8 s polled，32 次调用尝试（30 returned + 2 schema-rejected），产物 `report.md` 15,658 B + `citations.json` 513 B + 1 张图；事实分 **`facts 41/41 warn 1/1 -> PASS`**。
+> 4. **不把 B1 判成回归**：R17（27 calls / 41/41）→ R18（32 calls / 41/41）成本 +5、事实分不动；两轮差异不止 B1 那几行，n=1 ⇒ 记「待样本」，按 §8.2 要 A×3 才谈噪声带。
+> 5. **B4 harness 骨架（仓库）**：`tools/replay-run.py`（把 `debug-history.json` 变成成本/质量全字段 + `--tsv` + `--score`，离线零网络）、`tools/pack-dist.py`（打包入仓，`--check` 当闸门）；**7 行基线 TSV 已回填**（`docs/evidence/autoresearch-baseline-tsv-backfill-2026-09-18.txt`），§6 的开放问题「成本升了质量升了没」现在有答案：+18 calls 换 +2 条事实（38→40/41），是**交换不是白赚**。
+> 6. **`O30`（runner 层，已落地并验证）**：`tool_results/**` 回执在 turn 结束后**不可恢复**（平台 persist 删 + 产物面板过滤 ⇒ `file-download` 恒 404；离线扫描 28 个 run 目录 **109 指针 / 107 不可恢复**）。修法 = runner（`~/.local/bin/toolsmith-publish`）新增 `ReceiptArchiver`：5 s 轮询持久化消息抠指针即时下载 → `<run>/tool_results/**` + `receipts.jsonl` + `run.json.receipts`，两条判定路径各加断言 `tool_results receipts archived`（0 指针 = PASS 且注明 n/a）。**R19 先暴露「目录假指针」→ R20 `12/12 PASS`**（回执在**第 7.4 s** 落盘，31,407 B），`GATE: PASS`。证据 `docs/evidence/receipt-layer-2026-09-18.txt`。
+> 7. **B5 常驻 program.md**：仓库根新增 **`AGENTS.md`**（三层资产归属 + 冻结面 + 场景集 A/B/C/D + `results.tsv` 列口径 + 一轮一假设纪律 + 反「假绿」清单 + 命令速查）；`docs/autoresearch-iteration-plan.md` 的 §5/§6/§7/§8.1/§8.3/§13/§14 同步更新（S0/S1/S4 标已完成、S2/S3 未开始）。
+> 8. **`O31` + `O32`（runner 层，已修，离线零新 run）**：修 `verification.md` 里「schema-rejected」那行**只有工具名没有原因**——`retry-prompt` 的 `content` 近期是 pydantic **字符串**、早期是错误 dict **列表**，三处渲染器都按「list of dict」迭代 ⇒ 原因永远为空（`O31`，纯展示层）。顺藤摸出**更要紧的**：框架在「参数被拒」和「工具自身失败」两种情况下都会重发，旧代码一律记成 schema-rejected 并在 `output-error` 回路按 id 跳过 ⇒ **外部抓取失败在 `errors` 里不可见**，FAIL 级 `no tool errors` 对 500/403 完全失效：R15/R16/R17/R18 各有一条 `web_fetch` 抓 `…/europepmc/webservices/rest/PMC6933872/fullTextXML` 收 **500**，**四轮全绿**（产物侧其实都写在核对覆盖行里了，坏的只是闸门的可见性）。修法：分三桶 `args-refused` / `fetch-failed`（可见 + 打印 + 入 `verification.md`，不判 FAIL）/ 其余落 `errors`（仍 FAIL）；断言 18→19、12→13 项；`verify-run-chain.py` 同步（`rejected + fetch_failures` 都算「tap 看不到的尝试」）⇒ **`GATE: PASS`**；五种原因形状的离线单测通过（含「工具真崩」仍落 `errors`）。备份 `toolsmith-publish.v8.bak`；重读明细进 `docs/evidence/autoresearch-baseline-tsv-backfill-2026-09-18.txt` 注 7/注 8。
+> 9. **A10 已答（离线，零新 run）**：`clinical_result.blinded=['开放']` 的疑云锁定在 esid `24_1_39054491_1`（`24_1_39054491` / ECHO-307-KEYNOTE-672 / PMID 39054491）：原文设计是 **double-blinded**，库内却写「开放」；根因是**上下文误抽**而非编造 —— 全文里 `open-label` 出现 2 次（揭盲后继续治疗句 + DANUBE 参考区标题），另有「最后一次患者 9 周影像评估后**揭盲**」一句。建议抽取端把「设计盲态」与「揭盲后开放治疗」分开、并排除参考区。**未擅自动库，等你要不要转开发。**
 
 > **第十四轮（2026-09-18）· 你说「接着开发完善」→ 修掉 `A-P6` 在真产物上的**空转**（新 `O29`）+ 补上反向的 `A-P9`（离线，零新 run、零发布）**
 > 1. **缺陷（`O29`，本轮新挖）**：`A-P6-cite-link-is-deepest` 旧实现只把「文件名以 `ref_<n>` 开头」的归档算作某条 ref 的全文正文，而真产物按文章/esid 命名（`R14` = `PMC11270764_fulltext_jats.xml`）⇒ 拿 `R14` **原产物**重打（只读）它报 `no per-ref full-text body archived (check not triggered)` 并 PASS：**一个 citation link 都没看**，而 `R14` 正是催生 L3 规则的那份产物。更麻的是**它能过闸门**——`M21`/`M22` 用的是 harness 自己拼的 `ref_1.pmc-fulltext.xml`，即断言与样本同源、拿自己的假设自证（「不满足前提就不触发」这一类断言的通病）。
