@@ -393,13 +393,15 @@ GATE: PASS
 ```
 
 （完整输出 50 行、43 个 `OK` 行：`docs/evidence/mutation-gate-2026-09-18-r17-baseline.txt`。
-变异总数 28（`M01–M27` + `M28`），负控 4（`N25–N28`）。）
+变异总数 28（`M01–M28`），负控 4（`N25–N28`）。）
 
 真产物重打（这是**闸门看不见的那一层**，单独落库）：
-`docs/evidence/fact-check-l3-real-artifact-rescore-2026-09-18.txt` —— 三份真产物同一命令重判，
+`docs/evidence/fact-check-l3-real-artifact-rescore-2026-09-18.txt` —— **7 份**拿得出来的场景 A 真产物同一命令重判（`R14`/`R8`/`R12`/`R15`/`R16`/`R17`/`archive-scope` 探针），
 `R14` 由「`check not triggered`」变为 `1 full-text ref(s) cite their full-text carrier`（`A-P9` 同轮
 `1 full-text citation(s) backed by an archived body`）；`R17`（基线，0 归档）与 `archive-scope` 探针
 （`sources/probe.txt` 不是原文）三件套均报「未触发」而不是假绿。
+文件末尾另有一句**覆盖面自白**：7 份里只有 `R14` 一份真归档了全文 ⇒ 「触发后真的判对」只在 **1/7** 上验过，
+另两条归位通道（文件名 `ref_<n>` 前缀、esid）只被 harness 的 `M21`/`M22`/`N28` 练过；下次真拿到 PMC 全文的真跑必须补一行。
 
 **基线自评**：`SCORE scenario=a facts 41/41 warn 1/1 -> PASS`（R17，条目 41→42、fail 级 40→41）。
 

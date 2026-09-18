@@ -97,7 +97,7 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 |---|---|---|---|
 | B1 | **TS 资产**：sys `system-prompts/multi-clinical-result-comparison-v0.15.md:38` 与 `skill/.../references/input-contract.md:93` 的「短 `abstract_text`」假设 → 「论文/会议记录短（约 2–4 KB），登记平台记录可能是整份文本（中位 33 KB / 最大 1.9 MB），一律先落盘再脚本摘」 | 事实已确证，**不必等 A5/A6**；若开发答复「会改成摘要级」，措辞可一次写对 | `run` 留新 `R<n>` + publish 授权（TS 资产写动作） |
 | B2 | **TS 资产**：扇出去重措辞 + L3（分析面/引用落点）——**已 2026-09-18 授权并原地发布完成** | ✅ 已解除 | **已完成**：`publish` 原地更新（prompt `v1.6` / skill `v1.0.7`，回读逐字节一致，`in sync`）+ `R14` 真跑 17/17 PASS（调用 36→26、墙钟 201.8→148.0 s）。台账 `### W6`/`R14` |
-| B6 | ~~**仓库资产**：`eval_attribution` 的归因口径~~ **已完成（2026-09-18，用户授权 O19）** | ✅ 已解除 | 落地为「身份对豁免 + 数值对永不豁免」（`subject: true`），假阳性回归对照 `N25`/`N27`；`arm a 40/40`、`GATE: PASS`；R12 `37→39/40`、R15 `36→37/40`、R17 `39→40/40` ⇒ 台账 **F2**、`O19` 已修 |
+| B6 | ~~**仓库资产**：`eval_attribution` 的归因口径~~ **已完成（2026-09-18，用户授权 O19）** | ✅ 已解除 | 落地为「身份对豁免 + 数值对永不豁免」（`subject: true`），假阳性回归对照 `N25`/`N27`；`arm a 40/40`（第十四轮后同 arm 为 `41/41`）、`GATE: PASS`；R12 `37→39/40`、R15 `36→37/40`、R17 `39→40/40` ⇒ 台账 **F2**、`O19` 已修 |
 | B7 | ~~**仓库资产**：清单条目 `A-T1-title-names-both`~~ **已完成（2026-09-18，用户授权 O20）** | ✅ 已解除（证据从 1 份增至 4 份产物：R12/R15/R16/R17） | 改名 `A-T1-title-identifies-scope` + `op: title_scope`（主题式标题合法；**只点一个药名仍 FAIL**）；`M26`/`M06` 证明有牙、`N26` 证明不误伤 ⇒ 台账 **F2**、`O20` 已修 |
 | B3 | **runner**：无待改项（O1–O18 全已落地，只剩 O4/O5 待样本） | — | — |
 | B4 | **仓库资产**：autoresearch harness 骨架 + 把 `tool_results/**` 纳入归档 → 跑 E0「receipts 命中率」回测（不动 `skill/`、0 新 run） | 用户点头 | 纯本地脚本 + 文档 |
