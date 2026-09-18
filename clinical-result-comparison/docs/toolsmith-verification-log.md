@@ -337,6 +337,76 @@ harness 每次跑都把 run 目录重新复制到临时目录，可重复，退�
 **与 F2 的关系**：F2 记的是打分器两类假阳性（O19/O20）+ O28 的修复；当时明确写了「`MUT_RUN_A` 仍指向带 seed 的 R8 副本，
 换基线是一件独立的事」。本条就是那件独立的事，`O20` 行的状态随之补一句，F2 的「没做的（有意）」段落后加了一条指向本条的备注。
 
+**后续（同日 F4）**：换基线后马上发现 `A-P6` 这条 **在真产物上空转**（`O29`）——基线再真，也拦不住「断言自己没在评判」；
+修法与产物层证据见 **F4**。
+
+### F4 — 2026-09-18，**`A-P6` 在真产物上空转（`O29`）修掉 + 补上反向的 `A-P9`**（离线，零新 run、零发布）
+
+用户「接着开发完善」授权。改动全在**仓库评测资产**：`evals/fact-check/check.py`（两个 op + 归位助手）、
+`scenario-a.facts.json`（新条目）、`mutations.py`（两个新变异 + 一个重写 + 闸门判据收紧）、`README.md`（三节）、
+`docs/evidence/` 两份证据。**没碰 `skill/`、`system-prompts/`、runner、平台** ⇒ dist 无变化 ⇒ 不需重打包、不需发布授权。
+
+**缺陷本身（`O29`）**：`A-P6-cite-link-is-deepest` 旧实现只把「文件名以 `ref_<n>` 开头」的归档算作某条 ref 的全文正文，
+而真产物按**文章**或 **esid** 命名（`input-contract.md` 要求 `<esid>.<route>.xml`；`R14` 实际落盘
+`PMC11270764_fulltext_jats.xml`）⇒ 拿 `R14` 原产物重打（只读、不花额度）：
+
+```
+[PASS] A-P5-fulltext-fetch-is-declared full text archived (2 file(s)) and declared
+[PASS] A-P6-cite-link-is-deepest  no per-ref full-text body archived (check not triggered)   ← 空转，O29
+SCORE scenario=a facts 25/40 -> FAIL
+```
+
+打印得像通过，其实一个 citation link 都没看——而 `R14` 正是催生 L3 规则的那份产物。更麻的是**它能过闸门**：
+`M21`/`M22` 的归档文件是 harness 自己拼的 `ref_1.pmc-fulltext.xml`，即断言与样本同源、拿自己的假设自证。
+
+**同时发现的单向性**：规则只写了「归档了全文 ⇒ 引用必须指全文」（`A-P6`），没有任何断言防
+「引用声称读了全文、磁盘上一个字都没取」——而 `A-S5` 恰恰是允许把 `link` 换成全文白名单 URL 的。
+
+**做了什么**
+
+1. `A-P6` 归位拆四条通道（顺序即优先级）：① 文件名 `ref_<n>` 前缀；② 记录 esid 出现在文件名或正文前 4 K；
+   ③ 正文的 `PMC<id>` 与链接相同；④ 正文的 PMID 与链接相同。四通道都归不上时**不猜**（判 PASS，但把文件名写进诊断）；
+   `PMC\d+` 先抹掉再扫 PMID（否则 `PMC11270764` 的数字会被当成 PMID 命中）。
+2. 新增 **`A-P9-fulltext-cite-has-body`**（`op_fulltext_cite_has_body`，`scenario-a` 第 42 条，fail 级）：
+   `link` 一旦指向全文载体（同 `A-P6` 白名单）就必须有带同一个 `PMC<id>` 的字节落在 `/workspace/sources/` 下。
+   记录自带 `full_article_link`（PubMed/出版商页）逐字节相同时**不算深度声明**、跳过（那是库给的值，不是模型选的）。
+   两条合起来才是 L3 闭环：`A-P9` 管「到底取了没有」、`A-P5` 管「有没有向读者声明」、`A-P6` 管「引用落点对不对」。
+3. 变异：`M22` 重写为 **真产物命名**（`PMC11270764_fulltext_jats.xml`，JATS 里带 `pub-id-type=pmcid/pmid`，
+   靠链接 PMID 归位到 ref_1；旧版写的匿名 `ref_1.pmc-fulltext.xml` 就是 O29 的同源样本）；新增
+   `M28 fulltext-cited-but-not-fetched`（只翻 `A-P9`）与 `N28 fulltext-claim-with-bytes`（`R14` 的合法形状，
+   `A-P5`/`A-P6`/`A-P9` 三条必须保持绿——正控）。
+4. `NEG_A` 判据收紧：旧版只看「我想保绿的那一条没翻」，于是一个把**别条目**打翻的负向对照也会报 `[OK]`；
+   现在要求 `rc == 0 且 flipped == []`，否则 `[BAD]`。四条负控均 `rc=0`。
+
+**证据**
+
+```
+$ python3 evals/fact-check/mutations.py            # 退出码 0，50 行输出落库
+baseline a: 41 fail-severity items, all PASS
+[OK ] M22 fulltext-archived-but-abstract-link    rc=3 flipped=['A-P6-cite-link-is-deepest']
+[OK ] M28 fulltext-cited-but-not-fetched         rc=3 flipped=['A-P9-fulltext-cite-has-body']
+[OK ] N25 / N26 / N27                            rc=0 kept … green
+[OK ] N28 fulltext-claim-with-bytes              rc=0 kept A-P6-cite-link-is-deepest green
+arm a: flipped 41/41; never flipped []
+arm b: flipped 12/12; never flipped []
+GATE: PASS
+```
+
+（完整输出 50 行、43 个 `OK` 行：`docs/evidence/mutation-gate-2026-09-18-r17-baseline.txt`。
+变异总数 28（`M01–M27` + `M28`），负控 4（`N25–N28`）。）
+
+真产物重打（这是**闸门看不见的那一层**，单独落库）：
+`docs/evidence/fact-check-l3-real-artifact-rescore-2026-09-18.txt` —— 三份真产物同一命令重判，
+`R14` 由「`check not triggered`」变为 `1 full-text ref(s) cite their full-text carrier`（`A-P9` 同轮
+`1 full-text citation(s) backed by an archived body`）；`R17`（基线，0 归档）与 `archive-scope` 探针
+（`sources/probe.txt` 不是原文）三件套均报「未触发」而不是假绿。
+
+**基线自评**：`SCORE scenario=a facts 41/41 warn 1/1 -> PASS`（R17，条目 41→42、fail 级 40→41）。
+
+**没做的（有意）**：不动 `skill/`/`system-prompts/`——本轮发现的是**量具**缺陷，规则本身没错（合同早就要求把抓到的正文
+拷到 `/workspace/sources/`，`A-P9` 只是把这个已有要求变成可判）；也不去动清单里其它「前提不成立 PASS」的断言
+（`A-P3` 等同族项），先把机制写进 README 的已知缺口，等有真样本再说。
+
 ### F2 — 2026-09-18，**打分器两类假阳性修复（O19 / O20）+ 顺手挖出的 O28**（离线，零新 run、零发布）
 
 用户 2026-09-18 授权「O19-20 都可以改」。三处全在**仓库评测资产**（`evals/fact-check/`），
@@ -999,6 +1069,7 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O26 | **数值「符号 vs 幅度」写法**（2026-09-18 `R16` 对比 R8/R12/R15 发现）→ **已定案并落地**：用户口径「两种写法没关系，只要自洽就行」⇒ (a) 放弃原先「写死带符号」方案，改成**写法自由 + 同份交付物自洽**：`A-C4`/`A-C5` 模式 `[\u2212-]?` 符号可选（数值仍逐位精确，M01 仍翻）、`A-S9` 比绝对值（M10 仍翻）、**新增 `A-S10-sign-convention-consistent`**（被画进图的量在报告与图表必须同口径；`M25` 先读基线口径再把图表翻成另一种，只翻 A-S10）；合同（`input-contract.md`）+ sys v0.15 同步写清「作用域 = 被画的量，点估计无符号 + CI 带符号是正常渲染」 | R8/R12/R15/R16/R17 | 已改（仓库 + 已 in-place 发布） | **R17 复验通过**（`39/40`，本轮唯一 FAIL 是 O20；R16 幅度口径现在也全 PASS） |
 | O27 | **清单条目 `A-C16-hard-outcome-gap` 术语绑定过窄**（2026-09-18 `R16` 暴露，与 O20 同类）：R16 在表格里明确写了「心血管结局事件（如 MACE）」并标注两侧「未报告／未对齐」，但条目正则只认 `硬结局|心血管事件` ⇒ 被判 0 命中。要防的是「硬结局缺口不写」这件事实，不是某个词形 | 正则放宽为 `硬结局|心血管事件|心血管结局`（仍要求出现在正文），配套检查 M-变异仍能翻 | **待批**（证据：R16 报告第 4.3 节 + 表格行；1 份产物） |（**R17 用「心血管事件」词面 ⇒ 该条 PASS**，故现为 1 失败 / 1 通过，仍按「待样本」不动） |
 | O28 | **`A-ATTR` 的「数值对」分支从未命中过任何产物**（2026-09-18 核 `M27` 时发现，**已修**）：token 写 ASCII `-13\.9`，四份真产物正文一律 U+2212（`−13.9`：R8/R12 各 5 处、R16 有符号式、R17 9 处）⇒ 静默漏检（假绿方向）；改成 `[\u2212-]13\.9` 后四份产物重打**无新增 FAIL**（说明真产物数值归属本来就干净，缺的只是这层检查），`M27` 现在能翻 `A-ATTR` | F2 | 已修（仅仓库评测资产） |
+| O29 | **`A-P6` 在**真产物**上空转（假绿）**（2026-09-18 核 L3 时发现，**已修**）：旧实现只把「文件名以 `ref_<n>` 开头」的归档算作某条 ref 的全文正文（`op_cite_link_is_deepest` 里的 `re.match(r"ref_(\d+)", …)`），而**真产物从不这么命名**（`R14` 是 `PMC11270764_fulltext_jats.xml`）⇒ 拿 `R14` 原产物重打时它报 `no per-ref full-text body archived (check not triggered)` 并 PASS，**一个 citation link 都没看**——而 `R14` 正是催生 L3 规则的那份产物。更麻的是它**能过闸门**：`M21`/`M22` 用的是 harness 自己拼的 `ref_1.pmc-fulltext.xml`，即「拿自己的假设自证」。同时发现规则**只有一个方向**（归档 ⇒ 引用必须指全文），没有任何东西防「引用声称读了全文而一个字没取」 | ① `A-P6` 归位拆**四条通道**（`ref_` 前缀 / esid / 正文 `PMC<id>` 对链接 `PMC<id>` / 正文 PMID 对链接 PMID），归不上不猜、只记诊断；`PMC\d+` 先抹掉再扫 PMID（否则 PMCID 数字会被当 PMID 命中）；② 新增反向断言 **`A-P9-fulltext-cite-has-body`**（`link` 指全文载体 ⇒ `sources/` 里必须有同 `PMC<id>` 的字节；`link` 逐字节等于记录自带 `full_article_link` 时不算深度声明）；③ 变异改用**真产物命名**并新增 `M28`（只翻 `A-P9`）/ `N28`（`R14` 合法形状需三条全绿）；④ `NEG_A` 判据从「我那一条没翻」收紧为「**整轮干净** `rc==0 && flipped==[]`」（旧版下、负向对照把别条目打翻也会报 `[OK]`） | **已修**（2026-09-18，仅仓库评测资产：`check.py` / `scenario-a.facts.json` / `mutations.py` / `README.md` + 两份 evidence）→ 证据 **F4** |
 ## 4. 平台侧（转开发）
 
 完整、可直接转发的版本见 Obsidian：

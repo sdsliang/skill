@@ -22,10 +22,18 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 
 ## ⏳ 开放事项总表（2026-09-17 整理；各条详情仍以下面正文各节为准）
 
+> **第十四轮（2026-09-18）· 你说「接着开发完善」→ 修掉 `A-P6` 在真产物上的**空转**（新 `O29`）+ 补上反向的 `A-P9`（离线，零新 run、零发布）**
+> 1. **缺陷（`O29`，本轮新挖）**：`A-P6-cite-link-is-deepest` 旧实现只把「文件名以 `ref_<n>` 开头」的归档算作某条 ref 的全文正文，而真产物按文章/esid 命名（`R14` = `PMC11270764_fulltext_jats.xml`）⇒ 拿 `R14` **原产物**重打（只读）它报 `no per-ref full-text body archived (check not triggered)` 并 PASS：**一个 citation link 都没看**，而 `R14` 正是催生 L3 规则的那份产物。更麻的是**它能过闸门**——`M21`/`M22` 用的是 harness 自己拼的 `ref_1.pmc-fulltext.xml`，即断言与样本同源、拿自己的假设自证（「不满足前提就不触发」这一类断言的通病）。
+> 2. **修①：`A-P6` 归位拆四条通道**（`ref_` 前缀 / esid / 正文 `PMC<id>` 对链接 `PMC<id>` / 正文 PMID 对链接 PMID）；都归不上时**不猜**（PASS + 把文件名写进诊断）。`PMC\d+` 先抹掉再扫 PMID，否则 `PMC11270764` 的数字会被当成 PMID 命中。
+> 3. **修②：新增反向断言 `A-P9-fulltext-cite-has-body`**（场景 A 第 42 条，fail 级）：`link` 一旦指向全文载体（同 `A-P6` 白名单）就必须有同 `PMC<id>` 的字节落在 `/workspace/sources/` 下；`link` 逐字节等于记录自带 `full_article_link` 时不算深度声明。旧规则只有单向（归档 ⇒ 引用必须指全文），**没人防「引用声称读了全文而一个字没取」**。三条合起来才是 L3 闭环：`A-P9`「到底取了没有」/ `A-P5`「有没有向读者声明」/ `A-P6`「引用落点对不对」。
+> 4. **闸门也升级**：`M22` 重写为**真产物命名**（`PMC11270764_fulltext_jats.xml`，JATS 带 `pub-id-type=pmcid/pmid`，靠链接 PMID 归位）；新增 `M28`（凭空指全文、无归档，只翻 `A-P9`）与正控 `N28`（`R14` 合法形状，`A-P5/A-P6/A-P9` 必须全绿）；`NEG_A` 判据从「我那一条没翻」收紧为「**整轮干净** `rc==0 && flipped==[]`」（旧版下、负控把别条目打翻也会报 `[OK]`）。结果：`baseline a: 41 fail-severity items, all PASS` → `arm a: flipped 41/41`；`arm b 12/12`；**`GATE: PASS`**（50 行 / 43 `OK`，已覆盖落库）。
+> 5. **产物层证据（闸门看不见的那一层）**：`docs/evidence/fact-check-l3-real-artifact-rescore-2026-09-18.txt` —— 三份真产物同一命令重判，`R14` 由「`check not triggered`」变为 `1 full-text ref(s) cite their full-text carrier`（`A-P9` 同轮 `1 full-text citation(s) backed by an archived body`）；`R17`（0 归档）与 `archive-scope` 探针（`sources/probe.txt` 不是原文）三件套均报「未触发」而非假绿。
+> 6. **范围与状态**：只动 `evals/fact-check/`（4 文件）+ `docs/evidence/` 两份 ⇒ **dist 未变 ⇒ 不需重打包、不需发布授权**；真产物直接判分 `SCORE scenario=a facts 41/41 warn 1/1 -> PASS`。台账新增 **`### F4`** + `O29` 行；`### F3` 收尾加一条指向 F4 的备注。
+
 > **第十三轮（2026-09-18）· 你授权「做呗」→ arm A 基线已从「补过一行的 R8 副本」换成真产物 R17（离线，零新 run、零发布）**
 > 1. **基线换人**：`mutations.py` 的 `SRC_A` 默认值改为 `20260918-095553-r17-sign-convention`（R17 = 数值口径定案后 in-place 发布跑出来的那一版，**逐条全绿**且**原生带** `原文核对：` 行）⇒ **`seed_original_check` 连同「补一行」整套机制删除**。基线判分现在就是「把真产物原样过一遍清单」，不再向临时副本注入任何内容。
 > 2. **6 条绑定 R8 字节的变异按 R17 真实措辞重写**：`M01`（`13\.9` 全替——R17 散文里有一处**不带负号**的 `13.9%`，只替带号写法时 `A-C4` 仍绿）、`M03`（替 `[OCEAN(a)-DOSE](entity:trial:NCT04270760)`，`count=0`，22 处；`A-C2` 要三条图案全中）、`M06`（H1 只点一个药，走 `A-T1` 的「只点一个 subject」FAIL 分支）、`M07`（`2 ?条` 全替——覆盖行里还有 `2/2 条`、「2 条仅摘要级」）、`M15`（ref_2 行的药名单元格换成 ref_1 的）、`M21`（加全文归档**并**把覆盖行改写成只声明摘要路径：R17 覆盖行本已提 `PMC6933872`/「全文」，只加归档翻不动 `A-P5`）、`N26`（改用「两个 subject 都点名」的标题；旧的 N26 在 R17 上已是基线形状 ⇒ 空转）。新增 `FT_XML` 常量供 M21/M22 共用。
-> 3. **闸门全绿**：`baseline a: 40 fail-severity items, all PASS` → `arm a: flipped 40/40; never flipped []`；`baseline b / arm b: 12/12`；**`GATE: PASS`**（48 行输出 / 41 个 `OK`，完整输出已落库 `docs/evidence/mutation-gate-2026-09-18-r17-baseline.txt`）。清单条目与 `check.py` **一个字没改**（真产物直接判分仍 `SCORE scenario=a facts 40/40 warn 1/1 -> PASS`）⇒ **dist 未变 ⇒ 不需要重新打包、不需要发布授权**。
+> 3. **闸门全绿**：`baseline a: 40 fail-severity items, all PASS` → `arm a: flipped 40/40; never flipped []`；`baseline b / arm b: 12/12`；**`GATE: PASS`**（48 行输出 / 41 个 `OK`，完整输出已落库 `docs/evidence/mutation-gate-2026-09-18-r17-baseline.txt`，当时 48 行/41 `OK`；第十四轮 `O29` 修复后同一文件重跑为 **50 行 / 43 `OK`**）。清单条目与 `check.py` **一个字没改**（真产物直接判分仍 `SCORE scenario=a facts 40/40 warn 1/1 -> PASS`）⇒ **dist 未变 ⇒ 不需要重新打包、不需要发布授权**。
 > 4. **两次踩坑（都留痕）**：① `M01` 第一版只替带负号写法 ⇒ `A-C4` 保持绿（**符号可选的图案，只替一种写法等于没改**）；② `M03` 第一版 `sub_lit` 没给 `count`（默认 1）⇒ 22 处只改 1 处，harness 报 `[BAD] M03 drop-trial-id rc=0 flipped=[]` 当场挡住。
 > 5. **台账**：新增 **`### F3`**；`O20` 行、`### F2` 的「没做的（有意）」段、`### R17` 的收尾段各加一条指向 F3 的备注。
 

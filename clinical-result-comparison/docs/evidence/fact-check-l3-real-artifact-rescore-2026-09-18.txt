@@ -1,0 +1,78 @@
+# O29 回归证据：A-P6 / A-P9 在**真产物**上到底有没有真的评判？
+#
+# 为什么单靠变异 gate 不够：gate 只能证明「M22 能翻开 A-P6」，看不见「空转」这种假绿。
+# 本文件把三份真产物重新打分并贴出 A-P5/A-P6/A-P9 三行，作为产物层面的对照。
+# 全部命令只读（读 artifacts/ + records fixture），不消耗 ES 额度、不建线程。
+# 打分器：evals/fact-check/check.py @ 2026-09-18（O29 修复后：A-P6 归位走 ref_前缀 / esid / PMC<id> / PMID 四条通道；
+#        新增 A-P9 = 反向「引用声称全文 ⇒ 必须有字节」）
+
+## R14 (2026-09-18, L3 全文复用)
+# run dir: /home/xupeipeioo1/.local/state/toolsmith-runs/20260918-092000-resume-r14-l3-recollect
+# 唯一一份在 `sources/` 里放了真全文正文的产物：按 PMCID 命名（`PMC11270764_fulltext_jats.xml` /
+#   `PMC11270764_plain.txt`），citations.json 的 ref_1 指向 PMC 文章页，覆盖行声明了全文与 PMCID。
+$ python3 evals/fact-check/check.py --run 20260918-092000-resume-r14-l3-recollect --scenario a -v | grep -E 'A-P[569]|SCORE'
+[PASS] A-P5-fulltext-fetch-is-declared full text archived (2 file(s)) and declared
+[PASS] A-P6-cite-link-is-deepest  1 full-text ref(s) cite their full-text carrier
+[PASS] A-P9-fulltext-cite-has-body 1 full-text citation(s) backed by an archived body
+SCORE scenario=a facts 26/41 warn 0/1 -> FAIL
+# exit=3
+
+## R17（arm A 基线，2026-09-18 符号约定轮）
+# run dir: /home/xupeipeioo1/.local/state/toolsmith-runs/20260918-095553-r17-sign-convention
+# 基线产物：`sources/` 里没有任何全文正文（0 文件），所以 A-P5/A-P6/A-P9 都必须报告「未触发」而不是假绿。
+$ python3 evals/fact-check/check.py --run 20260918-095553-r17-sign-convention --scenario a -v | grep -E 'A-P[569]|SCORE'
+[PASS] A-P5-fulltext-fetch-is-declared no full-text body archived under sources/ (check not triggered)
+[PASS] A-P6-cite-link-is-deepest  no full-text body archived (check not triggered)
+[PASS] A-P9-fulltext-cite-has-body no citation points at a full-text carrier (check not triggered)
+SCORE scenario=a facts 41/41 warn 1/1 -> PASS
+# exit=0
+
+## archive-scope 探针（2026-09-17）
+# run dir: /home/xupeipeioo1/.local/state/toolsmith-runs/20260917-201416-archive-scope
+# 对照：`sources/probe.txt` 是落盘路径探针，不是抓到的原文（文件名无 fulltext/pmc、内容无 <article>/<sec>/<body>） ⇒ 三件套都必须不触发。
+$ python3 evals/fact-check/check.py --run 20260917-201416-archive-scope --scenario a -v | grep -E 'A-P[569]|SCORE'
+[PASS] A-P5-fulltext-fetch-is-declared no full-text body archived under sources/ (check not triggered)
+[PASS] A-P6-cite-link-is-deepest  no full-text body archived (check not triggered)
+[PASS] A-P9-fulltext-cite-has-body no citations.json (A-S3 owns that failure)
+SCORE scenario=a facts 12/41 warn 0/1 -> FAIL
+# exit=3
+
+# O29 修复前的对照（R14，同一命令，同一产物）：
+#   [PASS] A-P6-cite-link-is-deepest  no per-ref full-text body archived (check not triggered)
+#   -> 结论打印得像通过，其实一个 citation link 都没看；该轮 A-P9 这条根本不存在。
+
+## 其余历史产物（0 归档）：“未触发”是否真的是 not-triggered，而不是又一次空转？
+# 这里加存一轮：把所有拿得出来的场景 A 真产物都打一遍。它们 `sources/` 都是空的，
+# 所以三条的正确输出就是“未触发”；诊断信息里**能看出它到底在报哪一种前提不成立**
+# （A-P5 报“sources/ 下无全文正文”、A-P6 报“无全文正文”、A-P9 报“没有任何 citation 指向全文载体”）。
+$ for d in 20260916-104943-v2-poll 20260917-191502-r12-fanout-dedup \
+           20260918-092157-r15-l3-scenario-a 20260918-094333-resume-r16-resume \
+           20260918-095553-r17-sign-convention; do
+    python3 evals/fact-check/check.py --run ~/.local/state/toolsmith-runs/$d --scenario a -v \
+      | grep -E 'A-P[569]|SCORE'
+  done
+20260916-104943-v2-poll        [PASS] A-P5 … no full-text body archived under sources/ (check not triggered)
+                               [PASS] A-P6 … no full-text body archived (check not triggered)
+                               [PASS] A-P9 … no citation points at a full-text carrier (check not triggered)
+                               SCORE scenario=a facts 40/41 warn 1/1 -> FAIL   (只差 A-P1，早于原文优先规则)
+20260917-191502-r12-fanout-dedup
+                               [PASS] A-P5/A-P6/A-P9 同上（三件未触发）
+                               SCORE scenario=a facts 40/41 warn 1/1 -> FAIL   (只差 A-P1)
+20260918-092157-r15-l3-scenario-a
+                               [PASS] A-P5/A-P6/A-P9 同上（三件未触发）
+                               SCORE scenario=a facts 38/41 warn 1/1 -> FAIL
+20260918-094333-resume-r16-resume
+                               [PASS] A-P5/A-P6/A-P9 同上（三件未触发）
+                               SCORE scenario=a facts 38/41 warn 1/1 -> FAIL
+20260918-095553-r17-sign-convention
+                               [PASS] A-P5/A-P6/A-P9 同上（三件未触发）
+                               SCORE scenario=a facts 41/41 warn 1/1 -> PASS
+
+# 覆盖面自白（一定要写，不写就是另一种自我安慰）：
+#   7 份产物里只有 **R14** 一份真的把全文归档了 ⇒ 四条归位通道里实际被走通的只有「PMCID/PMID 对链接」这
+#   两支；`ref_<n>` 前缀与 esid 归位只在 harness 的 M21/M22/N28 里被练过。也就是说
+#   【A-P6/A-P9 的“未触发”分支在真产物上被反复确认过（7/7），而“触发后真的判对”只在 1/7 上确认过。】
+#   下次任何一次 `src=1` + 真拿到 PMC 全文的真跑，都该把这份文件再补一行。
+#
+#   另：这 7 份新数字与台账 `### F2/### F3` 里记的旧数字（R15 37/40、R16 37/40）不是一回事——
+#   本轮清单从 40 条 fail 级长到 41 条（新增 A-P9），旧数字是旧口径。交付物的质量没变，标尺变了。

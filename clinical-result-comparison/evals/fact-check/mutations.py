@@ -11,11 +11,12 @@ least one item, the mutated run must exit 3, and the union over all mutations mu
 cover every fail-severity item in the checklist.
 
 Arm A: the report-producing run R17 (2026-09-18, 2 valid esids, sign-convention round).  It is a
-real, fully-passing artifact (40/40 fail-severity items) and it already carries the
+real, fully-passing artifact (41/41 fail-severity items) and it already carries the
 `原文核对：` line, so the baseline is scored as recorded — nothing is seeded into the copy.
-`NEG_A` gives the same arm three *must stay green* controls: the two O19 mixed-sentence shapes and
-the O20 "both subjects named" title, so an over-eager exemption shows up as a BAD line instead of a
-silent pass.
+`NEG_A` gives the same arm four *must stay green* controls: the two O19 mixed-sentence shapes,
+the O20 "both subjects named" title, and the legal L3 full-text shape (N28 = archive + full-text
+link + declaration, i.e. R14's real form), so an over-eager exemption or a mis-attributed archive
+shows up as a BAD line instead of a silent pass.
 Arm B: the correctly refusing v1 run R6 (1 valid + 1 unusable esid).
 """
 import json
@@ -57,9 +58,44 @@ def fresh(name, src, files, with_artifacts):
             os.path.join(d, "artifacts", "visualizations"))
 
 
-# A minimal JATS body, used by M21/M22 to put a real full text under `sources/`.
+# A minimal JATS body used by M21/M22/N28 to put a real full text under `sources/`.
 FT_XML = ('<?xml version="1.0"?>\n<article><front><article-title>t</article-title></front>'
           '<body><sec><title>Results</title><p>ORR was 35.0% (95% CI, 23.1-48.4).</p></sec></body></article>\n')
+# The full-text-depth declaration M22/N28 write into the coverage line (A-P5 stays satisfied there,
+# so the only thing under test is where the citation points and whether bytes exist).
+FT_LINE = ("> **原文核对：** 2/2 条已复核（src=1 取 PMC 全文 PMC11270764；"
+           "src=37 库内正文即会议摘要原文）。\n")
+
+
+def ft_body(pmid, pmcid="PMC11270764"):
+    """A JATS body that identifies itself (PMCID + PMID), the way Europe PMC's `fullTextXML` does.
+
+    Identity matters since O29: the scorer attributes an archived body to a ref through the
+    `ref_<n>` prefix, an esid, a matching `PMC<id>`, or a matching PMID.  A body carrying no id at
+    all cannot be attributed to any record, so it proves nothing about the citation link.
+    """
+    return ('<?xml version="1.0" encoding="UTF-8"?>\n'
+            '<article xml:lang="en" article-type="research-article"><front><article-meta>'
+            f'<article-id pub-id-type="pmcid">{pmcid}</article-id>'
+            f'<article-id pub-id-type="pmid">{pmid}</article-id>'
+            '</article-meta></front><body><sec><title>Results</title>'
+            '<p>ORR was 35.0% (95% CI, 23.1-48.4).</p></sec></body></article>\n')
+
+
+def archive_fulltext(d, c, pmcid="PMC11270764"):
+    """Archive a body as **R14 did it** — named by PMCID, not by `ref_<n>` — and return the citations.
+
+    Real runs name these files after the article (`PMC11270764_fulltext_jats.xml`) or after the esid
+    (`<esid>.<route>.xml`); the `ref_<n>` prefix is a harness convenience.  Using the real naming here
+    is what keeps the harness honest about O29 instead of encoding the bug it was written for.
+    """
+    j = json.load(open(c, encoding="utf-8"))
+    m = re.search(r"(?<!\d)(\d{7,8})(?!\d)", str(j.get("ref_1", {}).get("link") or ""))
+    assert m, "baseline ref_1 link carries no PMID — cannot build an attributable body"
+    src = os.path.join(d, "artifacts", "sources")
+    os.makedirs(src, exist_ok=True)
+    open(os.path.join(src, f"{pmcid}_fulltext_jats.xml"), "w", encoding="utf-8").write(ft_body(m.group(1), pmcid))
+    return j
 
 
 def sub(path, pat, rep, count=0):
@@ -312,12 +348,23 @@ def M24(d, r, c, v):  # state the rule itself (reworded, not verbatim) instead o
 
 
 def M22(d, r, c, v):  # full text archived AND declared, but the citation still points at the abstract
-    src_dir = os.path.join(d, "artifacts", "sources")
-    os.makedirs(src_dir, exist_ok=True)
-    open(os.path.join(src_dir, "ref_1.pmc-fulltext.xml"), "w", encoding="utf-8").write(FT_XML)
-    # declare the full-text depth so A-P5 stays satisfied: only the citation link is wrong here
-    return sub(r, r"原文核对：[^\n]*\n",
-               "> **原文核对：** 2/2 条已复核（src=1 取 PMC 全文 PMC11270764；src=37 库内正文即会议摘要原文）。\n")
+    # O29: the body must be attributable for this item to fire at all.  Named by PMCID (R14's real
+    # convention) and carrying the record's own PMID, it reaches ref_1 through the link's PMID —
+    # while the *link* stays the PubMed page, which is precisely the failure.  The pre-2026-09-18
+    # version of this mutation wrote an anonymous body called `ref_1.pmc-fulltext.xml`, so it proved
+    # the item could bite while the item itself never bit on a real artifact.
+    archive_fulltext(d, c)
+    return sub(r, r"原文核对：[^\n]*\n", FT_LINE)
+
+
+def M28(d, r, c, v):  # claim full-text depth without fetching anything (the converse of A-P6)
+    # Nothing is archived: the citation alone says "analysed from the full text".  A-S5 accepts the
+    # upgrade (both whitelisted full-text forms do), A-P5/A-P6 stay untriggered (no body), so only
+    # A-P9 can catch it — which is the entire point of closing the loop.
+    j = json.load(open(c, encoding="utf-8"))
+    j["ref_1"]["link"] = "https://pmc.ncbi.nlm.nih.gov/articles/PMC11270764/"
+    json.dump(j, open(c, "w"), ensure_ascii=False, indent=1)
+    return 1
 
 
 MUTS_A = [
@@ -343,6 +390,7 @@ MUTS_A = [
     ("M20 hollow-original-check", M20, "A-P4-original-check-names-route-and-class"),
     ("M21 fulltext-archived-but-undeclared", M21, "A-P5-fulltext-fetch-is-declared"),
     ("M22 fulltext-archived-but-abstract-link", M22, "A-P6-cite-link-is-deepest"),
+    ("M28 fulltext-cited-but-not-fetched", M28, "A-P9-fulltext-cite-has-body"),
     ("M23 template-spec-echo", M23, "A-P7-no-template-spec-in-report"),
     ("M24 rule-metastatement", M24, "A-P8-no-rule-metastatement"),
     ("M25 split-convention", M25, "A-S10-sign-convention-consistent"),
@@ -432,13 +480,29 @@ MUTS_B = [
 
 
 # --------------------------------------------------------------------- negative controls
-# `arm()` proves every item *can* fail.  These prove two items do *not* fail on the shapes that
-# wrongly tripped them once (O19 = mixed sentence, O20 = theme title) — a regression guard for the
-# exemptions themselves, which the positive list cannot express.
+# `arm()` proves every item *can* fail.  These prove items do *not* fail on shapes that wrongly
+# tripped them once (O19 = mixed sentence, O20 = theme title) or that must stay green by design
+# (N28 = the legal L3 full-text shape) — regression guards for exemptions and for attribution, which
+# the positive list cannot express.
+def N28(d, r, c, v):
+    """**Legal L3 shape (R14, 2026-09-18)** — archive + full-text link + declaration all stay green.
+
+    R14 is the real artifact the L3 rule came from: `PMC11270764_fulltext_jats.xml` in `sources/`
+    (named by PMCID, no `ref_` prefix), `citations.json` pointing ref_1 at the PMC article page, the
+    coverage line naming the PMCID and 全文.  Positive control for the whole chain — A-P5 (declared),
+    A-P6 (link is the deepest, attributed through the PMCID), A-P9 (the bytes exist).
+    """
+    j = archive_fulltext(d, c)
+    j["ref_1"]["link"] = "https://pmc.ncbi.nlm.nih.gov/articles/PMC11270764/"
+    json.dump(j, open(c, "w"), ensure_ascii=False, indent=1)
+    return sub(r, r"原文核对：[^\n]*\n", FT_LINE)
+
+
 NEG_A = [
     ("N25 mixed-sentence-not-misattributed", N25, "A-ATTR-misattribution"),
     ("N26 theme-title-accepted", N26, "A-T1-title-identifies-scope"),
     ("N27 trial-id-contrast-sentence", N27, "A-ATTR-misattribution"),
+    ("N28 fulltext-claim-with-bytes", N28, "A-P6-cite-link-is-deepest"),
 ]
 NEG_B = []
 NEG = {"a": NEG_A, "b": NEG_B}
@@ -475,10 +539,13 @@ def arm(scenario, src, files, with_artifacts, muts):
         d, r, c, v = fresh(name, src, files, with_artifacts)
         fn(d, r, c, v)
         rc, bad, _ = score(d, scenario)
-        if keep_green in bad:
+        # A negative control must leave the run *fully clean*, not just keep its one item green:
+        # `rc != 0` means the control shape broke something else, which is exactly the regression
+        # this list exists to catch (asserting `keep_green` alone would print an OK line for it).
+        if rc != 0 or bad:
             hit, ok = "BAD", False
-            mismatch.append((name, f"NOT {keep_green}", bad))
-            print(f"[{hit}] {name:22} rc={rc} wrongly flipped {keep_green}")
+            mismatch.append((name, f"a clean run keeping {keep_green} green", bad))
+            print(f"[{hit}] {name:22} rc={rc} expected a clean run, flipped={bad}")
         else:
             print(f"[OK ] {name:22} rc={rc} kept {keep_green} green")
         shutil.rmtree(d, ignore_errors=True)

@@ -1,4 +1,4 @@
-baseline a: 40 fail-severity items, all PASS
+baseline a: 41 fail-severity items, all PASS
 [OK ] M01 minus139           rc=3 flipped=['A-C4-primary-A']
 [OK ] M02 signflip           rc=3 flipped=['A-N2-no-sign-flip']
 [OK ] M03 drop-trial-id      rc=3 flipped=['A-C2-trial-identity-B']
@@ -21,6 +21,7 @@ baseline a: 40 fail-severity items, all PASS
 [OK ] M20 hollow-original-check rc=3 flipped=['A-P4-original-check-names-route-and-class']
 [OK ] M21 fulltext-archived-but-undeclared rc=3 flipped=['A-P5-fulltext-fetch-is-declared', 'A-P6-cite-link-is-deepest']
 [OK ] M22 fulltext-archived-but-abstract-link rc=3 flipped=['A-P6-cite-link-is-deepest']
+[OK ] M28 fulltext-cited-but-not-fetched rc=3 flipped=['A-P9-fulltext-cite-has-body']
 [OK ] M23 template-spec-echo rc=3 flipped=['A-P2-divergence-shows-both', 'A-P7-no-template-spec-in-report', 'A-P8-no-rule-metastatement']
 [OK ] M24 rule-metastatement rc=3 flipped=['A-P2-divergence-shows-both', 'A-P8-no-rule-metastatement']
 [OK ] M25 split-convention   rc=3 flipped=['A-S10-sign-convention-consistent']
@@ -29,7 +30,8 @@ baseline a: 40 fail-severity items, all PASS
 [OK ] N25 mixed-sentence-not-misattributed rc=0 kept A-ATTR-misattribution green
 [OK ] N26 theme-title-accepted rc=0 kept A-T1-title-identifies-scope green
 [OK ] N27 trial-id-contrast-sentence rc=0 kept A-ATTR-misattribution green
-arm a: flipped 40/40; never flipped []
+[OK ] N28 fulltext-claim-with-bytes rc=0 kept A-P6-cite-link-is-deepest green
+arm a: flipped 41/41; never flipped []
 
 baseline b: 12 fail-severity items, all PASS
 [OK ] MB01 writes-report     rc=3 flipped=['B-S1-no-report']

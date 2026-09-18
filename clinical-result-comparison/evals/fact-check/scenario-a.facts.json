@@ -552,7 +552,7 @@
       "id": "A-P6-cite-link-is-deepest",
       "kind": "shape",
       "op": "cite_link_is_deepest",
-      "evidence": "若 /workspace/sources/ref_<n>.* 归档了全文正文（文件名含 fulltext/pmc<数字>，或内容含 <article>/<sec>/<body>），citations.json 里 ref_<n>.link 必须指向全文载体（白名单：https://pmc.ncbi.nlm.nih.gov/articles/PMC<id>/ 或 https://www.ebi.ac.uk/europepmc/webservices/rest/PMC<id>/fullTextXML），或至少带同一个 PMC<id>；未归档全文的记录不触发（其 link 仍逐字节来自 full_article_link）",
+      "evidence": "/workspace/sources/ 下每份全文正文（文件名含 fulltext/pmc<数字>，或前 4 KB 含 <article>/<sec>/<body>）都必须先归到某个 ref：文件名 `ref_<n>` 前缀 / 文件名或正文里的 esid / 与 citation link 相同的 PMC<id> / 与 citation link 相同的 PMID，四条通道任一命中即归位；归位后 citations.json 里该 ref 的 link 必须指向全文载体（白名单：https://pmc.ncbi.nlm.nih.gov/articles/PMC<id>/ 或 https://www.ebi.ac.uk/europepmc/webservices/rest/PMC<id>/fullTextXML），或至少带同一个 PMC<id>。未归档全文、或归档了但四条通道都归不到任何 ref 时不触发（其 link 仍逐字节来自 full_article_link）；归不到的具体文件名会写进诊断信息",
       "rationale": "用户 2026-09-17 的 L3 决策：基于全文分析的记录，ref 必须指真正的全文，而不是原来的 PubMed 摘要页——否则点开上标链接的人看到的页面里没有报告用到的数值。与 A-P5（覆盖行必须声明全文）互补：一个管正文声明，一个管引用落点",
       "severity": "fail"
     },
@@ -574,6 +574,15 @@
       "op": "no_rule_metastatement",
       "evidence": "交付物里不得出现**关于规则本身的句子**（点名库内一侧 + 谈一致/不一致 + 通篇无数字）。R16（2026-09-18，模板逐字回抄已修后的首次真跑）覆盖行写成「未发现原文与库内记录在同一指标、同一口径上的数值不一致；」——既没有数值也没有引用，读者拿不到任何信息；真实分歧必带双值 + `{{ref_n}}`，因此「有库内一侧 + 有『一致』字样 + 无数字」正是元话语这一档。A-P7 抓逐字回抄，本条抓改写（同一模型上一轮照抄、这一轮改写，说明只靠字面表抓不住）",
       "rationale": "覆盖行要交代的是每条记录的复核路径、分析深度与未复核原因；把「本合同的规则」写进交付物，读者看到的是指令残留而不是证据，而且它同时说明这一行没被认真写"
+    },
+    {
+      "id": "A-P9-fulltext-cite-has-body",
+      "kind": "shape",
+      "op": "fulltext_cite_has_body",
+      "link_field": "clinical_result_full_article_link",
+      "evidence": "L3 决策的反向：citations.json 的 link 一旦指向全文载体（白名单同 A-P6），就必须有对应正文落在 /workspace/sources/ 下（文件名或前 4 KB 里出现同一个 PMC<id>）；link 逐字节等于记录自身 full_article_link 时不算深度声明、跳过。依据：input-contract.md 要求 web_fetch 取回的正文一律拷到 /workspace/sources/（随 run 归档 ⇒ 可审计），所以「按全文分析」这个声明在磁盘上必须能对上字节",
+      "rationale": "A-P6 只有单向：归档了全文 ⇒ 引用必须指全文。于是没有东西阻止一份产物把 link 写成 PMC 全文页（甚至凭空写一个 PMC 号）而其实一个字都没取——引用声称「按全文分析」，磁盘上没有任何东西能反驳。补上反向（声明深度 ⇒ 必须有字节）才算闭环：A-P9 管「到底取了没有」、A-P5 管「有没有向读者声明」、A-P6 管「引用落点对不对」。反例对照：M28（凭空写 PMC 全文链接、无归档）必须翻这条，N28（归档 + 链接指全文 + 覆盖行声明，即 R14 的真实形态）必须保持绿",
+      "severity": "fail"
     }
   ],
   "revision": "2026-09-17（O17 修复，用户批准）：A-S2/A-S8/A-S9 原期望『必出 endpoint-bar-1.json』是从 R8 那一份产物倒推出来的，与规则文本 references/chart-templates.md:91 冲突（定量主图是可选补充，条件是同一终点/同一口径/可明确对齐的时点）。改成：出图则类型/文件名/封套/数值必须自洽（chart_set_allowed + 条件式 envelope/values）；不出图则正文必须写明原因（A-S2b-chart-or-reason，≥2 组关键词）。变异 M16 证明『删图且不解释』仍会 FAIL。R11（2026-09-17）不画图的理由：第 16 周 vs 第 36 周、人群与给药方案不同 → 按规则合规。"

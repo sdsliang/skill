@@ -12,7 +12,7 @@
 | --- | --- |
 | `records/scenario-a.records.json` | 场景 A 的 ground truth：`POST /api/tools/debug` 对 2 个有效 esid 的真实返回（5 行 / `actual_result_count=5`） |
 | `records/scenario-b.records.json` | 场景 B：1 个有效 + 1 个不可用 esid 的真实返回（3 行 / `actual=3`） |
-| `scenario-a.facts.json` | 场景 A 清单：**37 条 fail 级 + 1 条 warn 级**（O17 新增 `A-S2b-chart-or-reason` 后为 32 条中 31 条 fail；2026-09-17 原文优先规则新增 `A-P1/P2/P3` 后为 35 条中 34 条 fail；同日按源类细化新增 `A-P4` → 36 条中 35 条 fail；按「库内 `abstract_text` 即原文 + `src=1` 努力取 PMC 全文」新增 `A-P5` → 37 条中 36 条 fail；同日 L3（最深可得体即分析面）新增 `A-P6` → 38 条中 37 条 fail；2026-09-18 `R15` 发现模板规格句被照抄进交付正文，新增 `A-P7` → 39 条中 38 条 fail；同日 `R16` 显示同一规格句被**换了措辞**照样泄漏（「未发现原文与库内记录在同一指标、同一口径上的数值不一致」），新增 `A-P8` → 40 条中 39 条 fail；同日按用户口径「两种数值写法都行、只要自洽」把 `A-C4`/`A-C5`/`A-S9` 放宽为**符号无关**并新增 `A-S10-sign-convention-consistent` → 41 条中 40 条 fail；2026-09-18 修两个**假阳性**：`O19`（混合句被误判错配，`attribution` 加 subject 豁免）+ `O20`（主题式标题被误判，`A-T1` 由 `line` 改为 `shape`/`title_scope` 并改名 `A-T1-title-identifies-scope`）→ **仍是 41 条中 40 条 fail**） |
+| `scenario-a.facts.json` | 场景 A 清单：**42 条（41 条 fail 级 + 1 条 warn 级）**（O17 新增 `A-S2b-chart-or-reason` 后为 32 条中 31 条 fail；2026-09-17 原文优先规则新增 `A-P1/P2/P3` 后为 35 条中 34 条 fail；同日按源类细化新增 `A-P4` → 36 条中 35 条 fail；按「库内 `abstract_text` 即原文 + `src=1` 努力取 PMC 全文」新增 `A-P5` → 37 条中 36 条 fail；同日 L3（最深可得体即分析面）新增 `A-P6` → 38 条中 37 条 fail；2026-09-18 `R15` 发现模板规格句被照抄进交付正文，新增 `A-P7` → 39 条中 38 条 fail；同日 `R16` 显示同一规格句被**换了措辞**照样泄漏（「未发现原文与库内记录在同一指标、同一口径上的数值不一致」），新增 `A-P8` → 40 条中 39 条 fail；同日按用户口径「两种数值写法都行、只要自洽」把 `A-C4`/`A-C5`/`A-S9` 放宽为**符号无关**并新增 `A-S10-sign-convention-consistent` → 41 条中 40 条 fail；2026-09-18 修两个**假阳性**：`O19`（混合句被误判错配，`attribution` 加 subject 豁免）+ `O20`（主题式标题被误判，`A-T1` 由 `line` 改为 `shape`/`title_scope` 并改名 `A-T1-title-identifies-scope`）→ 41 条中 40 条 fail；2026-09-18 修 `O29`（`A-P6` 在真产物上**空转假绿**）并补上反向的 `A-P9-fulltext-cite-has-body` → **42 条中 41 条 fail**） |
 | `scenario-b.facts.json` | 场景 B 清单：**12 条 fail 级 + 1 条 warn 级** |
 | `check.py` | 离线打分器（纯标准库，不联网、不调用平台） |
 | `mutations.py` | 负向对照 harness：证明每条清单项都能翻 FAIL |
@@ -38,7 +38,7 @@ python3 mutations.py
 打分输出最后一行是标量：
 
 ```
-SCORE scenario=a facts 40/40 warn 1/1 -> PASS
+SCORE scenario=a facts 41/41 warn 1/1 -> PASS
 ```
 
 ## 清单条目的写法
@@ -62,6 +62,7 @@ SCORE scenario=a facts 40/40 warn 1/1 -> PASS
 `citations_distinct`、`chart_envelope`（`id` / `iframe_template` 形状 / `option.type` / `group` / `stack` /
 `data_len` / `label` 非空 / `title` 非空）、`chart_values`、`chart_set_allowed`、`chart_or_reason`、
 `no_verbatim_copy`、`title_scope`、`report_excludes_literals`、`no_rule_metastatement`、
+`fulltext_fetch_is_named`、`cite_link_is_deepest`、`fulltext_cite_has_body`、
 `sign_convention_consistent`（见下）。
 
 ### 可选出图与「不出图必须说明原因」（2026-09-17，O17）
@@ -80,7 +81,7 @@ R11 同输入不画图并写明理由反而被判 FAIL。改成三条相互配�
 对应的负向对照是 `M16 drop-chart-silent`（删 `endpoint-bar-1.json`，报告不动）→ 必须翻 `A-S2b`；
 正向对照是「删图 + 写明原因」→ 仍 31/31 PASS（手动验过，见台账 O17）。
 
-### 原文优先的四条 + 全文声明一条（2026-09-17，任务「原文第一优先级」）
+### 原文优先的四条 + 全文声明/落点两条（2026-09-17，任务「原文第一优先级」）
 
 规则本身在 `skill/.../references/input-contract.md` *Evidence source priority*：esid 字段值是**加工抽取**，
 原文是第一优先级，冲突时原文为准且必须双值写明。**第一步先读库内 `abstract_text`——实测它多数类就是原文**
@@ -97,14 +98,42 @@ R11 同输入不画图并写明理由反而被判 FAIL。改成三条相互配�
 | `A-P2-divergence-shows-both` | `sent_if`（`if_regex=库内记录`） | 一旦出现「原文 vs 库内」的分歧表述，该句必须同时含 `原文`、`库内记录`、`{{ref_n}}`——防的是一侧静默降级。本轮没有分歧时自动 PASS |
 | `A-P3-no-long-verbatim` | `shape` / `no_verbatim_copy` | `/workspace/sources/**` 里归档的抓取原文，不得有 ≥60 连续字符（去空白后）原样出现在报告正文；没抓任何原文时不触发 |
 | `A-P4-original-check-names-route-and-class` | `shape` / `original_check_names_class` | `原文核对：` 那一行必须同时点名**取回路径**（PMID/DOI/登记号/registry API/**PMC 全文**/**库内正文即原文**）与**来源类或原因类**（`src=`、新闻稿/会议/登记平台/SEC/补录/库内正文，或抓取受限/无登记号或 DOI/该来源不公开/**无 PMCID**/**非 OA**）。防的是「原文核对：2/2 条已复核」这种空壳能一路通过；报告里没有该行时由 `A-P1` 负责，本条不重复计分 |
-| `A-P5-fulltext-fetch-is-declared` | `shape` / `fulltext_fetch_is_named` | 只要 `/workspace/sources/` 下归档了**全文正文**（文件名含 `pmc<数字>`/`fulltext`，或前 4 K 字符含 `<article>`/`<sec>`/`<body>`），覆盖行就必须出现 `PMC<号>` 或「全文」。防的是「实际取了 PMC 全文，覆盖行只写 PMID」这种无法从交付物分辨的含糊（反过来声称取了全文而没取，也同样过不了）；未归档全文时不触发 |
+| `A-P5-fulltext-fetch-is-declared` | `shape` / `fulltext_fetch_is_named` | 只要 `/workspace/sources/` 下归档了**全文正文**（文件名含 `pmc<数字>`/`fulltext`，或前 4 K 字符含 `<article>`/`<sec>`/`<body>`），覆盖行就必须出现 `PMC<号>` 或「全文」。防的是「实际取了 PMC 全文，覆盖行只写 PMID」这种无法从交付物分辨的含糊（反过来声称取了全文而没取，由 `A-P9` 管）；未归档全文时不触发 |
 | `A-S10-sign-convention-consistent` | `shape` / `sign_convention_consistent` | `values` 里那几个**被画进图**的量，在报告与图表里必须用**同一符号口径**：报告带负号而图表是正幅度（或反向）⇒ FAIL。口径本身不写死（`−13.9` 与「降低 13.9%」等价，用户 2026-09-18 定案），所以 `A-C4`/`A-C5` 用 `[\u2212-]?` 接受两种写法、`A-S9` 比绝对值；**自洽**这件事由本条守住。只比被画的量：点估计写「降低 13.9%」、CI 写 `-19.3～-8.5` 不算混用。图表不存在时不触发（可选图）。
 | `A-P7-no-template-spec-in-report` | `shape` / `report_excludes_literals` | 报告正文**不得逐字出现模板的规格句**（`原文优先于库内加工字段` / `不静默取一侧` / `库内记录值`）。防的是「交付物里混入指令性文字」：`R15`（已发布 v1.6/1.0.7）的覆盖行照抄了模板括号外那句「原文优先于库内加工字段，不一致处同时写出原文值与库内记录值；」——模板已把那三句挪进 `[...]` 规格括号，本条为防回归。注意 `A-P2` 也会因该句含「库内记录」而报错，但它的诊断信息（缺 `{{ref_n}}`）指不到真正原因，两条各有用途 |
-| `A-P6-cite-link-is-deepest` | `shape` / `cite_link_is_deepest` | 若 `/workspace/sources/ref_<n>.*` 归档了全文正文，`citations.json` 里 `ref_<n>.link` 必须指向全文载体（白名单 `https://pmc.ncbi.nlm.nih.gov/articles/PMC<id>/` 或 `…/rest/PMC<id>/fullTextXML`），或至少带同一个 `PMC<id>`；未归档全文的记录不触发（其 `link` 仍逐字节取自 `full_article_link`）。与 `A-P5` 互补：一个管覆盖行声明，一个管引用落点——否则点开上标的人看到的是不含报告数值的摘要页 |
+| `A-P6-cite-link-is-deepest` | `shape` / `cite_link_is_deepest` | 若 `/workspace/sources/` 下归档了**全文正文**，**它归属的那条 ref** 的 `link` 必须指向全文载体（白名单 `https://pmc.ncbi.nlm.nih.gov/articles/PMC<id>/` 或 `…/rest/PMC<id>/fullTextXML`），或至少带同一个 `PMC<id>`；未归档全文、或归档了但四条归位通道都归不到任何 ref 时不触发（其 `link` 仍逐字节取自 `full_article_link`）。归位方式与 `O29` 见下 |
+| `A-P9-fulltext-cite-has-body` | `shape` / `fulltext_cite_has_body` | **`A-P6` 的反向**：`link` 一旦指向全文载体（同一份白名单）就必须有对应字节落在 `/workspace/sources/` 下（文件名或前 4 K 里出现同一个 `PMC<id>`）。`A-P6` 问「归档了 ⇒ 引用指对了吗」，本条问「引用声称读了全文 ⇒ 到底取了没有」；`link` 逐字节等于记录自带 `full_article_link` 时**不算深度声明**、不触发 |
 
 | `A-P8-no-rule-metastatement` | `shape` / `no_rule_metastatement` | 报告里不得出现**关于规则本身的句子**：同时点名库内一侧（`库内记录`/`库内抽取`/`库内字段`/`库内值`）与「一致/不一致」、且通篇**没有数字**的句子即判 FAIL。真实分歧必带双值 + `{{ref_n}}`，所以「无数字」正好切开元话语与结论。`A-P7` 抓逐字回抄，本条抓**改写**——`R16` 的覆盖行写的是改写版（无值、无引用，读者拿不到任何信息），说明只靠字面表抓不住 |
 | `no_verbatim_copy` 把源文与报告都过一遍 `norm()`（Unicode 减号、全角百分号、NBSP 归一）再比，
 否则「报告里 `−70.5%`、源文里 `-70.5%`」会让抄袭检查静默失效（M18 第一次跑就是这么漏的）。
+
+**`A-P6` 的归位（`O29`，2026-09-18）**＋它的反向 `A-P9`：这两条是同一件事的两端。
+
+| 条目 | 方向 | 断言 |
+| --- | --- | --- |
+| `A-P6` | 归档 → 引用 | `sources/` 里有全文正文 ⇒ **它归属的那条 ref** 的 `link` 必须指全文载体 |
+| `A-P9` | 引用 → 归档 | `link` 指向全文载体 ⇒ `sources/` 里必须有带同一个 `PMC<id>` 的字节 |
+
+**归位是 `O29` 的修复**：`A-P6` 旧实现只认「文件名以 `ref_<n>` 开头」的归档，而真产物不这么命名
+（`R14` 是 `PMC11270764_fulltext_jats.xml` / `<esid>.<route>.xml`），于是它在**最该咬住的那份产物上**报了
+`no per-ref full-text body archived (check not triggered)` ——**空转假绿**，一个 citation link 都没看。
+现在按四条通道归位（顺序即优先级）：① 文件名 `ref_<n>` 前缀；② 记录 esid 出现在文件名或正文前 4 K；
+③ 正文的 `PMC<id>` 与该 ref 的 `link` 相同；④ 正文的 PMID 与该 ref 的 `link` 相同。四条都归不上时
+不猜（判 PASS，但把文件名写进诊断信息）；`PMC<id>` 的**数字本身**不算 PMID（`PMC11270764` → 先抹掉
+`PMC\d+` 再扫 PMID，否则 PMCID 的数字会被当成 PMID 命中）。
+
+**为什么 `A-P6` 单独不够**：它只覆盖「先有归档」这一支，而产物可以只在 `link` 里声称读了全文、磁盘上
+一个字都没有——旧实现下这种形状唯一可能被咬的位置就是 `A-P6`，而 `A-P6` 恰好不看它。`A-P9` 补上反向。
+两者的配套对照：`M21`（归档 + 不声明，翻 `A-P5`/`A-P6`）、`M22`（归档 + 已声明 + 引用仍指摘要页，翻 `A-P6`）、
+`M28`（凭空指全文、无归档，翻 `A-P9`）、`N28`（`R14` 的合法形状：归档 + 引用指全文 + 覆盖行声明 → 三条全绿）。
+
+**gate 看不见空转，所以另做了产物层证据**：变异 gate 只能证明「`M22` 能翻出 `A-P6`」，证明不了它在**真产物**上
+真在评判。因此本目录另有一份产物层回归档：`docs/evidence/fact-check-l3-real-artifact-rescore-2026-09-18.txt`
+——同一命令重打**全部 7 份拿得出来的场景 A 真产物**（`R14`/`R8`/`R12`/`R15`/`R16`/`R17`/`archive-scope` 探针），
+逐份贴出 `A-P5`/`A-P6`/`A-P9` 三行：`R14` 由「未触发」变为 `1 full-text ref(s) cite their full-text carrier`，
+其余 6 份必须报「未触发」而不是假绿。该文件同时写了一句**覆盖面自白**：只有 `R14` 一份真把全文归档了 ⇒
+「触发后真的判对」只在 **1/7** 上验过，另外两条归位通道（`ref_<n>` 前缀、esid）只被 harness 练过。
 
 ### 标题必须点明比较对象或共同主题（`A-T1`，2026-09-18 修 `O20`）
 
@@ -170,6 +199,14 @@ R11 同输入不画图并写明理由反而被判 FAIL。改成三条相互配�
   没有新增 FAIL，说明真产物在数值归属上是干净的，缺的只是这层检查。
 - **`A-S10` 是口径级、不是出现级**：`R17` 里 `13.9` 有 9 处带负号、1 处（散文「与 [依洛尤单抗] 的 13.9% 之差远超…」）不带，
   这是同一口径下的自然写法，不是混用；只有**被画进图的那几个量**在报告与图表之间口径相反才判 FAIL（逐处强判会误伤散文）。
+- **「不满足前提就不触发」的断言有**空转**风险（`O29`，已修一代，机制上仍在）**：`A-P3`/`A-P5`/`A-P6`/`A-P9`、
+  以及任何 `optional_when_absent` 都靠「前提不成立 ⇒ PASS」活着，而真正的 not-triggered 与「判断写错导致
+  永远进不去」在输出上完全同形。本轮 `A-P6` 就是这么空转了整整一轮（详见上面 `O29` 一节）。对策是两道：
+  变异样本改用**真产物的命名**（不再用断言自己假设的文件名），以及把真产物重打一遍落库
+  （`docs/evidence/fact-check-l3-real-artifact-rescore-2026-09-18.txt`）。剩余风险：现在只有 `R14` 一份真产物
+  进了全文分支，其余产物都是「0 归档 ⇒ 未触发」——**参数空间里只覆盖到一个点**。
+- **`NEG_A` 的判据已收紧到「整轮干净」（2026-09-18）**：旧版只看「我想保绿的那一条没翻」，于是一个把别的
+  条目打翻的负向对照也会报 `[OK]`。现在要求 `rc == 0` 且 `flipped == []`，否则 `[BAD]`。
 - **`facts_ok/facts_total` 是清单覆盖率，不是事实完备率**：报告可以在全部条目 PASS 的同时漏掉清单没写的事。
   清单的覆盖面靠「对着 record 逐字段过一遍」手工保证。
 
@@ -183,7 +220,7 @@ R11 同输入不画图并写明理由反而被判 FAIL。改成三条相互配�
 当前结果：
 
 ```
-arm a: flipped 40/40   (27 个变异，均按 R17 产物字节下手：改主终点数值（M01）、翻转安慰剂符号、
+arm a: flipped 41/41   (28 个变异，均按 R17 产物字节下手：改主终点数值（M01）、翻转安慰剂符号、
                         抹掉试验 B 的登记号与试验名（M03）、篡改时点、
                         把 ref_1 指向不存在的引用、把 H1 换成只点一个药的标题（M06）、
                         在表格单元格里把 B 的药名写成 A 的（M15）、把 2 条写成 5 条记录（M07，
@@ -199,11 +236,15 @@ arm a: flipped 40/40   (27 个变异，均按 R17 产物字节下手：改主终
                         把规则本身换个说法写进报告（M24：无值无引用的「未发现不一致」句）、
                         让图表与报告用不同符号口径（M25：只翻 A-S10，数值不动所以 A-S9 仍绿）、
                         把 H1 换成什么都不点明的「# 结果对比报告」（M26）、
-                        在点了对方登记号的句子里塞进另一条记录的数值（M27：证明豁免只对身份对生效）)
-arm a 假阳性回归（`NEG_A`，要求**保持绿**、退出码 0）：
+                        在点了对方登记号的句子里塞进另一条记录的数值（M27：证明豁免只对身份对生效）、
+                        凭空把引用指到 PMC 全文页而不取任何正文（M28：只翻反向的 A-P9）)
+arm a 假阳性回归（`NEG_A`，要求**整轮干净**：退出码 0 且无任何 fail 级条目翻车——
+                        不只要求「自己那一条保持绿」，否则别条目被打翻时它会报成 OK）：
                         N25 混合句（引注 ref_1 + 点两条记录的药名，形状取自 R15 真实产物）
                         N27 登记号对照句（引注 ref_2 + 提对方的试验，形状取自 R12 真实产物）
                         N26 两个 subject 都点名的标题（A-T1 的第一支合法形状）
+                        N28 合法 L3 形状（归档 + 引用指全文 + 覆盖行声明 = R14 的真实形状；
+                            同时守住 A-P5 / A-P6 / A-P9 三条）)
 arm b: flipped 12/12   (11 个变异：写出 report/citations、写出图表、改口说「已生成报告」、
                         改掉不可用 esid 名、改掉有效 esid 名、删掉「未返回记录」表述、
                         删掉「不足以构成」表述、删掉请用户核对的表述、给死 esid 编造结论、
@@ -211,10 +252,11 @@ arm b: flipped 12/12   (11 个变异：写出 report/citations、写出图表、
 GATE: PASS
 ```
 
-（上面这段的**完整输出（48 行）已落库**：`docs/evidence/mutation-gate-2026-09-18-r17-baseline.txt`，退出码 0。）
+（上面这段的**完整输出（50 行）已落库**：`docs/evidence/mutation-gate-2026-09-18-r17-baseline.txt`，退出码 0。
+L3 的产物层对照在 `docs/evidence/fact-check-l3-real-artifact-rescore-2026-09-18.txt`。）
 
 **arm A 基线 = 真实产物本身（2026-09-18 起）**：基线是 `R17`（`20260918-095553-r17-sign-convention`）——
-一份**逐条全绿**的真实产物（40/40 fail 级），也就是当前已发布内容（prompt v1.6 / skill v1.0.7）跑出来的那一版。
+一份**逐条全绿**的真实产物（41/41 fail 级），也就是当前已发布内容（prompt v1.6 / skill v1.0.7）跑出来的那一版。
 它天生带 `原文核对：` 行，所以 `mutations.py` **不再向临时副本注入任何内容**（旧的 `seed_original_check` 已随
 R8 基线一起删除）；基线判分现在就是「把真实产物原样过一遍清单」。
 
@@ -230,10 +272,29 @@ R8 基线一起删除）；基线判分现在就是「把真实产物原样过�
 | `M21` | 只加一个全文归档（假定基线不提全文 ⇒ `A-P5` 翻） | 加归档**并**把覆盖行改写成只声明摘要路径（R17 覆盖行本已提 `PMC6933872`/「全文」，只加归档翻不动 `A-P5`） |
 | `N26` | 主题式标题（在 R17 里这已是基线形状 ⇒ 空转） | 两个 subject 都点名的标题（同一项的**另一支**合法形状） |
 
-**实测新基线**：`baseline a: 40 fail-severity items, all PASS` → `arm a: flipped 40/40; never flipped []`
+**实测新基线**：`baseline a: 41 fail-severity items, all PASS` → `arm a: flipped 41/41; never flipped []`
 → `GATE: PASS`。踩过的两个坑都留了痕：`M01` 只替带负号写法时 `A-C4` 保持绿；`M03` 用 `sub_lit` 默认
 `count=1` 时 22 处只改 1 处，`rc=0 flipped=[]` 被 harness 直接点出——这正是「变异必须真能翻出对应 FAIL」的价值：
 改动没生效时 harness 不会静默通过。
+
+## `O29`：gate 全绿但 `A-P6` 在真产物上空转（2026-09-18 修）
+
+上面那套 gate 本身有一个**它自己看不见的盲区**，值得单独记一笔——免得下次又把「gate 绿」当成「清单真有牙」：
+
+变异 `M21`/`M22` 都是 harness **自己拼的**归档文件名（`ref_1.pmc-fulltext.xml`，带 `ref_` 前缀），而真产物
+从不这么命名（`R14` 是 `PMC11270764_fulltext_jats.xml`）。旧 `A-P6` 只认 `ref_<n>` 前缀 ⇒ 拿 `R14` 原产物判分时
+它报 `no per-ref full-text body archived (check not triggered)` 并 **PASS**——在最该咬住的产物上，它一个
+citation link 也没看。`M22` 能翻它、`N28` 又能守住它，但两者都跟 harness 写下的文件名同源，于是**拿自己的
+假设自证**。这不是写错一条正则，而是「被测对象只出现在自身构造的样本里」这一类盲区。
+
+修法有两层，缺一不可：① 把归位拆成四条通道（见上面 `A-P6` 小节）；② 让对照样本改用**真产物的命名方式**
+（`M22`/`N28` 现按 `PMC<id>_fulltext_jats.xml` + 真 PMID 构造），并额外把真产物本身重打一遍落库
+（`docs/evidence/fact-check-l3-real-artifact-rescore-2026-09-18.txt`）。判据是那句可观测的差异：`R14` 的
+`A-P6` 从「`check not triggered`」变成 `1 full-text ref(s) cite their full-text carrier`。
+
+同类风险的识别口诀：**任何一条「不满足前提就不触发」的断言，都要问一遍「那个前提在真产物里到底长什么样」**
+——`A-P3`（未抓原文不触发）、`A-P5`、`A-P6`、`A-P9` 都是一族；harness 里的样本若按断言自己的假设构造，
+就会把空转洗成绿。
 
 基线（未变异）两份清单都必须全 PASS——否则说明清单本身写错了。
 

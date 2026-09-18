@@ -598,41 +598,161 @@ def archived_fulltexts(art: str) -> list:
     return ft
 
 
-def op_cite_link_is_deepest(sv: dict, spec: dict) -> tuple:
+PMCID_RX = re.compile(r"PMC\d+", re.I)
+PMID_RX = re.compile(r"(?<!\d)(\d{7,8})(?!\d)")
+
+
+def link_identity(link: str) -> dict:
+    """`PMC<id>` / PMID tokens carried by a citation link."""
+    s = str(link or "")
+    return {"pmcid": {m.upper() for m in PMCID_RX.findall(s)},
+            "pmid": set(PMID_RX.findall(re.sub(r"PMC\d+", " ", s, flags=re.I)))}
+
+
+def body_identity(path: str) -> dict:
+    """Identity tokens carried by an archived body: file name plus the first 4 KB of content.
+
+    PMIDs are scanned after blanking `PMC<id>` tokens, because a PMCID's digits are themselves
+    7–8 digits long (`PMC11270764` would otherwise read as PMID 11270764).
+    """
+    name = os.path.basename(path)
+    try:
+        with open(path, "r", encoding="utf-8", errors="ignore") as fh:
+            head = fh.read(4000)
+    except OSError:
+        head = ""
+    stripped = re.sub(r"PMC\d+", " ", name + " " + head, flags=re.I)
+    m = re.match(r"ref_(\d+)", name.lower())
+    return {"name": name, "head": head, "ref": m.group(1) if m else "",
+            "pmcid": {i.upper() for i in PMCID_RX.findall(name + " " + head)},
+            "pmid": set(PMID_RX.findall(stripped))}
+
+
+def attribute_fulltexts(sv: dict, ctx: dict) -> tuple:
+    """Map each archived full-text body to the `ref_n` it backs; list the bodies that stay unmapped.
+
+    Four channels, tried in order — a run names its archives the way it likes (`R14` wrote
+    `PMC11270764_fulltext_jats.xml`, `input-contract.md` suggests `<esid>.<route>.xml`), and the
+    channel set *is* the fix for O29: while this op read the `ref_<n>` prefix only, it passed
+    vacuously on the very artifact that motivated it (R14 archived by PMCID, so the item reported
+    "check not triggered" and never looked at a single citation link).
+
+      1. `ref_<n>` prefix in the file name;
+      2. the record's esid in the name or the head (`check.esids` order gives esid → ref);
+      3. the same `PMC<id>` as that ref's citation link;
+      4. the same PMID as that ref's citation link.
+
+    A body none of whose tokens match anything is reported as unmapped instead of guessed at.
+    """
+    cites = sv.get("citations") or {}
+    esids = ctx.get("check", {}).get("esids") or []
+    by_ref, unmapped = {}, []
+    for p in archived_fulltexts(sv.get("artifacts_dir") or ""):
+        ident = body_identity(p)
+        refs = [f"ref_{ident['ref']}"] if ident["ref"] else []
+        blob = ident["name"] + " " + ident["head"]
+        if not refs:
+            refs = [f"ref_{i + 1}" for i, e in enumerate(esids) if e and e in blob]
+        if not refs and isinstance(cites, dict):
+            for ref, e in cites.items():
+                if not isinstance(e, dict):
+                    continue
+                li = link_identity(e.get("link"))
+                if (li["pmcid"] & ident["pmcid"]) or (li["pmid"] & ident["pmid"]):
+                    refs.append(ref)
+        if refs:
+            for r in refs:
+                by_ref.setdefault(r, []).append(p)
+        else:
+            unmapped.append(ident["name"])
+    return by_ref, unmapped
+
+
+def op_cite_link_is_deepest(sv: dict, spec: dict, ctx: dict) -> tuple:
     """A record analysed from the full text must cite the full text, not the abstract page.
 
     `A-P5` makes the *declaration* of a full-text check mandatory; the citation `link` is the other
-    half of that promise. If a full-text body for `ref_<n>` sits in `sources/` while `citations.json`
-    still points `ref_<n>` at the abstract/publisher URL, whoever clicks the superscript lands on a
-    page that does not contain the numbers the report used. Nothing archived ⇒ not triggered; a link
-    carrying the same `PMC<id>` as the archive is accepted too.
+    half of that promise. If a full-text body for a ref sits in `sources/` while `citations.json`
+    still points that ref at the abstract/publisher URL, whoever clicks the superscript lands on a
+    page that does not contain the numbers the report used. Attribution goes through the channels in
+    `attribute_fulltexts`; a link carrying the same `PMC<id>` as the archive is accepted too.
+    Nothing archived (or nothing attributable) ⇒ not triggered.
     """
-    art = sv.get("artifacts_dir") or ""
-    ft = [p for p in archived_fulltexts(art) if re.match(r"ref_(\d+)", os.path.basename(p).lower())]
-    if not ft:
-        return True, "no per-ref full-text body archived (check not triggered)"
-    c = sv["citations"] or {}
+    by_ref, unmapped = attribute_fulltexts(sv, ctx)
+    note = (f"{len(unmapped)} full-text body(ies) archived but not attributable to a ref "
+            f"({unmapped})" if unmapped else "")
+    if not by_ref:
+        return True, note or "no full-text body archived (check not triggered)"
+    cites = sv.get("citations") or {}
     bad = []
-    for p in ft:
-        base = os.path.basename(p)
-        ref = "ref_" + re.match(r"ref_(\d+)", base.lower()).group(1)
-        e = c.get(ref)
+    for ref in sorted(by_ref):
+        bodies = by_ref[ref]
+        base = os.path.basename(bodies[0])
+        e = cites.get(ref)
         if not isinstance(e, dict):
             bad.append(f"{ref} missing from citations.json (full text archived as {base})")
             continue
         link = str(e.get("link") or "")
-        try:
-            with open(p, "r", encoding="utf-8", errors="ignore") as fh:
-                head = fh.read(4000)
-        except OSError:
-            head = ""
-        ids = {i.lower() for i in re.findall(r"PMC\d+", base + " " + head)}
-        if not (is_fulltext_citation_link(link) or any(i in link.lower() for i in ids)):
+        ids = set().union(*[body_identity(p)["pmcid"] for p in bodies])
+        if not (is_fulltext_citation_link(link) or any(i in link.upper() for i in ids)):
             bad.append(f"{ref} cites {link!r} but its full text is archived as {base}")
     if bad:
         return False, ("full-text body archived without pointing the citation at it: " + "; ".join(bad)
-                       + " — a record analysed from the full text must cite the full text")
-    return True, f"{len(ft)} full-text ref(s) cite their full-text carrier"
+                       + " — a record analysed from the full text must cite the full text"
+                       + (f" [{note}]" if note else ""))
+    return True, (f"{len(by_ref)} full-text ref(s) cite their full-text carrier"
+                  + (f"; {note}" if note else ""))
+
+
+def op_fulltext_cite_has_body(sv: dict, spec: dict, ctx: dict) -> tuple:
+    """A citation that *claims* full-text depth must be backed by the fetched body (the converse of A-P6).
+
+    `A-P6` reads the archive and asks whether the link followed the analysis; this op reads the link
+    and asks whether the archive exists at all.  Without it the L3 rule is one-sided: nothing stops a
+    run from pointing `link` at a PMC article page — or fabricating one — and never fetching anything,
+    so the citation claims "we read the full text" with no bytes on disk to contradict it.  The
+    contract requires every fetched body to be copied under `/workspace/sources/` ("that path is
+    archived with the run, so the evidence stays auditable"), so the archived bytes are exactly the
+    audit trail the depth claim has to match.
+
+    A link byte-equal to the record's own `full_article_link` is **not** a depth claim — the run did
+    not choose it — and stays out of scope.  Needs the fixture (`spec['link_field']`, the record's own
+    link column) plus `check.esids` for the ref → esid order.
+    """
+    cites = sv.get("citations") or {}
+    if not isinstance(cites, dict) or not cites:
+        return True, "no citations.json (A-S3 owns that failure)"
+    body_ids = [body_identity(p)["pmcid"] for p in archived_fulltexts(sv.get("artifacts_dir") or "")]
+    esids = (ctx.get("check") or {}).get("esids") or []
+    bad, claimed, skipped = [], 0, 0
+    for ref, e in sorted(cites.items()):
+        if not isinstance(e, dict):
+            continue
+        link = str(e.get("link") or "")
+        if not is_fulltext_citation_link(link):
+            continue
+        m = re.fullmatch(r"ref_(\d+)", ref)
+        if m and 1 <= int(m.group(1)) <= len(esids):
+            try:
+                own = str(record_of(ctx["fixture"], esids[int(m.group(1)) - 1]).get(spec["link_field"]) or "")
+            except KeyError:
+                own = ""
+            if own == link:
+                skipped += 1
+                continue
+        claimed += 1
+        want = link_identity(link)["pmcid"]
+        if not any(want & ids for ids in body_ids):
+            bad.append(f"{ref} cites the full-text carrier {link!r} but no body under sources/ carries "
+                       f"{sorted(want) or 'that article'}")
+    if bad:
+        return False, ("full-text citation without the fetched body: " + "; ".join(bad)
+                       + " — the depth claim has no bytes behind it")
+    if not claimed:
+        return True, ("no citation points at a full-text carrier (check not triggered)"
+                      + (f"; {skipped} link(s) byte-equal to the record's own link" if skipped else ""))
+    return True, (f"{claimed} full-text citation(s) backed by an archived body"
+                  + (f"; {skipped} link(s) were the record's own" if skipped else ""))
 
 
 def op_report_excludes_literals(sv: dict, spec: dict) -> tuple:
@@ -718,6 +838,7 @@ SHAPE_OPS = {
     "original_check_names_class": op_original_check_names_class,
     "fulltext_fetch_is_named": op_fulltext_fetch_is_named,
     "cite_link_is_deepest": op_cite_link_is_deepest,
+    "fulltext_cite_has_body": op_fulltext_cite_has_body,
     "report_excludes_literals": op_report_excludes_literals,
     "no_rule_metastatement": op_no_rule_metastatement,
     "glob_count": op_glob_count,
@@ -733,7 +854,8 @@ SHAPE_OPS = {
     "chart_or_reason": op_chart_or_reason,
 }
 NO_CTX_OPS = {k: v for k, v in SHAPE_OPS.items()
-               if k not in ("citations_matches_record",)}
+               if k not in ("citations_matches_record", "cite_link_is_deepest",
+                            "fulltext_cite_has_body")}
 FILES_OPS = {"artifact_present", "artifact_absent"}
 
 
