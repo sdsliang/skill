@@ -674,6 +674,43 @@ def op_no_rule_metastatement(sv: dict, spec: dict) -> tuple:
     return True, "no rule-shaped statement about the library side (库内… + 一致…, digits-free)"
 
 
+def op_title_scope(sv: dict, item: dict) -> tuple:
+    """The H1 must identify what is being compared — and never collapse the two into one.
+
+    Three legal shapes (O20, 2026-09-18 — a theme title is legitimate and used to be
+    wrongly failed):
+
+    1. both record subjects named (the original expectation);
+    2. a theme title naming the shared population/indication plus a comparison marker,
+       with no drug name at all (R16/R17 render `# 脂蛋白(a) 升高人群降脂治疗跨试验对比报告`);
+    3. *fail* whenever the title names exactly one of the two subjects — that is the
+       "写成同一个药" error the item exists for (mutation M06), and it stays a failure
+       no matter how good the rest of the theme is.
+    """
+    text = sv[item.get("surface", "report")] or ""
+    rx = item.get("line_regex", r"^#\s")
+    lines = [l for l in text.splitlines() if re.search(rx, l)]
+    if not lines:
+        return False, f"no line matching {rx!r}"
+    line = lines[0]
+    hits = [g for g in item["subjects"] if any(re.search(p, line) for p in g)]
+    if len(hits) == len(item["subjects"]):
+        return True, f"H1 names both subjects: {line.strip()[:80]!r}"
+    if hits:
+        missing = [g for g in item["subjects"] if g not in hits]
+        return False, (f"H1 names {len(hits)}/{len(item['subjects'])} subjects "
+                       f"(missing {missing}): {line.strip()[:80]!r} — the two compared "
+                       f"records read as one drug")
+    theme = item.get("theme_all", [])
+    if theme and all(re.search(p, line) for p in theme):
+        return True, f"theme H1 (no drug name, population + comparison marker): {line.strip()[:80]!r}"
+    return False, (f"H1 names neither both subjects nor a theme "
+                   f"(missing {[p for p in theme if not re.search(p, line)]}): {line.strip()[:80]!r}")
+
+
+# --------------------------------------------------------------------------- driver
+
+
 SHAPE_OPS = {
     "artifact_present": op_artifact_present,
     "artifact_absent": op_artifact_absent,
@@ -689,6 +726,7 @@ SHAPE_OPS = {
     "citations_matches_record": op_citations_matches_record,
     "citations_distinct": op_citations_distinct,
     "chart_envelope": op_chart_envelope,
+    "title_scope": op_title_scope,
     "chart_values": op_chart_values,
     "sign_convention_consistent": op_sign_convention_consistent,
     "chart_set_allowed": op_chart_set_allowed,
@@ -783,25 +821,49 @@ def eval_attribution(item: dict, sv: dict) -> tuple:
     Granularity is the sentence, not the line: a scope line that lists both trials
     legitimately names both drugs, so a line-level rule cannot see a drug name that
     got attached to the wrong record.
+
+    **Exemption (O19, 2026-09-18):** an *identity* pair (`subject: true` — a drug name or a
+    trial registration number, i.e. a token that names the record) does not count as
+    misattribution when the unit also names an identity of a record it *does* cite: such a
+    sentence is comparing two records, and which side carries the trailing marker is a
+    writing choice, not a factual error.  R12 ("安全性维度只有 OCEAN(a)-DOSE …{{ref_2}}，
+    NCT02729025 未报告安全性数据") and R15 ("…与奥帕司兰的 Lp(a) 降幅终点不是同一构念{{ref_1}}")
+    are exactly that shape and were false positives.  **Value pairs are never exempt**: a
+    unit citing A that carries B's number still fails (M27), and so does a unit that names
+    B without naming any identity of the record it cites (M06 / M15).
     """
     text = sv["report"]
     if not text:
         return False, "report surface is empty"
-    bad, checked = [], 0
+    subjects = {p["owner"] for p in item["pairs"] if p.get("subject")}
+    subj_rx = {}
+    for p in item["pairs"]:
+        if p.get("subject"):
+            subj_rx.setdefault(p["owner"], []).append(p["token"])
+    bad, checked, exempt = [], 0, 0
     for b in blocks(text):
         for sent, rs in units(b):
             if not rs:
                 continue
+            named_subject = {o for o in rs if o in subj_rx
+                             and any(re.search(t, sent) for t in subj_rx[o])} if subjects else set()
             for pair in item["pairs"]:
-                if re.search(pair["token"], sent):
-                    checked += 1
-                    if pair["owner"] not in rs:
-                        bad.append(f"{pair['token']!r} in unit citing {sorted(rs)} "
-                                   f"(owner {pair['owner']}): {sent.strip()[:70]!r}")
-    return (not bad, "; ".join(bad) if bad else f"{checked} token/unit pairings correctly attributed")
+                if not re.search(pair["token"], sent):
+                    continue
+                checked += 1
+                if pair["owner"] in rs:
+                    continue
+                if pair.get("subject") and named_subject:
+                    exempt += 1
+                    continue
+                bad.append(f"{pair['token']!r} in unit citing {sorted(rs)} "
+                           f"(owner {pair['owner']}): {sent.strip()[:70]!r}")
+    if bad:
+        return False, "; ".join(bad)
+    return True, (f"{checked} token/unit pairings correctly attributed"
+                  + (f"; {exempt} identity pairing(s) skipped as comparison (cited record named)" if exempt else ""))
 
 
-# --------------------------------------------------------------------------- driver
 
 def run_check(args) -> int:
     here = os.path.dirname(os.path.abspath(__file__))

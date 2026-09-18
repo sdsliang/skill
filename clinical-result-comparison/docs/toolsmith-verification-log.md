@@ -284,6 +284,54 @@ toolsmith-publish run --prompt-file <1 有效 + 1 无效 esid> --tag <tag> --exp
 - **意义**：质量层从「布尔门」升级为 `facts_ok/facts_total` 标量（`docs/autoresearch-iteration-plan.md` §9），
   后续 keep/discard 先看事实分不掉。
 
+### F2 — 2026-09-18，**打分器两类假阳性修复（O19 / O20）+ 顺手挖出的 O28**（离线，零新 run、零发布）
+
+用户 2026-09-18 授权「O19-20 都可以改」。三处全在**仓库评测资产**（`evals/fact-check/`），
+**没碰 `skill/`、`system-prompts/`、runner、平台** ⇒ dist 无变化 ⇒ 不需要重新打包、也不需要发布授权。
+
+**改了什么**
+
+| # | 缺陷 | 旧行为 | 新行为 |
+| --- | --- | --- | --- |
+| O19 | `A-ATTR-misattribution` 把「比较句/排除句」判成错配 | 只看「unit 里的 token，其 owner 必须∈该 unit 的 refs」⇒ `R15` 的 `…与 [奥帕司兰] 的 Lp(a) 降幅终点不是同一构念{{ref_1}}`、`R12` 的 `安全性维度只有 [OCEAN(a)-DOSE]…{{ref_2}}，[NCT02729025] 未报告…` 全被判 FAIL | `pairs` 引入 `"subject": true`＝**记录的身份证**（药名 + 登记号/试验名）。**身份对**：unit 若同时点了**引注记录自己的身份证** ⇒ 这是比较句，豁免（PASS 信息记 `identity pairing(s) skipped as comparison`）。**数值对：永不豁免**——引注 ref_2 却带 ref_1 的数值照旧 FAIL |
+| O20 | `A-T1-title-names-both` 期望过窄 | 只认「H1 同时出现两个药名」⇒ `R16/R17` 的主题式标题 `# 脂蛋白(a) 升高人群降脂治疗跨试验对比报告` 被判 FAIL，而模板第 1 行本来写的就是 `# [比较主题]跨试验对比报告` | 改名 `A-T1-title-identifies-scope`，改 `kind: shape` / `op: title_scope`：① 两个 subject 都点名 ⇒ PASS；② 一个药名都不点但命中 `theme_all`（人群 + 对比标记）⇒ PASS；③ **只点一个** ⇒ FAIL（这才是本条要防的「两条记录读成同一个药」）；④ 两者都不占 ⇒ FAIL |
+| O28 | **`A-ATTR` 的数值 token 写错符号，整个数值分支从未命中过任何产物**（核 M27 时发现） | token 是 ASCII `-13\.9`，而四份真产物正文一律 U+2212（`−13.9`，R8/R12 各 5 处、R17 9 处）⇒ 「数值对」这条静默失效（假绿方向） | token 改 `[\u2212-]`（与 O26 的「符号写法自由」同源）；改后重打四份产物**无新增 FAIL** |
+
+**证据（负向对照 harness 升级）**：除 27 条正向变异（M1–M27，翻天 40/40 条 fail 级条目）外，
+新增 **假阳性回归对照 `NEG_A`/`NEG_B`**——`arm()` 现在会断言指定条目**保持绿**（只 `rc==3` 的旧判法抓不到「改大了」的过头修复）：
+
+- `N25`：`R15` 形状的混合句（引注 ref_1 + 句内点两条记录的药名）→ `A-ATTR` 必须保持绿；
+- `N26`：主题式标题（无药名）→ `A-T1-title-identifies-scope` 必须保持绿；
+- `N27`：`R12` 形状的登记号对照句（引注 ref_1 + 提对方试验）→ `A-ATTR` 必须保持绿；
+- `M27`：在点了对方登记号的句子里塞进**另一条记录的数值** → `A-ATTR` **必须翻 FAIL**（证明豁免只对身份对生效，不是全免）；
+- `M06`（标题药名换成另一个）与 `M15`（表格单元格内跨记录错配）**照旧必须翻**，保证豁免没有把 `A-ATTR` 的牙拔掉。
+
+```
+baseline a: 40 fail-severity items, all PASS          baseline b: 12 fail-severity items, all PASS
+[OK] M06 cross-attribution  flipped=['A-T1-title-identifies-scope']
+[OK] M15 cross-attribution  flipped=['A-ATTR-misattribution']
+[OK] M26 generic-title      flipped=['A-T1-title-identifies-scope']
+[OK] M27 value-misattribution-under-exemption flipped=['A-ATTR-misattribution']
+[OK] N25/N26/N27            rc=0, 目标条目保持绿
+arm a: flipped 40/40; never flipped []      arm b: flipped 12/12; never flipped []
+GATE: PASS
+```
+
+**真产物重打分（同一打分器，四份历史产物 + R17）**
+
+| 产物 | 旧分 | 新分 | 说明 |
+| --- | --- | --- | --- |
+| R17 `20260918-095553-r17-sign-convention` | 39/40（唯一 FAIL＝O20） | **40/40 PASS** | 第一个满分真产物 |
+| R8 `20260916-104943-v2-poll` | 31/31（当时清单） | 39/40 | 唯一 FAIL＝`A-P1` 原文核对行（R8 早于原文优先规则）⇒ arm A 仍需 `seed_original_check` |
+| R12 `20260917-191502-r12-fanout-dedup` | 29/31 → 旧打分器 37/40 | 39/40 | `A-ATTR` 假阳性消失；剩 `A-P1` 同上 |
+| R15 `20260918-092157-r15-l3-scenario-a` | 36/40 | 37/40 | `A-ATTR` 假阳性消失；剩 3 条是**真**模板泄漏（`A-P2/A-P7/A-P8`） |
+| R16 `20260918-094333-resume-r16-resume` | 36/40 | 37/40 | `A-T1` 转 PASS；剩 `A-C16`（待样本）+ `A-P2/A-P8`（真缺陷） |
+
+**没做的（有意）**：`MUT_RUN_A` 仍指向「补过一行」的 R8 副本。R17 是现成的干净基线，但实测指过去会打掉 4 条**绑定 R8 字节**的变异
+（`M01 minus139` / `M06` 首个药名 / `M07`「2 条」/ `M15`「试验 B {{ref_2}}」表格行在 R17 产物里匹配不到或改不动），
+且 `M21` 依赖「基线不提全文」这个前提，而 R17 的覆盖行本来就写了「R7 全文接口返回 500（该刊非 OA）」。
+换基线＝按 R17 真实字节重写这几条变异，是一件独立的事，记在 `O20` 条目里等下一步做。
+
 ### R11 — 2026-09-17，**platform `30306cb` 契约变更后的 runner 适配**（只读复测 N1–N4 + 1 次真跑 + 拒绝路径复核）
 
 背景：上游 `30306cb remove unknown status, add idle` 把 `/info.status` 收敛为 `Literal["preparing","running","cancelling","idle"]`
@@ -351,7 +399,7 @@ Recommended `selected_fields` 收尾一句；② `SKILL.md` 输入契约段加�
 
 **事实分 2 个 FAIL 的分诊（都不像内容缺口）**：
 - `A-ATTR-misattribution`（**打分器假阳性，见 O19**）：合法的一句多 marker 被判错配。
-- `A-T1-title-names-both`（**清单期望过窄，见 O20**）：主题式 H1 不含药名即 FAIL，但药名都在正文锚点里。
+- `A-T1-title-names-both`（**清单期望过窄，见 O20**；已修：现名 `A-T1-title-identifies-scope`，`R17` 回填 **40/40**）：主题式 H1 不含药名即 FAIL，但药名都在正文锚点里。
 
 **下一步**：发布授权 → `publish`（原地更新 prompt v1.6 + skill 1.0.7）→ 同输入重跑 → 新记录（预期 17/17 PASS，并把事实分与调用数与本次基线对比）。
 
@@ -433,7 +481,7 @@ Recommended `selected_fields` 收尾一句；② `SKILL.md` 输入契约段加�
 | 调用 | **27 次尝试**，1 次 schema 被拒（`web_fetch`，框架重发后成功；O25 新口径单列） |
 | 断言 | **18/18 PASS**：部署端 prompt sha `ac0b7e71c2db`（本地前缀 51,860 ch + 平台尾部 19,197 ch）、部署端 `SKILL.md` 22,706 == 本地、18 个支持文件清单一致 |
 | 产物 | `output/report.md`、`output/citations.json`、`visualizations/endpoint-bar-1.json`（图表值 `[-13.9, -70.5, -97.4, -100.5, -101.1]`，全带符号） |
-| 事实分 | **`SCORE scenario=a facts 39/40 warn 1/1 -> FAIL`** —— 唯一 FAIL 是 **`A-T1-title-names-both`（已知 O20：主题式 H1 被判）**；`A-C4/A-C5/A-S9/A-S10/A-P2/A-P7/A-P8/A-ATTR` 全 PASS |
+| 事实分 | **`SCORE scenario=a facts 39/40 warn 1/1 -> FAIL`** —— 唯一 FAIL 是 **`A-T1-title-names-both`（已知 O20：主题式 H1 被判）**（**O20 修复后回填 `40/40 -> PASS`**，见 `### F2`）；`A-C4/A-C5/A-S9/A-S10/A-P2/A-P7/A-P8/A-ATTR` 全 PASS |
 | 记录 | `~/.local/state/toolsmith-runs/20260918-095553-r17-sign-convention/`（`verification.md` / `transcript.md` / `artifacts.zip`） |
 
 **本轮四个确认**
@@ -466,7 +514,7 @@ Recommended `selected_fields` 收尾一句；② `SKILL.md` 输入契约段加�
 | token | thread in 110,828；turn in 1,772,089 / out 39,986 / reasoning 24,031；cache 96.6%；上下文 total 110,828（sys 22,835 / mcp 5,919 / tools 56,761 / skill 22,610 / conv 2,703） |
 | 产物 | `output/report.md`、`output/citations.json`、`visualizations/endpoint-bar-1.json` |
 | 断言 | **18/18 PASS（exit 0）**，含「部署端 prompt 逐字节 == 本地」「部署端 skill 正文 + 18 个支持文件逐字节 == 本地」 |
-| 事实分 | `SCORE scenario=a facts 32/39 warn 1/1 -> FAIL`（同期清单 38 → 39 条 fail 级，见下） |
+| 事实分 | `SCORE scenario=a facts 32/39 warn 1/1 -> FAIL`（同期清单 38 → 39 条 fail 级，见下）；**O20 修复后回填 `37/40`**（`A-T1` 转 PASS；剩 `A-C16` 待样本 + `A-P2/A-P8` 真缺陷），见 `### F2`） |
 | 记录 | `~/.local/state/toolsmith-runs/20260918-094333-resume-r16-resume/`（冻结残档：`~/.local/state/toolsmith-runs/20260918-094215-r16-templates-fixed/`） |
 
 **①`O24` 的修复在真跑里得到确认（本轮主要目的）**
@@ -544,7 +592,7 @@ R14 用的是尿路上皮癌那对输入（L3 需要 `src=1` + PMC 全文），�
 | token | thread in 113,908；turn in 1,881,535 / out 34,851 / reasoning 22,817；cache 96.7%；上下文 total 113,908（sys 22,835 / mcp 5,919 / tools 55,195 / skill 28,767） |
 | 产物 | `output/report.md`、`output/citations.json`、`visualizations/endpoint-bar-1.json` |
 | 断言 | **17/17 PASS（exit 0）**，含「部署端 == 本地」与「citations 键集/日期/`title`」 |
-| 事实分 | `SCORE scenario=a facts 35/38 warn 1/1 -> FAIL`（R12 基线：`29/31`）—— 清单同期由 31 → 38 条 fail 级，**两个 FAIL 都不是内容缺口**：`A-ATTR-misattribution`（已知打分器假阳性，O19）、`A-P7`（本轮新发现的**我们自己的缺陷**，见下） |
+| 事实分 | `SCORE scenario=a facts 35/38 warn 1/1 -> FAIL`（R12 基线：`29/31`；**O19 修复后按 41 条清单回填 `37/40`**，剩 3 条是**真**模板泄漏，见 `### F2`）—— 清单同期由 31 → 38 条 fail 级，**两个 FAIL 都不是内容缺口**：`A-ATTR-misattribution`（已知打分器假阳性，O19）、`A-P7`（本轮新发现的**我们自己的缺陷**，见下） |
 | 记录 | `~/.local/state/toolsmith-runs/20260918-092157-r15-l3-scenario-a/` |
 
 **L3 的两条反向证据（比 PASS 更有信息量）**
@@ -886,8 +934,8 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O16 | **runner 的图表类断言在「0 图」时全部平凡通过**（R11 产物只有 `report.md` + `citations.json`，3 条图表断言照旧 PASS：「0 tags / 0 files」「no chart」）——断言本身没错（有没有图取决于输入，不能无条件要求），但意味着**“该出的图没出”这件事 runner 看不见**；R11 的事实分里 3 个 FAIL 正是这一类 | **定案：不改 runner**。`run` 是**通用**入口，不知道场景，无条件要求出图会把合法场景判死；这类“该不该出一张定量主图”的判定交给**离线事实清单**（`evals/fact-check/` 的 `A-S2/S8/S9`），清单知道场景、也知道规则文本 | **定案保留**（2026-09-17；由 R11 暴露，非缺陷） |
 | O17 | **清单条目 `A-S2-chart-set` 是「基线污染」**（期望从 R8 产物倒推，而不是从规则文本推）·**已按用户批准修正**：它期望场景 A 必出 `endpoint-bar-1.json`，但 `chart-templates.md:91` 的规则是「定量主图**可选**，需 ≥2 条入选结果给出**同一终点、同一口径（可明确对齐的时点）**的纯数值」，而场景 A 的两条记录是**第 16 周 vs 第 36 周**——R11 据此明确写了「不具备绘图条件——本报告不输出图表」并给了理由；R8（同一输入）反而画了图。**这就是「清单必须先于产物撰写」要防的那个坑** | **已落地**（2026-09-17）：① `A-S2` 改为 `chart_set_allowed`（文件名合法 + 禁 timeline（跨试验前置条件不成立）+ 定量图 ≤1 张；**空集合不算违规**）；② 新增 **`A-S2b-chart-or-reason`**：没有定量图时正文必须**明确写出不出图**（`required_groups`）且给 ≥1 条实质理由（`supporting_groups`）——只查支持理由不够（跨试验报告天然写「跨试验」「时点不同」，删图不说话也能过）；③ `A-S8/A-S9` 加 `"optional_when_absent": true`（文件在则硬断言封套/数值，不在则 PASS 并指向 A-S2b）；④ `A-C12` pattern `2 ?条` → **`2 ?(条\|项)`**；⑤ 新增变异 **`M16 drop-chart-silent`** | **已落地**（2026-09-17；判据：R8/R9 新基线 **31/31**、R11 由 25/30 → **30/31**（只剩 `A-C6`）、B 仍 12/12、`mutations.py` arm A **16** 个变异覆盖 31/31 + arm B 11 个覆盖 12/12 → **GATE PASS**；正向对照「删图 + 写明原因」手动跑 → 31/31 PASS） |
 | O18 | **`run` 无法进入「联网状态」**：`post_turn` 把请求级 `enable_web` 硬编码为 `False`，而平台只在「项目能力 + 请求级开关」双开时才注入 `web_search`/`web_fetch`（`capabilities/web.py:140`）—— 项目能力本项目已开（`/api/agent/info?…&enable_web=true` 注入 `## Web Tools`），所以唯一的闸门正好是本机验证器碰不到的那一个；后果是无法用 `run` 验证「联网时 skill 行为」（路线 C 的前置条件），之前只能靠临时探针脚本 `/tmp/webtest.py` | `run` 新增全局 `--web`（写进请求体 `enable_web`，`run.json` 与 `verification.md` 均留痕；`--resume` 打印无效提示），CLI docstring 与 plan doc 同步 | **已落地**（2026-09-17，用户先点头后才改；改前备份 `.v4.bak`，92,618 B）→ 证据见 **W1** |
-| O19 | **打分器在「一句多 marker」上假阳性**：R12 报告里 `… NCT02729025 的机制终点未达显著{{ref_1}}，其结论不能外推至 OCEAN(a)-DOSE{{ref_2}}` 被判 `A-ATTR-misattribution` FAIL（`'NCT02729025' in unit citing ['ref_2']`）——而 sys 明文允许「一句确实混用多来源时可挂多个 marker」（`system-prompts/…-v0.15.md:203`）。判分器只看「token 的 owner 是否等于该 unit 的**唯一** ref」，与契约文本冲突 | `eval_attribution`：unit 的 refs 集合 **>1** 时，只在 token 的 owner **不在**该集合里才 FAIL（多来源共处合法）；单 ref 的 unit 维持严格归因 | **待用户点头**（2026-09-17 R12 暴露；未改，避免“刚跑完就放宽清单”的嫌疑） |
-| O20 | **清单条目 `A-T1-title-names-both` 期望过窄**：R12 的 H1 是主题式标题「Lp(a) 升高人群降 Lp(a) 治疗：跨试验对比报告」→ FAIL；但两个药名都在正文锚点里（`A-C1/C2` PASS）。该条的理由是「标题无引注、不受归因保护」，真正要防的是**两药混成一个**；而「H1 必须点名两个药」是从 R8 那份标题倒推的写法偏好（与 O17 同类基线污染） | 改为条件式：**标题若点名药物，则必须两个都点名且不混；纯主题式标题不算违规**（或降为 warn） | **待判**（2026-09-17 R12 暴露；证据仅 1 份产物，按「我方能改的先给证据再改」记待样本） |
+| O19 | **打分器在「一句多 marker」上假阳性**：R12 报告里 `… NCT02729025 的机制终点未达显著{{ref_1}}，其结论不能外推至 OCEAN(a)-DOSE{{ref_2}}` 被判 `A-ATTR-misattribution` FAIL（`'NCT02729025' in unit citing ['ref_2']`）——而 sys 明文允许「一句确实混用多来源时可挂多个 marker」（`system-prompts/…-v0.15.md:203`）。判分器只看「token 的 owner 是否等于该 unit 的**唯一** ref」，与契约文本冲突 | 方案改过：**不是**按「refs 集合大小」放松（实测 R12/R15 的假阳性 unit 都只挂**一个** marker），而是按「**这条 unit 在讲哪条记录**」放松 —— `pairs` 标 `"subject": true` 的 token＝记录身份证（药名 + 登记号）；**身份对**在「unit 同时点了引注记录自己的身份证」时豁免（比较句/排除句），**数值对永不豁免**（M27 证明），`M06`/`M15` 照旧翻（豁免没把牙拔掉）。另加假阳性回归对照 `N25`/`N27` + `arm()` 的「必须保持绿」断言 | **已修**（2026-09-18 用户「O19-20 都可以改」）→ 证据 **F2**；R12 由 `37/40` 升到 `39/40`、R15 `36→37/40`、R17 `39→40/40` |
+| O20 | **清单条目 `A-T1-title-names-both` 期望过窄**：R12 的 H1 是主题式标题「Lp(a) 升高人群降 Lp(a) 治疗：跨试验对比报告」→ FAIL；但两个药名都在正文锚点里（`A-C1/C2` PASS）。该条的理由是「标题无引注、不受归因保护」，真正要防的是**两药混成一个**；而「H1 必须点名两个药」是从 R8 那份标题倒推的写法偏好（与 O17 同类基线污染） | 落地为 `kind: shape` / `op: title_scope`，条目改名 `A-T1-title-identifies-scope`：两个 subject 都点 ⇒ PASS；一个都不点但命中 `theme_all`（人群 + 对比标记）⇒ PASS；**只点一个 ⇒ FAIL**；两者都不占 ⇒ FAIL。专属变异 `M26`（`# 结果对比报告`）与 `M06`（药名换另一个）双双证明有牙，假阳性回归对照 `N26`（主题式标题）保持绿 | **已修**（2026-09-18 用户授权；R12/R15/R16/R17 四份产物证据齐）→ 证据 **F2** |
 | O21 | **A2 追问的实现路径（分诊完成：政策已放开，规则已改仓库，等发布）**：① **`source_full_link` 字段不存在** —— 那是 v0.11 附件契约的名字（`source_url`/`source_full_text`），现行 params 工具里只有 `clinical_result.full_article_link`（描述「临床结果论文的URL」）；写错名字的后果是整次取数 `INVALID_INPUT`。② 原计划「优先 `abstract_text` → 再访问 `full_article_link`」与**旧** sys:50「citation metadata only」冲突，且对人类可读页面实测不可用（W2-a/W2-c：pubmed cookie 墙、CT.gov JS 骨架、5 个出版域 403）。③ 只有 **API 端点**可用（W2-b/d：CT.gov v2 真原文含结果数值、OpenAlex 按 DOI 拿到原文摘要含会议摘要、Europe PMC 按 pmid 拿摘要；`fullTextXML` 当时误判为 500/不可用，已在 `### W5` 更正为「记录级、路由可用」），而 API 端点必须由 `pm_id`/`doi`/登记号**拼 URL**，与「URL 只逐字用、不得构造」冲突 ⇒ 必须开白名单模板。三个开关已定：**(a) 政策 = 放开**（用户 2026-09-17：字段值是加工的、可能出错，原文第一优先级）；**(b) 可追溯性承载 = 报告正文**（`citations.json` 保持严格 3 键、不加键，因此不破 `A-S4`）；**(c) 冲突/降级语义 = 原文为准 + 分歧必须双值写明 + 抓不到必须点名原因类**。 | 规则已写入仓库（清单见 `### W3`），开白名单模板 R2/R3/R4/R5；**并按来源类细化**（`### W4`：`1` PubMed / `2`/`187` CT.gov / `37` 会议 / `49` 新闻稿=库内即原文 / `120` 补录 / `398` SEC 不可复核），把「link 页一律禁抓」改成「16 主机封锁清单 + 每记录最多 1 次自身 link（仅无路由键或主机可用/未知）」。**第四轮（`### W5`）再收窄**：默认改为「**先读库内 `abstract_text`——实测多数类它就是原文**（期刊摘要 alnum 1.000/0.992、会议摘要 0.991/0.976、登记结果小数 102/102、通稿带线报日期），所以默认不抓」；唯一例外 **`src=1` PubMed 即使有摘要也走 `R6`→`R7` 取 PMC 全文**（100 条抽样 56% 有 PMCID；平台侧 R7 4/5 成功、63–99 K JATS 全文；无 PMCID/非 OA 记原因类不计失败）；预算改「每条 ≤1、`src=1` ≤2、整批 ≤40」；覆盖行必须写 PMC 结果，归档全文就必须点名 `PMC<号>`/「全文」（新断言 `A-P5` + M21 证明有牙） | **已定案 → 待发布授权 + 真 run（R13）**（2026-09-17；证据 W2、W3、W4、W5 + 字段实测） |
 
 | O22 | **全文深度分层 → 已定级 L3（2026-09-17）**：用户提问「字段值基于摘要生成，PMC 能取到的能不能直接读全文」⇒ 实测成立：3 篇 R6 返回 pmcid 的记录，全文独立数值 **334 / 334 / 249**，其中 **92% / 88% / 99%** 不在摘要里，且 `PFS`/`DoR`/`HR`/`TTR`/亚组/`Grade 3` 等维度摘要根本不出现。**用户选 L3 并驳掉「长短即不可比」**：科学事实不因披露载体改变 ⇒ 规则改为「分析面 = 可得最深载体」，且**基于全文分析的记录其引用 `link` 指向全文**（C1 `pmc.ncbi.nlm.nih.gov/articles/{PMCID}/` 只写不取 / C2 ebi REST fullTextXML 为实际读取源），覆盖行须按记录声明深度。新断言 `A-P6-cite-link-is-deepest`（M22 证明可翻）。证据：`docs/evidence/source-link-accessibility-2026-09-17.json` 的 `l3_decision` / `pmc_fulltext_information_gain`。 | W6 | 仓库已改，**未发布** | **待用户发布授权**（发布后跑 R14 才算已验证） |
@@ -896,6 +944,7 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O25 | **runner 工具调用计数口径自相矛盾**（2026-09-18 核 R15 数字时发现，**已修**）：schema 被拒的 call 会被框架重发成**新 call**，它既在 durable `calls` 里（无返回）、又不是「已返回」的一次；旧代码两处都印成 `attempts = len(calls) returned + len(rejected)` ⇒ R15 印出「30 attempts = 30 returned + 1 schema-rejected」，且被拒的那次被算进 returned 直方图（`web_fetch`×3，实为 2 次返回 + 1 次被拒）。修法：`ret_n = len(calls) - len(rej_ids)`，直方图剔除被拒项，另加 `[rejected: web_fetch×1]` 单列。备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v6.bak`（95,169 B，**O23 之后 / O25 之前**的状态，由 O25 三处 hunk 反向重建并 `py_compile` 通过）；`verify-run-chain.py` 仍 `GATE: PASS`；`run --resume`（R15 线程）实测新口径输出「29 returned + 1 schema-rejected (…web_fetch×2…) + rejected web_fetch×1」 | R15 | 已修（仅 runner 本地） |
 | O26 | **数值「符号 vs 幅度」写法**（2026-09-18 `R16` 对比 R8/R12/R15 发现）→ **已定案并落地**：用户口径「两种写法没关系，只要自洽就行」⇒ (a) 放弃原先「写死带符号」方案，改成**写法自由 + 同份交付物自洽**：`A-C4`/`A-C5` 模式 `[\u2212-]?` 符号可选（数值仍逐位精确，M01 仍翻）、`A-S9` 比绝对值（M10 仍翻）、**新增 `A-S10-sign-convention-consistent`**（被画进图的量在报告与图表必须同口径；`M25` 先读基线口径再把图表翻成另一种，只翻 A-S10）；合同（`input-contract.md`）+ sys v0.15 同步写清「作用域 = 被画的量，点估计无符号 + CI 带符号是正常渲染」 | R8/R12/R15/R16/R17 | 已改（仓库 + 已 in-place 发布） | **R17 复验通过**（`39/40`，本轮唯一 FAIL 是 O20；R16 幅度口径现在也全 PASS） |
 | O27 | **清单条目 `A-C16-hard-outcome-gap` 术语绑定过窄**（2026-09-18 `R16` 暴露，与 O20 同类）：R16 在表格里明确写了「心血管结局事件（如 MACE）」并标注两侧「未报告／未对齐」，但条目正则只认 `硬结局|心血管事件` ⇒ 被判 0 命中。要防的是「硬结局缺口不写」这件事实，不是某个词形 | 正则放宽为 `硬结局|心血管事件|心血管结局`（仍要求出现在正文），配套检查 M-变异仍能翻 | **待批**（证据：R16 报告第 4.3 节 + 表格行；1 份产物） |（**R17 用「心血管事件」词面 ⇒ 该条 PASS**，故现为 1 失败 / 1 通过，仍按「待样本」不动） |
+| O28 | **`A-ATTR` 的「数值对」分支从未命中过任何产物**（2026-09-18 核 `M27` 时发现，**已修**）：token 写 ASCII `-13\.9`，四份真产物正文一律 U+2212（`−13.9`：R8/R12 各 5 处、R16 有符号式、R17 9 处）⇒ 静默漏检（假绿方向）；改成 `[\u2212-]13\.9` 后四份产物重打**无新增 FAIL**（说明真产物数值归属本来就干净，缺的只是这层检查），`M27` 现在能翻 `A-ATTR` | F2 | 已修（仅仓库评测资产） |
 ## 4. 平台侧（转开发）
 
 完整、可直接转发的版本见 Obsidian：

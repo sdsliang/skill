@@ -22,6 +22,14 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 
 ## ⏳ 开放事项总表（2026-09-17 整理；各条详情仍以下面正文各节为准）
 
+> **第十二轮（2026-09-18）· 你授权「O19-20 都可以改」→ 打分器两类假阳性已修（离线，零新 run、零发布）**
+> 1. **`O19`（`A-ATTR` 把比较句判成错配）已修**：`pairs` 引入 `"subject": true`＝**记录身份证**（药名 + 登记号/试验名）。**身份对**在「unit 同时点了引注记录自己的身份证」时豁免（比较句 / 排除句：`…与奥帕司兰的终点不是同一构念{{ref_1}}`、`安全性维度只有 OCEAN(a)-DOSE…{{ref_2}}，NCT02729025 未报告…`）；**数值对永不豁免**（`M27` 证明豁免不是全免），`M06`/`M15` 照旧必须翻。原方案（按 refs 集合大小放松）**证伪**：实测假阳性 unit 都只挂**一个** marker。
+> 2. **`O20`（标题条目期望过窄）已修**：改名 `A-T1-title-identifies-scope`，`kind: line` → `shape`/`title_scope`：两个 subject 都点 ⇒ PASS；一个都不点但命中 `theme_all`（人群 + 对比标记）⇒ PASS；**只点一个 ⇒ FAIL**；都不占 ⇒ FAIL（`M26` = `# 结果对比报告`）。
+> 3. **顺手挖出 `O28`**：`A-ATTR` 的数值 token 写 ASCII `-13\.9`，而四份真产物正文一律 U+2212（`−13.9`）⇒ 这一对**从未命中过任何产物**（假绿方向的静默漏检）；已改 `[\u2212-]`，四份产物重打**无新增 FAIL**。
+> 4. **闸门升级：`arm()` 新增假阳性回归对照**（旧 harness 只能证明「能翻 FAIL」，抓不到「改过头」）：`N25`（R15 形状混合句）、`N26`（主题式标题）、`N27`（R12 形状登记号对照句）必须**保持绿**。正向变异扩到 **27 条（M1–M27）**，`arm a 40/40`、`arm b 12/12`、`GATE: PASS`。
+> 5. **真产物回填**：`R17` **`40/40 -> PASS`**（第一个满分真产物）、`R15` `36→37/40`、`R16` `32→37/40`、`R12` `37→39/40`（剩 `A-P1`，R12 早于原文优先规则）、`R8` `39/40`（同）。**本轮只动 `evals/fact-check/`（4 个文件）⇒ dist 未变 ⇒ 不需要重新打包、不需要发布授权。**
+> 6. **`MUT_RUN_A` 仍指向带 seed 的 R8 副本**（未换 R17 基线）：实测换过去会打掉 4 条**绑定 R8 字节**的变异（`M01`/`M06`/`M07`/`M15`）+ `M21` 依赖「基线不提全文」而 R17 覆盖行本来就有「全文接口 500」⇒ 需按 R17 字节重写这几条，作为独立下一步（记在 `O20` 条目）。
+
 > **第十一轮（2026-09-18）· 数值口径定案 + 第四次同输入复跑**
 > 1. **口径定案（用户：「三没关系，只要自洽就行」）**——`−13.9` 与「降低 13.9%」两种写法**都合法**，合同不再写死符号；换成硬要求：**同一份交付物只用一个口径（报告与图表必须一致）**。落地 = `A-C4`/`A-C5` 模式改 `[\u2212-]?`（数值仍逐位精确）、`A-S9` 比绝对值、**新增 `A-S10-sign-convention-consistent`**（`M25` 隔离验证）、`input-contract.md` 新增 *Number rendering: one convention per deliverable* + sys v0.15 同步一句。清单 **41 条（40 fail + 1 warn）**。
 > 2. **in-place 发布完成（同版本号，内容替换）**：prompt `v1.6`（`52,919 B / sha 06e07ca11a91`）、skill `v1.0.7`（dist `86,084 B / sha 50477adfe102` / 19 entries）；`status` 回读 **`in sync`**。
@@ -29,7 +37,7 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 > 4. **顺带结论**：`A-C16`（O27）本轮 PASS ⇒ 该条维持「待样本」（1 失败 / 1 通过）；R17 是第一份「除 O20 外全绿」的场景 A 真产物 ⇒ `MUT_RUN_A` 换基线在原理上解锁，但需先确认 `M21`/`M22` 自足（R17 没归档全文），**等 O20 一句话判定后再做**。
 
 > **2026-09-17 当日进展**：A1 已定为「扇出 = 疾病 join 引入，Skill 侧兼容」→ **兼容措辞已落地 4 个文件（B2 关闭）**，本地先行跑出 **R12**（旧版基线 + 3 项部署一致性 FAIL 属预期）；发布授权下来后重跑即收口。
-> 另新增两条清单发现（**O19** 打分器「一句多 marker」假阳性、**O20** `A-T1` 期望过窄），均待你一句话判定。
+> 另新增两条清单发现（**O19** 打分器「一句多 marker」假阳性、**O20** `A-T1` 期望过窄）—— 2026-09-18 你授权「O19-20 都可以改」，两条均已修复（见第十二轮）。
 > **追加（同日第二轮）**：用 `run --web` 做了两次 **egress 探针（W2）**，把路线 C 探清楚了——**人读页面抓不到**（PubMed 反爬拦截页 / CT.gov 只有 JS 壳），**API 端点能抓到**（CT.gov v2 API 全协议 JSON、Europe PMC REST 带 `abstractText`/`pmcid`）。用户提的「优先 `abstract_text` → 再访 `full_article_link`」ladder 因此卡在三个政策开关上（新开 **A13**，台账 **O21**）。另：**不存在 `source_full_link` 字段**，现名是 `clinical_result.full_article_link`。
 > **追加（第十轮，2026-09-18 晚，最新）— 你授权「原地更新一下」后：`push-skill` 已上线并在真跑 `R16` 里确认修复生效；同一次运行又挖出两类新问题（一类已修，一类等你拍口径）**：
 > **① 发布 + 复验（本轮主目的）**：`push-skill --version 1.0.7`（in-place）→ 回读 `zip entries=19 identical=19 differing=0`、`STATUS: in sync`（线上仍是 `v1.0.7` 标签）；随后用**与 R12/R15 完全相同的输入**跑 `R16`（thread `b31bdfb7…`，POST 后我的 shell 被中断 ⇒ 按 O23 用 `run --resume` 重收、不重跑）。**18/18 断言 PASS**（含「部署端 prompt/skill 正文 + 18 支持文件逐字节 == 本地」），`A-P7` 三个字面在交付正文里 **0 次命中**、覆盖行变成实质内容（路径 + 逐条深度 + 非 OA 原因类，`A-P4` PASS）⇒ **模板泄漏修复确认上线生效**。
@@ -74,8 +82,8 @@ Build the first Tool Smith Agent for reconstructing complete trial interpretatio
 |---|---|---|---|
 | B1 | **TS 资产**：sys `system-prompts/multi-clinical-result-comparison-v0.15.md:38` 与 `skill/.../references/input-contract.md:93` 的「短 `abstract_text`」假设 → 「论文/会议记录短（约 2–4 KB），登记平台记录可能是整份文本（中位 33 KB / 最大 1.9 MB），一律先落盘再脚本摘」 | 事实已确证，**不必等 A5/A6**；若开发答复「会改成摘要级」，措辞可一次写对 | `run` 留新 `R<n>` + publish 授权（TS 资产写动作） |
 | B2 | **TS 资产**：扇出去重措辞 + L3（分析面/引用落点）——**已 2026-09-18 授权并原地发布完成** | ✅ 已解除 | **已完成**：`publish` 原地更新（prompt `v1.6` / skill `v1.0.7`，回读逐字节一致，`in sync`）+ `R14` 真跑 17/17 PASS（调用 36→26、墙钟 201.8→148.0 s）。台账 `### W6`/`R14` |
-| B6 | **仓库资产**：`evals/fact-check/check.py` 的 `eval_attribution` —— unit 的 refs 集合 >1 时只在该 token 的 owner **不在**集合内才判 FAIL（多来源共处合法，与 sys 明文一致） | 已落地或待点头？—— **待点头**（O19；证据 R12） | 改完跑 `mutations.py`（arm A 需仍 31/31 翻转）+ R11/R12 重打分 |
-| B7 | **仓库资产**：清单条目 `A-T1-title-names-both` 改条件式（标题若点名药物则两个都要且不混；纯主题式不算违规）或降 warn | **待样本**（O20；只有 1 份产物） | 同 B6 的判据 |
+| B6 | ~~**仓库资产**：`eval_attribution` 的归因口径~~ **已完成（2026-09-18，用户授权 O19）** | ✅ 已解除 | 落地为「身份对豁免 + 数值对永不豁免」（`subject: true`），假阳性回归对照 `N25`/`N27`；`arm a 40/40`、`GATE: PASS`；R12 `37→39/40`、R15 `36→37/40`、R17 `39→40/40` ⇒ 台账 **F2**、`O19` 已修 |
+| B7 | ~~**仓库资产**：清单条目 `A-T1-title-names-both`~~ **已完成（2026-09-18，用户授权 O20）** | ✅ 已解除（证据从 1 份增至 4 份产物：R12/R15/R16/R17） | 改名 `A-T1-title-identifies-scope` + `op: title_scope`（主题式标题合法；**只点一个药名仍 FAIL**）；`M26`/`M06` 证明有牙、`N26` 证明不误伤 ⇒ 台账 **F2**、`O20` 已修 |
 | B3 | **runner**：无待改项（O1–O18 全已落地，只剩 O4/O5 待样本） | — | — |
 | B4 | **仓库资产**：autoresearch harness 骨架 + 把 `tool_results/**` 纳入归档 → 跑 E0「receipts 命中率」回测（不动 `skill/`、0 新 run） | 用户点头 | 纯本地脚本 + 文档 |
 | B5 | **仓库资产**：把「冻结面 + 场景集 + TSV 列」写进 `AGENTS.md`/`PROJECT_STATE.md`，形成常驻 program.md（S4） | 用户点头 | 文档 |
@@ -965,7 +973,7 @@ esid 形如 `YY_SRC_KEY`，**中段就是摄入 source id**。这个 id 不需�
 **已落地**
 - **扇出兼容（A1/B2 的仓库侧）**：`references/input-contract.md` 新增 `### Row fan-out: one esid can return several rows`（触发条件 = 请求 `indication_name`/`_en`；实测 2 esid → 5 行、每行取值相同、仅注入列 `disease_id` 不同且该列不可请求；去重必须发生在编号/计数/证据状态/时间轴/引用之前；`indication_detail`（句子）与 `indication_type_cn`（领域）**不是**替代字段）+ `SKILL.md` / `references/citation-and-ref.md` / sys v0.15 各一句同义规则；`evals/fact-check/README.md` 条目计数笔误（30 → 31 fail）顺手修正。
 - **R12 记录**（台账 §2）：旧版部署内容 + 扇出输入的基线。旧版也能去重成功（正文「2 项独立试验、各 1 条结果来源」，`citations.json` 恰 2 键），但为此花了 16 次 `execute` + 15 次 `read_file`（枚举 jsonl 数行）→ 佐证「扇出是潜风险，代价是探索成本」。断言 14 PASS / 3 FAIL（全是「部署端 == 本地」一致性，因本地已改未发布）；事实分 `29/31 FAIL`。
-- **两条清单发现**：**O19** 打分器在「一句多 marker」上假阳性（与 sys 明文允许多 marker 冲突）；**O20** `A-T1-title-names-both` 期望过窄（主题式 H1 被判 FAIL）。均待判定，不擅自改。
+- **两条清单发现（均已修复，见第十二轮）**：**O19** 打分器在「一句多 marker」上假阳性（与 sys 明文允许多 marker 冲突）；**O20** `A-T1-title-names-both` 期望过窄（主题式 H1 被判 FAIL）。均待判定，不擅自改。
 - **Obsidian 归档**（`D:\software\MD\slowrun\03-技术与VibeCoding\01-AI与LLM\`）：
   - `临床结果Skill-esid到MCP查询链路梳理与优化评估-2026-09-17.md`
   - `对比结果Skill-事实清单与离线打分器-场景A32-B13-2026-09-17.md`

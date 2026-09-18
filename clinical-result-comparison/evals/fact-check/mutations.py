@@ -11,6 +11,8 @@ least one item, the mutated run must exit 3, and the union over all mutations mu
 cover every fail-severity item in the checklist.
 
 Arm A: the report-producing run R8 (2026-09-16, 2 valid esids).
+`NEG_A` gives the same arm two *must stay green* controls: the O19 mixed-sentence shape and the
+O20 theme-title shape, so an over-eager exemption shows up as a BAD line instead of a silent pass.
 Arm B: the correctly refusing v1 run R6 (1 valid + 1 unusable esid).
 """
 import json
@@ -249,6 +251,52 @@ def M25(d, r, c, v):
     return 1
 
 
+def M26(d, r, c, v):  # an H1 that identifies nothing
+    return sub(r, r"^# [^\n]*", "# 结果对比报告", count=1)
+
+
+def N25(d, r, c, v):
+    """**False-positive regression (O19)** — a mixed sentence must NOT count as misattribution.
+
+    Shape taken from R15's real conclusion paragraph: one sentence cites `ref_1`, takes ref_1's own
+    drug as its subject, and mentions the other trial's drug in an exclusion clause.  The scorer
+    must leave A-ATTR-misattribution green (`arm()` asserts that via NEG_A).  Before the O19
+    exemption this exact shape failed.
+    """
+    return sub(r, r"\{\{ref_1\}\}",
+               "{{ref_1}}（该构念与奥帕司兰的 Lp(a) 降幅终点不是同一构念，"
+               "与依洛尤单抗记录的可比性也不成立）", count=1)
+
+
+def N26(d, r, c, v):
+    """**False-positive regression (O20)** — a theme title with *no* drug name must pass A-T1.
+
+    R16/R17 render `# 脂蛋白(a) 升高人群降脂治疗跨试验对比报告`; the old item failed it.
+    """
+    return sub(r, r"^# [^\n]*", "# 脂蛋白(a) 升高人群降脂治疗跨试验对比报告", count=1)
+
+
+def M27(d, r, c, v):
+    """The O19 exemption must not become a blanket: a *value* pair stays strict.
+
+    Ref_2's own trial is named in the sentence, so an identity pairing would be exempt — but the
+    sentence carries ref_1's number, which is exactly the misattribution the item exists for.
+    """
+    # A trailing sentence (not a cell) so the unit cites ref_2 alone; ref_2's own trial is named,
+    # which would exempt an *identity* pairing — the number is ref_1's and must still be caught.
+    return sub(r, r"\Z",
+               "\n\n- 试验 2（[OCEAN(a)-DOSE](entity:trial:NCT04270760)）的安慰剂校正 Lp(a) 降幅为"
+               " −13.9%，与 [依洛尤单抗](entity:drug:3128) 记录一致{{ref_2}}。\n")
+
+
+def N27(d, r, c, v):
+    """**False-positive regression (O19, second shape)** — R12's real sentence: a contrast clause
+    that names the *other* record's trial id in a cited unit (`安全性维度只有 …{{ref_2}}，NCT02729025 未报告…`).
+    """
+    return sub(r, r"\{\{ref_1\}\}",
+               "{{ref_1}}（另一试验 NCT04270760 未报告该指标，无法判定）", count=1)
+
+
 def M24(d, r, c, v):  # state the rule itself (reworded, not verbatim) instead of a finding
     return sub(r, r"\Z", "\n\n> **补充说明：** 未发现原文与库内记录在同一指标、同一口径上的数值不一致。\n")
 
@@ -270,7 +318,7 @@ MUTS_A = [
     ("M03 drop-trial-id", M03, "A-C2-trial-identity-B"),
     ("M04 timepoint", M04, "A-C7-timepoints"),
     ("M05 wrong-ref", M05, "A-ATTR-misattribution"),
-    ("M06 cross-attribution", M06, "A-T1-title-names-both"),
+    ("M06 cross-attribution", M06, "A-T1-title-identifies-scope"),
     ("M07 count-5", M07, "A-N1-no-five-records"),
     ("M08 cite-title", M08, "A-S5-cite-ref1-record"),
     ("M09 cite-dup", M09, "A-S7-cite-distinct"),
@@ -290,6 +338,8 @@ MUTS_A = [
     ("M23 template-spec-echo", M23, "A-P7-no-template-spec-in-report"),
     ("M24 rule-metastatement", M24, "A-P8-no-rule-metastatement"),
     ("M25 split-convention", M25, "A-S10-sign-convention-consistent"),
+    ("M26 generic-title", M26, "A-T1-title-identifies-scope"),
+    ("M27 value-misattribution-under-exemption", M27, "A-ATTR-misattribution"),
 ]
 
 # --------------------------------------------------------------- arm B mutations
@@ -373,6 +423,19 @@ MUTS_B = [
 ]
 
 
+# --------------------------------------------------------------------- negative controls
+# `arm()` proves every item *can* fail.  These prove two items do *not* fail on the shapes that
+# wrongly tripped them once (O19 = mixed sentence, O20 = theme title) — a regression guard for the
+# exemptions themselves, which the positive list cannot express.
+NEG_A = [
+    ("N25 mixed-sentence-not-misattributed", N25, "A-ATTR-misattribution"),
+    ("N26 theme-title-accepted", N26, "A-T1-title-identifies-scope"),
+    ("N27 trial-id-contrast-sentence", N27, "A-ATTR-misattribution"),
+]
+NEG_B = []
+NEG = {"a": NEG_A, "b": NEG_B}
+
+
 def arm(scenario, src, files, with_artifacts, muts):
     if not os.path.isdir(src):
         print(f"arm {scenario}: SKIP (run dir not found: {src})")
@@ -398,6 +461,17 @@ def arm(scenario, src, files, with_artifacts, muts):
             mismatch.append((name, expect, bad))
         covered |= set(bad)
         print(f"[{hit}] {name:22} rc={rc} flipped={bad}")
+        shutil.rmtree(d, ignore_errors=True)
+    for name, fn, keep_green in NEG.get(scenario, []):
+        d, r, c, v = fresh(name, src, files, with_artifacts)
+        fn(d, r, c, v)
+        rc, bad, _ = score(d, scenario)
+        if keep_green in bad:
+            hit, ok = "BAD", False
+            mismatch.append((name, f"NOT {keep_green}", bad))
+            print(f"[{hit}] {name:22} rc={rc} wrongly flipped {keep_green}")
+        else:
+            print(f"[OK ] {name:22} rc={rc} kept {keep_green} green")
         shutil.rmtree(d, ignore_errors=True)
     missing = sorted(total - covered)
     print(f"arm {scenario}: flipped {len(covered)}/{len(total)}; never flipped {missing}\n")
