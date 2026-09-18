@@ -43,7 +43,7 @@ actually failed (R15/R16/R17/R18 each 500'd on
 
 ## Receipt scope regression (2026-09-18)
 
-`python3 evals/runner-gate/test-runner.py` runs 30 offline tests, including synthetic
+`python3 evals/runner-gate/test-runner.py` runs 38 offline tests, including synthetic
 `cmd_run --resume` cases: an expired foreign-turn receipt with a pointer-free target passes
 without fetching the foreign path; a final target pointer missed by polling fails; a collected
 target pointer passes only with matching on-disk bytes and manifest hash.
@@ -55,20 +55,64 @@ remain in the receipt diagnostics. Final scoped model/UI/message pointers alone 
 coverage. Unknown final UI shapes and ambiguous multi-turn ownership fail closed; unlabelled
 final messages are inferred only when independent evidence identifies a single target turn.
 
-This fix first backed up the runner to
-`~/.local/state/toolsmith-publish/toolsmith-publish.v10.bak`. The cumulative snapshot still uses
-**original v9**, SHA-256 `7fdfe082bb3758fa4f4577ca5efe1e8a0c7437cf3c14993ae52e4feef398f9dd`:
+The earlier scope fix was backed up to `toolsmith-publish.v10.bak`; this R21-R23 parsing fix
+first backed up the runner to `~/.local/state/toolsmith-publish/toolsmith-publish.v11.bak`.
+The receipt parser now decodes
+JSON-serialized message fields before scanning them, so escaped closing quotes cannot become
+receipt path suffixes; malformed or unsafe candidates still go through `receipt_relpath` and
+fail closed.
+
+The R25 provenance fix first backed up the installed runner to
+`~/.local/state/toolsmith-publish/toolsmith-publish.v14.bak` (SHA-256
+`8dfdfb91e8402ac16c6adcb43cde58566da7df8bdfbdd62c6fdb3cc12860c7d`).
+The R24 follow-up was backed up at
+`~/.local/state/toolsmith-publish/toolsmith-publish.v12.bak` (SHA-256
+`a8fd28a35a37b8536b7e68d1628e5a610a32fda99b985d3ef1315702ace0207c`). R24's
+`raw_model_messages[7].parts[1].args` contains an `execute` directory query with
+`/workspace/tool_results/pharmcube-query-clinical-result-with-params/*.jsonl`.
+The actual params return and subsequent execute output name only
+`call_1ab8c7345fde.jsonl`, already archived at 30,732 bytes; the glob caused the second,
+phantom requirement. The parser now ignores wildcard expressions (`*`, `?`, bracket classes)
+and keeps bracket classes together so `call.json[ln]` cannot become `call.json`.
+Directory queries therefore trigger no receipt download, while missing concrete
+pointers still fail. Only those wildcard expressions are excluded: unsupported concrete
+paths (including traversal, percent encoding, variables and backslashes) still fail validation.
+
+Tool returns provide concrete file evidence in R24. The R25 review exposed the remaining
+provenance bug: `raw_model_messages` and UI messages contain model reasoning, tool-call
+arguments, tool outputs, and general prose in different shapes. The model wrote
+`/workspace/tool_results/.../call_8451c932d3ac.jsonl` in reasoning and execute input prose,
+while the precise params receipt appeared in a tool output. The parser now treats explicit
+`part_kind`/`type` objects as provenance boundaries: only model `tool-return`/`tool-result`
+content and typed UI `tool-*.output` are authoritative receipt evidence. Other mentions are
+retained under `diagnostic_pointers` and never create download requirements. A concrete unsafe
+path in a real return still reaches `receipt_relpath` and fails closed; no ellipsis stripping
+or blanket candidate removal is used.
+
+Tests cover glob queries in serialized model arguments and UI inputs, concrete execute outputs,
+missing-then-archived receipts, prose link brackets, unsafe concrete paths beside globs, real
+returned missing receipts, real returned unsafe paths, abbreviated model paths, and the actual
+R25 UI shape. The current suite has 38 tests. The new R25 regression passes against the fixed
+runner and fails against the pre-provenance v13 backup when replaying the actual R25 history.
+The R25 precise receipt is required; the abbreviated path remains diagnostic only.
+
+The cumulative snapshot still uses **original v9**, SHA-256 `7fdfe082bb3758fa4f4577ca5efe1e8a0c7437cf3c14993ae52e4feef398f9dd`:
 
 ```bash
 python3 evals/runner-gate/snapshot-runner.py \
   --baseline ~/.local/state/toolsmith-publish/toolsmith-publish.v9.bak
 ```
 
-Validation: runner/test `py_compile` passed; 30 tests passed; chain gate passed with 5 comparable
-runs (36 histories, 31 skipped); applying `runner-patches/review-hardening.patch` to original v9
-reproduced the installed runner byte for byte and matched all snapshot hashes. No network or
-Git writes were performed. Changes are confined to the runner and this gate directory, plus
-the required numbered backup; no Docker action applies.
+Validation: runner/test/snapshot `py_compile` passed; 38 tests passed; chain gate passed with
+5 comparable runs (41 histories, 36 skipped). Applying `runner-patches/review-hardening.patch`
+to original v9 reproduced the installed runner byte for byte; baseline, runner and patch hashes
+all matched. The separate current-local `check_run` replay of R21/R22/R23/R24/R25 is
+`docs/evidence/r21-r25-receipt-recheck.json`: all five replayed with exit 0 and zero FAIL/WARN;
+required receipt counts are 1/3/3/1/1. R25's abbreviated model mention is recorded as diagnostic
+only, while the precise params receipt is archived and hash-verified. The earlier R21-R24
+receipt evidence remains unchanged. This is not an overall run or quality PASS. Original
+historical files remain unchanged. No live run, publish, network, Git write, prompt, skill,
+scorer, state or ledger change was performed; no Docker action applies.
 
 ## Not covered by the chain comparison: the receipt layer
 

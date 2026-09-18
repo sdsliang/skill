@@ -1,0 +1,107 @@
+{
+  "purpose": "Receipt-only offline replay of live R21/R22/R23 after the runner receipt pointer parser fix.",
+  "scope": "Only scope_history, receipt_pointers and receipt_check were replayed. Full check_run was NOT replayed; this is not an overall run or report-quality PASS. Historical run.json, receipts.jsonl and verification.md were not rewritten.",
+  "cause": "raw_model_messages[*].parts[*].args contains JSON-serialized argument objects. Scanning the encoded string captured the backslash escaping a closing quote as part of the receipt path. raw_ui_messages has decoded arguments and did not produce the extra candidates.",
+  "runner": {
+    "installed_sha256": "a8fd28a35a37b8536b7e68d1628e5a610a32fda99b985d3ef1315702ace0207c",
+    "pre_edit_backup": "~/.local/state/toolsmith-publish/toolsmith-publish.v11.bak",
+    "pre_edit_backup_sha256": "a84b619d863c44ae343b035623a8c453d69e0954bfe8583cc05061916e6e4749",
+    "snapshot_baseline": "~/.local/state/toolsmith-publish/toolsmith-publish.v9.bak",
+    "snapshot_baseline_sha256": "7fdfe082bb3758fa4f4577ca5efe1e8a0c7437cf3c14993ae52e4feef398f9dd",
+    "fix": "Decode valid JSON string/container layers before scanning receipt text; retain malformed text and unsafe candidates for unchanged receipt_relpath validation. No backslash stripping or blanket json.dumps scan."
+  },
+  "runs": [
+    {
+      "run": "20260918-132847-r21-review-refusal",
+      "turn_id": "70f168ee-4353-49ab-b952-9b39f96765b9",
+      "scope_error": "",
+      "before_final_pointer_count": 2,
+      "after_final_pointer_count": 1,
+      "historical_fetched": 1,
+      "historical_failed": 0,
+      "removed_serialization_artifacts": [
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_c0e0f9f1e4e4.jsonl\\"
+      ],
+      "receipt_check_level": "PASS",
+      "receipt_check_detail": "1 final durable pointers; 0 poll-only diagnostic pointers; all archived and hash-verified",
+      "archived_files": [
+        {
+          "pointer": "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_c0e0f9f1e4e4.jsonl",
+          "bytes": 33096,
+          "sha256": "f689764c601b181d441f244208e7278c4715b92826bc65bc8bab59119834f584"
+        }
+      ]
+    },
+    {
+      "run": "20260918-132943-r22-review-a",
+      "turn_id": "5e0e6187-92d7-425e-a487-44cefb66dc1b",
+      "scope_error": "",
+      "before_final_pointer_count": 4,
+      "after_final_pointer_count": 3,
+      "historical_fetched": 3,
+      "historical_failed": 0,
+      "removed_serialization_artifacts": [
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_9faf0351e1f7.jsonl\\"
+      ],
+      "receipt_check_level": "PASS",
+      "receipt_check_detail": "3 final durable pointers; 0 poll-only diagnostic pointers; all archived and hash-verified",
+      "archived_files": [
+        {
+          "pointer": "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_1fc2ab58177d.jsonl",
+          "bytes": 11991,
+          "sha256": "e035cc56f09a20102e2090eed65f8cc36fa197cad1c92fd128d86751c3887faf"
+        },
+        {
+          "pointer": "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_9faf0351e1f7.jsonl",
+          "bytes": 84260,
+          "sha256": "42080f1baa515008b680223a21b012cb2f3b0f54097272b64ffe744f74070fe4"
+        },
+        {
+          "pointer": "/workspace/tool_results/web_fetch/call_2e29e87c5743.md",
+          "bytes": 48278,
+          "sha256": "844432b84beeaa081905b754139dec129a0614e09327a2f27ba0f3e9359ebf90"
+        }
+      ]
+    },
+    {
+      "run": "20260918-132943-r23-review-pmc",
+      "turn_id": "268f3ae1-c3d9-47bc-8d16-2e2c1e689558",
+      "scope_error": "",
+      "before_final_pointer_count": 6,
+      "after_final_pointer_count": 3,
+      "historical_fetched": 3,
+      "historical_failed": 0,
+      "removed_serialization_artifacts": [
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_a452b9ede4c7.jsonl\\",
+        "/workspace/tool_results/web_fetch/call_39ea4afacc51.md\\",
+        "/workspace/tool_results/web_fetch/call_624446a8fa5a.md\\"
+      ],
+      "receipt_check_level": "PASS",
+      "receipt_check_detail": "3 final durable pointers; 0 poll-only diagnostic pointers; all archived and hash-verified",
+      "archived_files": [
+        {
+          "pointer": "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_a452b9ede4c7.jsonl",
+          "bytes": 52339,
+          "sha256": "f49bb84f17296e4e0111e9e7630afbf0d20de925d6d0b72fca29da879158e924"
+        },
+        {
+          "pointer": "/workspace/tool_results/web_fetch/call_39ea4afacc51.md",
+          "bytes": 22645,
+          "sha256": "9531d2bcd7baf4238c198cb0d8b1ad41c2fd0e3d917163a661309bb345efcaac"
+        },
+        {
+          "pointer": "/workspace/tool_results/web_fetch/call_624446a8fa5a.md",
+          "bytes": 100030,
+          "sha256": "2c789a5de721ba7343fa1c2281bc04d608c4ea23f988d44232748922ad7b6e88"
+        }
+      ]
+    }
+  ],
+  "checks": {
+    "py_compile": "PASS",
+    "offline_runner_tests": "32 passed; new nested JSON regression fails in all 6 subcases against pre-edit v11 backup",
+    "historical_chain_gate": "PASS: 39 histories, 5 comparable, 34 skipped",
+    "snapshot_v9_patch_reproduction": "Byte-for-byte match with installed runner",
+    "receipt_only_replay": "All 7 files are nonempty and size/SHA-256 match the original per-run receipt manifests"
+  }
+}

@@ -192,12 +192,22 @@
              "rejected": rejected, "fetch_failures": fetch_failures, "attempts": len(calls),
              "unmatched": [{"tool_call_id": cid, "tool_name": nm}
                            for cid, nm in open_calls.items() if cid not in rej]}
-@@ -854,7 +932,32 @@
+@@ -854,34 +932,133 @@
  # the durable messages, 0 files recoverable; `file-download?path=/workspace/tool_results/...`
  # -> HTTP 404). The only window in which a receipt exists is therefore *while the run is live*,
  # so the runner polls the persisted messages during the run and pulls every pointer it sees.
 -TOOL_RESULTS_RX = re.compile(r"/workspace/tool_results/[A-Za-z0-9._\-]+/[A-Za-z0-9._\-]+\.[A-Za-z0-9]{1,8}")
-+TOOL_RESULTS_RX = re.compile(r"/workspace/tool_results/[^\s\"'<>`{}\[\](),;]+")
+-
+-
+-def _iter_strings(obj):
+-    if isinstance(obj, str):
+-        yield obj
+-    elif isinstance(obj, dict):
++# Keep bracket glob classes together; treating '[' as a delimiter can turn
++# `call.json[ln]` into the phantom concrete pointer `call.json`.
++TOOL_RESULTS_RX = re.compile(
++    r"/workspace/tool_results/(?:[^\s\"'<>`{}\[\](),;]|\[[^\s\"'<>`{}\[\](),;]*\])+"
++)
 +
 +
 +def receipt_relpath(pointer):
@@ -205,7 +215,7 @@
 +    if not isinstance(pointer, str) or not pointer.startswith(prefix):
 +        raise ValueError("invalid receipt prefix")
 +    parts = pointer[len(prefix):].split("/")
-+    if (len(parts) != 2 or any(p in ("", ".", "..") for p in parts)
++    if (len(parts) != 2 or any(p in ("", ".", "..", "...", "…") for p in parts)
 +            or not all(re.fullmatch(r"[A-Za-z0-9._-]+", p) for p in parts)
 +            or not re.search(r"\.[A-Za-z0-9]{1,8}$", parts[-1])):
 +        raise ValueError("unsafe or unsupported receipt path")
@@ -223,22 +233,121 @@
 +    if os.path.commonpath([os.path.realpath(base), os.path.realpath(dest)]) != os.path.realpath(base):
 +        raise ValueError("receipt escapes archive")
 +    return dest
- 
- 
- def _iter_strings(obj):
-@@ -880,7 +983,10 @@
-     out = set()
-     for s in _iter_strings(obj):
-         for hit in TOOL_RESULTS_RX.findall(s):
--            out.add(hit.rstrip(".,;)"))
++
++
++def _iter_receipt_strings(obj):
++    """Yield text after decoding serialized JSON containers before scanning it.
++
++    Durable history stores tool arguments in fields such as ``parts[*].args`` as a
++    JSON object encoded inside a string. Scanning that encoded representation makes
++    the backslash escaping the closing quote look like part of a receipt path. Decode
++    only valid JSON strings/containers; malformed text is retained verbatim so an
++    unsafe path still reaches ``receipt_relpath`` and fails closed.
++    """
++    if isinstance(obj, dict):
+         for v in obj.values():
+-            yield from _iter_strings(v)
++            yield from _iter_receipt_strings(v)
+     elif isinstance(obj, list):
+         for v in obj:
+-            yield from _iter_strings(v)
++            yield from _iter_receipt_strings(v)
++    elif isinstance(obj, str):
++        text = obj
++        # A small bound prevents a pathological chain of JSON-encoded strings from
++        # turning receipt discovery into an unbounded parser.
++        for _ in range(4):
++            try:
++                decoded = json.loads(text)
++            except (json.JSONDecodeError, TypeError):
++                break
++            if isinstance(decoded, (dict, list)):
++                yield from _iter_receipt_strings(decoded)
++                return
++            if isinstance(decoded, str):
++                text = decoded
++                continue
++            return
++        yield text
++
++
++def _iter_authoritative_receipt_strings(obj):
++    """Yield receipt text only from explicit tool-return/output fields.
++
++    Model thinking, tool-call arguments, and general prose can quote a path or a
++    shell glob, but they do not prove that the platform exposed that file. Durable
++    expected-pointers therefore come only from the fields that carry a tool's
++    returned value. The broad scanner remains available as diagnostics.
++    """
++    if isinstance(obj, dict):
++        # A typed part is a provenance boundary. Do not recurse through unknown or
++        # prose-bearing part types: R25's UI ``reasoning.text`` abbreviated a real
++        # path, while the precise path was present in a tool output.
++        if "part_kind" in obj:
++            part_kind = obj.get("part_kind")
++            if part_kind not in ("tool-return", "tool-result"):
++                return
++            for key in ("content", "output", "result"):
++                if key in obj:
++                    yield from _iter_receipt_strings(obj[key])
++            return
++        if "type" in obj:
++            part_type = obj.get("type")
++            if isinstance(part_type, str) and part_type.startswith("tool-") and "output" in obj:
++                yield from _iter_receipt_strings(obj["output"])
++            return
++        for value in obj.values():
++            yield from _iter_authoritative_receipt_strings(value)
++    elif isinstance(obj, list):
++        for value in obj:
++            yield from _iter_authoritative_receipt_strings(value)
++
++
++def _receipt_candidates(strings):
++    out = set()
++    for s in strings:
++        for hit in TOOL_RESULTS_RX.findall(s):
 +            hit = hit.rstrip(".")
++            if any(c in hit for c in "*?[]"):
++                continue
 +            # Ignore directory mentions, but keep unsafe file pointers to fail validation.
 +            if hit and not hit.endswith("/") and "." in hit.rsplit("/", 1)[-1]:
 +                out.add(hit)
-     return sorted(out)
++    return sorted(out)
++
++
++def receipt_diagnostics(obj) -> list:
++    """All concrete receipt-looking mentions, including model-authored text.
++
++    This is observability only. Its result must never become an expected download
++    set or make a receipt assertion pass or fail.
++    """
++    return _receipt_candidates(_iter_receipt_strings(obj))
  
  
-@@ -897,12 +1003,17 @@
+ def receipt_pointers(obj) -> list:
+-    """Every `/workspace/tool_results/…` path mentioned anywhere in a messages payload.
+-
+-    Shape-agnostic on purpose: the route has returned a list of UI messages (with `parts`),
+-    and the same paths also live in `raw_model_messages` tool-return parts. Scanning all
+-    strings survives either shape. A real receipt is `<tool>/<name>.<ext>`: the *directory*
+-    (`…/tool_results/<tool>/`) is also mentioned in prose, and on R19 (2026-09-18) fetching it
+-    returned HTTP 404 — a false pointer must not be counted as a missing receipt.
++    """Concrete receipt pointers evidenced by a tool return/output only.
++
++    A real tool return containing an abbreviated or otherwise unsafe path remains
++    a candidate and is rejected by ``receipt_relpath``; it is never normalized.
+     """
+-    out = set()
+-    for s in _iter_strings(obj):
+-        for hit in TOOL_RESULTS_RX.findall(s):
+-            out.add(hit.rstrip(".,;)"))
+-    return sorted(out)
++    return _receipt_candidates(_iter_authoritative_receipt_strings(obj))
+ 
+ 
+ class ReceiptArchiver:
+@@ -897,12 +1074,18 @@
      """
  
      TICK = 5.0
@@ -254,11 +363,12 @@
          self.tick = tick or self.TICK
          self.t0 = time.time()
          self.seen, self.ok, self.failed = set(), 0, 0
++        self.diagnostics = set()
 +        self.files, self.attempts, self.invalid = {}, collections.Counter(), set()
          self.bytes = 0
          self.polls = 0
          self._closed = False
-@@ -936,46 +1047,73 @@
+@@ -936,46 +1119,77 @@
  
      def poll(self):
          self.polls += 1
@@ -274,9 +384,12 @@
 +        rows, scope_error = ui_message_rows(msgs)
 +        if scope_error:
 +            self.scope_errors.add(scope_error)
-+            self.uncertain.update(receipt_pointers(msgs))
++            self.uncertain.update(receipt_diagnostics(msgs))
++
 +            self._record("", "scope-uncertain", note=scope_error)
 +        for m in rows:
++            diagnostic = set(receipt_diagnostics(m))
++            self.diagnostics.update(diagnostic)
 +            pointers = set(receipt_pointers(m))
 +            owner = m.get("turn_id")
 +            if not self.turn_id or not owner:
@@ -289,9 +402,9 @@
 -            self.seen.add(p)
 -            rel = p.split("/workspace/tool_results/", 1)[-1]
 -            dest = os.path.join(self.out_dir, "tool_results", rel)
-+            for p in sorted(pointers - bucket):
++            for p in sorted(diagnostic - bucket):
 +                self._record(p, status, note=f"turn_id={owner!r}")
-+            bucket.update(pointers)
++            bucket.update(diagnostic)
 +        for p in sorted(self.seen):
 +            if self._stop.is_set():
 +                break
@@ -348,10 +461,11 @@
 +                "scope_errors": sorted(self.scope_errors),
 +                "files": dict(self.files), "attempts": dict(self.attempts),
 +                "invalid": sorted(self.invalid),
++                "diagnostic_pointers": sorted(self.diagnostics),
                  "bytes": self.bytes, "polls": self.polls, "log": os.path.basename(self.log_path),
                  "wall_s": wall_s, "tick_s": self.tick,
                  "note": ("tool_results is runtime-only (deleted at persist, filtered from the "
-@@ -1064,7 +1202,8 @@
+@@ -1064,7 +1278,8 @@
                          cut(json.dumps(p.get("input"), ensure_ascii=False, indent=1), max_tool),
                          "```", "→", "```", cut(p.get("output"), max_tool), "```", ""]
          out.append("")
@@ -361,7 +475,7 @@
      return path
  
  
-@@ -1087,29 +1226,52 @@
+@@ -1087,29 +1302,52 @@
          f"outcome={run.get('outcome')} source={run.get('outcome_source', 'messages')}"
          + (f" — {run['outcome_detail'][:220]}" if run.get("outcome_detail") else ""))
  
@@ -424,7 +538,7 @@
              if not os.path.exists(fp):
                  bad.append(f"{rel}: not local")
              elif abs(os.path.getsize(fp) / 1024 - float(kb)) > 0.06:
-@@ -1123,11 +1285,11 @@
+@@ -1123,11 +1361,11 @@
      texts = [p.get("content") or "" for m in msgs for p in m.get("parts", [])
               if p.get("part_kind") == "text"]
      reply = texts[-1].strip() if texts else ""
@@ -439,7 +553,7 @@
      add(True, f"arguments refused by the tool (re-issued) = {len(st['rejected'])}",
          "; ".join(f"{r['tool_name']}({r['tool_call_id'][:18]}…) {rej_text(r['reason'], 2)}"
                     for r in st["rejected"][:3]))
-@@ -1146,27 +1308,39 @@
+@@ -1146,27 +1384,39 @@
              reply[:200].replace("\n", " "))
          add(not st["errors"], "no tool errors",
              "; ".join(err_text(e) for e in st["errors"])[:300])
@@ -486,7 +600,7 @@
          m = re.match(r"^endpoint-(bar|line)-\d+\.json$", os.path.basename(cpath))
          if m and o.get("type") != m.group(1):
              badchart.append(f"{os.path.basename(cpath)}: name says {m.group(1)}, "
-@@ -1174,16 +1348,26 @@
+@@ -1174,16 +1424,26 @@
      add(not badchart, "chart envelope + filename/type agreement",
          "; ".join(badchart) or f"iframe release: {sorted(iframes)}")
      nviz = rep.count("::visualization[")
@@ -517,7 +631,7 @@
      used = {int(x) for x in re.findall(r"\{\{ref_(\d+)\}\}", rep)}
      keyed = {int(k.split("_")[1]) for k in cites if re.fullmatch(r"ref_\d+", k)}
      add(used == keyed, "every ref marker has a citation entry",
-@@ -1191,6 +1375,8 @@
+@@ -1191,6 +1451,8 @@
          f" unused={sorted(keyed - used)}")
      badc = []
      for k, v in sorted(cites.items()):
@@ -526,7 +640,7 @@
          if not isinstance(v, dict) or sorted(v) != ["link", "paper_release_time_str", "title"]:
              badc.append(f"{k}: keys {sorted(v) if isinstance(v, dict) else type(v).__name__}")
              continue
-@@ -1198,37 +1384,55 @@
+@@ -1198,37 +1460,57 @@
              if not isinstance(vv, str):
                  badc.append(f"{k}.{kk}: not a string")
          r = v.get("paper_release_time_str") or ""
@@ -595,14 +709,16 @@
 +                raise ValueError("missing manifest, empty receipt, or size/hash mismatch")
 +        except (OSError, ValueError) as e:
 +            bad.append(f"{p}: {e}")
++    diagnostic_only = set(rec.get("diagnostic_pointers") or []) - expected
 +    return ("FAIL" if bad else "PASS", name,
 +            f"{len(expected)} final durable pointers; {len(poll_only)} poll-only diagnostic pointers; "
++            f"{len(diagnostic_only)} non-authoritative diagnostic mentions; "
 +            + ("; ".join(bad) if bad else "all archived and hash-verified"
 +               if expected else "no pointers in final durable history"))
  
  
  def cmd_run(c, a):
-@@ -1278,7 +1482,8 @@
+@@ -1278,7 +1560,8 @@
                     "started_at": stamp, "resumed_from": prev_dir,
                     "enable_web": prev.get("enable_web", bool(a.web))}, mode=0o644)
          if prompt:
@@ -612,7 +728,7 @@
          tap = {"http": 0, "tap_status": "skipped (--resume)", "tap_events": 0, "tap": None}
          print(f"resume thread {tid}\nturn   {turn_id or '(unknown: derived from /timing)'}\n"
                f"out    {out_dir}")
-@@ -1289,7 +1494,8 @@
+@@ -1289,7 +1572,8 @@
          prompt = a.prompt or open(a.prompt_file, encoding="utf-8").read()
          out_dir = a.out or os.path.join(RUNS, f"{stamp}-{a.tag or 'run'}")
          os.makedirs(out_dir, exist_ok=True)
@@ -622,7 +738,7 @@
          turn_id = a.turn_id or str(uuid.uuid4())
          tid = create_thread(c, a)
          # persist the idempotency key BEFORE the network call that starts the run
-@@ -1300,11 +1506,17 @@
+@@ -1300,11 +1584,17 @@
                     "enable_web": bool(a.web)}, mode=0o644)
          print(f"out    {out_dir}")
          tap = post_turn(c, a, tid, turn_id, prompt, out_dir)
@@ -643,7 +759,7 @@
      print(f"receipts     : {run['receipts']['fetched']} fetched / {run['receipts']['failed']} failed"
            f" / {len(run['receipts']['pointers'])} pointer(s) seen in {run['receipts']['polls']}"
            f" polls (tool_results is runtime-only, so this is the only window) → "
-@@ -1332,14 +1544,23 @@
+@@ -1332,14 +1622,23 @@
          run["kind"] = outcome
          run["outcome_source"] = "persisted messages"
      run["outcome"], run["outcome_detail"] = outcome, odetail
@@ -671,7 +787,7 @@
      srv, srv_permanent = turn_completed_ms(b, turn_id)
      srv /= 1000
      info = b.get("info") or {}
-@@ -1361,7 +1582,7 @@
+@@ -1361,7 +1660,7 @@
                f"conv={est.get('conversation_tokens')} cache_rate={est.get('cache_rate')}")
      hist_fetch = collections.Counter(r["tool_name"] for r in st["fetch_failures"])
      print(f"tool calls   : {st['attempts']} attempts = {ret_n} returned"
@@ -680,7 +796,7 @@
            + "  " + ", ".join(f"{k}x{v}" for k, v in hist.most_common())
            + ("" if not hist_rej else
               "  [args-refused: " + ", ".join(f"{k}x{v}" for k, v in hist_rej.most_common()) + "]")
-@@ -1380,7 +1601,7 @@
+@@ -1380,7 +1679,7 @@
          for r in st["rejected"]:
              print(f"  - {r['tool_name']}: {rej_text(r['reason'])}")
      if st["fetch_failures"]:
@@ -689,7 +805,7 @@
                "must declare them in its coverage line):")
          for r in st["fetch_failures"]:
              print(f"  - {r['tool_name']}: {rej_text(r['reason'])}")
-@@ -1422,7 +1643,7 @@
+@@ -1422,7 +1721,7 @@
                   f"cost={(b.get('usage') or {}).get('cost')}\n"
                   f"- context estimate: {json.dumps(est, ensure_ascii=False)}\n"
                   f"- tool calls: {st['attempts']} attempts = {ret_n} returned"
@@ -698,7 +814,7 @@
                   + "  (" + ", ".join(f"{k}x{v}" for k, v in hist.most_common()) + ")"
                   + ("" if not hist_rej else " + args-refused "
                      + ", ".join(f"{k}x{v}" for k, v in hist_rej.most_common()))
-@@ -1434,7 +1655,7 @@
+@@ -1434,7 +1733,7 @@
                   + f"\n- receipts (tool_results, runtime-only: pulled mid-run): "
                   + (f"{rec_ok}/{rec_seen} fetched, {rec_fail} failed, {rec_bytes} B → "
                      f"`tool_results/` ({rec_polls} polls @ {rec_tick}s)"

@@ -91,10 +91,11 @@ class ReceiptTests(OfflineCase):
                         '/workspace/tool_results/%2e%2e/run.json',
                         '/workspace/tool_results/query/a.json/../../run.json']:
             with self.subTest(pointer=pointer):
-                self.assertIn(pointer, ts.receipt_pointers({'text': pointer}))
+                self.assertIn(pointer, ts.receipt_diagnostics({'text': pointer}))
                 with self.assertRaises(ValueError):
                     ts.receipt_destination(str(self.root), pointer)
-        client = FakeClient([{'turn_id': 't', 'text': '/workspace/tool_results/../run.json'}])
+        client = FakeClient([{'turn_id': 't', 'parts': [
+            {'part_kind': 'tool-return', 'content': '/workspace/tool_results/../run.json'}]}])
         collector = ts.ReceiptArchiver(client, 'thread', str(self.root), turn_id='t')
         collector.poll()
         result = collector.summary()
@@ -103,8 +104,160 @@ class ReceiptTests(OfflineCase):
         self.assertFalse((self.root / 'run.json').exists())
 
     def test_directory_mentions_are_not_receipts(self):
-        self.assertEqual(ts.receipt_pointers('/workspace/tool_results/query/'), [])
-        self.assertEqual(ts.receipt_pointers('File: ' + POINTER + '.'), [POINTER])
+        self.assertEqual(ts.receipt_diagnostics('/workspace/tool_results/query/'), [])
+        self.assertEqual(ts.receipt_diagnostics('File: ' + POINTER + '.'), [POINTER])
+
+    def test_glob_directory_queries_are_not_receipt_candidates(self):
+        for pattern in ('*.jsonl', 'call_?.jsonl', 'call_[0-9].jsonl',
+                        'call_[!ab].jsonl', 'call.json[ln]', '[ab]/data.jsonl',
+                        'call_*.jsonl/../../run.json'):
+            for tool in ('query', 'query-*', 'query[12]'):
+                pointer = f'/workspace/tool_results/{tool}/{pattern}'
+                command = f'for f in {pointer}; do wc -c "$f"; done'
+                with self.subTest(pointer=pointer):
+                    self.assertEqual(ts.receipt_pointers(
+                        history([call('e', 'execute', {'shell_command': command})])), [])
+        # Brackets surrounding a prose link are delimiters, not part of its path.
+        self.assertEqual(ts.receipt_diagnostics(f'[{POINTER}](source)'), [POINTER])
+
+    def test_glob_query_does_not_hide_missing_concrete_return(self):
+        glob = '/workspace/tool_results/query/*.jsonl'
+        command = f'ls -la /workspace/tool_results/query/; for f in {glob}; do echo "$f"; done'
+        messages = [{'turn_id': 't', 'parts': [{'type': 'tool-execute',
+                     'input': {'shell_command': command}}]}]
+        client = FakeClient(messages)
+        collector = ts.ReceiptArchiver(client, 'thread', str(self.root), turn_id='t')
+        collector.poll()
+        query = call('e', 'execute', {'shell_command': command})
+        query_history = history([query])
+        self.assertEqual(client.downloads, 0)
+        rec = collector.summary()
+        self.assertEqual(rec['pointers'], [])
+        self.assertEqual(ts.receipt_check({'receipts': rec},
+                         query_history, str(self.root))[0], 'PASS')
+        # Match the live shape: a query tool returns the actual pointer; execute
+        # later queries the directory and prints that same concrete path.
+        final = history([ret('q', 'query', POINTER), query,
+                         ret('e', 'execute', f'== {POINTER} (13 bytes)')])
+        self.assertEqual(ts.receipt_pointers(final), [POINTER])
+        self.assertEqual(ts.receipt_check({'receipts': rec},
+                         final, str(self.root))[0], 'FAIL')
+        messages[0]['parts'][0]['output'] = POINTER
+        collector = ts.ReceiptArchiver(client, 'thread', str(self.root), turn_id='t')
+        collector.poll()
+        rec = collector.summary()
+        self.assertEqual(client.downloads, 1)
+        self.assertEqual(rec['pointers'], [POINTER])
+        self.assertEqual(ts.receipt_check({'receipts': rec},
+                         final, str(self.root))[0], 'PASS')
+
+    def test_non_glob_unsafe_concrete_paths_still_fail_with_glob(self):
+        glob = '/workspace/tool_results/query/*.jsonl'
+        for pointer in ('/workspace/tool_results/query/../../run.json',
+                        '/workspace/tool_results/query/%2A.jsonl',
+                        '/workspace/tool_results/query/%3F.jsonl',
+                        '/workspace/tool_results/query/%5Bab%5D.jsonl',
+                        '/workspace/tool_results/query/$file.jsonl',
+                        POINTER + '\\'):
+            with self.subTest(pointer=pointer):
+                content = f'{glob} {pointer}'
+                self.assertEqual(ts.receipt_diagnostics(content), [pointer])
+                with self.assertRaises(ValueError):
+                    ts.receipt_relpath(pointer)
+                client = FakeClient([{'turn_id': 't', 'parts': [
+                    {'part_kind': 'tool-return', 'content': content}]}])
+                collector = ts.ReceiptArchiver(client, 'thread', str(self.root), turn_id='t')
+                collector.poll()
+                self.assertEqual(client.downloads, 0)
+                self.assertEqual(collector.summary()['failed'], 1)
+                self.assertEqual(ts.receipt_check({'receipts': collector.summary()},
+                                 history([ret('q', 'query', content)]), str(self.root))[0], 'FAIL')
+
+    def test_nested_escaped_json_is_decoded_before_pointer_scan(self):
+        for pointer in (POINTER, '/workspace/tool_results/web_fetch/call_39ea4afacc51.md'):
+            command = f'python - <<\'PY\'\np="{pointer}"\nprint(open(p).read())\nPY'
+            nested = json.dumps({'shell_command': command})
+            for value in (nested, json.dumps(nested), json.dumps([{'args': nested}])):
+                with self.subTest(pointer=pointer, value=value):
+                    payload = {'parts': [{'part_kind': 'tool-call', 'args': value}]}
+                    self.assertEqual(ts.receipt_diagnostics(payload), [pointer])
+                    self.assertEqual(ts.receipt_diagnostics([payload, {'output': pointer + '.'}]),
+                                     [pointer])
+
+    def test_unsafe_suffixes_remain_candidates_and_are_rejected(self):
+        traversal = '/workspace/tool_results/query/../../run.json'
+        escaped_suffix = POINTER + '\\'
+        nested = json.dumps({'shell_command': f'cat "{traversal}" "{escaped_suffix}"'})
+        for value in (nested, json.dumps(nested), nested[:-1], escaped_suffix,
+                      json.dumps({'path': escaped_suffix}),
+                      json.dumps({'path': POINTER + '%5c'})):
+            with self.subTest(value=value):
+                found = ts.receipt_diagnostics({'parts': [{'args': value}]})
+                self.assertTrue(found)
+                self.assertNotIn(POINTER, found)
+                for pointer in found:
+                    with self.assertRaises(ValueError):
+                        ts.receipt_destination(str(self.root), pointer)
+                client = FakeClient([{'turn_id': 't', 'parts': [
+                    {'part_kind': 'tool-return', 'content': value}]}])
+                collector = ts.ReceiptArchiver(client, 'thread', str(self.root), turn_id='t')
+                collector.poll()
+                rec = collector.summary()
+                self.assertEqual(client.downloads, 0)
+                self.assertEqual(rec['failed'], len(found))
+                self.assertEqual(ts.receipt_check({'receipts': rec},
+                                 history([ret('q', 'query', value)]), str(self.root))[0], 'FAIL')
+        self.assertEqual(ts.receipt_diagnostics({'path': escaped_suffix}), [escaped_suffix])
+        self.assertIn(traversal, ts.receipt_diagnostics({'args': nested}))
+
+    def test_model_abbreviation_is_diagnostic_and_not_downloaded(self):
+        abbreviated = '/workspace/tool_results/.../call_8451c932d3ac.jsonl'
+        precise = '/workspace/tool_results/query/call_8451c932d3ac.jsonl'
+        h = history([call('e', 'execute', {'shell_command': f'cat {abbreviated}'}),
+                     {'part_kind': 'thinking', 'content': f'look at {abbreviated}'},
+                     ret('q', 'query', precise)])
+        self.assertEqual(ts.receipt_pointers(h), [precise])
+        self.assertIn(abbreviated, ts.receipt_diagnostics(h))
+        self.assertNotIn(abbreviated, ts.receipt_pointers(h))
+
+        # Actual R25 UI shape: the abbreviation lives in reasoning prose; the
+        # precise params pointer is a tool output. Only the latter is fetched.
+        messages = [{'turn_id': 't', 'parts': [
+            {'type': 'reasoning', 'text': f'read {abbreviated}'},
+            {'type': 'tool-query', 'state': 'output-available', 'output': precise},
+            {'type': 'tool-execute', 'state': 'output-available',
+             'input': {'shell_command': f'cat {abbreviated}'}, 'output': 'done'}]}]
+        client = FakeClient(messages)
+        collector = ts.ReceiptArchiver(client, 'thread', str(self.root), turn_id='t')
+        collector.poll()
+        rec = collector.summary()
+        self.assertEqual(client.downloads, 1)
+        self.assertEqual(rec['pointers'], [precise])
+        self.assertEqual(rec['diagnostic_pointers'], [abbreviated, precise])
+        self.assertEqual(ts.receipt_check({'receipts': rec}, h, str(self.root))[0], 'PASS')
+
+    def test_real_returned_missing_pointer_fails(self):
+        messages = [{'turn_id': 't', 'parts': [
+            {'type': 'tool-query', 'state': 'output-available', 'output': POINTER}]}]
+        client = FakeClient(messages, failures=100)
+        collector = ts.ReceiptArchiver(client, 'thread', str(self.root), turn_id='t')
+        for _ in range(collector.MAX_ATTEMPTS + 1):
+            collector.poll()
+        rec = collector.summary()
+        self.assertEqual(client.downloads, collector.MAX_ATTEMPTS)
+        self.assertEqual((rec['pointers'], rec['failed']), ([POINTER], 1))
+        self.assertEqual(ts.receipt_check({'receipts': rec},
+                         history([ret('q', 'query', POINTER)]), str(self.root))[0], 'FAIL')
+
+    def test_authoritative_abbreviation_fails_closed_without_normalization(self):
+        abbreviated = '/workspace/tool_results/.../call_8451c932d3ac.jsonl'
+        h = history([ret('q', 'query', abbreviated)])
+        self.assertEqual(ts.receipt_pointers(h), [abbreviated])
+        with self.assertRaises(ValueError):
+            ts.receipt_relpath(abbreviated)
+        rec = {'pointers': [abbreviated], 'fetched': 1, 'failed': 0,
+               'files': {abbreviated: {'bytes': 1, 'sha256': '0' * 64}}}
+        self.assertEqual(ts.receipt_check({'receipts': rec}, h, str(self.root))[0], 'FAIL')
 
     def test_symlink_escape_rejected(self):
         (self.root / 'tool_results').symlink_to(self.root)

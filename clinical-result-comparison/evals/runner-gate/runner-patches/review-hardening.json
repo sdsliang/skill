@@ -1,7 +1,7 @@
 {
   "baseline_backup": "toolsmith-publish.v9.bak",
   "baseline_sha256": "7fdfe082bb3758fa4f4577ca5efe1e8a0c7437cf3c14993ae52e4feef398f9dd",
-  "runner_sha256": "a84b619d863c44ae343b035623a8c453d69e0954bfe8583cc05061916e6e4749",
-  "patch_sha256": "31b709f1eaceb5836b11e0613b98f1e744eb44e1a73b055c3947f8b8c7cda98e",
+  "runner_sha256": "dcc2e8d83270d9e28667d0e9c51fc7bc5d3ff14b45a205549ee604bd1db57210",
+  "patch_sha256": "c77aa3e956e6551d12c1e4eb6e6828e48239356c98e8e8e85dc7c0c658228a75",
   "apply": "patch toolsmith-publish < review-hardening.patch"
 }

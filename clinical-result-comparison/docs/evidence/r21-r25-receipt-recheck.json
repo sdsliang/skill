@@ -1,0 +1,568 @@
+{
+  "purpose": "Separate offline check_run replay of R21-R25 after authoritative receipt provenance fix.",
+  "scope": "Each historical run was checked with current local system prompt and skill tree, its persisted debug history/messages, timing, archived artifacts.zip and original run metadata. No historical run directory was modified.",
+  "runner": {
+    "installed_sha256": "dcc2e8d83270d9e28667d0e9c51fc7bc5d3ff14b45a205549ee604bd1db57210",
+    "pre_edit_backup": "/home/xupeipeioo1/.local/state/toolsmith-publish/toolsmith-publish.v14.bak",
+    "snapshot_baseline": "/home/xupeipeioo1/.local/state/toolsmith-publish/toolsmith-publish.v9.bak"
+  },
+  "runs": [
+    {
+      "run": "20260918-132847-r21-review-refusal",
+      "thread_id": "ddb1deae-646a-4562-bc5a-f01d38b91cac",
+      "turn_id": "70f168ee-4353-49ab-b952-9b39f96765b9",
+      "model": "DeepSeek Flash",
+      "expect": "refusal",
+      "original_exit": 3,
+      "replay_exit": 0,
+      "scope_error": "",
+      "required_receipts": [
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_c0e0f9f1e4e4.jsonl"
+      ],
+      "diagnostic_mentions": [
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_c0e0f9f1e4e4.jsonl"
+      ],
+      "checks": [
+        {
+          "level": "PASS",
+          "name": "run ended as completed (not failed/cancelled/inconclusive)",
+          "detail": "kind=completed polls=5 polled=33.6s last_live=running durable=timing.completed_at"
+        },
+        {
+          "level": "PASS",
+          "name": "turn outcome is succeeded (durable: no error_type / interrupted part)",
+          "detail": "outcome=succeeded source=messages — 7 persisted messages, no error_type / interrupted part"
+        },
+        {
+          "level": "PASS",
+          "name": "durable evidence belongs to the target turn",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "deployed system prompt == local",
+          "detail": "multi-clinical-result-comparison-v0.15.md 53270 ch + platform tail 18543 ch; deployed sha=0443982c95ff"
+        },
+        {
+          "level": "PASS",
+          "name": "deployed skill body == local SKILL.md",
+          "detail": "20628 vs 20628 chars"
+        },
+        {
+          "level": "PASS",
+          "name": "deployed support-file manifest matches local (18 files)",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "every tool call either returned or was re-prompted (nothing lost)",
+          "detail": "7 attempts; "
+        },
+        {
+          "level": "PASS",
+          "name": "arguments refused by the tool (re-issued) = 0",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "external fetch failures (expected; must be declared) = 0",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "refusal contract: no report/citations written",
+          "detail": "nothing under output/ (correct)"
+        },
+        {
+          "level": "PASS",
+          "name": "refusal contract: the selection was actually queried",
+          "detail": "tool=pharmcube-query-clinical-result-with-params"
+        },
+        {
+          "level": "PASS",
+          "name": "refusal contract: the reply explains instead of pointing at a file",
+          "detail": "本次选中 2 条临床结果，实际仅取回 1 条，未达到生成解读所需的最少 2 条可用证据，因此本次不产出报告文件。  - 可取回：`24_1_30561610`（evolocumab 在脂蛋白(a) 升高患者中对动脉壁炎症影响的研究，已成功取回完整记录） - 无法取回：`24_1_45608045` —— 批量取回时未返回任何记录，随后对该 ID 单独重试仍未返回，属于「选择项不存在 / 已下线 /"
+        },
+        {
+          "level": "PASS",
+          "name": "no tool errors",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "tool_results receipts archived",
+          "detail": "1 final durable pointers; 0 poll-only diagnostic pointers; 0 non-authoritative diagnostic mentions; all archived and hash-verified"
+        }
+      ],
+      "fails": [],
+      "warnings": []
+    },
+    {
+      "run": "20260918-132943-r22-review-a",
+      "thread_id": "f2f4a85b-15f0-4457-8b16-8d529bd9b996",
+      "turn_id": "5e0e6187-92d7-425e-a487-44cefb66dc1b",
+      "model": "DeepSeek Flash",
+      "expect": "artifacts",
+      "original_exit": 3,
+      "replay_exit": 0,
+      "scope_error": "",
+      "required_receipts": [
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_1fc2ab58177d.jsonl",
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_9faf0351e1f7.jsonl",
+        "/workspace/tool_results/web_fetch/call_2e29e87c5743.md"
+      ],
+      "diagnostic_mentions": [
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_1fc2ab58177d.jsonl",
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_9faf0351e1f7.jsonl",
+        "/workspace/tool_results/web_fetch/call_2e29e87c5743.md"
+      ],
+      "checks": [
+        {
+          "level": "PASS",
+          "name": "run ended as completed (not failed/cancelled/inconclusive)",
+          "detail": "kind=completed polls=28 polled=226.3s last_live=running durable=timing.completed_at"
+        },
+        {
+          "level": "PASS",
+          "name": "turn outcome is succeeded (durable: no error_type / interrupted part)",
+          "detail": "outcome=succeeded source=messages — 23 persisted messages, no error_type / interrupted part"
+        },
+        {
+          "level": "PASS",
+          "name": "durable evidence belongs to the target turn",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "deployed system prompt == local",
+          "detail": "multi-clinical-result-comparison-v0.15.md 53270 ch + platform tail 19197 ch; deployed sha=207026d34071"
+        },
+        {
+          "level": "PASS",
+          "name": "deployed skill body == local SKILL.md",
+          "detail": "20628 vs 20628 chars"
+        },
+        {
+          "level": "PASS",
+          "name": "deployed support-file manifest matches local (18 files)",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "every tool call either returned or was re-prompted (nothing lost)",
+          "detail": "29 attempts; "
+        },
+        {
+          "level": "PASS",
+          "name": "arguments refused by the tool (re-issued) = 0",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "external fetch failures (expected; must be declared) = 1",
+          "detail": "web_fetch(call_00_4pmNE3tD9C…) Failed to fetch https://www.ebi.ac.uk/europepmc/webservices/rest/PMC6933872/fullTextXML: Server error '500 ' for url 'https://www.ebi.ac.uk/europepmc/webservices/rest/PMC6933872/fullTextXML' For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500"
+        },
+        {
+          "level": "PASS",
+          "name": "output contract: fixed deliverable paths",
+          "detail": "output/citations.json, output/report.md"
+        },
+        {
+          "level": "PASS",
+          "name": "report contains nonempty content",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "chart file names (0 charts)",
+          "detail": "no chart"
+        },
+        {
+          "level": "PASS",
+          "name": "chart envelope + filename/type agreement",
+          "detail": "iframe release: []"
+        },
+        {
+          "level": "PASS",
+          "name": "::visualization targets == chart files (one each)",
+          "detail": "0 tags / 0 files; targets=[]"
+        },
+        {
+          "level": "PASS",
+          "name": "no leftover template placeholder in report",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "no nested entity anchor",
+          "detail": "34 anchors"
+        },
+        {
+          "level": "PASS",
+          "name": "citations contains nonempty source entries",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "every ref marker has a citation entry",
+          "detail": "markers=2 keys=2 missing=[] unused=[]"
+        },
+        {
+          "level": "PASS",
+          "name": "citations: exact keys + date-only time + every entry has a title",
+          "detail": "2 refs, all titled"
+        },
+        {
+          "level": "PASS",
+          "name": "present_artifact is the final successful call for output/report.md",
+          "detail": "last='present_artifact' args={'path': '/workspace/output/report.md'} status='success'"
+        },
+        {
+          "level": "PASS",
+          "name": "no tool errors",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "tool_results receipts archived",
+          "detail": "3 final durable pointers; 0 poll-only diagnostic pointers; 0 non-authoritative diagnostic mentions; all archived and hash-verified"
+        }
+      ],
+      "fails": [],
+      "warnings": []
+    },
+    {
+      "run": "20260918-132943-r23-review-pmc",
+      "thread_id": "154111ec-6758-45cb-97d3-88d859b3d1b3",
+      "turn_id": "268f3ae1-c3d9-47bc-8d16-2e2c1e689558",
+      "model": "DeepSeek Flash",
+      "expect": "artifacts",
+      "original_exit": 3,
+      "replay_exit": 0,
+      "scope_error": "",
+      "required_receipts": [
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_a452b9ede4c7.jsonl",
+        "/workspace/tool_results/web_fetch/call_39ea4afacc51.md",
+        "/workspace/tool_results/web_fetch/call_624446a8fa5a.md"
+      ],
+      "diagnostic_mentions": [
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_a452b9ede4c7.jsonl",
+        "/workspace/tool_results/web_fetch/call_39ea4afacc51.md",
+        "/workspace/tool_results/web_fetch/call_624446a8fa5a.md"
+      ],
+      "checks": [
+        {
+          "level": "PASS",
+          "name": "run ended as completed (not failed/cancelled/inconclusive)",
+          "detail": "kind=completed polls=22 polled=316.0s last_live=running durable=timing.completed_at"
+        },
+        {
+          "level": "PASS",
+          "name": "turn outcome is succeeded (durable: no error_type / interrupted part)",
+          "detail": "outcome=succeeded source=messages — 29 persisted messages, no error_type / interrupted part"
+        },
+        {
+          "level": "PASS",
+          "name": "durable evidence belongs to the target turn",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "deployed system prompt == local",
+          "detail": "multi-clinical-result-comparison-v0.15.md 53270 ch + platform tail 19197 ch; deployed sha=207026d34071"
+        },
+        {
+          "level": "PASS",
+          "name": "deployed skill body == local SKILL.md",
+          "detail": "20628 vs 20628 chars"
+        },
+        {
+          "level": "PASS",
+          "name": "deployed support-file manifest matches local (18 files)",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "every tool call either returned or was re-prompted (nothing lost)",
+          "detail": "33 attempts; "
+        },
+        {
+          "level": "PASS",
+          "name": "arguments refused by the tool (re-issued) = 0",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "external fetch failures (expected; must be declared) = 0",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "output contract: fixed deliverable paths",
+          "detail": "output/citations.json, output/report.md"
+        },
+        {
+          "level": "PASS",
+          "name": "report contains nonempty content",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "chart file names (0 charts)",
+          "detail": "no chart"
+        },
+        {
+          "level": "PASS",
+          "name": "chart envelope + filename/type agreement",
+          "detail": "iframe release: []"
+        },
+        {
+          "level": "PASS",
+          "name": "::visualization targets == chart files (one each)",
+          "detail": "0 tags / 0 files; targets=[]"
+        },
+        {
+          "level": "PASS",
+          "name": "no leftover template placeholder in report",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "no nested entity anchor",
+          "detail": "54 anchors"
+        },
+        {
+          "level": "PASS",
+          "name": "citations contains nonempty source entries",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "every ref marker has a citation entry",
+          "detail": "markers=2 keys=2 missing=[] unused=[]"
+        },
+        {
+          "level": "PASS",
+          "name": "citations: exact keys + date-only time + every entry has a title",
+          "detail": "2 refs, all titled"
+        },
+        {
+          "level": "PASS",
+          "name": "present_artifact is the final successful call for output/report.md",
+          "detail": "last='present_artifact' args={'path': '/workspace/output/report.md'} status='success'"
+        },
+        {
+          "level": "PASS",
+          "name": "no tool errors",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "tool_results receipts archived",
+          "detail": "3 final durable pointers; 0 poll-only diagnostic pointers; 0 non-authoritative diagnostic mentions; all archived and hash-verified"
+        }
+      ],
+      "fails": [],
+      "warnings": []
+    },
+    {
+      "run": "20260918-135810-r24-review-refusal-recheck",
+      "thread_id": "d1be1aba-28c0-4a1c-b088-3551b71dfc17",
+      "turn_id": "b84caa87-7333-4c0a-a4d7-b78d687e8e85",
+      "model": "DeepSeek Flash",
+      "expect": "refusal",
+      "original_exit": 3,
+      "replay_exit": 0,
+      "scope_error": "",
+      "required_receipts": [
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_1ab8c7345fde.jsonl"
+      ],
+      "diagnostic_mentions": [
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_1ab8c7345fde.jsonl"
+      ],
+      "checks": [
+        {
+          "level": "PASS",
+          "name": "run ended as completed (not failed/cancelled/inconclusive)",
+          "detail": "kind=completed polls=4 polled=25.5s last_live=running durable=timing.completed_at"
+        },
+        {
+          "level": "PASS",
+          "name": "turn outcome is succeeded (durable: no error_type / interrupted part)",
+          "detail": "outcome=succeeded source=messages — 6 persisted messages, no error_type / interrupted part"
+        },
+        {
+          "level": "PASS",
+          "name": "durable evidence belongs to the target turn",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "deployed system prompt == local",
+          "detail": "multi-clinical-result-comparison-v0.15.md 53270 ch + platform tail 18543 ch; deployed sha=0443982c95ff"
+        },
+        {
+          "level": "PASS",
+          "name": "deployed skill body == local SKILL.md",
+          "detail": "20628 vs 20628 chars"
+        },
+        {
+          "level": "PASS",
+          "name": "deployed support-file manifest matches local (18 files)",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "every tool call either returned or was re-prompted (nothing lost)",
+          "detail": "5 attempts; "
+        },
+        {
+          "level": "PASS",
+          "name": "arguments refused by the tool (re-issued) = 0",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "external fetch failures (expected; must be declared) = 0",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "refusal contract: no report/citations written",
+          "detail": "nothing under output/ (correct)"
+        },
+        {
+          "level": "PASS",
+          "name": "refusal contract: the selection was actually queried",
+          "detail": "tool=pharmcube-query-clinical-result-with-params"
+        },
+        {
+          "level": "PASS",
+          "name": "refusal contract: the reply explains instead of pointing at a file",
+          "detail": "本次选择的结果中只有一条可成功取回，无法构成\"多结果解读\"，因此按流程我不输出报告文件。  **取回情况**  | 选择项 | 状态 | 说明 | |---|---|---| | `24_1_30561610` | ✅ 已取回 | 可用的临床结果记录（Lp(a) 升高人群 / evolocumab 的血管壁炎症影像研究，Eur Heart J，2018-12-19），对应登记号 NCT027290"
+        },
+        {
+          "level": "PASS",
+          "name": "no tool errors",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "tool_results receipts archived",
+          "detail": "1 final durable pointers; 0 poll-only diagnostic pointers; 0 non-authoritative diagnostic mentions; all archived and hash-verified"
+        }
+      ],
+      "fails": [],
+      "warnings": []
+    },
+    {
+      "run": "20260918-140911-r25-review-refusal-final",
+      "thread_id": "7a060328-ced9-478e-9d4f-7a90982fabdc",
+      "turn_id": "4dc2cc7b-7ade-4c4f-a9ba-293db241b791",
+      "model": "DeepSeek Flash",
+      "expect": "refusal",
+      "original_exit": 3,
+      "replay_exit": 0,
+      "scope_error": "",
+      "required_receipts": [
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_8451c932d3ac.jsonl"
+      ],
+      "diagnostic_mentions": [
+        "/workspace/tool_results/.../call_8451c932d3ac.jsonl",
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_8451c932d3ac.jsonl"
+      ],
+      "checks": [
+        {
+          "level": "PASS",
+          "name": "run ended as completed (not failed/cancelled/inconclusive)",
+          "detail": "kind=completed polls=5 polled=33.3s last_live=running durable=timing.completed_at"
+        },
+        {
+          "level": "PASS",
+          "name": "turn outcome is succeeded (durable: no error_type / interrupted part)",
+          "detail": "outcome=succeeded source=messages — 7 persisted messages, no error_type / interrupted part"
+        },
+        {
+          "level": "PASS",
+          "name": "durable evidence belongs to the target turn",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "deployed system prompt == local",
+          "detail": "multi-clinical-result-comparison-v0.15.md 53270 ch + platform tail 18543 ch; deployed sha=0443982c95ff"
+        },
+        {
+          "level": "PASS",
+          "name": "deployed skill body == local SKILL.md",
+          "detail": "20628 vs 20628 chars"
+        },
+        {
+          "level": "PASS",
+          "name": "deployed support-file manifest matches local (18 files)",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "every tool call either returned or was re-prompted (nothing lost)",
+          "detail": "6 attempts; "
+        },
+        {
+          "level": "PASS",
+          "name": "arguments refused by the tool (re-issued) = 0",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "external fetch failures (expected; must be declared) = 0",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "refusal contract: no report/citations written",
+          "detail": "nothing under output/ (correct)"
+        },
+        {
+          "level": "PASS",
+          "name": "refusal contract: the selection was actually queried",
+          "detail": "tool=pharmcube-query-clinical-result-with-params"
+        },
+        {
+          "level": "PASS",
+          "name": "refusal contract: the reply explains instead of pointing at a file",
+          "detail": "本次所选的 2 条结果中，只有 1 条能够调取到内容，因此**未生成报告文件**（对照/解读类交付至少需要 2 条可用结果，单条结果无法支撑有意义的对照解读）。  **调取情况**  | 所选结果 | 状态 | 说明 | |---|---|---| | `24_1_30561610` | 已调取 | *Persistent arterial wall inflammation in patient"
+        },
+        {
+          "level": "PASS",
+          "name": "no tool errors",
+          "detail": ""
+        },
+        {
+          "level": "PASS",
+          "name": "tool_results receipts archived",
+          "detail": "1 final durable pointers; 1 poll-only diagnostic pointers; 0 non-authoritative diagnostic mentions; all archived and hash-verified"
+        }
+      ],
+      "fails": [],
+      "warnings": []
+    }
+  ],
+  "summary": {
+    "run_count": 5,
+    "replay_exit_codes": {
+      "20260918-132847-r21-review-refusal": 0,
+      "20260918-132943-r22-review-a": 0,
+      "20260918-132943-r23-review-pmc": 0,
+      "20260918-135810-r24-review-refusal-recheck": 0,
+      "20260918-140911-r25-review-refusal-final": 0
+    },
+    "receipt_required_counts": {
+      "20260918-132847-r21-review-refusal": 1,
+      "20260918-132943-r22-review-a": 3,
+      "20260918-132943-r23-review-pmc": 3,
+      "20260918-135810-r24-review-refusal-recheck": 1,
+      "20260918-140911-r25-review-refusal-final": 1
+    },
+    "root_cause_r25": "The R25 abbreviation occurs in reasoning/text and execute input prose. The precise path occurs in the params tool output and later execute output. Authoritative receipt discovery now accepts only tool-return/tool-result payloads or typed tool-* output fields; all other mentions remain diagnostics."
+  }
+}

@@ -4,15 +4,15 @@
 
 **本节是当前状态；后文各轮日期下的分数、哈希、已发布/待发布描述均为历史快照，不覆盖本节。** 完整审查见 [project-review-2026-09-18.md](docs/project-review-2026-09-18.md)，台账 F7 / O33–O38。
 
-- **本地已修、线上未发布**：本轮没有 `publish`、没有新线上 `run`，不能声称 R21 验证完成。`status` 实读 **OUT OF SYNC / exit 3** 属预期：线上 prompt **1.6 / 53,347 B / b9bfcec19538**；skill **1.0.7 / ad75ec2c44334f389a0394895a47b765**，旧 dist `404dbccf5058`，19 个文件中 16 个与本地不同。
+- **本地修复与线上原地发布已完成**：部署回读 **in sync**；R26 拒绝契约与回执归档通过。R22/R23 的报告内容人工复核仍有缺陷，不能宣称标准 A/全文验收全绿。完整记录见 [online-acceptance-2026-09-18.md](docs/evidence/online-acceptance-2026-09-18.md)。
 - **待发布字节**：prompt **54,311 B / 2ff672b5aa9b**；dist **85,633 B / 19 entries / SHA-256 `4d20d48faeeee012c347aa28eb5956e5238a3e95020999c6b9bd6084fba53b1e`**，已重建并检查。需具体授权 prompt + skill 原地发布，回读一致后再跑 A/B；质量结论仍需 A×3。
 - **上游适配**：live `deps` 确认 params 参数 **`+esids -extra_esids`**。旧提示词明文要求 `extra_esids`，R19/R20 拒参不能再归因为模型凭空发明。schema 镜像已 live 重生成，17 份运行规则/模板文件已适配；`deps --accept` 仅接受本地基线，**不是发布**。`group_count` 是总体入组人数，不是臂数；L3 权威归 `input-contract.md`，已抓取全文的引用落点随之更新，500/缺 PMCID 不足以判非 OA。
-- **runner**：路径穿越/符号链接防护、目标 turn 隔离、缺返回失败、回执重试/哈希/最终收集线程 join、空产物/错误图表引用/缺支持文件清单失败、错误分类正则已加固。回执必需集来自最终目标 turn，而非轮询命中；0 poll pointers 不再自行证明 n/a。先后备份 **v9、v10**；仓库累计补丁仅应用于**原始 v9**，见 `evals/runner-gate/runner-patches/`。
+- **runner**：路径穿越/符号链接防护、目标 turn 隔离、缺返回失败、回执重试/哈希/最终收集线程 join、空产物/错误图表引用/缺支持文件清单失败、错误分类正则已加固。回执必需集现在只接受目标 turn 的结构化 `tool-return/tool-result` 内容；模型思考、自然语言和 execute glob 只作诊断，不制造下载要求。先后备份 **v9、v10、v11、v12、v13**；仓库累计补丁仅应用于**原始 v9**，见 `evals/runner-gate/runner-patches/`。
 - **评估器新基线**：`2026-09-18-r2`，A **43 fail + 1 warn**、B **12 fail + 1 warn**；旧 41→43 **不代表质量提升**。R17/R18 离线重判 **43/43**，R20 **12/12**；R14 输入不是场景 A，不能用强制 A 总分评价它，其两条定向全文核验通过。详见 [EVALUATOR_REVISION.md](evals/fact-check/EVALUATOR_REVISION.md)。
 - **验证**：97 测试全过（runner 30 / scorer 27 / tools 19 / Node 21）；63 mutation controls PASS（A 43/43、B 12/12）；历史链 5 可比 / 36 histories / 31 skipped / 4 no-history，无样本 exit 2。上游 chart **1.0.12** 三模板 `validateVisualizationFile` 本地 PASS，Zod **4.6.5** 在隔离目录 `~/.local/state/clinical-comparison-review-20260918/node_modules`，不是 TS 运行环境验证。
 - **保留限制**：慢速持续响应仍可能突破预期墙钟上限；全文回执不证明报告数字确实来自全文；C/D 无判分基线；本地 citation renderer 既非生产实现，也非 HTML sanitizer。
 - **A10**：仅提供示例 **`24_1_39054491_1`**，库内盲态「开放」与原文 double-blind 冲突；上下文误抽只是可能解释，未证明抽取根因。未写数据库、未发送问题单。
-- **Git / Docker**：分支 `v0.15-remove-html`，本轮修复已提交并推送为 `ea4807c`；TS 发布仍待确认。未发现 Docker 配置，不构建/推送镜像。
+- **Git / Docker**：分支 `v0.15-remove-html`，本轮修复已提交并推送为 `ea4807c`；TS prompt/skill 已按授权原地更新，未发现 Docker 配置，不构建/推送镜像。
 
 ## Repository
 

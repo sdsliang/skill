@@ -1,0 +1,181 @@
+{
+  "purpose": "Receipt-only offline replay of live R21-R24 after the R24 glob candidate fix.",
+  "scope": "Only scope_history, receipt_pointers and receipt_check were replayed. No full check_run or scorer replay; receipt PASS is not overall run/report-quality PASS. Original run.json, receipts.jsonl, verification.md and all run archives remain unchanged.",
+  "cause": "R24 raw_model_messages[7].parts[1].args is an execute shell_command containing a directory glob. The parser treated *.jsonl as a concrete required receipt despite the authoritative tool returns naming only call_1ab8c7345fde.jsonl.",
+  "design": "Retain scoped model/UI/message discovery for compatibility. Exclude only wildcard patterns (*, ?, bracket classes), keeping bracket classes whole to prevent prefix phantoms such as call.json[ln] -> call.json. Do not discard other unsupported concrete paths: traversal, percent-encoded metacharacters, variable names and backslashes still reach unchanged safety validation. Tool-return-only structural provenance was considered but would remove existing UI/message-only concrete evidence and needs separate coverage; no broad rewrite here.",
+  "runner": {
+    "installed_sha256": "0c854b37647345623925ec18f5bf924f3b6f44f42a79d6f0a3db64966a8b099d",
+    "pre_edit_backup": "/home/xupeipeioo1/.local/state/toolsmith-publish/toolsmith-publish.v12.bak",
+    "pre_edit_backup_sha256": "a8fd28a35a37b8536b7e68d1628e5a610a32fda99b985d3ef1315702ace0207c",
+    "snapshot_baseline": "~/.local/state/toolsmith-publish/toolsmith-publish.v9.bak",
+    "snapshot_baseline_sha256": "7fdfe082bb3758fa4f4577ca5efe1e8a0c7437cf3c14993ae52e4feef398f9dd"
+  },
+  "r24_history_evidence": [
+    {
+      "location": "debug-history.json:raw_model_messages[2].parts[1].content",
+      "tool_call_id": "call_01_ET_J4gP0H7Cl3bACk74ucuN0822",
+      "tool": "pharmcube-query-clinical-result-with-params",
+      "concrete_pointers": [
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_1ab8c7345fde.jsonl"
+      ]
+    },
+    {
+      "location": "debug-history.json:raw_model_messages[7].parts[1].args",
+      "tool_call_id": "call_00_MrFpa32ZjkdSnZKreXv64449",
+      "tool": "execute",
+      "shell_command": "ls -la /workspace/tool_results/pharmcube-query-clinical-result-with-params/ 2>/dev/null; echo \"---\"; for f in /workspace/tool_results/pharmcube-query-clinical-result-with-params/*.jsonl; do echo \"== $f ($(wc -c <\"$f\") bytes)\"; done"
+    },
+    {
+      "location": "debug-history.json:raw_model_messages[8].parts[0].content",
+      "tool_call_id": "call_00_MrFpa32ZjkdSnZKreXv64449",
+      "tool": "execute",
+      "concrete_pointers": [
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_1ab8c7345fde.jsonl"
+      ]
+    }
+  ],
+  "runs": [
+    {
+      "run": "20260918-132847-r21-review-refusal",
+      "turn_id": "70f168ee-4353-49ab-b952-9b39f96765b9",
+      "scope_error": "",
+      "historical_final_pointer_count": 2,
+      "pre_glob_fix_pointer_count": 1,
+      "after_final_pointer_count": 1,
+      "removed_glob_candidates": [],
+      "historical_fetched": 1,
+      "historical_failed": 0,
+      "receipt_check_level": "PASS",
+      "receipt_check_detail": "1 final durable pointers; 0 poll-only diagnostic pointers; all archived and hash-verified",
+      "archived_files": [
+        {
+          "pointer": "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_c0e0f9f1e4e4.jsonl",
+          "bytes": 33096,
+          "sha256": "f689764c601b181d441f244208e7278c4715b92826bc65bc8bab59119834f584"
+        }
+      ],
+      "source_sha256": {
+        "run.json": "d36ccdc39336864b40c63d97b1b94c788d1f43ce54bda64b826ad42bfa2b6906",
+        "debug-history.json": "eca45488dce00cf24b3d0aa4b0fe560bba0fccc41dc65a2fb4f61055a154dc2d",
+        "messages.json": "c94a30e70f0cc8d77925776f9133712e5aa0df6973097ab6012de0f82409363f",
+        "timing.json": "d64c71b4d400a91e1ddf63b1bdf9ae24e7c60cb644c5470eaf75fbbd426fb654",
+        "receipts.jsonl": "4e9052c2e54505c33879add90385c7ae6d474f5381101102fe25937c321623f0",
+        "verification.md": "394a9ffc9f72cc4862a27af9d3984c567aa0008c20575925ffbb5853c927f6bd"
+      }
+    },
+    {
+      "run": "20260918-132943-r22-review-a",
+      "turn_id": "5e0e6187-92d7-425e-a487-44cefb66dc1b",
+      "scope_error": "",
+      "historical_final_pointer_count": 4,
+      "pre_glob_fix_pointer_count": 3,
+      "after_final_pointer_count": 3,
+      "removed_glob_candidates": [],
+      "historical_fetched": 3,
+      "historical_failed": 0,
+      "receipt_check_level": "PASS",
+      "receipt_check_detail": "3 final durable pointers; 0 poll-only diagnostic pointers; all archived and hash-verified",
+      "archived_files": [
+        {
+          "pointer": "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_1fc2ab58177d.jsonl",
+          "bytes": 11991,
+          "sha256": "e035cc56f09a20102e2090eed65f8cc36fa197cad1c92fd128d86751c3887faf"
+        },
+        {
+          "pointer": "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_9faf0351e1f7.jsonl",
+          "bytes": 84260,
+          "sha256": "42080f1baa515008b680223a21b012cb2f3b0f54097272b64ffe744f74070fe4"
+        },
+        {
+          "pointer": "/workspace/tool_results/web_fetch/call_2e29e87c5743.md",
+          "bytes": 48278,
+          "sha256": "844432b84beeaa081905b754139dec129a0614e09327a2f27ba0f3e9359ebf90"
+        }
+      ],
+      "source_sha256": {
+        "run.json": "8d9d139c6f28a894f8bbd8f872273940095cf034dc6b84ee3e48835349e15665",
+        "debug-history.json": "b8b56e4bdbc9dab309a62a590a9a81eca79c09c4333256756cc0297244cbf96e",
+        "messages.json": "6c355d2ea0a3ec72f00eca0215cc2561943ce077f719db44ae4feeecb979c15f",
+        "timing.json": "db1c0923d84f3c3010e7ddc328375b83c03d1ceb6ef19e59942f9fddc9b5bca2",
+        "receipts.jsonl": "1ecaee6f26bc6cb395312c9c626cbd829f70633b4ea828f0e501e4aa1fb4f205",
+        "verification.md": "377914d2f3e99afcc612b4d073be9ef8f7367cdb66ca5d9194a230c2b7164285"
+      }
+    },
+    {
+      "run": "20260918-132943-r23-review-pmc",
+      "turn_id": "268f3ae1-c3d9-47bc-8d16-2e2c1e689558",
+      "scope_error": "",
+      "historical_final_pointer_count": 6,
+      "pre_glob_fix_pointer_count": 3,
+      "after_final_pointer_count": 3,
+      "removed_glob_candidates": [],
+      "historical_fetched": 3,
+      "historical_failed": 0,
+      "receipt_check_level": "PASS",
+      "receipt_check_detail": "3 final durable pointers; 0 poll-only diagnostic pointers; all archived and hash-verified",
+      "archived_files": [
+        {
+          "pointer": "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_a452b9ede4c7.jsonl",
+          "bytes": 52339,
+          "sha256": "f49bb84f17296e4e0111e9e7630afbf0d20de925d6d0b72fca29da879158e924"
+        },
+        {
+          "pointer": "/workspace/tool_results/web_fetch/call_39ea4afacc51.md",
+          "bytes": 22645,
+          "sha256": "9531d2bcd7baf4238c198cb0d8b1ad41c2fd0e3d917163a661309bb345efcaac"
+        },
+        {
+          "pointer": "/workspace/tool_results/web_fetch/call_624446a8fa5a.md",
+          "bytes": 100030,
+          "sha256": "2c789a5de721ba7343fa1c2281bc04d608c4ea23f988d44232748922ad7b6e88"
+        }
+      ],
+      "source_sha256": {
+        "run.json": "4c8287c876a54d2bb7a0c58aabc9e60baf62787696b1ba9c102b10b44a608aaa",
+        "debug-history.json": "7ea6b1d82da6de5f88b60efa113d87dd98e389c350d5ec1c6b9853e223440a3a",
+        "messages.json": "f59de825fa0efa863481484b42f76786c0a19d3447ee99985880242c381ce37f",
+        "timing.json": "76cb3d8356313c2db4db61be01c87449b19b372b5e5a2d728b449aaa91ac38f3",
+        "receipts.jsonl": "c911337227a90df7a5cf99ec3f0fd225dcdfcd2cc3d6b5592cafa22e74b0393f",
+        "verification.md": "63f00a4dc3815a4b9fc9afb13a2188b2ba8825313c43e0c11302649ad28f058c"
+      }
+    },
+    {
+      "run": "20260918-135810-r24-review-refusal-recheck",
+      "turn_id": "b84caa87-7333-4c0a-a4d7-b78d687e8e85",
+      "scope_error": "",
+      "historical_final_pointer_count": 2,
+      "pre_glob_fix_pointer_count": 2,
+      "after_final_pointer_count": 1,
+      "removed_glob_candidates": [
+        "/workspace/tool_results/pharmcube-query-clinical-result-with-params/*.jsonl"
+      ],
+      "historical_fetched": 1,
+      "historical_failed": 0,
+      "receipt_check_level": "PASS",
+      "receipt_check_detail": "1 final durable pointers; 0 poll-only diagnostic pointers; all archived and hash-verified",
+      "archived_files": [
+        {
+          "pointer": "/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_1ab8c7345fde.jsonl",
+          "bytes": 30732,
+          "sha256": "bf80c667982fe8b8a6478c10fb78e0b60a2758e0271166cea0b7a2ace565c4fc"
+        }
+      ],
+      "source_sha256": {
+        "run.json": "c67318613dc400295f9bd57bf83f521ad145b295278da99256738ef74d2789a2",
+        "debug-history.json": "8327904832b0d1a32f9a2d18fd835465a97d9529404578682a74e94a5cf8d3ea",
+        "messages.json": "9b5da1b8ca8ec7ea41b7b1ab3a5ac9bb7416af6940577978386a618d3d3b98eb",
+        "timing.json": "fb733e0ff9873b5a5355d00a7bb334dd708062fec6d963157e0395060ac3f1c2",
+        "receipts.jsonl": "06300059a37aef64fb2120a50c086895043d31f7146aaa099a88662d82707c70",
+        "verification.md": "91b8e98fbe73ae642f28569d8733d1fff0f0296938f00d0ea55e066d2c6b4c05"
+      }
+    }
+  ],
+  "checks": {
+    "py_compile": "PASS",
+    "offline_runner_tests": "35 passed",
+    "negative_control": "The two new glob regressions fail against pre-edit v12 (9 assertion failures including subcases).",
+    "historical_chain_gate": "PASS: 40 histories; 5 comparable; 35 skipped",
+    "snapshot_v9_patch_reproduction": "PASS: byte-for-byte match to installed runner; baseline, runner and patch hashes verified",
+    "receipt_only_replay": "PASS: all 8 receipts nonempty and match original size/SHA-256 manifests; source hashes checked unchanged."
+  }
+}
