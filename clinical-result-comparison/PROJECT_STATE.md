@@ -12,7 +12,7 @@
 - **验证**：97 测试全过（runner 30 / scorer 27 / tools 19 / Node 21）；63 mutation controls PASS（A 43/43、B 12/12）；历史链 5 可比 / 36 histories / 31 skipped / 4 no-history，无样本 exit 2。上游 chart **1.0.12** 三模板 `validateVisualizationFile` 本地 PASS，Zod **4.6.5** 在隔离目录 `~/.local/state/clinical-comparison-review-20260918/node_modules`，不是 TS 运行环境验证。
 - **保留限制**：慢速持续响应仍可能突破预期墙钟上限；全文回执不证明报告数字确实来自全文；C/D 无判分基线；本地 citation renderer 既非生产实现，也非 HTML sanitizer。
 - **A10**：仅提供示例 **`24_1_39054491_1`**，库内盲态「开放」与原文 double-blind 冲突；上下文误抽只是可能解释，未证明抽取根因。未写数据库、未发送问题单。
-- **Git / Docker**：分支 `v0.15-remove-html`，本轮工作区待父任务统一提交；本子任务不 commit/push。未发现 Docker 配置，不构建/推送镜像。
+- **Git / Docker**：分支 `v0.15-remove-html`，本轮修复已提交并推送为 `ea4807c`；TS 发布仍待确认。未发现 Docker 配置，不构建/推送镜像。
 
 ## Repository
 
