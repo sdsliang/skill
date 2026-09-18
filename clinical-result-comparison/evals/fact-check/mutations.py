@@ -231,6 +231,24 @@ def M21(d, r, c, v):  # archive a PMC full text but declare only the abstract ro
 def M23(d, r, c, v):  # echo the template's own spec wording into the delivered report
     return sub(r, r"\Z", "\n\n> **补充说明：** 原文优先于库内加工字段，不一致处同时写出原文值与库内记录值。\n")
 
+def M25(d, r, c, v):
+    """Force the chart into the convention the report does *not* use.
+
+    Convention must be read off the baseline, not assumed: arm A's baseline renders
+    `-13.9` while an R16-style artifact renders `13.9` + 降幅.  Whichever it is, flipping
+    the chart away from it is the mutation; digits are untouched so A-S9 stays green
+    (which is what isolates A-S10).
+    """
+    rep = open(r, encoding="utf-8").read()
+    report_signed = bool(re.search(r"[\u2212-]13\.9", rep))
+    p = os.path.join(v, "endpoint-bar-1.json")
+    j = json.load(open(p, encoding="utf-8"))
+    for row in j["option"]["data"]:
+        row["value"] = abs(row["value"]) if report_signed else -abs(row["value"])
+    json.dump(j, open(p, "w"), ensure_ascii=False, indent=1)
+    return 1
+
+
 def M24(d, r, c, v):  # state the rule itself (reworded, not verbatim) instead of a finding
     return sub(r, r"\Z", "\n\n> **补充说明：** 未发现原文与库内记录在同一指标、同一口径上的数值不一致。\n")
 
@@ -271,6 +289,7 @@ MUTS_A = [
     ("M22 fulltext-archived-but-abstract-link", M22, "A-P6-cite-link-is-deepest"),
     ("M23 template-spec-echo", M23, "A-P7-no-template-spec-in-report"),
     ("M24 rule-metastatement", M24, "A-P8-no-rule-metastatement"),
+    ("M25 split-convention", M25, "A-S10-sign-convention-consistent"),
 ]
 
 # --------------------------------------------------------------- arm B mutations

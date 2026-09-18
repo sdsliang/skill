@@ -347,15 +347,73 @@ def op_chart_envelope(sv: dict, spec: dict) -> tuple:
     return (not bad, "; ".join(bad) if bad else "envelope + option OK")
 
 
-def op_chart_values(sv: dict, spec: dict) -> tuple:
-    ch = sv["charts"].get(spec["file"])
+def _chart_floats(sv: dict, name: str) -> list | None:
+    ch = sv["charts"].get(name)
     if not isinstance(ch, dict):
+        return None
+    return [round(float(r["value"]), 3) for r in (ch.get("option") or {}).get("data") or []]
+
+
+def op_chart_values(sv: dict, spec: dict) -> tuple:
+    """Charted magnitudes must equal the record's, sign aside.
+
+    2026-09-18 (user ruling): `-70.5` and `降幅 70.5%` are equally acceptable renderings —
+    the convention is free, so the comparison here is sign-agnostic and the **consistency**
+    requirement lives in A-S10-sign-convention-consistent.  Digits are still compared exactly:
+    a wrong magnitude fails here under either convention (M10).
+    """
+    got = _chart_floats(sv, spec["file"])
+    if got is None:
         if spec.get("optional_when_absent"):
             return True, (f"{spec['file']} absent — allowed (see A-S2b-chart-or-reason)")
         return False, f"{spec['file']} missing"
-    got = sorted(round(float(r["value"]), 3) for r in (ch.get("option") or {}).get("data") or [])
-    want = sorted(round(float(v), 3) for v in spec["values"])
-    return (got == want, f"got={got} want={want}")
+    g, w = sorted(abs(x) for x in got), sorted(abs(round(float(v), 3)) for v in spec["values"])
+    return (g == w, f"|got|={g} |want|={w} (raw got={sorted(got)})")
+
+
+def _form_of(text: str, value: float) -> str:
+    """How `value` is rendered in `text`: 'signed', 'unsigned' or 'absent'."""
+    t = norm(text)
+    lit = f"{abs(round(float(value), 3)):g}".replace(".", r"\.")
+    if re.search(rf"(?<![\d.])-\s*{lit}(?![\d])", t):
+        return "signed"
+    if re.search(rf"(?<![\d.\-]){lit}(?![\d])", t):
+        return "unsigned"
+    return "absent"
+
+
+def op_sign_convention_consistent(sv: dict, spec: dict) -> tuple:
+    """One deliverable, one sign convention — the report and its chart must agree.
+
+    The user ruled (2026-09-18) that `−13.9` and `降幅 13.9%` are both fine, "只要自洽".
+    So the convention is not pinned; what must not happen is the report dropping the sign
+    while its chart keeps it (or the reverse): a reader then cannot tell whether the chart's
+    `-70.5` is the same quantity as the prose's `70.5`.  Only the charted magnitudes are
+    inspected — a signed confidence interval (`95% CI -19.3～-8.5`) next to an unsigned
+    point estimate (`降低 13.9%`) is the normal, self-consistent rendering, not a mix.
+    Direction *wording* is asserted under neither convention (a signed report saying
+    `升高 −13.9%` also passes today), so allowing magnitudes costs no coverage.
+    """
+    vals = [float(v) for v in spec["values"]]
+    got = _chart_floats(sv, spec.get("file", ""))
+    if got is None:
+        return True, f"{spec.get('file')} absent — convention not displayed (see A-S2b)"
+    ch = sv["charts"].get(spec["file"]) or {}
+    c_forms = set()
+    for row, v in zip((ch.get("option") or {}).get("data") or [], vals):
+        c_forms.add(_form_of(json.dumps(row.get("value")), v))
+    r_forms = {_form_of(sv["report"], v) for v in vals}
+    c_signed, r_signed = "signed" in c_forms, "signed" in r_forms
+    if c_signed != r_signed:
+        return False, (f"report renders the endpoints "
+                       f"{'signed' if r_signed else 'unsigned'} but the chart "
+                       f"{'signed' if c_signed else 'unsigned'} "
+                       f"(report forms={sorted(r_forms)}, chart forms={sorted(c_forms)}) "
+                       f"— one deliverable, one convention")
+    if "absent" in r_forms or "absent" in c_forms:
+        return True, (f"convention consistent ({'signed' if r_signed else 'unsigned'}); "
+                      f"some value absent from a surface — coverage is A-C4/A-C5's job")
+    return True, f"one convention throughout: {'signed' if r_signed else 'unsigned'} magnitudes / chart"
 
 
 def _chart_names(sv: dict, pattern: str) -> list:
@@ -632,6 +690,7 @@ SHAPE_OPS = {
     "citations_distinct": op_citations_distinct,
     "chart_envelope": op_chart_envelope,
     "chart_values": op_chart_values,
+    "sign_convention_consistent": op_sign_convention_consistent,
     "chart_set_allowed": op_chart_set_allowed,
     "chart_or_reason": op_chart_or_reason,
 }

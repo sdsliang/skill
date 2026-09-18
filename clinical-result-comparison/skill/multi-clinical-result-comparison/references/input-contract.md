@@ -281,6 +281,21 @@ diverged, no divergence sentence belongs in the body at all (R16, 2026-09-18, re
 `evals/fact-check` guards this twice: `A-P7` (verbatim echo of the spec) and `A-P8` (the same statement
 reworded).
 
+## Number rendering: one convention per deliverable
+
+Neither sign is mandated. `−13.9%` (signed) and `降低 13.9%` (unsigned magnitude + direction word)
+are the same quantity, and both have been produced from **identical input** by earlier runs
+(R8/R12/R15 signed; R16 magnitudes) — so this is a free choice, not a contract violation.
+**What is forbidden is mixing the two inside one deliverable**, the report and its chart above all:
+a chart whose bars read `-70.5` next to prose that says `70.5` leaves the reader unable to tell
+whether the two are the same quantity (and vice versa).
+
+Scope: only the **charted quantities** are compared. A signed confidence interval
+(`95% CI -19.3～-8.5`) beside an unsigned point estimate with a direction word (`降低 13.9%`)
+is the normal, self-consistent rendering — not a mix. `evals/fact-check` enforces the rule as
+`A-S10-sign-convention-consistent` (isolated by mutation `M25`); `A-C4` / `A-C5` / `A-S9` accept
+either convention (2026-09-18: 两种写法都可以，只要同一份交付物自洽).
+
 ## Consumer-field mapping (v0.11 attachment fields → params fields)
 
 | v0.11 attachment field | v0.12 params field(s) |
