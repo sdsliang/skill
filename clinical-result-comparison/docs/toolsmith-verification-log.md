@@ -1119,7 +1119,7 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 - **意义**：`val_bpb` 缺席这件事从「无解」变成「有两层数可读」——成本层 `calls/wall_s`、质量层
   `facts_ok/facts_total`（gate，不进总分）。
 
-### F6 — 2026-09-18，**runner 归因修正：`retry-prompt` 分三桶（O31 + O32）**（离线，零新 run、零发布）
+### F6 — 2026-09-18，**runner 归因修正：`retry-prompt` 分三桶（O31 + O32）**（离线，零新 run、零发布；仓库 `4a60aba`）
 
 **起因**：R19/R20 的 `verification.md` 里「schema-rejected」那行只有工具名、没有原因，翻 R18 也一样。
 
