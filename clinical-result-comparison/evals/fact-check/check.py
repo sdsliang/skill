@@ -577,6 +577,24 @@ def op_cite_link_is_deepest(sv: dict, spec: dict) -> tuple:
     return True, f"{len(ft)} full-text ref(s) cite their full-text carrier"
 
 
+def op_report_excludes_literals(sv: dict, spec: dict) -> tuple:
+    """Template *spec* wording must never be echoed into the delivered report.
+
+    The report templates carry the original-source rules as bracketed spec sitting next to
+    the `原文核对：` slot.  A run that copies that spec register into the report ships
+    instruction text to the reader instead of findings: R15 (2026-09-18, published v1.6 /
+    1.0.7) rendered 「原文优先于库内加工字段，不一致处同时写出原文值与库内记录值；」 inside
+    its coverage line.  The template has since moved those sentences inside the spec
+    brackets; this item is the mechanical guard against a future edit putting them back.
+    """
+    rep = sv.get("report") or ""
+    hits = [t for t in spec["literals"] if t in rep]
+    if hits:
+        return False, ("report carries template spec wording verbatim: "
+                       + ", ".join(repr(h) for h in hits))
+    return True, f"no template spec wording in report ({len(spec['literals'])} phrases checked)"
+
+
 SHAPE_OPS = {
     "artifact_present": op_artifact_present,
     "artifact_absent": op_artifact_absent,
@@ -584,6 +602,7 @@ SHAPE_OPS = {
     "original_check_names_class": op_original_check_names_class,
     "fulltext_fetch_is_named": op_fulltext_fetch_is_named,
     "cite_link_is_deepest": op_cite_link_is_deepest,
+    "report_excludes_literals": op_report_excludes_literals,
     "glob_count": op_glob_count,
     "citations_keys_exact": op_citations_keys_exact,
     "citations_entry_key_set": op_citations_entry_key_set,

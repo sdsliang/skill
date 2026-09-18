@@ -526,6 +526,18 @@
       "evidence": "若 /workspace/sources/ref_<n>.* 归档了全文正文（文件名含 fulltext/pmc<数字>，或内容含 <article>/<sec>/<body>），citations.json 里 ref_<n>.link 必须指向全文载体（白名单：https://pmc.ncbi.nlm.nih.gov/articles/PMC<id>/ 或 https://www.ebi.ac.uk/europepmc/webservices/rest/PMC<id>/fullTextXML），或至少带同一个 PMC<id>；未归档全文的记录不触发（其 link 仍逐字节来自 full_article_link）",
       "rationale": "用户 2026-09-17 的 L3 决策：基于全文分析的记录，ref 必须指真正的全文，而不是原来的 PubMed 摘要页——否则点开上标链接的人看到的页面里没有报告用到的数值。与 A-P5（覆盖行必须声明全文）互补：一个管正文声明，一个管引用落点",
       "severity": "fail"
+    },
+    {
+      "id": "A-P7-no-template-spec-in-report",
+      "kind": "shape",
+      "op": "report_excludes_literals",
+      "literals": [
+        "原文优先于库内加工字段",
+        "不静默取一侧",
+        "库内记录值"
+      ],
+      "evidence": "模板把原文优先规则写成规格句放在 `原文核对：` 槽位旁边（`[...]` 括号内）；R15（2026-09-18，已发布 v1.6/1.0.7）把括号外那句「原文优先于库内加工字段，不一致处同时写出原文值与库内记录值；」照抄进了交付报告正文 ⇒ 交付物里混入指令性文字。四个模板已把这三句挪进 `[...]` 规格括号；本条是防回归的机械闸门（三句均为指令口吻，正常报告不会出现）",
+      "rationale": "交付物面向读者，出现「原文优先于库内加工字段」「不静默取一侧」这类规则说明即为指令泄漏；A-P2 也会因其中含「库内记录」而报错，但那条的诊断信息（缺引用）指不到真正的原因"
     }
   ],
   "revision": "2026-09-17（O17 修复，用户批准）：A-S2/A-S8/A-S9 原期望『必出 endpoint-bar-1.json』是从 R8 那一份产物倒推出来的，与规则文本 references/chart-templates.md:91 冲突（定量主图是可选补充，条件是同一终点/同一口径/可明确对齐的时点）。改成：出图则类型/文件名/封套/数值必须自洽（chart_set_allowed + 条件式 envelope/values）；不出图则正文必须写明原因（A-S2b-chart-or-reason，≥2 组关键词）。变异 M16 证明『删图且不解释』仍会 FAIL。R11（2026-09-17）不画图的理由：第 16 周 vs 第 36 周、人群与给药方案不同 → 按规则合规。"

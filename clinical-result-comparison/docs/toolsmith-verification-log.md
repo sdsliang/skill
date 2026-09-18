@@ -355,6 +355,117 @@ Recommended `selected_fields` 收尾一句；② `SKILL.md` 输入契约段加�
 
 **下一步**：发布授权 → `publish`（原地更新 prompt v1.6 + skill 1.0.7）→ 同输入重跑 → 新记录（预期 17/17 PASS，并把事实分与调用数与本次基线对比）。
 
+### R14 — 2026-09-18，**L3 发布后的真跑**：全文即分析面 + 引用落点跟随深度（**17/17 PASS**）
+
+背景：用户 2026-09-18 授权「原地更新，不要新版本」⇒ `publish`（prompt v1.6 / skill v1.0.7 同版本号替换内容），
+回读一致（prompt 逐字节 == 本地、skill `19 identical / 0 differing`、`STATUS: in sync`）。随后真跑验证 L3。
+
+| 项 | 值 |
+|---|---|
+| 命令 | `toolsmith-publish run --web --prompt "解读这几个结果 24_1_39054491_1 24_1_42477684_1" --tag r14-l3` |
+| thread / turn | `273e52b4-ab76-4dbf-b0d6-ad324835c34f` / `b096510f-63bd-41ec-8f31-d3ce3dee4cb9` |
+| 终态 / 结局 | `completed`（durable `timing.completed_at`）/ `succeeded` |
+| 墙钟 | 148.0 s server |
+| 调用 | **26 次**：`execute`×8、`read_file`×8、`grep`×3、`web_fetch`×3、`load_skill`×1、`params`×1、`write_file`×1、`present_artifact`×1；schema 被拒 **0** |
+| token | thread in 96,478；turn in 1,188,741 / out 26,793 / reasoning 15,653；cache 93.0% |
+| 产物 | `output/report.md`（22,031 B）、`output/citations.json`、`sources/PMC11270764_fulltext_jats.xml`（100,030 B）、`sources/PMC11270764_plain.txt`（49,169 B） |
+| 断言 | **17 PASS / 0 FAIL（exit 0）** —— 含「部署端 == 本地」（sys `837ef4cc16c9`、SKILL 22,706 ch、支持文件 18 个）与「citations 键集/日期/`title` 非空」 |
+| 记录 | `~/.local/state/toolsmith-runs/20260918-092000-resume-r14-l3-recollect/`（原目录 `…091057-r14-l3` 因下述 O23 事故只留 `run.json`/`timing.json`，按 O15 约定冻结不覆盖） |
+
+**输入为什么选这两条**（直接压 L3 的两个分支）：`24_1_39054491_1` = `src=1` 且 `R6` 能拿到 `PMC11270764`（走全文分支）；
+`24_1_42477684_1` = `src=1` 但 `inPMC=N`、无 pmcid（走「无 PMCID / 非 OA，保持摘要级」分支）。
+
+**L3 的四条行为逐条核实（不是「断言过了」，是逐项对照产物）**
+
+1. **引用落点跟随深度**：`output/citations.json` 里 `ref_1.link = https://pmc.ncbi.nlm.nih.gov/articles/PMC11270764/`（C1），
+   而该记录库内的 `full_article_link` 是 `https://pubmed.ncbi.nlm.nih.gov/39054491` ⇒ **发生了唯一一次、且只对该记录发生的替换**；
+   `ref_2.link` 仍**逐字节**等于库内 `full_article_link`（`…/42477684`），两条 `title`/`paper_release_time_str` 未被动过。
+2. **全文确实被归档**：`artifacts/sources/` 下有 JATS 原文 + 纯文本（100 K / 49 K），覆盖行也点名了 `PMC11270764` **全文**（`A-P5`/`A-P6` 双双满足）。
+3. **逐记录声明分析深度**：覆盖行原文 —— 「2 条均属 PubMed 来源类（src=1），均按 R6→R7 链路核对：1 条取回并归档 PMC11270764 **全文**（PMID 39054491，按全文分析），1 条无 PMCID（PMID 42477684，inPMC=N、非 OA，仅摘要级）→ 按全文分析 1 条 / 仅摘要级 1 条」，并补一句「该记录基于全文分析，其引用指向全文页面而非摘要页」。这正是 L3 要的**透明性**：读者能分辨「原文没写」与「我们没查」。
+4. **真拿到了摘要里没有的事实**（L3 的实质收益，用库内 `abstract_text` 逐字对照，2,590 字符）：
+   `36.0`（PD-L1 CPS≥10 ORR）、`18.5`、`26.3`、`90.7`、`87.8`（任何 AE）、中位暴露「86 天」、`CPS` 自身 —— **全部不在摘要里**（仅 `31.8`/`24.5` 主要 ORR 在摘要中）；
+   报告把这些放在 `### 4.3 亚组与一致性` 并带标签（「安全性分析集 43 / 49」「亚组事件数小，原文未报告交互检验」），没有裸用。
+
+**顺带发现（库内字段与原文矛盾，同指标同标签 ⇒ 按规则写双值）**：该记录 `clinical_result.blinded = ['开放']`，
+而原文（摘要 1 次 + 全文 3 次）均为 **double-blind**（ECHO-307/KEYNOTE-672 是双盲安慰剂对照 III 期）。
+报告写成 `原文 double-blinded；库内记录 开放{{ref_1}}`（符合 `A-P2` 格式）。⇒ 这是**可转开发的库内数据问题**，
+记入 A10 待发清单（暂不单独发；等 A5/A6/A7 一起走）。
+
+**行为对比基线（R12）**：调用 36 → **26**（扇出去重措辞生效：R12 为弄清 5 行→2 条花了 16×`execute`+15×`read_file`，
+本次 `grep`×3 定位、`web_fetch`×3 = 恰好 R6→R7 取全文 + 1 次补取），墙钟 201.8 → **148.0 s**，产出多出 `sources/` 全文归档。
+
+**结论**：L3 在平台上**已验证生效**（不是「规则写了」）。仍开着的两条：① 只压到 1 条全文记录 + 1 条无 PMCID 记录，样本窄；
+② `A-P6` 只覆盖「已归档全文」方向，反向（引用指全文却无归档）仍无断言 —— 等更多样本再决定是否加。
+
+### R15 — 2026-09-18，**L3 发布后 · 场景 A 同输入复跑**（与 R12 对照；发现并修掉一个我们自己的资产缺陷）
+
+R14 用的是尿路上皮癌那对输入（L3 需要 `src=1` + PMC 全文），因此事实清单（场景 A 绑定 `24_1_30561610` + `24_1_36342163`）在 R14 上是 N/A。
+本轮用**与 R12 完全相同的输入**再跑一次，才能做发布前后对照。
+
+| 项 | 值 |
+|---|---|
+| 命令 | `toolsmith-publish run --web --tag r15-l3-scenario-a --prompt "解读这几个结果 24_1_30561610 24_1_36342163"` |
+| thread / turn | `e0d198b3-22c8-43fd-82ef-cd1199644f20` / `bcc4e1ae-696a-4c37-b7fa-1b84648a6b70` |
+| 终态 / 结局 | `completed`（durable `timing.completed_at`）/ `succeeded` |
+| 墙钟 | 191.7 s server / 202.4 s polled（11 次轮询：`running`×10 → `idle`） |
+| 调用 | **30 次尝试 = 29 返回 + 1 schema 被拒**：`execute`×15、`read_file`×9、`web_fetch`×2、`load_skill`×1、`params`×1、`present_artifact`×1；被拒的那次是 `web_fetch`（参数被 schema 拒 → 框架重发为新 call，无返回）。**注**：run 目录里的 `verification.md` 是 O25 修复前的渲染，那行印成「30 attempts = 30 returned + 1 schema-rejected」（自相矛盾，见 O25）；上表是修正后的口径，已用 `--resume` 重收验证 |
+| token | thread in 113,908；turn in 1,881,535 / out 34,851 / reasoning 22,817；cache 96.7%；上下文 total 113,908（sys 22,835 / mcp 5,919 / tools 55,195 / skill 28,767） |
+| 产物 | `output/report.md`、`output/citations.json`、`visualizations/endpoint-bar-1.json` |
+| 断言 | **17/17 PASS（exit 0）**，含「部署端 == 本地」与「citations 键集/日期/`title`」 |
+| 事实分 | `SCORE scenario=a facts 35/38 warn 1/1 -> FAIL`（R12 基线：`29/31`）—— 清单同期由 31 → 38 条 fail 级，**两个 FAIL 都不是内容缺口**：`A-ATTR-misattribution`（已知打分器假阳性，O19）、`A-P7`（本轮新发现的**我们自己的缺陷**，见下） |
+| 记录 | `~/.local/state/toolsmith-runs/20260918-092157-r15-l3-scenario-a/` |
+
+**L3 的两条反向证据（比 PASS 更有信息量）**
+
+1. **R6 命中但全文拿不到时，引用正确保持不变**：`24_1_30561610` 经 Europe PMC 取到 `PMC6933872`，**但该文非 OA、全文不可得** ——
+   覆盖行写成「1 条经 Europe PMC 检索取得 PMC 记录号 PMC6933872，但该文非 OA、全文不可得，按库内摘要——即期刊摘要原文——核对」，
+   `citations.json` 里两条 `link` 都**逐字节**等于库内 `full_article_link`（`…/30561610`、`…/36342163`），**没有出现任何构造链接**。
+   ⇒ 白名单替换只在真取到全文时发生（R14 正例 / R15 反例，一对对照）。
+2. **平台侧探针里那次 `PMC6933872 → 500`，在真 run 里得到解释**：不是 PMC 路由坏了，是**该记录非 OA** ⇒ 再次印证 O22/W2-d 的更正（「per record，不是全文路由不可用」）。
+
+**本轮发现的缺陷（我们自己的资产）：模板规格句被照抄进交付报告**
+
+`output/report.md` 的覆盖行渲染成了：
+
+> …无因抓取受限而完全无法复核的记录。**原文优先于库内加工字段，不一致处同时写出原文值与库内记录值；不同披露版本（数据截止、人群或分析集不同）不作为库内错误。**
+
+这**不是研究结论、也不是路径说明，而是模板写给模型的规格句**。成因：四个报告模板的第 5 行把原文优先规则写在 `**原文核对：** [...]`
+括号**之外**，于是被当成正文照抄。离线清单 `A-P2` 忠实报 FAIL（该句含「库内记录」却没有 `{{ref_n}}`），但它的诊断信息（缺引用）指不到真正原因。
+
+**修法（仓库资产，三处一起）**
+
+1. **四个模板**（`cross-trial-report.md` / `mixed-comparison-report.md` / `same-trial-evolution-report.md` / `unified-evidence-report.md`）：
+   把 `]` 之后的三句规格说明（原文优先 / 版本差异 / 全文引用落点）**移进 `[...]` 规格括号内**，与其余规格一致 —— 交付正文不再出现指令口吻。
+2. **清单新增 `A-P7-no-template-spec-in-report`**（`shape` / `op_report_excludes_literals`）：报告正文不得逐字出现
+   `原文优先于库内加工字段` / `不静默取一侧` / `库内记录值`（三条均为指令口吻，正常报告不会出现）。清单 38 → **39 条（38 fail + 1 warn）**。
+   只加进场景 A：四个模板为两侧共用，但场景 B 的 arm 需要一个 B 形态样本才能给该条配对变异，样本到了再加。
+3. **专属变异 `M23`**（把规格句写进报告）→ 实测 `flipped=['A-P2-divergence-shows-both', 'A-P7-no-template-spec-in-report']`：
+   **隔离性符合预期**（M23 同时带动 A-P2，正因为 A-P2 的触发词是「库内记录」；两条各自仍有独立变异 M19 / M23）。
+
+**离线闸门（全部绿）**
+
+```
+python3 -m py_compile evals/fact-check/{check,mutations}.py            → PYC_OK
+python3 evals/fact-check/mutations.py                                  → arm a: flipped 38/38; never flipped []
+                                                                         arm b: flipped 12/12; never flipped []
+                                                                         GATE: PASS
+python3 evals/runner-gate/verify-run-chain.py                          → GATE: PASS
+python3 evals/fact-check/check.py --run …/20260918-092157-r15-… --scenario a
+                                                                       → facts 35/38 warn 1/1（A-P7 如实指出泄漏）
+python3 tmp/pack15b.py + 逐文件 sha256 比对                             → dist 19 entries / 84,991 B
+                                                                         sha256 c55321ad46191f97d13ce52434535e3bc6f7ba64cf6dda00f0b029bad429934e
+                                                                         mismatch vs worktree: []
+```
+
+**发布状态（诚实标注）**：`A-P7` 与模板修好的字节**尚未上线** —— 已发布的 skill `v1.0.7` 里仍是括号外的旧模板（即线上会复现这个泄漏）；
+prompt `v1.6` 未受影响（sys 文件本轮没动）。两者都需要**再次授权**才能 `push-skill`（in-place）。
+
+**顺带记录（库内数据问题）**：`24_1_39054491_1` 的 `clinical_result.blinded=['开放']` 而原文为 double-blind（见 `R14`），已并入 A10 待发清单。
+
+**`MUT_RUN_A` 为什么不换成 R14/R15**：arm A 要求基线**在整份清单下全 PASS**。R15 的报告带着本轮泄漏（`A-P7` 判 FAIL），
+R14 的输入不是场景 A（内容条目对不上）；且 R15 还带 `A-ATTR` 假阳性（O19，未修）。⇒ `seed_original_check` 这一步
+**要等「模板修复上线后的场景 A 真 run」且 O19 定案**才能去掉。
+
 ### W6 — 2026-09-17，L3：分析面 = 可得最深载体 + 引用落点跟随分析深度（仓库先行，未发布）
 
 **用户决策（2026-09-17，L1/L2/L3 定级）**：**先试 L3**，并当场驳掉了本台账先前的论证 ——
@@ -403,10 +514,10 @@ check.py --run ...r12-fanout-dedup --scenario a -> 34/37 warn 1/1 FAIL
 dist d5afb1f00320（84,994 B / 19 entries / mismatch vs worktree: []）
 ```
 
-**尚未验证的部分（诚实标注）**：L3 是**仓库先行**——用户 2026-09-17 明确「还不用发布ts」，因此本轮的 skill/sys
-改动**没有对应的已发布字节**，无法用 `run` 证明平台装配后的行为。`A-P6` 的「能翻 FAIL」由 M22 离线证明（隔离），
-但「真 run 里模型会照做（取全文 ⇒ 引用指全文）」必须等发布后跑 `R14`（`run --web`，看 `citations.json` 的
-`link` 与 `sources/` 是否一致）；发布后的真 run 编号为 `R14`（R13 已被引用落点探针占用）。在此之前不得把 L3 记为「已验证」。
+**验证状态**：本条目写就时 L3 还是**仓库先行**（用户当时明确「还不用发布ts」），无法用 `run` 证明平台装配后的行为。
+**该缺口已由 `R14`（2026-09-18，发布后真跑）关闭**：17/17 断言 PASS，且逐项核实了引用落点替换、全文归档、
+逐记录深度声明、以及「摘要里没有的数值确实进了报告」。
+**仍未覆盖**：只压到 1 条全文记录 + 1 条无 PMCID 记录（样本窄）。
 
 **我方仍可改的**：`A-P6` 只覆盖「归档了全文」的情形；若某记录全文取回后被丢弃未归档、而引用又改指全文，属
 `A-P5`/`A-P6` 都管不到的盲区——等真 run 样本再决定是否加「引用指全文 ⇒ 必须有对应归档」的反向断言（不凭感觉加）。
@@ -648,6 +759,9 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O21 | **A2 追问的实现路径（分诊完成：政策已放开，规则已改仓库，等发布）**：① **`source_full_link` 字段不存在** —— 那是 v0.11 附件契约的名字（`source_url`/`source_full_text`），现行 params 工具里只有 `clinical_result.full_article_link`（描述「临床结果论文的URL」）；写错名字的后果是整次取数 `INVALID_INPUT`。② 原计划「优先 `abstract_text` → 再访问 `full_article_link`」与**旧** sys:50「citation metadata only」冲突，且对人类可读页面实测不可用（W2-a/W2-c：pubmed cookie 墙、CT.gov JS 骨架、5 个出版域 403）。③ 只有 **API 端点**可用（W2-b/d：CT.gov v2 真原文含结果数值、OpenAlex 按 DOI 拿到原文摘要含会议摘要、Europe PMC 按 pmid 拿摘要；`fullTextXML` 当时误判为 500/不可用，已在 `### W5` 更正为「记录级、路由可用」），而 API 端点必须由 `pm_id`/`doi`/登记号**拼 URL**，与「URL 只逐字用、不得构造」冲突 ⇒ 必须开白名单模板。三个开关已定：**(a) 政策 = 放开**（用户 2026-09-17：字段值是加工的、可能出错，原文第一优先级）；**(b) 可追溯性承载 = 报告正文**（`citations.json` 保持严格 3 键、不加键，因此不破 `A-S4`）；**(c) 冲突/降级语义 = 原文为准 + 分歧必须双值写明 + 抓不到必须点名原因类**。 | 规则已写入仓库（清单见 `### W3`），开白名单模板 R2/R3/R4/R5；**并按来源类细化**（`### W4`：`1` PubMed / `2`/`187` CT.gov / `37` 会议 / `49` 新闻稿=库内即原文 / `120` 补录 / `398` SEC 不可复核），把「link 页一律禁抓」改成「16 主机封锁清单 + 每记录最多 1 次自身 link（仅无路由键或主机可用/未知）」。**第四轮（`### W5`）再收窄**：默认改为「**先读库内 `abstract_text`——实测多数类它就是原文**（期刊摘要 alnum 1.000/0.992、会议摘要 0.991/0.976、登记结果小数 102/102、通稿带线报日期），所以默认不抓」；唯一例外 **`src=1` PubMed 即使有摘要也走 `R6`→`R7` 取 PMC 全文**（100 条抽样 56% 有 PMCID；平台侧 R7 4/5 成功、63–99 K JATS 全文；无 PMCID/非 OA 记原因类不计失败）；预算改「每条 ≤1、`src=1` ≤2、整批 ≤40」；覆盖行必须写 PMC 结果，归档全文就必须点名 `PMC<号>`/「全文」（新断言 `A-P5` + M21 证明有牙） | **已定案 → 待发布授权 + 真 run（R13）**（2026-09-17；证据 W2、W3、W4、W5 + 字段实测） |
 
 | O22 | **全文深度分层 → 已定级 L3（2026-09-17）**：用户提问「字段值基于摘要生成，PMC 能取到的能不能直接读全文」⇒ 实测成立：3 篇 R6 返回 pmcid 的记录，全文独立数值 **334 / 334 / 249**，其中 **92% / 88% / 99%** 不在摘要里，且 `PFS`/`DoR`/`HR`/`TTR`/亚组/`Grade 3` 等维度摘要根本不出现。**用户选 L3 并驳掉「长短即不可比」**：科学事实不因披露载体改变 ⇒ 规则改为「分析面 = 可得最深载体」，且**基于全文分析的记录其引用 `link` 指向全文**（C1 `pmc.ncbi.nlm.nih.gov/articles/{PMCID}/` 只写不取 / C2 ebi REST fullTextXML 为实际读取源），覆盖行须按记录声明深度。新断言 `A-P6-cite-link-is-deepest`（M22 证明可翻）。证据：`docs/evidence/source-link-accessibility-2026-09-17.json` 的 `l3_decision` / `pmc_fulltext_information_gain`。 | W6 | 仓库已改，**未发布** | **待用户发布授权**（发布后跑 R14 才算已验证） |
+| O23 | **runner 韧性缺口：次要端点抖一下就把整次验证毁掉**（2026-09-18 实测发现）：`run` 收集阶段顺序 GET `/timing`、`/usage`、`/info`、`/artifacts`、`/limits`、`/messages`，其中 `/usage` 一次 `urlopen` 超时（`Errno 110`）触发 `die()` ⇒ 进程直接退出，**后面的产物归档、17 项断言、`verification.md` 全部丢失**（`20260918-091057-r14-l3` 只剩 `run.json`/`timing.json`，而 turn 本身已成功完成）。改法（只动 runner）：① `_req` 对 **GET 重试 3 次**（退避 3/6 s）后仍失败才 `die`；**POST 保持单次**，保证抖动不可能变成重复写入；② `usage`/`limits` 这两个**纯装饰**端点标 `soft=True`，失败返回 HTTP 0 并在记录里落 `{"_error": …}`，`verification.md` 新增一行 `collection gaps (decorative endpoints unreachable, evidence intact)`；③ 承载证据的 `/timing`、`/info`、`/messages`、`/artifacts`、`debug/history`、`artifacts/archive` **仍保持硬失败**（宁可红也不假绿）。备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v5.bak` | W6/R14 | 已修 | 已修并回填：不改 runner 的条件下用 `run --resume <thread>` 把这线程重新收集成 `…092000-resume-r14-l3-recollect/`（17/17 PASS） |
+| O24 | **模板规格句被照抄进交付报告**（2026-09-18 `R15` 发现，**已修**）：报告覆盖行出现「原文优先于库内加工字段，不一致处同时写出原文值与库内记录值；」—— 模板第 5 行把规则写在 `**原文核对：** [...]` 括号外，模型当正文照抄。四个模板已移进规格括号；新增清单项 `A-P7-no-template-spec-in-report`（`op_report_excludes_literals`）+ 专属变异 `M23`（实测同时带动 `A-P2`）。备份/闸门：`arm a 38/38`、`arm b 12/12`、`GATE: PASS`、`verify-run-chain GATE: PASS`、dist `c55321ad4619` / 84,991 B 逐字节校验。**线上仍是旧模板** ⇒ 需再次授权 `push-skill`（in-place） | R15 / W6 | 已修（仓库） | 未发布：发布后跑 R16 复验 |
+| O25 | **runner 工具调用计数口径自相矛盾**（2026-09-18 核 R15 数字时发现，**已修**）：schema 被拒的 call 会被框架重发成**新 call**，它既在 durable `calls` 里（无返回）、又不是「已返回」的一次；旧代码两处都印成 `attempts = len(calls) returned + len(rejected)` ⇒ R15 印出「30 attempts = 30 returned + 1 schema-rejected」，且被拒的那次被算进 returned 直方图（`web_fetch`×3，实为 2 次返回 + 1 次被拒）。修法：`ret_n = len(calls) - len(rej_ids)`，直方图剔除被拒项，另加 `[rejected: web_fetch×1]` 单列。备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v6.bak`（95,169 B，**O23 之后 / O25 之前**的状态，由 O25 三处 hunk 反向重建并 `py_compile` 通过）；`verify-run-chain.py` 仍 `GATE: PASS`；`run --resume`（R15 线程）实测新口径输出「29 returned + 1 schema-rejected (…web_fetch×2…) + rejected web_fetch×1」 | R15 | 已修（仅 runner 本地） |
 ## 4. 平台侧（转开发）
 
 完整、可直接转发的版本见 Obsidian：

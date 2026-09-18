@@ -228,6 +228,10 @@ def M21(d, r, c, v):  # archive a PMC full text but declare only the abstract ro
     return 1
 
 
+def M23(d, r, c, v):  # echo the template's own spec wording into the delivered report
+    return sub(r, r"\Z", "\n\n> **补充说明：** 原文优先于库内加工字段，不一致处同时写出原文值与库内记录值。\n")
+
+
 def M22(d, r, c, v):  # full text archived AND declared, but the citation still points at the abstract
     src_dir = os.path.join(d, "artifacts", "sources")
     os.makedirs(src_dir, exist_ok=True)
@@ -262,6 +266,7 @@ MUTS_A = [
     ("M20 hollow-original-check", M20, "A-P4-original-check-names-route-and-class"),
     ("M21 fulltext-archived-but-undeclared", M21, "A-P5-fulltext-fetch-is-declared"),
     ("M22 fulltext-archived-but-abstract-link", M22, "A-P6-cite-link-is-deepest"),
+    ("M23 template-spec-echo", M23, "A-P7-no-template-spec-in-report"),
 ]
 
 # --------------------------------------------------------------- arm B mutations
