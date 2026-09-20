@@ -25,6 +25,7 @@ Read these support files for every run:
 7. `references/timeline-diagram.md` for every same-trial input with two or more distinct evidence states
 8. `references/cross-trial-comparison.md` when the selected texts come from different studies
 9. `references/file-delivery.md` for the v0.9 file-delivery contract (**fixed deliverable paths** — `/workspace/output/report.md` plus `/workspace/output/citations.json`, hard-coded by the backend and never suffixed with a slug, date, or index; chart products use the fixed `/workspace/visualizations/evidence-timeline.json` and `endpoint-<kind>-<n>.json`; `present_artifact` terminal delivery)
+9. `skill/multi-clinical-result-comparison/scripts/render-facts.py` for the numeric fact-ledger render gate. Use it when the report contains material numeric tables or repeated results; it appends the complete evidence appendix and fails closed on unbound fact tokens, source-quote/value mismatch, duplicate fact IDs, unknown citations or leaked internal provenance. Its audit explicitly does not replace semantic review.
 10. `references/entity-inline-reference.md` for the v0.10/v0.11 entity inline references (drug / company / trial registration number; trial short name as display label), only when their entity-ID metadata lines are present
 11. `references/chart-templates.md` before producing any chart — chart products are pure JSON and **reuse the upstream `chart-visualization-json` skill** (its protocol, envelope, templates, Zod schemas and CLI validator are the **render config and single source of truth** — reuse them verbatim) instead of a local implementation. The Skill's JSON contract is the only chart channel: do not render a chart through the platform's built-in chart module, `show_widget`, HTML/SVG, or Mermaid, do not call `read_me` for these JSON chart files, and do not invent fields, palettes, or a parallel JSON shape.
 
@@ -73,8 +74,17 @@ Build an internal worksheet for each source. Capture only explicitly supported:
 A numeric result is never a free-floating value. Preserve the tuple:
 
 ```text
-marker + population/subgroup + arm + endpoint/definition + statistic/value + unit + time/cutoff + denominator + analysis status
+fact_id + marker + record/disclosure version + study identity + population/subgroup + arm + endpoint/definition + statistic/value + unit + time/cutoff + denominator + analysis status + source quote
 ```
+
+Build a compact internal numeric fact ledger before drafting any table, chart or repeated summary. Each material value gets one stable fact ID and one source quote; bind HR, CI, p value, numerator/denominator and arm to the same endpoint comparison rather than treating them as interchangeable fragments. Reuse the same fact IDs everywhere. Do not hand-copy a value into a second table from memory. When the report contains material numeric results or repeated result tables, run the bundled `scripts/render-facts.py` gate with a ledger and draft: it validates source-quote/value binding, renders fact tokens and appends the complete disclosure appendix. A failed gate blocks delivery and must not be bypassed by deleting the appendix or replacing values with prose. The gate is provenance-only: it does not validate clinical semantics, endpoint definitions, statistical interpretation or handwritten numbers that were not fact-token bound; these remain mandatory human/agent review items.
+
+The final report has two layers:
+
+- **Interpretation layer:** concise trial-level reasoning, evidence maturity, comparability, design conflicts and only the numbers needed to support the conclusion. Do not repeat a full result table in every section. Put PFS/OS/ORR/DoR and safety metrics in their own endpoint families; do not mix values merely because they share a unit.
+- **Complete evidence appendix:** one subsection per returned disclosure/record, preserving input order. Include identity, disclosure/version, design, arms, coverage, and every fact-ledger result with endpoint, arm, population, timepoint, assessment, value/unit, statistics and source marker. One row must represent one study/disclosure version, one endpoint and one comparison; never combine multiple studies or endpoints in a slash-separated row. The appendix is the product-side field-alignment view: it preserves all returned fields while the interpretation layer explains only supported relationships.
+
+Repeated numbers in narrative, tables and charts must resolve to the same fact ID. Before delivery, check exact duplicate consistency, study/endpoint/arm/timepoint/analysis-set binding, units and effect types, and absence of unsupported causal/statistical explanations. An apparent conflict between original text and registry fields is a source divergence to disclose, not a license to merge values.
 
 ### 2. Resolve trial identity and boundaries
 

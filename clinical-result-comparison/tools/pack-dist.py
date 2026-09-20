@@ -7,7 +7,7 @@ scratch space).
 
 Contract (byte-stable for an unchanged worktree — `toolsmith-publish status` compares the
 deployed zip against this output by member and by bytes):
-  - 19 entries: SKILL.md + references/*.md + templates/*.md + templates/charts/*.json
+  - 20 entries: SKILL.md + references/*.md + templates/*.md + templates/charts/*.json + scripts/*.py
   - arcname prefix `multi-clinical-result-comparison/`
   - fixed date_time stamp, Unix creator, 0644 external_attr, deflate level 6
   - hard checks (also under python -O): exact entry count, no cache/metadata leakage
@@ -38,7 +38,7 @@ VERSION = "v0.15"
 OUT = os.path.join(REPO, "dist", f"multi-clinical-result-comparison-{VERSION}.zip")
 PREFIX = "multi-clinical-result-comparison/"
 STAMP = (2026, 9, 10, 0, 0, 0)
-EXPECTED = 19
+EXPECTED = 20
 COMPRESS_LEVEL = 6
 
 
@@ -59,7 +59,7 @@ def collect() -> list[tuple[str, str]]:
     skill_md = os.path.join(SRC, "SKILL.md")
     source_file(skill_md)
     entries.append(("SKILL.md", skill_md))
-    for sub, exts in (("references", (".md",)), ("templates/charts", (".json",)), ("templates", (".md",))):
+    for sub, exts in (("references", (".md",)), ("templates/charts", (".json",)), ("templates", (".md",)), ("scripts", (".py",))):
         base = os.path.join(SRC, sub)
         rels = sorted(f"{sub}/{n}" for n in os.listdir(base) if n.endswith(exts))
         for rel in rels:
