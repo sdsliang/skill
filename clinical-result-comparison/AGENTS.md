@@ -15,7 +15,9 @@
 
 **最新：数值事实账本版本已原地发布并完成 R30 固定三组测试。** 发布前 config/status/deps 均通过，prompt v1.6 本地 57,656 B / SHA `115bac4e5295`，skill v1.0.7 / skill_id `ad75ec2c44334f389a0394895a47b765`，20/20 文件回读一致，dist 93,090 B / SHA `dd4d83f871692bd4c70b98cbf6787af1b6f839426312aee017e75630d95a06bb`。R30-1/2/3 分别覆盖 4/18/14 条，均成功产出报告，引用、图表、实体锚点、固定路径和回执断言通过；R30-1 因本地 `__pycache__` 污染支持文件清单，R30-2/R30-3 因平台重复 `write_file` 已存在文件导致 `no tool errors` 失败。报告未丢失，原始证据保留；不能宣称本轮三组无工具错误全绿。详见 `docs/toolsmith-verification-log.md` R30。
 
-**本轮新增：数值事实账本与完整附表已在本地实现，待发布。** 新增 `skill/multi-clinical-result-comparison/scripts/render-facts.py` 与 `evals/numeric-integrity/test-render-facts.py`；渲染器校验事实 ID、记录引用、源文件/精确引文/数值绑定、token 与引用，并原子生成正文与按披露分组的完整字段附表。统一、跨试验、混合、同试验模板均要求一披露/一终点/一比较一行，正文减少重复数值，图表/表格/正文复用事实 ID。10 项离线测试通过；包为 20 文件、92,491 B，SHA `ebb73e12aa9ea68d563a23bfd5db6c1b8fd5890d23661d902931bbadafa174a9`；`pack-dist.py --check` 与 `git diff --check` 通过。尚未发布、尚未跑 R30+，也未改历史报告。
+**最新 R31 热点评估（2026-09-20）**：从 `np_clinical` 只读抽取 HARMONi-2（3 条）+ HARMONi-6（2 条）共 5 条真实记录，TS run thread `1e841bad-058b-4cf4-ba49-fab407c55c27` 完成。报告正确区分研究、终点、亚组、时间点、单药/联合化疗和研究内对照；5 引用、2 图、全部断言通过。唯一运行问题是 1 次 execute schema 拒参后重试，无新增已证实 TS 平台 Bug。详情见台账 R31，原始证据目录 `/home/xupeipeioo1/.local/state/toolsmith-runs/20260920-112401-hot-harmoni-20260920/`。
+
+ 新增 `skill/multi-clinical-result-comparison/scripts/render-facts.py` 与 `evals/numeric-integrity/test-render-facts.py`；渲染器校验事实 ID、记录引用、源文件/精确引文/数值绑定、token 与引用，并原子生成正文与按披露分组的完整字段附表。统一、跨试验、混合、同试验模板均要求一披露/一终点/一比较一行，正文减少重复数值，图表/表格/正文复用事实 ID。10 项离线测试通过；包为 20 文件、92,491 B，SHA `ebb73e12aa9ea68d563a23bfd5db6c1b8fd5890d23661d902931bbadafa174a9`；`pack-dist.py --check` 与 `git diff --check` 通过。尚未发布、尚未跑 R30+，也未改历史报告。
 
 
 

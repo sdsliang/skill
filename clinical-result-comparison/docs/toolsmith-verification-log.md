@@ -1322,7 +1322,31 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 
 - 本地回归前不应在技能包目录运行会生成 `__pycache__` 的编译检查；应使用隔离缓存或测试后清理，避免支持文件清单污染。已清理，本轮不改历史 R30-1。
 
+
 ### 平台侧/外部服务现象
 
 - R30-2/R30-3 的 `write_file` 已存在文件冲突会计入 `no tool errors` 失败，但不阻止后续报告交付；建议平台运行空间提供唯一临时文件名、显式 overwrite 或在重复写前自动转 `edit_file`。
 - R30-3 Europe PMC `PMC10463176`、`PMC6933872` HTTP 500；按输入契约保留为抓取失败，未推断非 OA。
+
+## R31：ES 热点 HARMONi-2 / HARMONi-6 多结果评估（2026-09-20）
+
+本轮为只读 ES 取样后的一次真实 TS run，未修改 Skill、prompt、评分器或历史报告。候选来自 `np_clinical` 的近期会议记录：HARMONi-2（NCT05499390）3 条披露，HARMONi-6（NCT05840016）2 条披露。ES 返回 5/5，库内会议摘要正文长度约 2.8–3.2 KB；原始 ES 样本保存在 `/tmp/harmoni-hotspot-es.json`（临时探针，不入库）。
+
+| 运行 | 记录 | 线程 | 秒（服务端/轮询） | 调用尝试 | 产物/断言 |
+|---|---:|---|---:|---:|---|
+| R31 | 5 | `1e841bad-058b-4cf4-ba49-fab407c55c27` | 529.9 / 531.5 | 72（71 returned + 1 args-refused） | 报告、5 引用、2 柱状图；19/19 断言通过 |
+
+证据目录：`/home/xupeipeioo1/.local/state/toolsmith-runs/20260920-112401-hot-harmoni-20260920/`。部署状态检查为 in sync；`deps` 仅提示 chart skill v1.0.12 的更新时间指纹变化，版本未变，未执行 `deps --accept`。
+
+### 人工内容审查
+
+- **通过的关键边界**：正确区分两项研究、单药与联合化疗、不同研究内对照；没有合并跨研究排名；HARMONi-2 的 PFS 重述未当作新独立证据；HARMONi-2/HARMONi-6 的 PFS、OS、总人群、PD-L1 亚组分别标注。
+- **图表边界通过**：仅生成 HARMONi-2 PD-L1 亚组 ORR 和 HARMONi-6 总人群/PD-L1 分层 PFS 的同试验图，没有生成不当跨研究柱图或时间折线图。
+- **统计与成熟度边界通过**：报告保留两项 OS 均非最终分析、亚组无交互检验不能升级为亚组优效、HARMONi-2 与 HARMONi-6 HR 不可直接比较等限制。
+- **上游数据质量提示已保留**：HARMONi-6 OS 原文 CI 为 `27.89–NE` / `20.11–NE`，库内结构化字段出现 `27–89` / `20–11` 形态；报告采用原文并明确披露差异，没有静默覆盖。
+
+### 运行与平台现象
+
+- 1 次 `execute` 调用传入额外 `command` 参数，被 schema 拒绝后自动重试；最终无 unresolved/error，不能单独定性为 TS 后端 Bug。
+- 本轮无 `write_file` 已存在冲突、无外部抓取失败、无产物断言失败。当前没有新增已证实的 TS 平台功能缺陷。
+- 原始 `verification.md`、`transcript.md`、报告、引用和图表均保留；本轮不改历史分数。
