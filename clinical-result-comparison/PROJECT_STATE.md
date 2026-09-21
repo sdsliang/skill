@@ -8,7 +8,7 @@
 
 
 
-- **当前本地待发布图表文档精简（2026-09-20）**：删除 `references/chart-templates.md` 中对上游 chart-visualization-json 的协议、字段、Schema、envelope、版本和 CLI 重复说明，并缩短三个临床图表起点的注释；保留本 skill 独有的临床选型、可比性、数值绑定、交付路径和降级规则。数值完整性测试 11/11 通过；dist 已重建为 20 entries、90,358 B、SHA-256 `752ea609be4ba67663f0efa8457f44218b1be882060d36442f6bd0683cef53e1`，pack/diff 检查通过。尚未发布 TS 资产或运行在线回归。
+- **当前本地待发布图表文档精简（2026-09-20）**：删除 `references/chart-templates.md` 与 v0.15 prompt 中对上游 chart-visualization-json 的协议、字段、Schema、envelope、版本和 CLI 重复说明，并缩短三个临床图表起点的注释；保留本 skill 独有的临床选型、可比性、数值绑定、交付路径和降级规则。TS 资产尚未发布，需单独授权后再同步线上。
 
 
 

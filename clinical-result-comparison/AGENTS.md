@@ -17,7 +17,7 @@
 
 **最新 R31 热点评估（2026-09-20）**：从 `np_clinical` 只读抽取 HARMONi-2（3 条）+ HARMONi-6（2 条）共 5 条真实记录，TS run thread `1e841bad-058b-4cf4-ba49-fab407c55c27` 完成。报告正确区分研究、终点、亚组、时间点、单药/联合化疗和研究内对照；5 引用、2 图、全部断言通过。唯一运行问题是 1 次 execute schema 拒参后重试，无新增已证实 TS 平台 Bug。详情见台账 R31，原始证据目录 `/home/xupeipeioo1/.local/state/toolsmith-runs/20260920-112401-hot-harmoni-20260920/`。
 
-**图表文档去重复（2026-09-20）**：按上游 chart-visualization-json skill 开发者反馈，删除 `references/chart-templates.md` 中协议/字段/schema/envelope/版本/CLI 的重复说明，以及三个临床图表起点中的长协议注释。该参考文档现在只保留本 skill 的临床场景选型、可比性边界、证据/数值约束、交付路径和降级规则，并明确协议与校验由上游 skill 唯一负责。数值完整性测试 11/11 通过；dist 20 entries / 90,358 B / SHA `752ea609be4ba67663f0efa8457f44218b1be882060d36442f6bd0683cef53e1`，pack/diff 检查通过。尚未发布 TS 资产或运行在线回归。
+**图表协议重复内容已同步从 v0.15 prompt 移除（2026-09-20）**：prompt 的 Chart contract 现在只指向上游 chart-visualization-json skill，并保留临床选型、可比性、事实绑定和交付边界；删除重复的协议字段、Schema、envelope、默认值、排序和 CLI 细节。TS 资产尚未发布，需单独授权后再同步线上。
 
 
 
