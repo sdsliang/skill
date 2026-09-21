@@ -8,7 +8,7 @@
 
 
 
-- **当前本地待发布图表文档精简（2026-09-20）**：删除 `references/chart-templates.md` 与 v0.15 prompt 中对上游 chart-visualization-json 的协议、字段、Schema、envelope、版本和 CLI 重复说明，并缩短三个临床图表起点的注释；保留本 skill 独有的临床选型、可比性、数值绑定、交付路径和降级规则。TS 资产尚未发布，需单独授权后再同步线上。
+- **R32 固定回归与原地更新（2026-09-21）**：当前 prompt v1.6 / Skill v1.0.7 已原地更新并回读一致。固定三组 4/18/14 均成功结束并产出，主要输出契约通过；但三组均有 `__pycache__` 支持文件清单差异，R32-1/R32-2 有重复 `write_file` 冲突，R32-2/R32-3 有 Europe PMC 503，不能宣称全绿。详见 `docs/toolsmith-verification-log.md` R32。
 
 
 

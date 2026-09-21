@@ -1350,3 +1350,25 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 - 1 次 `execute` 调用传入额外 `command` 参数，被 schema 拒绝后自动重试；最终无 unresolved/error，不能单独定性为 TS 后端 Bug。
 - 本轮无 `write_file` 已存在冲突、无外部抓取失败、无产物断言失败。当前没有新增已证实的 TS 平台功能缺陷。
 - 原始 `verification.md`、`transcript.md`、报告、引用和图表均保留；本轮不改历史分数。
+
+## R32：图表文档去重复后的原地更新与固定三组回归（2026-09-21）
+
+用户授权原地更新。发布前 `config`、`status`、`deps` 已检查；依赖闸门发现 chart skill v1.0.12 指纹刷新及内置 `execute` schema 从 `shell_command` 变更为 `command`。前者版本不变且已接受新基线；后者为已知平台侧变化，本地未修改 runner、Skill 或 prompt 以适配。原地发布后回读一致：prompt v1.6，Skill v1.0.7 / skill_id `ad75ec2c44334f389a0394895a47b765`，20/20 支持文件一致，prompt 与本地字节一致。
+
+| 运行 | 组/记录 | 线程 | 秒（服务端） | 调用尝试 | 产物/断言 |
+|---|---:|---|---:|---:|---|
+| R32-1 | 1 / 4 | `72f8ee86-e3ba-4e82-855a-125b4e4f6437` | 532.5 | 48 | 报告、4 引用、2 图表；支持文件清单 FAIL（残留 `__pycache__`），`no tool errors` FAIL（重复写 `build.py`） |
+| R32-2 | 2 / 18 | `514b776d-09c2-4b1f-9bd2-1577750f1d8d` | 836.9 | 76 | 报告、18 引用、3 图表；支持文件清单 FAIL，`no tool errors` FAIL（重复写 `report_template.md`），3 次 Europe PMC 503 |
+| R32-3 | 3 / 14 | `95c02f53-0b55-4cbf-9260-cf7765e0de4b` | 653.1 | 81 | 报告、14 引用、1 图表；支持文件清单 FAIL（残留 `__pycache__`），其余断言通过；5 次 Europe PMC 503 |
+
+证据目录：`~/.local/state/toolsmith-runs/20260921-110837-r32-fixed-1/`、`20260921-111759-r32-fixed-2/`、`20260921-113229-r32-fixed-3/`。三组均 `outcome=succeeded`，报告、引用键集/日期/title、图表 envelope/标签、实体锚点、固定路径、回执归档均通过；共覆盖 4/18/14 条输入。由于支持文件清单和工具错误断言失败，不能宣称本轮全绿；外部抓取 503 按原始证据保留，不能推断来源内容缺失。
+
+### 我方能改的
+
+- 三组均报告 `scripts/__pycache__/render-facts.cpython-310.pyc` 不在本地发布包中的支持文件清单差异。该污染来自运行前本地 Python 编译检查，应在回归前清理并避免在 Skill 包目录生成缓存；不修改历史运行结果。
+
+### 平台侧/外部服务现象
+
+- R32-1/R32-2 分别复现 `/workspace/work/build.py`、`/workspace/output/report_template.md` 已存在时的 `write_file` 冲突；模型收到重试后仍完成产出，但 `no tool errors` 失败。与 R30 的同类现象一致，继续转平台开发。
+- R32-2/R32-3 的 Europe PMC 请求返回 503；按输入契约保留抓取失败及报告覆盖说明，不把它判作 Skill 内容错误。
+- 内置 `execute` schema 的 `command`/`shell_command` 变化继续作为平台依赖变化跟踪；本轮未改本地实现。

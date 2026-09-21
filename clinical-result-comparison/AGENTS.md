@@ -15,7 +15,7 @@
 
 **最新：数值事实账本版本已原地发布并完成 R30 固定三组测试。** 发布前 config/status/deps 均通过，prompt v1.6 本地 57,656 B / SHA `115bac4e5295`，skill v1.0.7 / skill_id `ad75ec2c44334f389a0394895a47b765`，20/20 文件回读一致，dist 93,090 B / SHA `dd4d83f871692bd4c70b98cbf6787af1b6f839426312aee017e75630d95a06bb`。R30-1/2/3 分别覆盖 4/18/14 条，均成功产出报告，引用、图表、实体锚点、固定路径和回执断言通过；R30-1 因本地 `__pycache__` 污染支持文件清单，R30-2/R30-3 因平台重复 `write_file` 已存在文件导致 `no tool errors` 失败。报告未丢失，原始证据保留；不能宣称本轮三组无工具错误全绿。详见 `docs/toolsmith-verification-log.md` R30。
 
-**最新 R31 热点评估（2026-09-20）**：从 `np_clinical` 只读抽取 HARMONi-2（3 条）+ HARMONi-6（2 条）共 5 条真实记录，TS run thread `1e841bad-058b-4cf4-ba49-fab407c55c27` 完成。报告正确区分研究、终点、亚组、时间点、单药/联合化疗和研究内对照；5 引用、2 图、全部断言通过。唯一运行问题是 1 次 execute schema 拒参后重试，无新增已证实 TS 平台 Bug。详情见台账 R31，原始证据目录 `/home/xupeipeioo1/.local/state/toolsmith-runs/20260920-112401-hot-harmoni-20260920/`。
+**R32 固定回归已完成（2026-09-21）**：图表文档去重复后，prompt v1.6 / Skill v1.0.7 原地更新并回读一致。固定 4/18/14 三组均 `outcome=succeeded`、产物和主要契约断言通过；R32-1/R32-2/R32-3 均有 `__pycache__` 支持文件清单 FAIL，R32-1/R32-2 另有重复 `write_file` 冲突，R32-2/R32-3 有 Europe PMC 503。不能宣称本轮全绿。证据见 `docs/toolsmith-verification-log.md` R32 和三组 run 目录。
 
 **图表协议重复内容已同步从 v0.15 prompt 移除（2026-09-20）**：prompt 的 Chart contract 现在只指向上游 chart-visualization-json skill，并保留临床选型、可比性、事实绑定和交付边界；删除重复的协议字段、Schema、envelope、默认值、排序和 CLI 细节。TS 资产尚未发布，需单独授权后再同步线上。
 
