@@ -8,7 +8,7 @@
 
 
 
-- **当前本地待发布优化（2026-09-20）**：同一 Markdown 表格单元格内的重复 `ref` 标记由渲染器合并为一次，跨单元格仍保留；数值附录已改为按结果域/终点排序的单一汇总对齐矩阵，不再按试验/披露分节；图表说明不再使用 `数据说明` 前缀，模板 `dataSource` 不再使用 `数据来源：` 前缀。11/11 数值完整性测试通过；dist 已重建为 20 entries、93,635 B、SHA-256 `d6d2bcdf3ab9669338d34b2b12d78a8f71f5ce3c8a5db7bb0aa01ea1b589e5ec`，pack/diff 检查通过。尚未发布 TS 资产或运行在线回归。
+- **当前本地待发布图表文档精简（2026-09-20）**：删除 `references/chart-templates.md` 中对上游 chart-visualization-json 的协议、字段、Schema、envelope、版本和 CLI 重复说明，并缩短三个临床图表起点的注释；保留本 skill 独有的临床选型、可比性、数值绑定、交付路径和降级规则。数值完整性测试 11/11 通过；dist 已重建为 20 entries、90,358 B、SHA-256 `752ea609be4ba67663f0efa8457f44218b1be882060d36442f6bd0683cef53e1`，pack/diff 检查通过。尚未发布 TS 资产或运行在线回归。
 
 
 

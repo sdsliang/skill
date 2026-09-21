@@ -1,64 +1,8 @@
-# 图表模板与校验（复用 chart-visualization-json skill）
+# 图表使用规则（依赖 chart-visualization-json skill）
 
-> 多临床结果对比 Skill 自 v0.14 起，图表产物**统一为 JSON 文件**，并**直接复用上游
-> `chart-visualization-json` skill**（下称「图表 skill」）的协议、模板与校验能力，不再自研一套平行实现。
->
-> | 能力            | 来源（图表 skill，唯一权威）                                                       |
-> | --------------- | ---------------------------------------------------------------------------------- |
-> | 协议与工作流    | `chart-visualization-json/SKILL.md`                                                |
-> | 类型 / 字段细则 | `chart-visualization-json/references/chart-types.md`                               |
-> | 可渲染模板      | `chart-visualization-json/templates/line.json`、`bar.json`、`timeline.json`（另有 `visualization.json` 最小骨架）        |
-> | Schema 实现     | `chart-visualization-json/references/schemas/`（Zod，小驼峰字段）                  |
-> | 成品包裹层      | **envelope** `{ id, iframe_template, option }`（图表 skill v1.0.9 / 2026-09-10 build 起必需，见「零」）        |
-> | 校验命令        | `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <file.json>` |
->
-> 本 skill 不再产出 HTML/SVG fragment，也**不再维护自研校验脚本**：旧 HTML 图表模板与
-> `validate-chart.py` / `render-preview.py` 自 **v0.15 起已从本仓库彻底移除**（回溯可见 git 历史
-> `e4f3bb7`，本 skill 不再默认它们存在）。`templates/charts/*.json` 只是**按该协议预填的
-> 临床场景起点**（**它们只是 `option` 内层，不是可直接交付/校验的成品**，见「零」），产物是否合法一律以图表 skill 的 schema 与 CLI 校验结果为准；渲染由前端
-> chart-visualization-json 渲染层完成。
->
-> 运行时路径以工作区实际情况为准（图表 skill 通常位于 `/workspace/skills/chart-visualization-json/`，
-> 与本 skill 同级）；校验脚本依赖项目根的 `zod`。
+本 skill 的图表部分只定义临床场景选择、证据可比性、数值绑定和交付边界；图表协议、字段、模板、Schema、渲染和校验均由上游 `chart-visualization-json` skill 负责。需要生成图表时读取并遵循上游 skill 的当前规则，不在本 skill 中复制其协议说明或维护平行实现。
 
-## 零、协议要点（以图表 skill 为准，勿自造字段）
-
-- 可渲染类型 `RENDERABLE = line | bar | timeline`（图表 skill 的 `RENDERABLE_CHART_TYPES`）；本 skill 只产出这三种。
-- **成品是 envelope，不是平铺的 option（图表 skill v1.0.9 起硬规则）**：成品 JSON 顶层必须是
-  `{ "id": "chart-visualization-json", "iframe_template": "<图表 skill 当前发布值>", "option": { …图表配置… } }`。
-  图表 skill 的校验器**已不再接受**旧的「option 层平铺」写法，报错原文：
-  `未包 envelope：必须是 { "id": "chart-visualization-json", "option": {…}, "iframe_template": "…" }；旧格式（option 层配置）已不再兼容。`
-  本节以下（含 `templates/charts/*.json`）描述的全是 **`option` 内层**结构。
-  - 公共字段：`title`、`subTitle`、`dataSource`、`describe`、`width`、`height`、`theme`，带坐标轴的图再加
-    `axisXTitle`、`axisYTitle`（`timeline` 不适用坐标轴标题）。
-  - `dataSource` / `describe` 是元数据，**不参与前端组件绘制**（只在协议层保留来源与读图说明）。`description`/`describe` 的内容直接写说明，不加「数据说明：」「数据说明」等前缀；图表 `title` 只填语义字段，标题样式和展示控制交给前端。
-- **envelope 三键从哪里来（硬规则，禁止硬编码）**：
-  - `id`：固定字面量 `chart-visualization-json`。
-  - `iframe_template`：校验器要求它与图表 skill 的 `config.js` 中 `IFRAME_TEMPLATE` **全等**（不是「任意绝对路径都放行」）。
-    该值由 `apps/ai-charts-html` **每次发布 CDN 成功后刷新**（同步写 `config.js` 与图表 skill 的 `templates/*.json`），
-    因此**每次运行都要现读**：不得硬编码、不得沿用上一次运行的值、不得从本文件或任何文档里抄。
-  - 最稳做法：**先复制图表 skill 自己的模板**（`/workspace/skills/chart-visualization-json/templates/{bar,line,timeline}.json`，
-    它们已带正确的三键与当前 `iframe_template`）到成品路径，**三键原样不动，只替换 `option` 内层**。
-  - 退路：模板不可读时 `cat /workspace/skills/chart-visualization-json/config.js` 取字面量套进 envelope；
-    两处都取不到 → **fail-loud**（按「校验环境不可用」处理，不输出未经校验的图引用），绝不猜一个值填进去。
-- **渲染配置一律取自图表 skill（硬规则）**：类型、字段名、默认值（如 bar 的 `stack: true`、`width` 600 / `height` 400）、`theme` 取值都以图表 skill 的 `templates/*.json` 与 `references/schemas/` 为准，**原样复用，不重述、不扩展、不自造**；本 skill 只在其上补临床选型、数据语义与证据边界。
-  - 交付通道只有一条：图表 skill 定义的 JSON 数据文件 + `::visualization`。**不要为本 skill 的 JSON 图调用 `read_me`**（平台 Visualizer 段的 Skill-defined data file 例外即声明这类文件无需 `read_me`）、**不要用 `show_widget`**、不要退到内置 chart 模块（Chart.js / HTML / SVG）、也不要另造一套自己的 JSON 字段与配色——需要图时一律由图表 skill 的契约定义它。
-  - 上游对**未知字段是「静默忽略」（Zod strip）**：`option` 内保留 `_comment` 之类的说明键不会导致校验失败，但渲染层不保证使用它；面向读者的说明要写进 `describe` / `description` 这类协议字段。
-  - v1.0.9 较上一版新增的可选字段（`bar.minCategoryGap`、`bar.style.barWidth`、各类型 `style.palette`/`texture`/`backgroundColor`）本 skill 按最小字段集处理，不主动使用。
-- 数据行（line/bar 的 `data[]`）：`label`（维度标签）、`value`（**纯 number**）、`group`（多系列分组，string）、
-  `description`（可选短说明，不参与绘制）、`drill`（可选下钻传参）。
-- timeline 的 `data[]`：`label`（必填）+ `time`（**必填**，时间锚点文案；未知写「时间未明」）、`group`、
-  `weight`（number ≥ 0，驱动圆点大小，默认 0）、`content`（支持 `\n` 多行）、`description`、`drill`；
-  顶层可选 `legend`（`key`/`label`/`shape: circle | empty-circle`）与 `weightLegend`（`{ show, label }`）。
-  `data[].group` 必须与 `legend[].key` 对应。
-- bar 的类型专属字段：`group`（boolean，默认 false）、`stack`（boolean，默认 **true**）、`direction`
-  （`horizontal` | `vertical`，不填时 bar 按 horizontal）。**并排柱状须显式写 `group: false, stack: false`**，
-  否则默认 `stack: true` 会按堆叠语义解读。`theme` ∈ `default` / `academy` / `dark`。
-- line 可选的 `style.startAtZero` / `style.lineWidth` 等属图表 skill 能力；本 skill 默认只用最小字段集。
-- **数值纪律（硬规则）**：`value` 只放纯数字，不得把「未报告 / NR / NE / 空 / 区间 / 95%CI / 带 `%` 字符串」
-  放入 `value`——这类放该项 `description` 或正文精确数值表。
-- 不写 Mermaid、不产出 `.html`、不在 JSON 内混入自定义色板或 CSS/HTML token（视觉与主题统一由渲染层处理，`theme` 字段按图表 skill 协议填写）。
-
+`templates/charts/*.json` 是本 skill 提供的临床场景起点；它们的内容应作为上游图表模板的配置输入，不构成另一套图表协议。
 ## 一、选型规则（与 SKILL.md 工作流一致）
 
 **先判时间维度，再判横截面：** 同一研究、同一队列、同一终点存在 ≥2 个已披露时点（长期应答维持、体重/生物标志物变化、OLE 随访、PFS/OS 按时间点）→ **优先用折线图**呈现随时间变化；单时点单值终点（ORR、EASI-75 等横截面应答率）→ 柱状图并列；证据链/里程碑顺序 → 时间轴。
