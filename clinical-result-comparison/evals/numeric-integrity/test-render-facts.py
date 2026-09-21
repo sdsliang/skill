@@ -136,6 +136,14 @@ class RenderFactsTests(unittest.TestCase):
         self.assertNotIn("F001", output)
         self.assertNotIn("evidence.txt", output)
 
+    def test_table_cell_deduplicates_same_ref_but_keeps_separate_cells(self):
+        draft = "| Result | Source |\n|---|---|\n| [[fact:F001]] / [[fact:F001]] | [[fact:F001]] |"
+        self.assertTrue(self.run_render(draft))
+        output = self.out.read_text(encoding="utf-8")
+        table_line = next(line for line in output.splitlines() if line.startswith("| 8.34 %"))
+        self.assertEqual(table_line.count("{{ref_1}}"), 2)
+        self.assertEqual(table_line.split("|")[1].count("{{ref_1}}"), 1)
+
     def test_unknown_token_blocks_and_audit_records_failure(self):
         self.out.write_text("old report", encoding="utf-8")
         self.assertFalse(self.run_render("Unknown [[fact:F999]]."))
@@ -176,18 +184,20 @@ class RenderFactsTests(unittest.TestCase):
         self.assertFalse(self.run_render())
         self.assertIn("unknown", self.audit_data()["errors"][0])
 
-    def test_appendix_contains_all_records_and_facts_without_internal_fields(self):
+    def test_appendix_is_consolidated_alignment_matrix(self):
         self.assertTrue(self.run_render("Summary [[result:F001]] and [[result:F002]]."))
         output = self.out.read_text(encoding="utf-8")
         self.assertIn("## Fact Ledger Appendix", output)
-        self.assertIn("### Study alpha", output)
-        self.assertIn("### Study beta", output)
+        self.assertIn("This appendix is a consolidated alignment matrix", output)
+        self.assertIn("| Outcome domain | Trial / disclosure |", output)
+        self.assertNotIn("### Study alpha", output)
+        self.assertNotIn("### Study beta", output)
         self.assertIn("Primary endpoint", output)
         self.assertIn("Response", output)
         self.assertIn("8.34 %", output)
         self.assertIn("72 %", output)
-        self.assertIn("ref_1", output)
-        self.assertIn("ref_2", output)
+        self.assertIn("{{ref_1}}", output)
+        self.assertIn("{{ref_2}}", output)
         self.assertNotIn("F001", output)
         self.assertNotIn("F002", output)
         self.assertNotIn("evidence.txt", output)

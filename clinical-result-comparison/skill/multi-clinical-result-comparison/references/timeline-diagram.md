@@ -42,7 +42,7 @@
   "type": "timeline",
   "title": "TRAIN-2（NCT01996267）证据链时间轴",
   "subTitle": "同一试验证据披露与结果演进 · 节点=合并后的证据状态",
-  "dataSource": "数据来源：所选记录的临床内容及按输入契约取得的同记录原文；交付时填写实际来源与分析深度",
+  "dataSource": "所选记录的临床内容及按输入契约取得的同记录原文；交付时填写实际来源与分析深度",
   "describe": "节点=证据状态或明确里程碑，weight=证据成熟度；证据边界遵守 references/input-contract.md",
   "legend": [
     { "key": "milestone",  "label": "研究里程碑", "shape": "empty-circle" },

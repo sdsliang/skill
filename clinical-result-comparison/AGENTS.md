@@ -17,7 +17,8 @@
 
 **最新 R31 热点评估（2026-09-20）**：从 `np_clinical` 只读抽取 HARMONi-2（3 条）+ HARMONi-6（2 条）共 5 条真实记录，TS run thread `1e841bad-058b-4cf4-ba49-fab407c55c27` 完成。报告正确区分研究、终点、亚组、时间点、单药/联合化疗和研究内对照；5 引用、2 图、全部断言通过。唯一运行问题是 1 次 execute schema 拒参后重试，无新增已证实 TS 平台 Bug。详情见台账 R31，原始证据目录 `/home/xupeipeioo1/.local/state/toolsmith-runs/20260920-112401-hot-harmoni-20260920/`。
 
- 新增 `skill/multi-clinical-result-comparison/scripts/render-facts.py` 与 `evals/numeric-integrity/test-render-facts.py`；渲染器校验事实 ID、记录引用、源文件/精确引文/数值绑定、token 与引用，并原子生成正文与按披露分组的完整字段附表。统一、跨试验、混合、同试验模板均要求一披露/一终点/一比较一行，正文减少重复数值，图表/表格/正文复用事实 ID。10 项离线测试通过；包为 20 文件、92,491 B，SHA `ebb73e12aa9ea68d563a23bfd5db6c1b8fd5890d23661d902931bbadafa174a9`；`pack-dist.py --check` 与 `git diff --check` 通过。尚未发布、尚未跑 R30+，也未改历史报告。
+**本地待发布：三项输出细节优化（2026-09-20）**：数值渲染器现在对 Markdown 表格的同一单元格按 ref 去重，跨单元格仍保留引用；完整附录改为按结果域/终点排序的单一汇总对齐矩阵，不再按试验/披露分节；图表 `description`/`describe` 禁止 `数据说明` 前缀，模板 `dataSource` 也移除 `数据来源：`。数值完整性测试 11/11 通过，dist 20 entries / 93,635 B / SHA `d6d2bcdf3ab9669338d34b2b12d78a8f71f5ce3c8a5db7bb0aa01ea1b589e5ec`，pack check 与 diff check 通过。尚未发布 TS 资产、尚未重新跑在线回归。
+
 
 
 

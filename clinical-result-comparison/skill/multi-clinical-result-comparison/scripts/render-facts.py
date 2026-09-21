@@ -172,42 +172,78 @@ def _validate_citations(text: str, refs: set[str]) -> None:
             raise ValidationError(f"draft contains unknown citation: {{{{{citation}}}}}")
 
 
-def _appendix(records: list[dict[str, str]], facts: list[dict[str, str]]) -> str:
-    facts_by_ref: dict[str, list[dict[str, str]]] = {record["ref"]: [] for record in records}
-    for fact in facts:
-        facts_by_ref[fact["ref"]].append(fact)
+def _dedupe_table_cell_citations(text: str) -> str:
+    """Keep each source marker once per Markdown table cell."""
+    seen: set[str] = set()
 
-    parts = ["## Fact Ledger Appendix", "", "This appendix contains the validated ledger facts used by this report."]
-    for record in records:
-        ref = record["ref"]
-        parts.extend(
-            [
-                "",
-                f"### {_normalise_markdown(record['title'])}",
-                "",
-                f"- Identity: {_normalise_markdown(record['identity'])}",
-                f"- Design: {_normalise_markdown(record['design'])}",
-                f"- Arms: {_normalise_markdown(record['arms'])}",
-                f"- Coverage: {_normalise_markdown(record['coverage'])}",
-                "",
-                "| Endpoint | Arm | Population | Timepoint | Assessment | Value + unit | Statistics | Source ref |",
-                "| --- | --- | --- | --- | --- | --- | --- | --- |",
-            ]
-        )
-        record_facts = facts_by_ref[ref]
-        if not record_facts:
-            parts.append("| No ledger facts |  |  |  |  |  |  |  |")
-            continue
-        for fact in record_facts:
-            value_unit = f"{fact['value']} {fact['unit']}"
-            parts.append(
-                "| "
-                + " | ".join(
-                    _normalise_markdown(fact[field])
-                    for field in ("endpoint", "arm", "population", "timepoint", "assessment")
+    def replace(match: re.Match[str]) -> str:
+        ref = match.group(1)
+        if ref in seen:
+            return ""
+        seen.add(ref)
+        return match.group(0)
+
+    return CITATION_RE.sub(replace, text)
+
+
+def _dedupe_table_citations(text: str) -> str:
+    """Avoid repeating one ref after every fact in the same table cell."""
+    lines = []
+    for line in text.splitlines(keepends=True):
+        if line.lstrip().startswith("|"):
+            parts = re.split(r"(?<!\\)\|", line)
+            line = "|".join(_dedupe_table_cell_citations(part) for part in parts)
+        lines.append(line)
+    return "".join(lines)
+
+
+def _appendix(records: list[dict[str, str]], facts: list[dict[str, str]]) -> str:
+    records_by_ref = {record["ref"]: record for record in records}
+    record_order = {record["ref"]: index for index, record in enumerate(records)}
+    ordered_facts = sorted(
+        enumerate(facts),
+        key=lambda item: (
+            item[1]["kind"],
+            item[1]["endpoint"],
+            record_order[item[1]["ref"]],
+            item[0],
+        ),
+    )
+
+    parts = [
+        "## Fact Ledger Appendix",
+        "",
+        "This appendix is a consolidated alignment matrix, not a separate report for each trial. Rows are ordered by outcome domain and endpoint; each row retains one disclosure version, endpoint, comparison, population, timepoint, and source marker.",
+        "",
+        "| Outcome domain | Trial / disclosure | Version / cutoff | Design and treatment groups | Endpoint / definition | Arm | Population / analysis set | Timepoint / assessment | Result / unit | Statistics | Source |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for _, fact in ordered_facts:
+        record = records_by_ref[fact["ref"]]
+        context = f"{record['title']}<br>{record['identity']}"
+        design = f"{record['design']}<br>{record['arms']}"
+        result = f"{fact['value']} {fact['unit']}"
+        parts.append(
+            "| "
+            + " | ".join(
+                (
+                    _normalise_markdown(fact["kind"]),
+                    _normalise_markdown(context),
+                    _normalise_markdown(fact["version"]),
+                    _normalise_markdown(design),
+                    _normalise_markdown(fact["endpoint"]),
+                    _normalise_markdown(fact["arm"]),
+                    _normalise_markdown(fact["population"]),
+                    _normalise_markdown(f"{fact['timepoint']} / {fact['assessment']}"),
+                    _normalise_markdown(result),
+                    _normalise_markdown(fact["statistics"]),
+                    "{{" + fact["ref"] + "}}",
                 )
-                + f" | {_normalise_markdown(value_unit)} | {_normalise_markdown(fact['statistics'])} | {ref} |"
             )
+            + " |"
+        )
+    if not facts:
+        parts.append("| No ledger facts |  |  |  |  |  |  |  |  |  |  |")
     return "\n".join(parts) + "\n"
 
 
@@ -254,7 +290,7 @@ def render(ledger_path: Path, draft_path: Path, out_path: Path, audit_path: Path
         rendered_draft = _replace_tokens(draft, facts_by_id)
         _validate_citations(rendered_draft, refs)
         appendix = _appendix(records, facts)
-        output = rendered_draft.rstrip() + "\n\n" + appendix
+        output = _dedupe_table_citations(rendered_draft.rstrip() + "\n\n" + appendix)
 
         # These are internal ledger identifiers and evidence paths, never report content.
         leaked = [fact["id"] for fact in facts if fact["id"] in output]
