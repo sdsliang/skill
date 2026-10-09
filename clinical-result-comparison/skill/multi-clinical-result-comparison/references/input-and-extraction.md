@@ -26,9 +26,9 @@ Build the following worksheet independently for every source.
 
 ### Identity and timing
 
-- pulled `paper_title`, `full_article_link`, and `paper_release_time` for citation JSON only;
+- pulled `paper_title`, `full_article_link`, and `paper_release_time` for citation JSON only (the single exception is the date part of `paper_release_time`, which may also fill the timeline 发表时间 column when the original states no disclosure date);
 - internal runtime key, retained outside the Agent input for backend correlation only;
-- disclosure/publication date;
+- disclosure/publication date (original-reported date first; the `paper_release_time` date part is the fallback);
 - data cutoff;
 - median follow-up or assessment duration;
 - whether timing refers to the study, the analysis, or publication.

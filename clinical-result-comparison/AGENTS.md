@@ -15,6 +15,8 @@
 
 **最新：数值事实账本版本已原地发布并完成 R30 固定三组测试。** 发布前 config/status/deps 均通过，prompt v1.6 本地 57,656 B / SHA `115bac4e5295`，skill v1.0.7 / skill_id `ad75ec2c44334f389a0394895a47b765`，20/20 文件回读一致，dist 93,090 B / SHA `dd4d83f871692bd4c70b98cbf6787af1b6f839426312aee017e75630d95a06bb`。R30-1/2/3 分别覆盖 4/18/14 条，均成功产出报告，引用、图表、实体锚点、固定路径和回执断言通过；R30-1 因本地 `__pycache__` 污染支持文件清单，R30-2/R30-3 因平台重复 `write_file` 已存在文件导致 `no tool errors` 失败。报告未丢失，原始证据保留；不能宣称本轮三组无工具错误全绿。详见 `docs/toolsmith-verification-log.md` R30。
 
+**附录形态升级 + 时间线加「发表时间」+ 移除实体内联引用（2026-10-09 已按 `--new-version` 发布为 prompt v1.7 / Skill v1.0.8）**：附录从「每行一个数值的 11 列宽表」改为**一张矩阵**——**列 = 试验**（同试验多披露按账本新增的 `records[].trial` 合并键合并为一列，表头标披露条数；缺键时回退注册号 → `study` → `ref`，绝不凭名字合并），**行 = 维度与终点父级**，按 `试验设计 → 试验结论 → 有效性 → 安全性 → PK/PD → PRO` 分段；治疗臂/时点/评估/人群与终点口径细分标签写进单元格（`治疗臂·时点·评估·人群：结果 单位（统计量）{{ref_n}}`，未报告 `—`），同一终点的不同时点/口径统一到同一行。账本 `records[]` 新增**必填** `conclusion`（缺失即门禁失败），`kind` 收成封闭词表（含英文映射），`endpoint` 必须是**最小可比父级**，`version` 只放披露版本/数据截止。附录标题改为 `## 附录：证据对齐矩阵（数值事实账本）`。四个模板的时间线表首列加**发表时间**（原文披露日期优先，`paper_release_time` 日期部分兜底，都没有写「未报告」；只作最后排序依据，不得按输入顺序推断）。**实体内联引用（v0.10/v0.11 的 `[名字](entity:type:id)`）整体移除**：删 `references/entity-inline-reference.md`、`evals/validate-entity-refs.mjs`、`test/entity-refs.test.mjs`；渲染器先把旧账本展示字段里的 `entity:` 包装**确定性剥离**（`quote`/`source_file` 除外），再由 `ENTITY_LINK_RE` 门禁拦残渣；正文/表格/图表/账本一律写纯名。回归：`python3 evals/numeric-integrity/test-render-facts.py` **21/21 绿**。**已按用户授权改用 `--new-version` 发新版本（不原地更新）**：本地 prompt `system-prompts/multi-clinical-result-comparison-v0.16.md`（54,264 B / sha `a638a93fe934`）→ 线上 **prompt v1.7**（project prompt id `394a6e51617842a0ae9403579dcf8f45`）；dist `dist/multi-clinical-result-comparison-v0.16.zip`（93,757 B / 19 entries / sha `e5aad92c2618`）→ 线上 **Skill v1.0.8** / skill_id `cd93a42af72b4828b1690b3a7bccfa06`（19/19 文件一致）；`toolsmith-publish status` → **in sync**。发布前依赖闸门拦下两处上游变化并复核：chart skill v1.0.12 被重新发布（运行期取模板，无需改本地）、内置 `read_file` schema 变化（`limit` 默认 100）→ 相应把 prompt 的 digest 上限从 ≤300 行收紧为 **≤100 行**。**固定三组回归（2026-10-09）**：R33 三组跑出两个**我方**缺陷——①`APPENDIX_INTRO` 把字面 `{{ref_n}}` 写进交付报告导语，被 runner 占位符断言判 FAIL；②跑动期间改仓库/跑本地测试，导致「支持文件清单」断言报 `missing=[…pyc]`（该断言的 `missing` 方向是**本地有、线上没有**，纠正了 R30/R32 的旧归因）。两处均已修（导语改写 + 新增断言并做负向对照，回归 21 → **22/22**；测试顶部 `sys.dont_write_bytecode = True`；`AGENTS.md` §7 新增「真跑期间冻结仓库」硬性条目）。修后 dist 重打为 **93,792 B / 19 entries / sha `dd9c2998c2b6`**，并用 `toolsmith-publish push-skill --version 1.0.8` **原地更新**同一版（`skill_id` 不变、prompt v1.7 未动、`status` in sync），再跑 **R34 三组全绿：22 PASS / 0 FAIL、exit 0**，附录列数 4 条→1 列、18 条→10 列、14 条→11 列。详见台账 R33（缺陷）与 R34（修复验证）。
+
 **R32 固定回归已完成（2026-09-21）**：图表文档去重复后，prompt v1.6 / Skill v1.0.7 原地更新并回读一致。固定 4/18/14 三组均 `outcome=succeeded`、产物和主要契约断言通过；R32-1/R32-2/R32-3 均有 `__pycache__` 支持文件清单 FAIL，R32-1/R32-2 另有重复 `write_file` 冲突，R32-2/R32-3 有 Europe PMC 503。不能宣称本轮全绿。证据见 `docs/toolsmith-verification-log.md` R32 和三组 run 目录。
 
 **图表协议重复内容已同步从 v0.15 prompt 移除（2026-09-20）**：prompt 的 Chart contract 现在只指向上游 chart-visualization-json skill，并保留临床选型、可比性、事实绑定和交付边界；删除重复的协议字段、Schema、envelope、默认值、排序和 CLI 细节。TS 资产尚未发布，需单独授权后再同步线上。
@@ -37,7 +39,7 @@
 | **仓库资产** | 本仓库 `skill/`、`system-prompts/`、`evals/`、`docs/`、`tools/` | ✅ 改，`commit`/`push` 本项目免确认 | 改完更新本文件 + `PROJECT_STATE.md` + 台账 |
 | **TS 资产** | 平台上已发布的 prompt / 技能内容 | ✅ 改，但**每次都要先问、拿到明确同意** | `tools/pack-dist.py` → `toolsmith-publish publish`（默认 **in-place**）→ `status` 回读必须绿 → 真跑留 `R<n>` |
 | **TS 平台** | 远端 ToolSmith 服务后端 | ❌ 改不了 | 写问题单（全文进 Obsidian，仓库只留摘要 + 指向），**功能性缺陷与文档缺口均记录，由开发判断是否处理** |
-| **runner** | 本机 CLI `~/.local/bin/toolsmith-publish` | ✅ 改，但先备份到 `~/.local/state/toolsmith-publish/toolsmith-publish.v*.bak` | `python3 -m py_compile` → `evals/runner-gate/verify-run-chain.py` 必须 `GATE: PASS` → 台账留 `R`/`O` 记录 |
+| **runner** | 本机 CLI `~/.local/bin/toolsmith-publish` | ✅ 改，但先备份到 `~/.local/state/toolsmith-publish/toolsmith-publish.v*.bak` | `python3 -B -m py_compile`（**加 `-B`**，别在包内留 `__pycache__`）→ `evals/runner-gate/verify-run-chain.py` 必须 `GATE: PASS` → 台账留 `R`/`O` 记录 |
 
 **TS 资产写入必须逐次点头**：`publish` / `push-prompt` / `push-skill`（往平台写 skill/prompt）。
 Git 免确认仅限本项目 `commit` / `push`；`revert`、merge、rebase、分支操作等仍须明确授权。
@@ -56,7 +58,7 @@ Git 免确认仅限本项目 `commit` / `push`；`revert`、merge、rebase、分
 - **params 工具 schema 的字段名**（运行期权威 = 工具自身 `selected_fields` 参数描述）
 - 本文件 §3 的场景集与 §4 的 TSV 列定义
 
-**可改面**（= 「`train.py`」）：`system-prompts/multi-clinical-result-comparison-v0.15.md` +
+**可改面**（= 「`train.py`」）：`system-prompts/multi-clinical-result-comparison-v0.16.md` +
 `skill/multi-clinical-result-comparison/**`。
 
 ---
@@ -150,6 +152,7 @@ tools/replay-run.py --tsv --score \
 
 ```bash
 python3 evals/fact-check/check.py --run <run-dir> --scenario a|b [-v]     # 离线判分（exit 0/3/4）
+python3 evals/numeric-integrity/test-render-facts.py                      # 附录渲染/账本门禁回归（文件名含连字符，**不能**用 unittest discover，直接脚本跑）
 python3 evals/fact-check/mutations.py                                     # 负向对照闸门
 python3 evals/runner-gate/verify-run-chain.py                             # runner 零网络回归
 tools/replay-run.py --tsv --score <run>…                                  # 成本 + 质量一行一 run
@@ -160,3 +163,15 @@ toolsmith-publish status | deps | tools | instructions                    # 平�
 
 产物落点：`~/.local/state/toolsmith-runs/<时间戳>-<tag>/`（`receipts.jsonl`、`tool_results/**`、
 `verification.md`、`transcript.md`、`artifacts.zip`）；**不要用 `/tmp`**（会被清空）。
+
+### 真跑期间冻结仓库（R33 教训，硬性）
+
+`run` 的「支持文件清单」断言比的是**断言时刻的本地 Skill 目录**与线上包，所以**真跑跑动期间不要改
+仓库、不要跑本地测试**，否则必然 FAIL 且是假 FAIL：
+
+- 跑动中改 `skill/**`（哪怕只是收尾）⇒ `xxx: platform 29.0 KB != local 29.09 KB`。
+- 跑动中跑 `evals/numeric-integrity/test-render-facts.py` ⇒ 旧的 `importlib` 加载会在
+  `skill/multi-clinical-result-comparison/scripts/__pycache__/` 留 `.pyc` ⇒ `missing=['…pyc']`
+  （`missing = local - platform`，**报的是本地多出来的文件**，不是线上包脏）。该测试已在加载渲染器前
+  设 `sys.dont_write_bytecode = True`；别的脚本加载渲染器时同样加这句或 `python3 -B`。
+- 要边跑边干别的：只改 `docs/**`、`AGENTS.md`、`PROJECT_STATE.md` 这类**不在 Skill 包内**的文件。

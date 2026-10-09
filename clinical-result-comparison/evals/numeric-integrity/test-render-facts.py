@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 import importlib.util
 import json
+import re
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
 
+
+# Loading the renderer from the Skill tree must not leave a `__pycache__` behind: the
+# deployment check compares the live Skill directory against the published bundle, so a
+# local `.pyc` makes an otherwise clean run report a support-file manifest mismatch.
+sys.dont_write_bytecode = True
 
 HERE = Path(__file__).resolve()
 RENDERER_PATH = HERE.parents[2] / "skill/multi-clinical-result-comparison/scripts/render-facts.py"
@@ -35,18 +41,22 @@ class RenderFactsTests(unittest.TestCase):
                 {
                     "ref": "ref_1",
                     "title": "Study alpha",
+                    "trial": "Alpha trial",
                     "identity": "Alpha trial",
                     "design": "Randomized",
                     "arms": "Drug vs placebo",
                     "coverage": "Primary endpoint",
+                    "conclusion": "Alpha trial met its primary endpoint.",
                 },
                 {
                     "ref": "ref_2",
                     "title": "Study beta",
+                    "trial": "Beta trial",
                     "identity": "Beta trial",
                     "design": "Open label",
                     "arms": "Drug",
                     "coverage": "Response endpoint",
+                    "conclusion": "Beta trial reported a high response rate.",
                 },
             ],
             "facts": [
@@ -184,23 +194,313 @@ class RenderFactsTests(unittest.TestCase):
         self.assertFalse(self.run_render())
         self.assertIn("unknown", self.audit_data()["errors"][0])
 
-    def test_appendix_is_consolidated_alignment_matrix(self):
+    def test_appendix_is_trial_column_alignment_matrix(self):
         self.assertTrue(self.run_render("Summary [[result:F001]] and [[result:F002]]."))
         output = self.out.read_text(encoding="utf-8")
-        self.assertIn("## Fact Ledger Appendix", output)
-        self.assertIn("This appendix is a consolidated alignment matrix", output)
-        self.assertIn("| Outcome domain | Trial / disclosure |", output)
-        self.assertNotIn("### Study alpha", output)
-        self.assertNotIn("### Study beta", output)
-        self.assertIn("Primary endpoint", output)
-        self.assertIn("Response", output)
+        self.assertIn("## 附录：证据对齐矩阵（数值事实账本）", output)
+        self.assertIn("列为试验", output)
+        self.assertIn("| 维度 | Study alpha | Study beta |", output)
+        self.assertIn("| **试验设计** |", output)
+        self.assertIn("| **试验结论** |", output)
+        self.assertIn("| **有效性** |", output)
+        self.assertIn("| 试验身份 |", output)
+        self.assertIn("| 设计与方案 |", output)
+        self.assertIn("| 披露级结论 |", output)
+        self.assertIn("Alpha trial met its primary endpoint.", output)
+        self.assertIn("| Primary endpoint |", output)
+        self.assertIn("| Response |", output)
         self.assertIn("8.34 %", output)
         self.assertIn("72 %", output)
         self.assertIn("{{ref_1}}", output)
         self.assertIn("{{ref_2}}", output)
+        self.assertNotIn("Outcome domain", output)
         self.assertNotIn("F001", output)
+
+    def test_appendix_intro_carries_no_template_placeholder(self):
+        """The runner fails any report containing a literal `{{ref_n}}`-style
+        placeholder that is not a real `{{ref_<digits>}}` marker. The appendix
+        intro is emitted verbatim into the delivered report, so it must
+        describe the cell format without ever spelling the placeholder out."""
+        self.assertTrue(self.run_render("Summary [[result:F001]]."))
+        output = self.out.read_text(encoding="utf-8")
+        leftovers = sorted({m for m in re.findall(r"\{\{[^}]*\}\}", output)
+                            if not re.fullmatch(r"\{\{ref_\d+\}\}", m)})
+        self.assertEqual(leftovers, [], f"placeholder leaked into the report: {leftovers}")
         self.assertNotIn("F002", output)
         self.assertNotIn("evidence.txt", output)
+        self.assertEqual(self.audit_data()["appendix_trials"], 2)
+        self.assertGreater(self.audit_data()["appendix_cells_filled"], 0)
+
+    def test_missing_record_conclusion_blocks(self):
+        ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
+        del ledger["records"][0]["conclusion"]
+        self.write_ledger(ledger)
+        self.assertFalse(self.run_render())
+        self.assertIn("missing fields: conclusion", self.audit_data()["errors"][0])
+
+    def test_appendix_merges_one_trial_into_one_column(self):
+        ledger = {
+            "records": [
+                {
+                    "ref": "ref_1",
+                    "title": "Alpha primary",
+                    "trial": "NCT05840016",
+                    "identity": "Alpha；2024 年会",
+                    "design": "Randomized",
+                    "arms": "Drug vs placebo",
+                    "coverage": "Primary analysis",
+                    "conclusion": "Primary analysis met the endpoint.",
+                },
+                {
+                    "ref": "ref_2",
+                    "title": "Alpha update",
+                    "trial": "NCT05840016",
+                    "identity": "Alpha 2025 更新",
+                    "design": "Randomized",
+                    "arms": "Drug vs placebo",
+                    "coverage": "Updated analysis",
+                    "conclusion": "Updated analysis confirmed the benefit.",
+                },
+            ],
+            "facts": [
+                {
+                    "id": "F001",
+                    "ref": "ref_1",
+                    "study": "Alpha",
+                    "version": "2024 年会",
+                    "endpoint": "OS",
+                    "arm": "Drug",
+                    "population": "Adults",
+                    "timepoint": "Week 12",
+                    "assessment": "ITT",
+                    "kind": "有效性",
+                    "value": "8.34",
+                    "unit": "%",
+                    "statistics": "",
+                    "source_file": "evidence.txt",
+                    "quote": "Study alpha: primary endpoint was 8.34% at week 12.",
+                },
+                {
+                    "id": "F002",
+                    "ref": "ref_2",
+                    "study": "Alpha",
+                    "version": "2025 年会更新",
+                    "endpoint": "OS",
+                    "arm": "Drug",
+                    "population": "Adults",
+                    "timepoint": "Week 24",
+                    "assessment": "ITT",
+                    "kind": "有效性",
+                    "value": "72",
+                    "unit": "%",
+                    "statistics": "",
+                    "source_file": "evidence.txt",
+                    "quote": "Study beta: response was 72% at week 24.",
+                },
+            ],
+        }
+        self.write_ledger(ledger)
+        self.assertTrue(self.run_render())
+        output = self.out.read_text(encoding="utf-8")
+        header = next(line for line in output.splitlines() if line.startswith("| 维度 |"))
+        self.assertEqual(header.count("|"), 3)
+        self.assertIn("Alpha（2 条披露）", header)
+        os_row = next(line for line in output.splitlines() if line.startswith("| OS |"))
+        self.assertIn("8.34 %{{ref_1}}", os_row)
+        self.assertIn("72 %{{ref_2}}", os_row)
+        self.assertIn("<br>", os_row)
+        self.assertEqual(self.audit_data()["appendix_trials"], 1)
+
+    def test_appendix_merges_by_registry_id_not_label(self):
+        self.source.write_text(
+            self.source.read_text(encoding="utf-8") + "Study gamma: response was 41% at week 36.\n",
+            encoding="utf-8",
+        )
+
+        def record(ref, title, trial, identity, conclusion):
+            return {
+                "ref": ref,
+                "title": title,
+                "trial": trial,
+                "identity": identity,
+                "design": "Randomized",
+                "arms": "Drug vs placebo",
+                "coverage": "Primary analysis",
+                "conclusion": conclusion,
+            }
+
+        def fact(fact_id, ref, endpoint, value, quote):
+            return {
+                "id": fact_id,
+                "ref": ref,
+                "study": "研究甲",
+                "version": "v1",
+                "endpoint": endpoint,
+                "arm": "Drug",
+                "population": "Adults",
+                "timepoint": "Week 12",
+                "assessment": "ITT",
+                "kind": "有效性",
+                "value": value,
+                "unit": "%",
+                "statistics": "",
+                "source_file": "evidence.txt",
+                "quote": quote,
+            }
+
+        ledger = {
+            "records": [
+                record("ref_1", "Alpha primary", "NCT05840016", "研究甲；2024 年会", "Met the endpoint."),
+                record("ref_2", "Other trial", "NCT09999999", "研究甲；2025 年会", "Missed the endpoint."),
+                record("ref_3", "Alpha update", "nct05840016", "研究甲更新；2025 更新", "Confirmed the benefit."),
+            ],
+            "facts": [
+                fact("F001", "ref_1", "OS", "8.34", "Study alpha: primary endpoint was 8.34% at week 12."),
+                fact("F002", "ref_2", "OS", "72", "Study beta: response was 72% at week 24."),
+                fact("F003", "ref_3", "OS", "41", "Study gamma: response was 41% at week 36."),
+            ],
+        }
+        self.write_ledger(ledger)
+        self.assertTrue(self.run_render("Results: [[fact:F001]], [[fact:F002]], [[fact:F003]]."))
+        output = self.out.read_text(encoding="utf-8")
+        header = next(line for line in output.splitlines() if line.startswith("| 维度 |"))
+        # Same trial key merges even when the display name and identity text differ.
+        self.assertIn("| 研究甲（NCT05840016）（2 条披露） |", header)
+        # The same label on two different trial keys stays two columns and is disambiguated.
+        self.assertIn("| 研究甲（NCT09999999） |", header)
+        self.assertEqual(header.count("|"), 4)
+        os_row = next(line for line in output.splitlines() if line.startswith("| OS |"))
+        for marker in ("8.34 %{{ref_1}}", "41 %{{ref_3}}", "72 %{{ref_2}}"):
+            self.assertIn(marker, os_row)
+        self.assertEqual(self.audit_data()["appendix_trials"], 2)
+
+    def test_appendix_merge_fallbacks_for_legacy_ledgers(self):
+        """v0.15 ledgers carry no `trial` key: registry id, then the study label, still merge them."""
+        ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
+        for record in ledger["records"]:
+            del record["trial"]
+        ledger["records"][0]["identity"] = "Alpha；NCT05840016"
+        ledger["records"][1]["identity"] = "Alpha update；NCT05840016"
+        self.write_ledger(ledger)
+        self.assertTrue(self.run_render())
+        header = next(line for line in self.out.read_text(encoding="utf-8").splitlines() if line.startswith("| 维度 |"))
+        self.assertEqual(header.count("|"), 3)
+        self.assertEqual(self.audit_data()["appendix_trials"], 1)
+        self.assertEqual(self.audit_data()["records_without_trial_key"], 2)
+
+        ledger = json.loads(json.dumps(self.base, ensure_ascii=False))
+        for record in ledger["records"]:
+            del record["trial"]
+        for fact in ledger["facts"]:
+            fact["study"] = "Study alpha"
+        self.write_ledger(ledger)
+        self.assertTrue(self.run_render())
+        output = self.out.read_text(encoding="utf-8")
+        self.assertIn("| 维度 | Study alpha（2 条披露） |", output)
+        self.assertEqual(self.audit_data()["appendix_trials"], 1)
+
+    def test_appendix_aligns_endpoint_variants_on_one_row(self):
+        ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
+        ledger["facts"][0]["endpoint"] = "16 个月 ORR"
+        ledger["facts"][1]["endpoint"] = "ORR（%）"
+        self.write_ledger(ledger)
+        self.assertTrue(self.run_render())
+        output = self.out.read_text(encoding="utf-8")
+        rows = [line for line in output.splitlines() if line.startswith("| ORR |")]
+        self.assertEqual(len(rows), 1)
+        self.assertIn("16 个月：8.34 %", rows[0])
+        self.assertIn("72 %{{ref_2}}", rows[0])
+        self.assertNotIn("| 16 个月 ORR |", output)
+        self.assertNotIn("| ORR（%） |", output)
+
+    def test_appendix_aligns_latin_abbreviation_qualifier_on_one_row(self):
+        ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
+        ledger["facts"][0]["endpoint"] = "中位总生存期（OS）"
+        ledger["facts"][1]["endpoint"] = "中位总生存期"
+        self.write_ledger(ledger)
+        self.assertTrue(self.run_render())
+        output = self.out.read_text(encoding="utf-8")
+        rows = [line for line in output.splitlines() if line.startswith("| 中位总生存期 |")]
+        self.assertEqual(len(rows), 1)
+        self.assertIn("OS：8.34 %", rows[0])
+        self.assertIn("72 %{{ref_2}}", rows[0])
+        self.assertFalse(
+            [line for line in output.splitlines() if line.startswith("| 中位总生存期（OS） |")],
+            "the qualifier must move into the cell, not create a near-duplicate row",
+        )
+
+    def test_appendix_ignores_placeholder_study_labels(self):
+        ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
+        for fact in ledger["facts"]:
+            fact["study"] = "see records"
+        self.write_ledger(ledger)
+        self.assertTrue(self.run_render())
+        output = self.out.read_text(encoding="utf-8")
+        header = next(line for line in output.splitlines() if line.startswith("| 维度 |"))
+        self.assertNotIn("see records", header)
+        self.assertIn("Alpha trial", header)
+        self.assertIn("Beta trial", header)
+
+    def test_entity_inline_references_are_stripped_from_ledger_text(self):
+        """v0.16 removed entity inline references: an old ledger's anchors degrade to plain names."""
+        ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
+        ledger["records"][0]["identity"] = "[Alpha trial](entity:trial:NCT05840016)；2024 年会"
+        ledger["records"][0]["arms"] = "[Drug](entity:drug:12483) vs [placebo](entity:drug:2237)"
+        ledger["facts"][0]["arm"] = "[Drug](entity:drug:12483)"
+        self.write_ledger(ledger)
+        self.assertTrue(self.run_render())
+        output = self.out.read_text(encoding="utf-8")
+        self.assertNotIn("entity:", output)
+        self.assertIn("Alpha trial；2024 年会", output)
+        self.assertIn("Drug vs placebo", output)
+        self.assertIn("Drug·Week 12", output)
+
+    def test_entity_syntax_in_draft_blocks_delivery(self):
+        self.assertFalse(self.run_render("Drug: [Drug](entity:drug:12483) [[fact:F001]]."))
+        self.assertIn("entity inline references", self.audit_data()["errors"][0])
+        self.assertFalse(self.out.exists())
+
+    def test_appendix_keeps_arms_and_glued_names_inside_cells(self):
+        self.source.write_text(
+            self.source.read_text(encoding="utf-8") + "Study gamma: response was 41% at week 36.\n",
+            encoding="utf-8",
+        )
+        ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
+        ledger["facts"][0]["endpoint"] = "基线 Lp(a)（中位）"
+        ledger["facts"].append(dict(ledger["facts"][0], id="F003", arm="Placebo"))
+        ledger["facts"].append(
+            {
+                "id": "F004",
+                "ref": "ref_1",
+                "study": "Study alpha",
+                "version": "v1",
+                "endpoint": "基线 OxPL（中位）",
+                "arm": "Drug",
+                "population": "Adults",
+                "timepoint": "Week 12",
+                "assessment": "ITT",
+                "kind": "有效性",
+                "value": "41",
+                "unit": "%",
+                "statistics": "",
+                "source_file": "evidence.txt",
+                "quote": "Study gamma: response was 41% at week 36.",
+            }
+        )
+        self.write_ledger(ledger)
+        self.assertTrue(self.run_render())
+        output = self.out.read_text(encoding="utf-8")
+        row = next(line for line in output.splitlines() if line.startswith("| 基线 Lp(a) |"))
+        self.assertIn("Drug·Week 12·ITT·Adults·中位：8.34 %", row)
+        self.assertIn("Placebo·Week 12·ITT·Adults·中位：8.34 %", row)
+        self.assertIn("<br>", row)
+        self.assertEqual(row.count("{{ref_1}}"), 1)
+        # A Latin token followed by a Chinese qualifier still separates: the name stays, the qualifier moves in.
+        oxpl_row = next(line for line in output.splitlines() if line.startswith("| 基线 OxPL |"))
+        self.assertIn("中位：41 %", oxpl_row)
+        self.assertFalse([line for line in output.splitlines() if line.startswith("| 基线 OxPL（中位） |")])
+        headers = [line for line in output.splitlines() if line.startswith("| 维度 |")]
+        self.assertEqual(len(headers), 1)
 
     def test_unicode_minus_and_mutated_value_are_checked(self):
         ledger = json.loads(self.ledger.read_text(encoding="utf-8"))

@@ -1372,3 +1372,75 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 - R32-1/R32-2 分别复现 `/workspace/work/build.py`、`/workspace/output/report_template.md` 已存在时的 `write_file` 冲突；模型收到重试后仍完成产出，但 `no tool errors` 失败。与 R30 的同类现象一致，继续转平台开发。
 - R32-2/R32-3 的 Europe PMC 请求返回 503；按输入契约保留抓取失败及报告覆盖说明，不把它判作 Skill 内容错误。
 - 内置 `execute` schema 的 `command`/`shell_command` 变化继续作为平台依赖变化跟踪；本轮未改本地实现。
+
+## R33：移除实体内联引用 + 附录改为试验列对齐矩阵 + 时间线加「发表时间」（2026-10-09）
+
+**发布方式改变**：本轮按用户要求**不原地更新，改用 `--new-version` 追加新版本**（`/api/skills/create` + `family_id` + 非空 message），因为移除实体引用是产品特性变更而非文档修正，用户要保留旧版可回溯。
+
+发布前 `config` / `status` / `deps` 均已检查；依赖闸门发现两处上游变化并逐项复核：
+
+- `chart-visualization-json` 同版本 v1.0.12 被重新发布（`updated_at` 刷新为 2026-09-21T11:58:40）。本仓库运行期不硬编码该 skill 的 `iframe_template`，prompt 明确要求“运行期从上游 skill 取模板”，故无需改本地实现；由本轮真跑的图表产物验证。
+- 内置 `read_file` schema 变化（`limit` 默认 100、`offset` 为零基的描述补齐，参数集不变）。据此把 prompt「Digest first」里的 digest 单文件上限从 ≤300 行收紧为 **≤100 行（即工具默认 `limit`）**，需要更长时显式传 `limit`。改动只落在 prompt，不进 dist。
+
+回读一致：prompt **v1.7**（54,264 B / sha `a638a93fe934` / project prompt id `394a6e51617842a0ae9403579dcf8f45`）== 本地 `system-prompts/multi-clinical-result-comparison-v0.16.md`；skill **v1.0.8** / skill_id `cd93a42af72b4828b1690b3a7bccfa06`，19/19 支持文件一致，`references/entity-inline-reference.md` 已从线上包中消失；dist `dist/multi-clinical-result-comparison-v0.16.zip` = 93,757 B / 19 entries / sha `e5aad92c2618`（`--check` IDENTICAL）。`status` → `in sync`。
+
+| 运行 | 组/记录 | 线程 | 秒（服务端） | 调用尝试 | 产物/断言 |
+|---|---:|---|---:|---:|---|
+| R33-1 | 1 / 4 | `ca78ca3e-5ac5-4c00-9097-cb15861cde37` | 324.6 | 39 | 报告、4 引用、2 图表；**唯一 FAIL = `no leftover template placeholder in report`（报告里出现 1 个字面 `{{ref_n}}`）**，其余 20 项全过（含支持文件清单 18 文件、`no tool errors`、turn `succeeded`） |
+| R33-2 | 2 / 18 | 见 run 目录 `20261009-152421-r33-fixed-2` | 474.4 | 55 | 报告、18 引用、1 图表；**附录把 18 条记录合并成 10 列**（旧账本会裂成 18 列）；FAIL：`no leftover template placeholder`（同 `{{ref_n}}` 回归）＋ 支持文件清单 |
+| R33-3 | 3 / 14 | 见 run 目录 `20261009-153236-r33-fixed-3` | 526.1 | 69 | 报告、14 引用；**附录 14 条记录合并成 11 列**；FAIL 与 R33-2 同类（占位符 + 清单） |
+
+三组的支持文件清单 FAIL 与占位符 FAIL 均为**我方进程问题，非平台缺陷**，逐条定位如下：
+
+- **支持文件清单 FAIL 的真相**（纠正 R30/R32 的错误归因）：断言代码是 `missing = expected(local) - listed(platform)`，所以 `missing=['scripts/__pycache__/render-facts.cpython-310.pyc']` 意思是**本地 Skill 目录里多了 pyc**，不是线上包里有。pyc 由我在两组运行**进行中**跑 `evals/numeric-integrity/test-render-facts.py` 生成（该测试用 `importlib` 从 Skill 树加载渲染器，CPython 顺带写字节码缓存）。同时 `scripts/render-facts.py: platform 29.0 KB != local 29.09 KB` 是我在运行期间改了渲染器（修占位符 bug）导致本地与线上字节不一致。**都是「回归跑动期间不要动仓库」的问题**：R33-1 在动手前跑完，清单断言 PASS；R33-2/R33-3 在我边跑边改期间断言，必然 FAIL。
+- 修正措施（已在 R34 前落地）：`test-render-facts.py` 顶部加 `sys.dont_write_bytecode = True`（加载渲染器前），本地测试不再往 Skill 树写 pyc；重新打包前清理 `scripts/__pycache__`；把「真跑期间冻结仓库」写进流程。
+- 占位符 FAIL 见上条（`APPENDIX_INTRO` 泄漏 `{{ref_n}}` 字面），已修 + 加断言 + 负向对照。
+
+**三组的功能性结果（本轮真正的产出）**：附录矩阵形态在真实数据上成立——同试验多披露按 `records[].trial` 合并（R33-2 18 条 → 10 列、R33-3 14 条 → 11 列、R33-1 4 条 → 1 列），`试验设计/试验结论/有效性/安全性/PK/PD/PRO` 分段齐全，未出现旧形态的「一记录一列 / 44 列不可读」；3 组全部 `outcome=succeeded`、**`no tool errors` 全 PASS**（R32 的重复 `write_file` 冲突本轮未复现）、引用键集/日期/标题、图表 envelope/标签、固定路径、回执归档全部 PASS。修完后需按 R34 重跑三组才算验证通过。
+
+**R33-1 的 FAIL 是我方的回归，已定位并修掉（不是平台问题）**：根因是本次新写的 `APPENDIX_INTRO`（`render-facts.py`）在描述单元格格式时**把 `{{ref_n}}` 字面写进了导语**，而导语会被逐字渲染进交付报告 → runner 的占位符断言把它判为残留模板占位符（该断言只放行真实的 `{{ref_<数字>}}` 标记）。修复：导语改为「紧跟其后的来源标记即该值的引用」等不出现花括号的表述，并新增回归断言 `test_appendix_intro_carries_no_template_placeholder`（逐字比对 runner 的同一条正则）；**已做负向对照**——把旧句子放回，该断言立即 FAIL（`placeholder leaked into the report: ['{{ref_n}}']`），证明断言不是空转。`test-render-facts.py` 因此由 21 项变成 **22 项**，全绿。修后 dist 重打为 93,792 B / sha `dd9c2998c2b6`（`--check` IDENTICAL），并在 R34 前置步骤里原地重发 + 重跑三组（见 R34 段）。
+
+**冻结面基线变更**：删除 `test/entity-refs.test.mjs` 后，本地 Node 单文件回归合计由 21 项降到 **16 项**（`test/citation-renderer.test.mjs` 8 + `test/citation-validation.test.mjs` 8）。这是刻意的新基线，不是回归覆盖退化——被删的 5 项断言全部针对已移除的实体引用语法。`evals/validate-entity-refs.mjs` 同时删除，其离线校验职责由 `render-facts.py` 的 `ENTITY_LINK_RE` 渲染门禁接管（拦残渣 + 阻断交付）。
+
+本地门禁（发布前）：`python3 evals/numeric-integrity/test-render-facts.py` **21/21 绿**；`evals/runner-gate/verify-run-chain.py` → `GATE: PASS`（5 comparable）；`evals/fact-check/mutations.py` → `GATE: PASS`（12/12 翻转）；Node 单文件 8 + 8 全过；`python3 tools/pack-dist.py --check` → IDENTICAL。回归前已清理 Skill 包目录内的 `__pycache__`（R32 支持文件清单 FAIL 的根因）。
+
+### 我方能改的
+
+- `APPENDIX_INTRO` 泄漏 `{{ref_n}}` 字面（见上）：已修 + 加断言 + 负向对照。这条正好复现了「断言要能挡住同一类错误」的教训——本次是**我方新引入**的缺陷，三组回归第一次就抓到了。
+- 发布前清理 `scripts/__pycache__` 生效：R33-1 的支持文件清单 18/18 一致（R30/R32 的同类 FAIL 消失）。
+
+### 平台侧/外部服务现象
+
+- （待本轮三组结果回填）
+
+---
+
+## R34 — v0.16 修复后重跑固定三组（2026-10-09）
+
+**发布（原地更新，不是新版本）**：`toolsmith-publish push-skill --version 1.0.8` → `POST /api/skills/update_skill_file` HTTP 200，`skill_id=cd93a42af72b4828b1690b3a7bccfa06`、`version=1.0.8`、`is_current=True`、`commit_id=None`（**版本号与 skill_id 不变**，只换内容）。dist 由 93,757 B / `e5aad92c2618` 变为 **93,792 B / sha `dd9c2998c2b6`**（19 entries，`--check` IDENTICAL）。prompt 未动（仍是 **v1.7** / 54,264 B / `a638a93fe934`），`deps` 报告 0 处上游变化，`status` → `in sync`。
+
+**为什么这次是原地更新**：修的是「刚刚发布、还在验证中的同一版」里的两个缺陷（脚本导语泄漏占位符 + 本地进程污染），不是新的产品变更；原地更新保住 `v1.0.7 / prompt v1.6` 这两个回滚点，也避免线上多出一版内容几乎相同的历史。若要求每次修复都留独立版本号，可再发 `1.0.9`（内容相同，成本一次 API 调用）。
+
+| 运行 | 组/记录 | 线程 | 秒（服务端） | 调用尝试 | 产物/断言 |
+|---|---:|---|---:|---:|---|
+| R34-1 | 1 / 4 | `1952d185-508a-4d09-9f7b-3126ad4268db` | 372.0 | 45 | 报告、4 引用、1 图表；附录 **1 列**；**22 PASS / 0 FAIL**，exit 0 |
+| R34-2 | 2 / 18 | `edea673e-c067-4aff-b362-19007b50668e` | 431.2 | 51 | 报告、18 引用；附录 **10 列**（18 条披露合并）；**22 PASS / 0 FAIL**，exit 0 |
+| R34-3 | 3 / 14 | `ca1120ae-c7d7-4d79-b70b-a645046ea8fa` | 418.6 | 33 | 报告、14 引用；附录 **11 列**；**22 PASS / 0 FAIL**，exit 0 |
+
+**本轮全绿的关键项**：`no leftover template placeholder in report`（三组报告里非 `{{ref_n}}` 形态的占位符差集均为空）、`deployed support-file manifest matches local (18 files)`（不再有 pyc 差异）、`deployed system prompt == local` / `deployed skill body == local SKILL.md`、`no nested entity anchor — 0 anchors`、`citations: exact keys + date-only time + every entry has a title`、图表 envelope / 文件名 / `::visualization` 标签数、`present_artifact` 收尾、`no tool errors`、回执归档。三组 token 分别 4.49M / 5.40M / 3.08M，prompt cache 命中率 0.98。
+
+**结论：v0.16 的附录对齐矩阵 + entity 移除 + 时间线「发表时间」在三个真实场景（单试验多披露 / 18 条混合 / 14 条 Lp(a) 类重复披露）上验证通过。**
+
+### 我方能改的
+
+- **`APPENDIX_INTRO` 泄漏 `{{ref_n}}`（R33 抓到，已修）**：导语原文用字面 `{{ref_n}}` 说明「其后是来源标记」，而导语会被逐字写进交付报告 ⇒ runner 的占位符断言判 FAIL。修法：改成不含花括号的表述；新增 `test_appendix_intro_carries_no_template_placeholder`（复刻 runner 的同一条正则）；**负向对照**——把旧句子放回，断言立刻 FAIL（`placeholder leaked into the report: ['{{ref_n}}']`），证明断言不是空转。回归项 21 → **22**。
+- **本地 pyc / 边跑边改污染支持文件清单（R33-2/3 抓到，已修）**：断言 `missing = local - platform`，报的是**本地多出来的文件**；pyc 来自跑动期间执行 `test-render-facts.py`（`importlib` 从 Skill 树加载渲染器会写 `scripts/__pycache__/`），另有跑动中改渲染器导致 `platform 29.0 KB != local 29.09 KB`。修法：测试顶部 `sys.dont_write_bytecode = True`；`AGENTS.md` §7 新增「真跑期间冻结仓库」硬性条目；`py_compile` 改 `python3 -B -m py_compile`。**这条同时纠正了 R30/R32 里「线上支持文件清单被 pyc 污染」的错误归因。**
+- 台账 R33 段里先前那句「需在 R34 重发后重跑三组才算验证」已由本轮闭环。
+
+### 平台侧（转开发）
+
+- 本轮**没有**新的平台侧缺陷。唯一提交给开发同行注意的点（不算 bug，是断言语义容易误读）：`deployed support-file manifest matches local` 的 `missing` 方向是「本地有、线上列出的清单里没有」，历史台账两次把它读成「线上包脏」；建议在 `verification.md` 里把差异行写成 `local-only=[…] platform-only=[…]`，省掉后来人踩同一个坑。该建议只进 Obsidian/开发侧沟通，不改平台代码。
+
+**本轮未动 runner**：`~/.local/bin/toolsmith-publish` 与 `evals/runner-gate/verify-run-chain.py` 均未修改，零网络闸门 `GATE: PASS`（60 histories / 5 comparable）。
+
+**本地门禁（R34 后重跑）**：`test-render-facts.py` 22/22 OK；`verify-run-chain.py` → `GATE: PASS`；`mutations.py` → `arm a: 36/36`、`arm b: 12/12`、`GATE: PASS`；`node --test test/citation-renderer.test.mjs` 8/8；`test/citation-validation.test.mjs` 8/8；`pack-dist.py --check` → IDENTICAL（93,792 B / `dd9c2998c2b6`）。

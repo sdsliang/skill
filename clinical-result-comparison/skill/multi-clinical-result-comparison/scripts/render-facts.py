@@ -18,7 +18,11 @@ from pathlib import Path
 from typing import Any
 
 
-RECORD_FIELDS = ("ref", "title", "identity", "design", "arms", "coverage")
+RECORD_FIELDS = ("ref", "title", "identity", "design", "arms", "coverage", "conclusion")
+# `trial` is the appendix merge key. Contract (prompt v0.16) says every record carries it;
+# the renderer tolerates its absence and falls back to registry id / `study` label, because a
+# presentation hint must not block an otherwise sound delivery.
+RECORD_OPTIONAL_FIELDS = ("trial",)
 FACT_FIELDS = (
     "id",
     "ref",
@@ -39,6 +43,56 @@ FACT_FIELDS = (
 FACT_TOKEN_RE = re.compile(r"\[\[(fact|result):([^\]]+)\]\]")
 CITATION_RE = re.compile(r"\{\{([^{}]+)\}\}")
 NUMBER_RE = re.compile(r"(?<![A-Za-z])[-+−]?\d+(?:[.,]\d+)?%?")
+
+APPENDIX_TITLE = "## 附录：证据对齐矩阵（数值事实账本）"
+APPENDIX_INTRO = (
+    "按「试验设计 → 试验结论 → 有效性 → 安全性 → PK/PD → PRO」分段排列：列为试验，同一试验的多条披露合并为一列；"
+    "行为维度与终点（同一终点的不同时点/口径统一到同一行，细分标签写进单元格）；`—` 表示该披露在该终点上未报告数值。"
+    "单元格格式为「治疗臂·时点·评估·人群：结果 单位（统计量）」，紧跟其后的来源标记即该值的引用；"
+    "同一披露的多个数值用 `<br>` 分行，未报告处写 `—`。"
+)
+SEGMENT_ORDER = ("试验设计", "试验结论", "有效性", "安全性", "PK/PD", "PRO", "其他")
+
+# Record-level rows of the 试验设计 / 试验结论 blocks, in the fixed reading order.
+DESIGN_ROWS = (
+    ("试验身份", "identity"),
+    ("披露标题", "title"),
+    ("设计与方案", "design"),
+    ("试验组与对照", "arms"),
+    ("人群与证据覆盖", "coverage"),
+)
+# Entity inline references were removed in v0.16: the report carries plain names only.
+# `_strip_entity_links` removes the syntax from ledger display text; this regex is the
+# post-strip safety net that keeps any leftover `entity:` form out of the deliverable.
+ENTITY_LINK_RE = re.compile(r"\(entity:[^)]*\)|entity:\s*[a-z]+", re.IGNORECASE)
+# Trial registry identifiers are the primary appendix column key.
+REGISTRATION_RE = re.compile(
+    r"\b(?:NCT\d{6,9}|ChiCTR[0-9A-Za-z\-]{4,}|ISRCTN\d{6,}|UMIN\d{9}|JapicCTI[\-\w]{4,}"
+    r"|JPRN[\-\w]{4,}|EudraCT[\-\w]{4,}|CTR\d{4,}|KCT\d{4,}|IRCT[\-\w]{4,})\b"
+)
+TRAILING_QUALIFIER_RE = re.compile(r"[（(]([^（）()]*)[)）]\s*$")
+LEADING_TIMEPOINT_RE = re.compile(
+    r"^(?:第\s*)?\d+(?:\.\d+)?(?:/\d+(?:\.\d+)?)*\s*"
+    r"(?:个月|月|周|年|天|小时|-?months?|-?weeks?|-?years?|-?days?|-?hours?)"
+    r"(?![-A-Za-z0-9_])\s*[-—·、,，:：]?\s*",
+    re.IGNORECASE,
+)
+TRIVIAL_QUALIFIER_RE = re.compile(r"^[\s%％、,，;；:：nN=+＋\-−~～≈]*$")
+# `study` values that carry no trial identity (seen in early ledgers): never use as a column header.
+PLACEHOLDER_STUDY_LABELS = {
+    "see records",
+    "see record",
+    "see the records",
+    "n/a",
+    "na",
+    "unknown",
+    "none",
+    "未报告",
+    "-",
+    "—",
+}
+MAX_QUALIFIER_LEN = 40
+EMPTY_CELL = "—"
 
 # U+2212 is the common mathematical minus used by extracted clinical text.
 MINUS_TRANSLATION = str.maketrans({"\N{MINUS SIGN}": "-"})
@@ -62,6 +116,42 @@ def _normalise_markdown(value: str) -> str:
     return value.replace("|", "\\|").replace("\r\n", "\n").replace("\r", "\n").replace("\n", "<br>")
 
 
+def _facts_by_ref(records: list[dict[str, str]], facts: list[dict[str, str]]) -> dict[str, list[dict[str, str]]]:
+    grouped: dict[str, list[dict[str, str]]] = {record["ref"]: [] for record in records}
+    for fact in facts:
+        grouped[fact["ref"]].append(fact)
+    return grouped
+
+
+def _column_keys(
+    records: list[dict[str, str]], facts_by_ref: dict[str, list[dict[str, str]]]
+) -> tuple[list[str], dict[str, str]]:
+    """Ordered appendix column keys plus the ref → key map that builds them."""
+    keys: list[str] = []
+    ref_to_key: dict[str, str] = {}
+    for record in records:
+        key = _column_key(record, _study_labels([record], facts_by_ref))
+        ref_to_key[record["ref"]] = key
+        if key not in keys:
+            keys.append(key)
+    return keys, ref_to_key
+
+
+def _appendix_columns(records: list[dict[str, str]], facts: list[dict[str, str]]) -> list[str]:
+    """Column keys of the appendix: one column per trial (same-trial disclosures merged)."""
+    return _column_keys(records, _facts_by_ref(records, facts))[0]
+
+
+def _appendix_body_rows(appendix: str) -> list[str]:
+    """Markdown table rows of the appendix, excluding the header and separator rows."""
+    rows = [
+        line
+        for line in appendix.splitlines()
+        if line.startswith("| ") and not line.startswith("| ---")
+    ]
+    return rows[1:]
+
+
 def _load_json(path: Path) -> Any:
     try:
         with path.open("r", encoding="utf-8") as handle:
@@ -72,16 +162,35 @@ def _load_json(path: Path) -> Any:
         raise ValidationError(f"cannot read UTF-8 JSON {path}: {exc}") from exc
 
 
-def _validate_string_fields(item: Any, fields: tuple[str, ...], label: str, *, allow_empty: tuple[str, ...] = ()) -> None:
+def _strip_entity_links(value: str) -> str:
+    """Drop the removed entity-anchor syntax, keeping the display name it wrapped.
+
+    Entity inline references were removed in v0.16. A ledger written by an older run may still
+    carry `[依沃西单抗](entity:drug:12483)`; the appendix must show the plain name, and the report
+    must not deliver `entity:` syntax at all.
+    """
+    return re.sub(r"\[([^\[\]]*)\]\(entity:[^)\s]*\)", r"\1", value)
+
+
+def _validate_string_fields(
+    item: Any,
+    fields: tuple[str, ...],
+    label: str,
+    *,
+    allow_empty: tuple[str, ...] = (),
+    optional: tuple[str, ...] = (),
+) -> None:
     if not isinstance(item, dict):
         raise ValidationError(f"{label} must be an object")
-    missing = [field for field in fields if field not in item]
+    missing = [field for field in fields if field not in item and field not in optional]
     extra = sorted(set(item) - set(fields))
     if missing:
         raise ValidationError(f"{label} missing fields: {', '.join(missing)}")
     if extra:
         raise ValidationError(f"{label} has unknown fields: {', '.join(extra)}")
     for field in fields:
+        if field not in item:
+            continue
         if not _is_string(item[field], allow_empty=field in allow_empty):
             state = "a string" if field not in allow_empty else "a string (possibly empty)"
             raise ValidationError(f"{label}.{field} must be {state}")
@@ -105,7 +214,9 @@ def validate_ledger(data: Any, ledger_path: Path) -> tuple[list[dict[str, str]],
     record_values: list[dict[str, str]] = []
     refs: set[str] = set()
     for index, record in enumerate(records):
-        _validate_string_fields(record, RECORD_FIELDS, f"records[{index}]")
+        _validate_string_fields(
+            record, (*RECORD_FIELDS, *RECORD_OPTIONAL_FIELDS), f"records[{index}]", optional=RECORD_OPTIONAL_FIELDS
+        )
         ref = record["ref"]
         if not re.fullmatch(r"ref_[1-9]\d*", ref):
             raise ValidationError(f"records[{index}].ref must look like ref_1")
@@ -143,6 +254,13 @@ def validate_ledger(data: Any, ledger_path: Path) -> tuple[list[dict[str, str]],
         if value not in quote:
             raise ValidationError(f"facts[{index}].value is absent from quote: {fact_id}")
         fact_values.append(fact)
+
+    # Display text must never carry the removed entity-anchor syntax; `quote`/`source_file` stay
+    # byte-exact because they are matched against the source evidence.
+    for item in (*record_values, *fact_values):
+        for field, value in item.items():
+            if isinstance(value, str) and field not in ("quote", "source_file"):
+                item[field] = _strip_entity_links(value)
 
     return record_values, fact_values
 
@@ -197,53 +315,288 @@ def _dedupe_table_citations(text: str) -> str:
     return "".join(lines)
 
 
-def _appendix(records: list[dict[str, str]], facts: list[dict[str, str]]) -> str:
-    records_by_ref = {record["ref"]: record for record in records}
-    record_order = {record["ref"]: index for index, record in enumerate(records)}
-    ordered_facts = sorted(
-        enumerate(facts),
-        key=lambda item: (
-            item[1]["kind"],
-            item[1]["endpoint"],
-            record_order[item[1]["ref"]],
-            item[0],
-        ),
-    )
+def _segment(kind: str) -> str:
+    """Map a fact kind onto one of the fixed appendix segments."""
+    value = _normalise_text(kind)
+    upper = value.upper()
+    if value.startswith(("设计", "试验设计")) or upper.startswith("DESIGN"):
+        return "试验设计"
+    if value.startswith("结论") or upper.startswith("CONCLUSION"):
+        return "试验结论"
+    if value.startswith(("安全", "耐受")) or upper.startswith(("SAFETY", "TOLERAB")):
+        return "安全性"
+    if upper.startswith("PRO") or value.startswith(("生活质量", "症状", "患者报告")):
+        return "PRO"
+    if upper.startswith(("PK", "PD", "TK")) or value.startswith(("暴露", "药代", "药动")):
+        return "PK/PD"
+    if value.startswith(("有效性", "疗效", "缓解", "生存", "生物标志物", "亚组", "应答")) or upper.startswith(
+        ("EFFICACY", "EFFECTIVENESS", "RESPONSE", "ENDPOINT")
+    ):
+        return "有效性"
+    return "其他"
 
-    parts = [
-        "## Fact Ledger Appendix",
-        "",
-        "This appendix is a consolidated alignment matrix, not a separate report for each trial. Rows are ordered by outcome domain and endpoint; each row retains one disclosure version, endpoint, comparison, population, timepoint, and source marker.",
-        "",
-        "| Outcome domain | Trial / disclosure | Version / cutoff | Design and treatment groups | Endpoint / definition | Arm | Population / analysis set | Timepoint / assessment | Result / unit | Statistics | Source |",
-        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
-    ]
-    for _, fact in ordered_facts:
-        record = records_by_ref[fact["ref"]]
-        context = f"{record['title']}<br>{record['identity']}"
-        design = f"{record['design']}<br>{record['arms']}"
-        result = f"{fact['value']} {fact['unit']}"
-        parts.append(
-            "| "
-            + " | ".join(
-                (
-                    _normalise_markdown(fact["kind"]),
-                    _normalise_markdown(context),
-                    _normalise_markdown(fact["version"]),
-                    _normalise_markdown(design),
-                    _normalise_markdown(fact["endpoint"]),
-                    _normalise_markdown(fact["arm"]),
-                    _normalise_markdown(fact["population"]),
-                    _normalise_markdown(f"{fact['timepoint']} / {fact['assessment']}"),
-                    _normalise_markdown(result),
-                    _normalise_markdown(fact["statistics"]),
-                    "{{" + fact["ref"] + "}}",
-                )
-            )
-            + " |"
+
+def _endpoint_row(endpoint: str) -> tuple[str, list[str]]:
+    """Split an endpoint label into its aligned row label plus fine-grained qualifiers.
+
+    ``16 个月 ORR`` becomes row ``ORR`` with qualifier ``16 个月`` and ``中位 PFS（IRRC）``
+    becomes row ``中位 PFS`` with qualifier ``IRRC``, so comparable endpoints align on one
+    row while their timepoint/definition detail stays inside the cell.
+    """
+    label = _normalise_text(endpoint)
+    qualifiers: list[str] = []
+    while True:
+        match = TRAILING_QUALIFIER_RE.search(label)
+        if not match:
+            break
+        inner = match.group(1).strip()
+        prefix = label[: match.start()]
+        if TRIVIAL_QUALIFIER_RE.fullmatch(inner):
+            label = prefix.strip()
+            continue
+        # Only peel a trailing parenthetical that is a qualifier, not part of a name:
+        # `Lp(a)` stays glued in the label, while `（IRRC）` / `（OS）` / `（中位）` move into the cell.
+        # Glue means a short Latin fragment completing a Latin token (`Lp(a)`), not any
+        # parenthetical that happens to follow one (`基线 OxPL（中位）` is a qualifier).
+        glued_to_word = (
+            bool(prefix)
+            and prefix[-1].isascii()
+            and prefix[-1].isalnum()
+            and re.fullmatch(r"[A-Za-z0-9]{1,2}", inner) is not None
         )
+        if glued_to_word or len(inner) > MAX_QUALIFIER_LEN or not prefix.strip():
+            break
+        qualifiers.insert(0, inner)
+        label = prefix.strip()
+    match = LEADING_TIMEPOINT_RE.match(label)
+    if match and len(match.group(0).strip()) < len(label):
+        qualifiers.insert(0, match.group(0).strip().rstrip("-—·、,，:："))
+        label = label[match.end() :].strip()
+    return (label or _normalise_text(endpoint), qualifiers)
+
+
+def _registration_ids(record: dict[str, str]) -> list[str]:
+    """Registry identifiers (NCT/ChiCTR/…) stated in the disclosure's trial key, identity or title."""
+    text = " ".join((record.get("trial", ""), record.get("identity", ""), record.get("title", "")))
+    return sorted({match.group(0).upper() for match in REGISTRATION_RE.finditer(text)})
+
+
+def _trial_key(value: str) -> str:
+    """Normalise a record's `trial` merge key: `HARMONi-6`, `HARMONi-6（NCT05840016）` and
+    `harmoni-6 ` all collapse to one key, so a trial's disclosures share one appendix column."""
+    key = _normalise_text(value).strip().casefold()
+    while True:
+        match = TRAILING_QUALIFIER_RE.search(key)
+        if not match:
+            break
+        key = key[: match.start()].strip()
+    return re.sub(r"[\s　·、,，:：;；/\\|（）()\[\]【】]+", "", key)
+
+
+def _study_key(study: str) -> str:
+    """Normalise a ledger `study` label so one trial's disclosures merge into one column."""
+    return _trial_key(study)
+
+
+def _column_key(record: dict[str, str], studies: list[str]) -> str:
+    """Merge one trial's disclosures into one column.
+
+    Key order: the record's explicit `trial` key, else a registry identifier stated in the
+    identity/title, else the normalised `study` label its facts carry, else the record itself.
+    
+    Names alone never merge two records: a shared generic name (“Study 301”) would otherwise
+    invent a trial identity, so the fallbacks stay identifier-based.
+    """
+    key = _trial_key(record.get("trial", ""))
+    if key:
+        return "trial:" + key
+    registration_ids = _registration_ids(record)
+    if registration_ids:
+        return "trial:" + "|".join(registration_ids)
+    for study in studies:
+        key = _study_key(study)
+        if key:
+            return "study:" + key
+    return "ref:" + record["ref"]
+
+
+def _most_common(values: list[str]) -> str:
+    counts: dict[str, int] = {}
+    for value in values:
+        counts[value] = counts.get(value, 0) + 1
+    return max(counts, key=lambda value: (counts[value], -len(value))) if counts else ""
+
+
+def _study_labels(column_records: list[dict[str, str]], facts_by_ref: dict[str, list[dict[str, str]]]) -> list[str]:
+    """Non-placeholder `study` labels carried by the column's facts, in encounter order."""
+    labels: list[str] = []
+    for record in column_records:
+        for fact in facts_by_ref.get(record["ref"], []):
+            study = _normalise_text(fact["study"]).strip()
+            if study and study.casefold() not in PLACEHOLDER_STUDY_LABELS:
+                labels.append(study)
+    return labels
+
+
+def _column_label(column_records: list[dict[str, str]], facts_by_ref: dict[str, list[dict[str, str]]]) -> str:
+    """Prefer the study label its facts carry, then the trial key, then the registry id,
+    then the first segment of the identity text."""
+    label = _most_common(_study_labels(column_records, facts_by_ref))
+    if label:
+        return label
+    trials = [_normalise_text(record.get("trial", "")).strip() for record in column_records]
+    label = _most_common([value for value in trials if value])
+    if label:
+        return label
+    registration_ids = [rid for record in column_records for rid in _registration_ids(record)]
+    label = _most_common(registration_ids)
+    if label:
+        return label
+    return _identity_name(column_records[0]["identity"])
+
+
+def _identity_name(identity: str) -> str:
+    """Trial name is the first segment of an identity line (`LUX-Lung 8｜二线鳞状 NSCLC｜…`)."""
+    value = _normalise_text(identity).strip()
+    for separator in ("｜", "|", "；", ";", "、", "，"):
+        if separator in value:
+            value = value.split(separator, 1)[0].strip()
+            break
+    return value[:40]
+
+
+def _fact_line(fact: dict[str, str], endpoint_qualifiers: list[str]) -> str:
+    parts: list[str] = []
+    for field in ("arm", "timepoint", "assessment", "population"):
+        value = _normalise_text(fact[field])
+        if value and value not in {"-", "—", "未报告", "不适用"} and value not in parts:
+            parts.append(value)
+    for value in endpoint_qualifiers:
+        if value and value not in parts:
+            parts.append(value)
+    line = f"{'·'.join(parts)}：" if parts else ""
+    line += f"{fact['value']} {fact['unit']}".strip()
+    if fact["statistics"]:
+        line += f"（{fact['statistics']}）"
+    return line + "{{" + fact["ref"] + "}}"
+
+
+def _record_cell(column_records: list[dict[str, str]], field: str) -> str:
+    """One line per disclosure, keeping each line bound to its own source marker."""
+    lines: list[str] = []
+    seen: set[str] = set()
+    for record in column_records:
+        value = _normalise_text(record[field])
+        if value and value not in seen:
+            seen.add(value)
+            lines.append(f"{value}{{{{{record['ref']}}}}}")
+    return "<br>".join(lines)
+
+
+def _appendix(records: list[dict[str, str]], facts: list[dict[str, str]]) -> str:
+    """Render the trial-as-columns alignment matrix and prove every fact entered it."""
+    record_order = {record["ref"]: index for index, record in enumerate(records)}
+    facts_by_ref = _facts_by_ref(records, facts)
+
+    keys, ref_to_key = _column_keys(records, facts_by_ref)
+    column_index = {key: index for index, key in enumerate(keys)}
+    columns: list[list[dict[str, str]]] = [[] for _ in keys]
+    for record in records:
+        columns[column_index[ref_to_key[record["ref"]]]].append(record)
+    labels = [_column_label(column, facts_by_ref) for column in columns]
+    # Two different trials may share a display name: disambiguate those headers by registry id.
+    duplicate_labels = {label for label in labels if labels.count(label) > 1}
+    for index, (label, column) in enumerate(zip(labels, columns)):
+        if label not in duplicate_labels:
+            continue
+        identifiers = sorted({rid for record in column for rid in _registration_ids(record)})
+        if identifiers:
+            labels[index] = f"{label}（{'/'.join(identifiers)}）"
+
+    column_of_ref = {record["ref"]: column_index[ref_to_key[record["ref"]]] for record in records}
+    blocks: dict[str, list[tuple[str, list[str]]]] = {segment: [] for segment in SEGMENT_ORDER}
+    placed: set[str] = set()
+
+    def add_row(segment: str, label: str, cells: list[list[str] | str]) -> None:
+        blocks[segment].append(
+            (
+                label,
+                ["<br>".join(dict.fromkeys(cell if isinstance(cell, list) else [cell])) for cell in cells],
+            )
+        )
+
+    # 试验设计 / 试验结论 blocks come from the record objects, one line per disclosure.
+    for label, field in DESIGN_ROWS:
+        add_row("试验设计", label, [_record_cell(column, field) for column in columns])
+    version_cells: list[list[str]] = []
+    for column in columns:
+        cell: list[str] = []
+        seen_versions: set[str] = set()
+        for record in column:
+            for fact in facts_by_ref[record["ref"]]:
+                version = _normalise_text(fact["version"])
+                if version and version not in seen_versions:
+                    seen_versions.add(version)
+                    cell.append(f"{version}{{{{{fact['ref']}}}}}")
+        version_cells.append(cell)
+    add_row("试验设计", "披露版本 / 数据截止", version_cells)
+    add_row("试验结论", "披露级结论", [_record_cell(column, "conclusion") for column in columns])
+
+    # Endpoint rows: aligned by (segment, parent endpoint) across trials.
+    grouped: dict[tuple[str, str], list[tuple[int, int, dict[str, str], list[str]]]] = {}
+    for index, fact in enumerate(facts):
+        label, qualifiers = _endpoint_row(fact["endpoint"])
+        grouped.setdefault((_segment(fact["kind"]), label), []).append(
+            (record_order[fact["ref"]], index, fact, qualifiers)
+        )
+
+    for segment in SEGMENT_ORDER:
+        rows = sorted(
+            (key for key in grouped if key[0] == segment),
+            key=lambda key: (
+                -len({item[2]["ref"] for item in grouped[key]}),
+                min(item[0] for item in grouped[key]),
+                min(item[1] for item in grouped[key]),
+                key[1],
+            ),
+        )
+        for key in rows:
+            cells: list[list[str]] = [[] for _ in columns]
+            for _, _, fact, qualifiers in grouped[key]:
+                cells[column_of_ref[fact["ref"]]].append(_fact_line(fact, qualifiers))
+                placed.add(fact["id"])
+            add_row(segment, key[1], cells)
+
+    missing = [fact["id"] for fact in facts if fact["id"] not in placed]
+    if missing:
+        raise ValidationError("appendix dropped ledger facts: " + ", ".join(sorted(missing)))
+
     if not facts:
-        parts.append("| No ledger facts |  |  |  |  |  |  |  |  |  |  |")
+        raise ValidationError("ledger has no facts to render")
+
+    header = "| 维度 | " + " | ".join(
+        label + (f"（{len(column)} 条披露）" if len(column) > 1 else "") for label, column in zip(labels, columns)
+    ) + " |"
+    parts = [
+        APPENDIX_TITLE,
+        "",
+        APPENDIX_INTRO,
+        "",
+        header,
+        "| --- |" + " --- |" * len(columns),
+    ]
+    for segment in SEGMENT_ORDER:
+        if not blocks[segment]:
+            continue
+        parts.append("| **" + segment + "** |" + "  |" * len(columns))
+        for label, cells in blocks[segment]:
+            parts.append(
+                "| "
+                + _normalise_markdown(label)
+                + " | "
+                + " | ".join(_normalise_markdown(cell) if cell else EMPTY_CELL for cell in cells)
+                + " |"
+            )
     return "\n".join(parts) + "\n"
 
 
@@ -297,6 +650,11 @@ def render(ledger_path: Path, draft_path: Path, out_path: Path, audit_path: Path
         leaked.extend(fact["source_file"] for fact in facts if fact["source_file"] in output)
         if leaked:
             raise ValidationError("final report exposes internal fact/source identifiers")
+        if ENTITY_LINK_RE.search(output):
+            raise ValidationError(
+                "entity inline references are no longer part of the report format (removed in v0.16): "
+                "write the plain source-supported name instead"
+            )
         if not output.strip():
             raise ValidationError("refusing to write an empty output")
 
@@ -304,6 +662,15 @@ def render(ledger_path: Path, draft_path: Path, out_path: Path, audit_path: Path
             {
                 "records": len(records),
                 "facts": len(facts),
+                "appendix_trials": len(_appendix_columns(records, facts)),
+                "records_without_trial_key": sum(1 for record in records if not record.get("trial", "").strip()),
+                "appendix_rows": len(_appendix_body_rows(appendix)),
+                "appendix_cells_filled": sum(
+                    1
+                    for row in _appendix_body_rows(appendix)
+                    for cell in row.strip("| ").split(" | ")
+                    if cell.strip() not in ("", EMPTY_CELL)
+                ),
                 "fact_tokens_rendered": len(FACT_TOKEN_RE.findall(draft)),
                 "handwritten_number_literals_for_review": len(NUMBER_RE.findall(draft)),
                 "semantic_safety_claim": "none",

@@ -142,7 +142,7 @@ For every same-trial input with two or more distinct evidence states, build the 
 ## Step 9: Required report content
 
 - one common trial description;
-- one evidence-state timeline, with supporting markers;
+- one evidence-state timeline, with supporting markers and a 发表时间 first column (date part of each disclosure's `paper_release_time`, `未报告` when absent; it labels the disclosure date and only breaks ties when cutoff/follow-up/milestone cannot, never input order);
 - integrated primary and key secondary endpoint chains;
 - other efficacy domains only when reported;
 - subgroup and sensitivity boundaries;

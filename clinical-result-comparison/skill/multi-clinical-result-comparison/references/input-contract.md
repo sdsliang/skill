@@ -340,9 +340,12 @@ either convention (2026-09-18: 两种写法都可以，只要同一份交付物�
 
 **Entity-ID fields** (`projects.associate_ids`, `trial_abbreviation`, `arms[].drugs[].drug_earth_id`,
 `projects.company_ids`) are **display/label metadata, not clinical evidence** — the Agent uses them
-solely to attach entity inline references to mentions already present in the report (see
-`references/entity-inline-reference.md`), never to derive clinical facts. Missing entity fields mean
-that entity type is not referenced for that record (graceful degradation).
+only to choose the proper name already supported by the source (prefer the source-supported trial
+abbreviation) and to fill the ledger's `trial` merge key and `study` label, never to derive clinical
+facts, and **never** to render a `[名字](entity:type:id)` inline reference: that syntax was removed in
+v0.16 and any occurrence blocks delivery. Missing entity fields therefore degrade gracefully — the
+report simply uses the name the evidence text gives, and the appendix falls back to the registry
+identifier or the `study` label as its column key.
 
 The Agent must never print, quote, or transmit raw field values, record `_id`s, index/table names,
 storage paths, or tool diagnostics into the report body; and must not fabricate or guess a missing
