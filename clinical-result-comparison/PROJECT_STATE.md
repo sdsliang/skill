@@ -1,6 +1,8 @@
 # Project State
 
-## 当前快照：2026-09-18 全项目审查后
+## 当前快照：2026-10-09（v0.16.1 已原地发布；R38 三组全绿验收四点改动）
+
+**最新（2026-10-09）**：R35 → R36 → R37 连续三轮验证 prompt 的「文件写入纪律」三次迭代，**R37 三组 22 PASS / 0 FAIL / exit 0**（`6143cc8f` / `a7c58280` / `15b0f2b5`，347.7 / 530.5 / 411.9 s），R36-3 的 16 s 零产物 flake 未复现（仍留平台问题单）。R37 产物取证 + 用户五点诉求 → **v0.16.1** 四点改动：①图（时间轴）只画骨架、表格是数值唯一出处，图内除 `time` 锚点外禁数值，图内文本与表格单元格不得有 ≥8 字连续相同文本；②单试验附录改**每条披露一列**（原 1 列 + `<br>` 堆叠长文本）；③`records[]` 必填收成 `ref` / `identity` / `conclusion`（+ `trial`），`title` / `design` / `arms` / `coverage` **接受但不渲染**，四个散文行从 `DESIGN_ROWS` 删除；④附录列头形态由渲染器固定（多试验 `**试验名**<br>注册号 · N 条披露`；单试验 `**ref_n**<br>短版本标签`），新增 audit `appendix_layout` / `appendix_columns`；⑤行标签不稳定由 prompt/SKILL 设计 fact 白名单治理（渲染器不加硬截断）。本地门禁：`test-render-facts.py` **26/26 OK**、`verify-run-chain.py` `GATE: PASS`、`mutations.py` `arm a: flipped 43/43` + `arm b: flipped 12/12`。**原地发布**（用户要求不新开版本号）：dist **99,640 B / 19 entries / sha `5457c8c4fd00`**（`push-skill --version 1.0.8`，`skill_id cd93a42af72b4828b1690b3a7bccfa06` 不变）；prompt **58,795 B / sha `1d9153c88f3c`**（`push-prompt --version 1.7`）；`status` → **in sync**。runner 修 O39（文档悬空指针，`docs/params-tool-schema.md` 31,729 → 31,671 B）。**R38 三组验收全绿**（`4014f791` / `5ddb5fac` / `c8851877`；390.9 / 494.2 / 534.4 s；各 22 PASS / 0 FAIL）；单试验附录 4 列、表头统一、14 条自造设计行消失、图-表共享 0 处 ≥8 字连续文本。详见 `docs/toolsmith-verification-log.md` R35–R38。
 
 **三组已跑完（覆盖下文运行中状态）**：R27 4/4、R28 18/18、R29 14/14 均产出报告。R27断言全过；R28写文件冲突导致断言FAIL；R29无FAIL但3次拒参/2次全文500已披露。设计冲突披露部分生效，三组内容审查均有待改项，不宣称全绿。详见台账 R27–R29。以后固定全跑三组。Git本轮仅提交任务相关资产/证据文档，Docker未涉及。
 

@@ -61,8 +61,9 @@
 ### 数据填充约束
 
 - timeline `data[]` 一条 = **一个证据状态**（同状态多篇披露合并为一节点），按来源支持的 数据截止→随访→分析里程碑→披露日期 排布（数组顺序即时间顺序，图表 skill 不重排）。
+- **图只画骨架，表是数值唯一出处（硬性）**：timeline 的 `label` ≤18 字、`content` ≤16 字定性短语、`description` 只写关系 + 成熟度方向 + `{{ref_n}}`；**图内除 `time` 的时间锚点（年月/日期）外不得出现任何数值**（样本量、pCR/ORR/HR/CI/p、发生率、随访时长一律留在时间线表格）。图内文本与任一表格单元格不得出现 ≥8 个连续相同字符（专有名词除外）——详见 `references/timeline-diagram.md` 的「图表职责分工」。
 - **排序规则**：柱状图如需降序由生成方按 `value` 从高到低排好 `data[]`；折线图/时间轴按**时间顺序**（`label`/`time` 数组顺序即时间顺序）。
-- `value` 只填纯数字；`description` 放可追溯的补充说明（95%CI、人群口径、`{{ref_n}}` 对应信息等），直接写说明内容，不加「数据说明：」或「数据说明」前缀。`group` 用于多系列（line 的队列/治疗组、bar 的系列、timeline 的图例 key）。
+- `value` 只填纯数字（**timeline 不用 `value`**）；line/bar 的 `description` 放可追溯的补充说明（95%CI、人群口径、`{{ref_n}}` 对应信息等），直接写说明内容，不加「数据说明：」或「数据说明」前缀；timeline 的 `description` 按上一条的骨架规则（无数值）。`group` 用于多系列（line 的队列/治疗组、bar 的系列、timeline 的图例 key）。
 - timeline 的 `group` 必须与 `legend[].key` 一致；`weight` 0–N 表示证据成熟度/强调度。
 - 引用保留：`dataSource` 行写清数据来源，正文相应位置保留 `{{ref_n}}` 标记；**图表 JSON 内不写 `entity:` 文本**（v0.16 已移除该内联引用语法，任何地方都不再承载它）。
 

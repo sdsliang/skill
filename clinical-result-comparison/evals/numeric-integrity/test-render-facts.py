@@ -199,12 +199,11 @@ class RenderFactsTests(unittest.TestCase):
         output = self.out.read_text(encoding="utf-8")
         self.assertIn("## 附录：证据对齐矩阵（数值事实账本）", output)
         self.assertIn("列为试验", output)
-        self.assertIn("| 维度 | Study alpha | Study beta |", output)
+        self.assertIn("| 维度 | **Study alpha**<br>1 条披露 | **Study beta**<br>1 条披露 |", output)
         self.assertIn("| **试验设计** |", output)
         self.assertIn("| **试验结论** |", output)
         self.assertIn("| **有效性** |", output)
         self.assertIn("| 试验身份 |", output)
-        self.assertIn("| 设计与方案 |", output)
         self.assertIn("| 披露级结论 |", output)
         self.assertIn("Alpha trial met its primary endpoint.", output)
         self.assertIn("| Primary endpoint |", output)
@@ -215,6 +214,12 @@ class RenderFactsTests(unittest.TestCase):
         self.assertIn("{{ref_2}}", output)
         self.assertNotIn("Outcome domain", output)
         self.assertNotIn("F001", output)
+        # Long prose rows are gone from the appendix: the body and the 试验背景 table carry them.
+        for dropped in ("披露标题", "设计与方案", "试验组与对照", "人群与证据覆盖"):
+            self.assertNotIn(f"| {dropped} |", output)
+        self.assertNotIn("Randomized", output)
+        self.assertNotIn("Drug vs placebo", output)
+        self.assertEqual(self.audit_data()["appendix_layout"], "trial-columns")
 
     def test_appendix_intro_carries_no_template_placeholder(self):
         """The runner fails any report containing a literal `{{ref_n}}`-style
@@ -231,6 +236,63 @@ class RenderFactsTests(unittest.TestCase):
         self.assertEqual(self.audit_data()["appendix_trials"], 2)
         self.assertGreater(self.audit_data()["appendix_cells_filled"], 0)
 
+    def test_ledger_without_prose_record_fields_renders(self):
+        """`title` / `design` / `arms` / `coverage` are no longer part of the appendix, so a lean
+        ledger of ref / trial / identity / conclusion must render without them."""
+        ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
+        for record in ledger["records"]:
+            for field in ("title", "design", "arms", "coverage"):
+                del record[field]
+        self.write_ledger(ledger)
+        self.assertTrue(self.run_render())
+        output = self.out.read_text(encoding="utf-8")
+        self.assertIn("| 试验身份 | Alpha trial{{ref_1}} | Beta trial{{ref_2}} |", output)
+        self.assertIn("Alpha trial met its primary endpoint.", output)
+
+    def test_appendix_drops_record_prose_rows(self):
+        """A legacy ledger's long prose must not be echoed into the appendix: it duplicates the body
+        and the 试验背景 table, and long text is bound by `{{ref_n}}` there."""
+        ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
+        ledger["records"][0]["design"] = "多中心随机双盲安慰剂对照 III 期研究，按 PD-L1 表达分层"
+        ledger["records"][0]["arms"] = "试验组接受 X 联合化疗，对照组接受安慰剂联合化疗"
+        ledger["records"][0]["coverage"] = "覆盖 532 例随机化人群的主要终点与关键次要终点"
+        self.write_ledger(ledger)
+        self.assertTrue(self.run_render())
+        output = self.out.read_text(encoding="utf-8")
+        for prose in ("多中心随机双盲", "接受 X 联合化疗", "覆盖 532 例随机化人群"):
+            self.assertNotIn(prose, output)
+        self.assertNotIn("| 设计与方案 |", output)
+
+    def test_appendix_headers_follow_one_uniform_shape(self):
+        """Column headers must not drift between trial name / registry id / free prose: every header
+        is `**名称**` plus a `<br>` detail line of registry id and disclosure count."""
+        self.assertTrue(self.run_render("Summary [[result:F001]] and [[result:F002]]."))
+        header = next(
+            line for line in self.out.read_text(encoding="utf-8").splitlines() if line.startswith("| 维度 |")
+        )
+        cells = [cell.strip() for cell in header.strip().strip("|").split("|")][1:]
+        self.assertEqual(len(cells), 2)
+        for cell in cells:
+            self.assertRegex(cell, r"^\*\*[^*|<]+\*\*<br>(?:[^|]* · )?\d+ 条披露$")
+
+    def test_appendix_disclosure_headers_use_ref_and_short_version(self):
+        """The one-trial layout names each column `ref_n` plus a short version tag, so a long
+        version string never bloats the header."""
+        ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
+        for index, record in enumerate(ledger["records"], start=1):
+            record["trial"] = "NCT05840016"
+        ledger["facts"][0]["version"] = "预设中期 OS 分析·数据截止 2026-02-27"
+        ledger["facts"][1]["version"] = "最终 PFS 分析·数据截止 2025-11-30"
+        self.write_ledger(ledger)
+        self.assertTrue(self.run_render())
+        header = next(
+            line for line in self.out.read_text(encoding="utf-8").splitlines() if line.startswith("| 维度 |")
+        )
+        self.assertIn("**ref_1**<br>预设中期 OS 分析", header)
+        self.assertIn("**ref_2**<br>最终 PFS 分析", header)
+        self.assertNotIn("数据截止", header)
+        self.assertEqual(self.audit_data()["appendix_layout"], "disclosure-columns")
+
     def test_missing_record_conclusion_blocks(self):
         ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
         del ledger["records"][0]["conclusion"]
@@ -238,7 +300,9 @@ class RenderFactsTests(unittest.TestCase):
         self.assertFalse(self.run_render())
         self.assertIn("missing fields: conclusion", self.audit_data()["errors"][0])
 
-    def test_appendix_merges_one_trial_into_one_column(self):
+    def test_appendix_single_trial_becomes_one_column_per_disclosure(self):
+        """One trial whose disclosures used to be stacked inside one cell gets one column per
+        disclosure: every evidence item keeps a line of its own instead of an HTML `<br>` pile."""
         ledger = {
             "records": [
                 {
@@ -303,13 +367,24 @@ class RenderFactsTests(unittest.TestCase):
         self.assertTrue(self.run_render())
         output = self.out.read_text(encoding="utf-8")
         header = next(line for line in output.splitlines() if line.startswith("| 维度 |"))
-        self.assertEqual(header.count("|"), 3)
-        self.assertIn("Alpha（2 条披露）", header)
-        os_row = next(line for line in output.splitlines() if line.startswith("| OS |"))
+        self.assertEqual(header.count("|"), 4)
+        self.assertIn("**ref_1**<br>2024 年会", header)
+        self.assertIn("**ref_2**<br>2025 年会更新", header)
+        os_row = next(line for line in output.splitlines() if line.startswith("| OS"))
         self.assertIn("8.34 %{{ref_1}}", os_row)
         self.assertIn("72 %{{ref_2}}", os_row)
-        self.assertIn("<br>", os_row)
-        self.assertEqual(self.audit_data()["appendix_trials"], 1)
+        # `arm` / `assessment` / `population` hold for the whole row: hoisted into the label,
+        # while the differing timepoint stays in each cell.
+        self.assertIn("| OS · Drug；ITT；Adults |", os_row)
+        self.assertIn("Week 12：8.34 %", os_row)
+        self.assertIn("Week 24：72 %", os_row)
+        # Each disclosure owns its cell: no disclosure stacking inside one cell anymore.
+        self.assertNotIn("<br>", os_row)
+        self.assertEqual(os_row.count(" | "), 2)
+        audit = self.audit_data()
+        self.assertEqual(audit["appendix_trials"], 1)
+        self.assertEqual(audit["appendix_columns"], 2)
+        self.assertEqual(audit["appendix_layout"], "disclosure-columns")
 
     def test_appendix_merges_by_registry_id_not_label(self):
         self.source.write_text(
@@ -365,11 +440,12 @@ class RenderFactsTests(unittest.TestCase):
         output = self.out.read_text(encoding="utf-8")
         header = next(line for line in output.splitlines() if line.startswith("| 维度 |"))
         # Same trial key merges even when the display name and identity text differ.
-        self.assertIn("| 研究甲（NCT05840016）（2 条披露） |", header)
+        self.assertIn("**研究甲（NCT05840016）**<br>NCT05840016 · 2 条披露", header)
         # The same label on two different trial keys stays two columns and is disambiguated.
-        self.assertIn("| 研究甲（NCT09999999） |", header)
+        self.assertIn("**研究甲（NCT09999999）**<br>NCT09999999 · 1 条披露", header)
         self.assertEqual(header.count("|"), 4)
-        os_row = next(line for line in output.splitlines() if line.startswith("| OS |"))
+        os_row = next(line for line in output.splitlines() if line.startswith("| OS"))
+        self.assertIn("| OS · Drug；Week 12；ITT；Adults |", os_row)
         for marker in ("8.34 %{{ref_1}}", "41 %{{ref_3}}", "72 %{{ref_2}}"):
             self.assertIn(marker, os_row)
         self.assertEqual(self.audit_data()["appendix_trials"], 2)
@@ -384,8 +460,11 @@ class RenderFactsTests(unittest.TestCase):
         self.write_ledger(ledger)
         self.assertTrue(self.run_render())
         header = next(line for line in self.out.read_text(encoding="utf-8").splitlines() if line.startswith("| 维度 |"))
-        self.assertEqual(header.count("|"), 3)
+        # Both records carry the same registry id, so they merge into one trial; that trial's two
+        # disclosures then get one column each.
+        self.assertEqual(header.count("|"), 4)
         self.assertEqual(self.audit_data()["appendix_trials"], 1)
+        self.assertEqual(self.audit_data()["appendix_columns"], 2)
         self.assertEqual(self.audit_data()["records_without_trial_key"], 2)
 
         ledger = json.loads(json.dumps(self.base, ensure_ascii=False))
@@ -396,8 +475,11 @@ class RenderFactsTests(unittest.TestCase):
         self.write_ledger(ledger)
         self.assertTrue(self.run_render())
         output = self.out.read_text(encoding="utf-8")
-        self.assertIn("| 维度 | Study alpha（2 条披露） |", output)
+        header = next(line for line in output.splitlines() if line.startswith("| 维度 |"))
+        self.assertEqual(header.count("|"), 4)
+        self.assertIn("**ref_1**<br>v1", header)
         self.assertEqual(self.audit_data()["appendix_trials"], 1)
+        self.assertEqual(self.audit_data()["appendix_layout"], "disclosure-columns")
 
     def test_appendix_aligns_endpoint_variants_on_one_row(self):
         ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
@@ -406,8 +488,11 @@ class RenderFactsTests(unittest.TestCase):
         self.write_ledger(ledger)
         self.assertTrue(self.run_render())
         output = self.out.read_text(encoding="utf-8")
-        rows = [line for line in output.splitlines() if line.startswith("| ORR |")]
+        # `Drug` / `Adults` hold for the whole row, so they move into the row label; the differing
+        # `16 个月` qualifier and each value stay in their own cell.
+        rows = [line for line in output.splitlines() if line.startswith("| ORR")]
         self.assertEqual(len(rows), 1)
+        self.assertIn("| ORR · Drug；Adults |", rows[0])
         self.assertIn("16 个月：8.34 %", rows[0])
         self.assertIn("72 %{{ref_2}}", rows[0])
         self.assertNotIn("| 16 个月 ORR |", output)
@@ -420,12 +505,12 @@ class RenderFactsTests(unittest.TestCase):
         self.write_ledger(ledger)
         self.assertTrue(self.run_render())
         output = self.out.read_text(encoding="utf-8")
-        rows = [line for line in output.splitlines() if line.startswith("| 中位总生存期 |")]
+        rows = [line for line in output.splitlines() if line.startswith("| 中位总生存期")]
         self.assertEqual(len(rows), 1)
         self.assertIn("OS：8.34 %", rows[0])
         self.assertIn("72 %{{ref_2}}", rows[0])
         self.assertFalse(
-            [line for line in output.splitlines() if line.startswith("| 中位总生存期（OS） |")],
+            [line for line in output.splitlines() if line.startswith("| 中位总生存期（OS）")],
             "the qualifier must move into the cell, not create a near-duplicate row",
         )
 
@@ -451,8 +536,11 @@ class RenderFactsTests(unittest.TestCase):
         self.assertTrue(self.run_render())
         output = self.out.read_text(encoding="utf-8")
         self.assertNotIn("entity:", output)
-        self.assertIn("Alpha trial；2024 年会", output)
-        self.assertIn("Drug vs placebo", output)
+        # Only the trial display name (first identity segment) is printed: the long identity tail
+        # and the `arms` prose row are no longer part of the appendix.
+        self.assertIn("Alpha trial{{ref_1}}", output)
+        self.assertNotIn("2024 年会", output)
+        self.assertNotIn("Drug vs placebo", output)
         self.assertIn("Drug·Week 12", output)
 
     def test_entity_syntax_in_draft_blocks_delivery(self):
@@ -490,13 +578,15 @@ class RenderFactsTests(unittest.TestCase):
         self.write_ledger(ledger)
         self.assertTrue(self.run_render())
         output = self.out.read_text(encoding="utf-8")
-        row = next(line for line in output.splitlines() if line.startswith("| 基线 Lp(a) |"))
-        self.assertIn("Drug·Week 12·ITT·Adults·中位：8.34 %", row)
-        self.assertIn("Placebo·Week 12·ITT·Adults·中位：8.34 %", row)
+        row = next(line for line in output.splitlines() if line.startswith("| 基线 Lp(a)"))
+        # `Week 12` / `ITT` / `Adults` are shared by both arms of the row, so the label carries them.
+        self.assertIn("| 基线 Lp(a) · Week 12；ITT；Adults |", row)
+        self.assertIn("Drug·中位：8.34 %", row)
+        self.assertIn("Placebo·中位：8.34 %", row)
         self.assertIn("<br>", row)
         self.assertEqual(row.count("{{ref_1}}"), 1)
         # A Latin token followed by a Chinese qualifier still separates: the name stays, the qualifier moves in.
-        oxpl_row = next(line for line in output.splitlines() if line.startswith("| 基线 OxPL |"))
+        oxpl_row = next(line for line in output.splitlines() if line.startswith("| 基线 OxPL"))
         self.assertIn("中位：41 %", oxpl_row)
         self.assertFalse([line for line in output.splitlines() if line.startswith("| 基线 OxPL（中位） |")])
         headers = [line for line in output.splitlines() if line.startswith("| 维度 |")]

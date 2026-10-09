@@ -18,11 +18,16 @@ from pathlib import Path
 from typing import Any
 
 
-RECORD_FIELDS = ("ref", "title", "identity", "design", "arms", "coverage", "conclusion")
+# Fields the appendix actually prints: the trial's short display name (first segment of
+# `identity`) and the disclosure-level conclusion. Everything else on a record used to be a
+# long prose row (full title, design, arms, population coverage) that only repeated the report
+# body and §三 试验背景 — long text is bound by `{{ref_n}}` there, so it is no longer printed.
+RECORD_FIELDS = ("ref", "identity", "conclusion")
 # `trial` is the appendix merge key. Contract (prompt v0.16) says every record carries it;
 # the renderer tolerates its absence and falls back to registry id / `study` label, because a
-# presentation hint must not block an otherwise sound delivery.
-RECORD_OPTIONAL_FIELDS = ("trial",)
+# presentation hint must not block an otherwise sound delivery. `title` / `design` / `arms` /
+# `coverage` are accepted for backward compatibility with existing ledgers and never rendered.
+RECORD_OPTIONAL_FIELDS = ("trial", "title", "design", "arms", "coverage")
 FACT_FIELDS = (
     "id",
     "ref",
@@ -46,21 +51,27 @@ NUMBER_RE = re.compile(r"(?<![A-Za-z])[-+−]?\d+(?:[.,]\d+)?%?")
 
 APPENDIX_TITLE = "## 附录：证据对齐矩阵（数值事实账本）"
 APPENDIX_INTRO = (
-    "按「试验设计 → 试验结论 → 有效性 → 安全性 → PK/PD → PRO」分段排列：列为试验，同一试验的多条披露合并为一列；"
-    "行为维度与终点（同一终点的不同时点/口径统一到同一行，细分标签写进单元格）；`—` 表示该披露在该终点上未报告数值。"
-    "单元格格式为「治疗臂·时点·评估·人群：结果 单位（统计量）」，紧跟其后的来源标记即该值的引用；"
-    "同一披露的多个数值用 `<br>` 分行，未报告处写 `—`。"
+    "按「试验设计 → 试验结论 → 有效性 → 安全性 → PK/PD → PRO」分段排列。**列为试验**：同一试验的多条披露合并为一列，"
+    "列头为该试验的显示名 + 注册号与披露条数；**输入只含一个试验、且有 ≥2 条披露时改为每条披露一列**（列头为 `ref` 标记 + 版本标签），"
+    "不再把多条披露堆进同一格。行为维度与终点父级（同一终点的不同时点/口径统一到同一行，细分标签写进单元格）；"
+    "一行内所有数值共有的限定词（治疗臂 / 时点 / 评估 / 人群）提到行标签，单元格只留各自的差异部分。"
+    "单元格值部分格式为「治疗臂·时点·评估·人群：结果 单位（统计量）」，紧跟其后的来源标记即该值的引用；同一格内多个数值用 `<br>` 分行。"
+    "`—` 表示该披露在该终点上未报告数值。披露标题、设计与方案、试验组方案、人群覆盖等长文本不进附录："
+    "这些内容由正文与「试验背景」表承载，附录只保留可对齐的数值与结论。"
 )
 SEGMENT_ORDER = ("试验设计", "试验结论", "有效性", "安全性", "PK/PD", "PRO", "其他")
 
-# Record-level rows of the 试验设计 / 试验结论 blocks, in the fixed reading order.
-DESIGN_ROWS = (
-    ("试验身份", "identity"),
-    ("披露标题", "title"),
-    ("设计与方案", "design"),
-    ("试验组与对照", "arms"),
-    ("人群与证据覆盖", "coverage"),
-)
+# Record-level row of the 试验设计 block: the trial's short display name only. The long
+# record prose (title / design / arms / coverage) was removed from the appendix in v0.16.1 —
+# it duplicated the body and the 试验背景 table, and made a single-trial appendix unreadable.
+DESIGN_ROWS = (("试验身份", "identity"),)
+# Qualifier fields a fact carries into its cell. Values shared by every fact of one appendix row
+# are hoisted into the row label, so the row stops repeating them in every cell.
+QUALIFIER_FIELDS = ("arm", "timepoint", "assessment", "population")
+IGNORED_QUALIFIER_VALUES = {"-", "—", "未报告", "不适用", "不适用/未报告"}
+MAX_HOISTED_LABEL_LEN = 60
+# Upper bound for one disclosure's column-header version tag (`首次计划 OS 分析·数据截止 …`).
+MAX_DISCLOSURE_LABEL_LEN = 20
 # Entity inline references were removed in v0.16: the report carries plain names only.
 # `_strip_entity_links` removes the syntax from ledger display text; this regex is the
 # post-strip safety net that keeps any leftover `entity:` form out of the deliverable.
@@ -465,11 +476,13 @@ def _identity_name(identity: str) -> str:
     return value[:40]
 
 
-def _fact_line(fact: dict[str, str], endpoint_qualifiers: list[str]) -> str:
+def _fact_line(fact: dict[str, str], endpoint_qualifiers: list[str], hoisted: set[str] | None = None) -> str:
     parts: list[str] = []
-    for field in ("arm", "timepoint", "assessment", "population"):
+    for field in QUALIFIER_FIELDS:
         value = _normalise_text(fact[field])
-        if value and value not in {"-", "—", "未报告", "不适用"} and value not in parts:
+        if value in IGNORED_QUALIFIER_VALUES or (hoisted and value in hoisted):
+            continue
+        if value and value not in parts:
             parts.append(value)
     for value in endpoint_qualifiers:
         if value and value not in parts:
@@ -481,24 +494,104 @@ def _fact_line(fact: dict[str, str], endpoint_qualifiers: list[str]) -> str:
     return line + "{{" + fact["ref"] + "}}"
 
 
-def _record_cell(column_records: list[dict[str, str]], field: str) -> str:
+def _record_cell(column_records: list[dict[str, str]], field: str, transform=None) -> str:
     """One line per disclosure, keeping each line bound to its own source marker."""
     lines: list[str] = []
     seen: set[str] = set()
     for record in column_records:
-        value = _normalise_text(record[field])
+        value = _normalise_text(record.get(field, ""))
+        if transform is not None:
+            value = transform(value)
         if value and value not in seen:
             seen.add(value)
             lines.append(f"{value}{{{{{record['ref']}}}}}")
     return "<br>".join(lines)
 
 
-def _appendix(records: list[dict[str, str]], facts: list[dict[str, str]]) -> str:
-    """Render the trial-as-columns alignment matrix and prove every fact entered it."""
-    record_order = {record["ref"]: index for index, record in enumerate(records)}
-    facts_by_ref = _facts_by_ref(records, facts)
+def _hoistable_qualifiers(group: list[tuple[int, int, dict[str, str], list[str]]]) -> list[str]:
+    """Qualifier values every fact of one row shares: they move into the row label.
 
+    A value only hoists when the whole row carries it — arm, timepoint, assessment or population
+    that differ between cells (e.g. 试验组 vs 对照组, or two different cutoffs) stay in the cell,
+    so the row label can never state something the cells disagree with.
+    """
+    if len(group) < 2:
+        return []
+    candidates: list[tuple[str, str]] = []
+    for field in QUALIFIER_FIELDS:
+        values = {_normalise_text(fact[field]) for _, _, fact, _ in group}
+        values.discard("")
+        values -= IGNORED_QUALIFIER_VALUES
+        if len(values) == 1:
+            candidates.append((field, values.pop()))
+    # Hoist the longest shared values first so the label stays within budget; a value that does not
+    # fit simply stays in every cell (still correct, just less compact).
+    candidates.sort(key=lambda item: len(item[1]), reverse=True)
+    chosen: dict[str, str] = {}
+    budget = MAX_HOISTED_LABEL_LEN
+    for field, value in candidates:
+        if len(value) > budget:
+            continue
+        chosen[field] = value
+        budget -= len(value) + 1
+    return [chosen[field] for field in QUALIFIER_FIELDS if field in chosen]
+
+
+def _short_version(version: str) -> str:
+    """Shorten a version label for a column header without ever cutting mid-parenthesis."""
+    head = re.split(r"[·；;｜|]", version.strip(), maxsplit=1)[0].strip()
+    if len(head) > MAX_DISCLOSURE_LABEL_LEN:
+        head = re.sub(r"[（(][^）)]*[）)]\s*$", "", head).strip()
+    if len(head) > MAX_DISCLOSURE_LABEL_LEN:
+        head = head[:MAX_DISCLOSURE_LABEL_LEN].rstrip("（(·、,，;； ）") + "…"
+    return head
+
+
+def _disclosure_label(column_records: list[dict[str, str]], facts_by_ref: dict[str, list[dict[str, str]]]) -> str:
+    """Short version tag for one disclosure column (`首次计划 OS 分析`, `2024 年会`).
+
+    The full cutoff label stays in the `披露版本 / 数据截止` row; the header keeps only the
+    first segment so a one-trial appendix reads as `ref_2 / 首次计划 OS 分析` instead of a wall of text.
+    """
+    for record in column_records:
+        for fact in facts_by_ref.get(record["ref"], []):
+            version = _normalise_text(fact["version"]).strip()
+            if not version:
+                continue
+            head = _short_version(version)
+            if head:
+                return head
+    return column_records[0]["ref"]
+
+
+def _column_header(label: str, column: list[dict[str, str]], layout: str) -> str:
+    """One uniform two-line header per column: bold name, then identifier and disclosure count."""
+    if layout == "disclosure-columns":
+        tag = _normalise_markdown(label)
+        return f"**{column[0]['ref']}**<br>{tag}" if tag and tag != column[0]["ref"] else f"**{column[0]['ref']}**"
+    identifiers = sorted({rid for record in column for rid in _registration_ids(record)})
+    details = [" / ".join(identifiers)] if identifiers else []
+    details.append(f"{len(column)} 条披露")
+    return f"**{_normalise_markdown(label)}**<br>{' · '.join(details)}"
+
+
+def _appendix_layout(
+    records: list[dict[str, str]], facts_by_ref: dict[str, list[dict[str, str]]]
+) -> tuple[str, list[list[dict[str, str]]], list[str], dict[str, int]]:
+    """Columns of the appendix: one per trial, or one per disclosure for a single-trial input.
+
+    One trial whose disclosures are stacked inside a single cell is the unreadable case: each
+    disclosure then gets its own column (`ref_n` + version tag) so every evidence item keeps a
+    line of its own instead of an HTML `<br>` pile inside one cell.
+    """
     keys, ref_to_key = _column_keys(records, facts_by_ref)
+    if len(keys) == 1 and len(records) > 1:
+        return (
+            "disclosure-columns",
+            [[record] for record in records],
+            [_disclosure_label([record], facts_by_ref) for record in records],
+            {record["ref"]: index for index, record in enumerate(records)},
+        )
     column_index = {key: index for index, key in enumerate(keys)}
     columns: list[list[dict[str, str]]] = [[] for _ in keys]
     for record in records:
@@ -512,8 +605,16 @@ def _appendix(records: list[dict[str, str]], facts: list[dict[str, str]]) -> str
         identifiers = sorted({rid for record in column for rid in _registration_ids(record)})
         if identifiers:
             labels[index] = f"{label}（{'/'.join(identifiers)}）"
-
     column_of_ref = {record["ref"]: column_index[ref_to_key[record["ref"]]] for record in records}
+    return "trial-columns", columns, labels, column_of_ref
+
+
+def _appendix(records: list[dict[str, str]], facts: list[dict[str, str]]) -> str:
+    """Render the alignment matrix and prove every fact entered it."""
+    record_order = {record["ref"]: index for index, record in enumerate(records)}
+    facts_by_ref = _facts_by_ref(records, facts)
+
+    layout, columns, labels, column_of_ref = _appendix_layout(records, facts_by_ref)
     blocks: dict[str, list[tuple[str, list[str]]]] = {segment: [] for segment in SEGMENT_ORDER}
     placed: set[str] = set()
 
@@ -527,7 +628,8 @@ def _appendix(records: list[dict[str, str]], facts: list[dict[str, str]]) -> str
 
     # 试验设计 / 试验结论 blocks come from the record objects, one line per disclosure.
     for label, field in DESIGN_ROWS:
-        add_row("试验设计", label, [_record_cell(column, field) for column in columns])
+        transform = _identity_name if field == "identity" else None
+        add_row("试验设计", label, [_record_cell(column, field, transform) for column in columns])
     version_cells: list[list[str]] = []
     for column in columns:
         cell: list[str] = []
@@ -561,11 +663,13 @@ def _appendix(records: list[dict[str, str]], facts: list[dict[str, str]]) -> str
             ),
         )
         for key in rows:
+            hoisted = _hoistable_qualifiers(grouped[key])
             cells: list[list[str]] = [[] for _ in columns]
             for _, _, fact, qualifiers in grouped[key]:
-                cells[column_of_ref[fact["ref"]]].append(_fact_line(fact, qualifiers))
+                cells[column_of_ref[fact["ref"]]].append(_fact_line(fact, qualifiers, set(hoisted)))
                 placed.add(fact["id"])
-            add_row(segment, key[1], cells)
+            label = key[1] + (f" · {'；'.join(hoisted)}" if hoisted else "")
+            add_row(segment, label, cells)
 
     missing = [fact["id"] for fact in facts if fact["id"] not in placed]
     if missing:
@@ -575,7 +679,7 @@ def _appendix(records: list[dict[str, str]], facts: list[dict[str, str]]) -> str
         raise ValidationError("ledger has no facts to render")
 
     header = "| 维度 | " + " | ".join(
-        label + (f"（{len(column)} 条披露）" if len(column) > 1 else "") for label, column in zip(labels, columns)
+        _normalise_markdown(_column_header(label, column, layout)) for label, column in zip(labels, columns)
     ) + " |"
     parts = [
         APPENDIX_TITLE,
@@ -643,6 +747,7 @@ def render(ledger_path: Path, draft_path: Path, out_path: Path, audit_path: Path
         rendered_draft = _replace_tokens(draft, facts_by_id)
         _validate_citations(rendered_draft, refs)
         appendix = _appendix(records, facts)
+        appendix_layout, appendix_columns, _, _ = _appendix_layout(records, _facts_by_ref(records, facts))
         output = _dedupe_table_citations(rendered_draft.rstrip() + "\n\n" + appendix)
 
         # These are internal ledger identifiers and evidence paths, never report content.
@@ -663,6 +768,8 @@ def render(ledger_path: Path, draft_path: Path, out_path: Path, audit_path: Path
                 "records": len(records),
                 "facts": len(facts),
                 "appendix_trials": len(_appendix_columns(records, facts)),
+                "appendix_layout": appendix_layout,
+                "appendix_columns": len(appendix_columns),
                 "records_without_trial_key": sum(1 for record in records if not record.get("trial", "").strip()),
                 "appendix_rows": len(_appendix_body_rows(appendix)),
                 "appendix_cells_filled": sum(

@@ -1213,6 +1213,7 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O36 | pack/replay 安全及不完整输入可能假绿 | 安全打包、调用/场景/评分失败检查；F7 | 19 tests PASS，dist 已重建 |
 | O37 | 本地 citation/entity 校验缺口 | 引用值、URL、marker/entity 检查；F7 | 21 Node tests PASS；不代表生产渲染器或 HTML 清洗 |
 | O38 | 旧参数/臂数字段/L3 规则冲突与过度非 OA 推断 | live `esids` 适配、入组语义、canonical input-contract；F7 | 本地规则及 deps 基线已改；TS 发布与真跑待授权 |
+| O39 | **runner 的 `tool-doc` 里留着已删文件的指针**（2026-10-09 收尾 entity 移除时发现，**已修**）：`cmd_param_doc` 生成的「4.3 嵌套返回结构要点」写「实体 ID 路径见 Skill 的 `references/entity-inline-reference.md`」，而该文件已在 v0.16 删除 ⇒ 生成物 `docs/params-tool-schema.md` 指向不存在的路径。修法：删掉该从句，`toolsmith-publish tool-doc` 重新生成（31,729 B→31,671 B）；备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v10.bak`，`py_compile` OK，零网络闸门 `GATE: PASS`。**只影响文档生成，不进运行期**。 | 已修（本地 runner + 仓库文档） |
 
 ## 4. 平台侧（转开发）
 
@@ -1439,8 +1440,137 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 
 ### 平台侧（转开发）
 
-- 本轮**没有**新的平台侧缺陷。唯一提交给开发同行注意的点（不算 bug，是断言语义容易误读）：`deployed support-file manifest matches local` 的 `missing` 方向是「本地有、线上列出的清单里没有」，历史台账两次把它读成「线上包脏」；建议在 `verification.md` 里把差异行写成 `local-only=[…] platform-only=[…]`，省掉后来人踩同一个坑。该建议只进 Obsidian/开发侧沟通，不改平台代码。
+- **平台追加样板段仍宣传 `entity:` 内联引用，与 v0.16 的移除相反**（2026-10-09 核 `instructions` 时发现，非本轮引入）：部署提示词 = 我们的 prompt（字节前缀）+ 19,030 字符平台样板，样板第 15–17 行 `### Entity Inline References` 明写「工具返回里有 ID 就写 `[name](entity:type:id)`」，而我们的 prompt 与渲染门禁都禁止该语法且 fail closed ⇒ 模型若照样板写，产物直接**交付失败**。缓解已落在我方 prompt（点名该段「对本产品作废、不要照写」），R34 三组 `no nested entity anchor — 0 anchors` 全过说明生效。问题单全文见 Obsidian `03-技术与VibeCoding/01-AI与LLM/TS平台样板段仍宣传 entity 内联引用与 v0.16 移除冲突.md`；建议样板按项目开关或置于项目提示词之前。
+- 另：本轮**没有**新的平台缺陷。唯一提交给开发同行注意的点（不算 bug，是断言语义容易误读）：`deployed support-file manifest matches local` 的 `missing` 方向是「本地有、线上列出的清单里没有」，历史台账两次把它读成「线上包脏」；建议在 `verification.md` 里把差异行写成 `local-only=[…] platform-only=[…]`，省掉后来人踩同一个坑。该建议只进 Obsidian/开发侧沟通，不改平台代码。
 
 **本轮未动 runner**：`~/.local/bin/toolsmith-publish` 与 `evals/runner-gate/verify-run-chain.py` 均未修改，零网络闸门 `GATE: PASS`（60 histories / 5 comparable）。
 
-**本地门禁（R34 后重跑）**：`test-render-facts.py` 22/22 OK；`verify-run-chain.py` → `GATE: PASS`；`mutations.py` → `arm a: 36/36`、`arm b: 12/12`、`GATE: PASS`；`node --test test/citation-renderer.test.mjs` 8/8；`test/citation-validation.test.mjs` 8/8；`pack-dist.py --check` → IDENTICAL（93,792 B / `dd9c2998c2b6`）。
+**本地门禁（R34 后重跑）**：`test-render-facts.py` 22/22 OK；`verify-run-chain.py` → `GATE: PASS`；`mutations.py` → **`arm a: flipped 43/43`**、`arm b: flipped 12/12`、两臂 `never flipped []`、`GATE: PASS`（早期台账把 arm a 记成 `36/36`，是当时样本数，与 `flipped m/n` 语义不同，此处按现口径更正）；`node --test test/citation-renderer.test.mjs` 8/8；`test/citation-validation.test.mjs` 8/8；`pack-dist.py --check` → IDENTICAL（93,792 B / `dd9c2998c2b6`）。
+
+## R35 — 补「平台样板段 entity 冲突」提示后重跑固定三组（2026-10-09）
+
+**改了哪一层**：只改 **TS 资产里的 prompt**（`system-prompts/multi-clinical-result-comparison-v0.16.md`），**不动 skill 包**（因此 dist 不变、无需重打 zip）。
+
+**为什么改**：核 `toolsmith-publish instructions` 时发现，部署提示词 = 我们的 prompt（字节前缀）+ **19,030 字符平台样板**，而样板第 15–17 行 `### Entity Inline References` 仍在教模型「工具结果里有 ID 就写 `[name](entity:type:id)`」。这和我们 v0.16 的移除规则相反，且平台样板**排在我们 prompt 之后**。缓解写在我们这边：在 `### Plain entity names (no inline references)` 下新增一条，点名该段「对本产品作废、不要照写」，并说明它排在后面但不覆盖本条。
+
+**发布**：`push-prompt --version 1.7`（**原地更新当前版本**）→ 54,794 B / sha `16a20328fc43`；`status` → in sync；`deps` 0 变化。
+
+### 三组结果（固定 4 / 18 / 14 条）
+
+| 组 | run 目录 | thread | 墙钟 | 调用 | 附录列 | 断言 | exit |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| R35-1 | `20261009-161420-r35-fixed-1` | `49db75db-47a0-42e2-8678-d63e376af560` | 376.9 s | 50 | 1 列 | 21 PASS / 1 FAIL | 3 |
+| R35-2 | `20261009-162057-r35-fixed-2` | — | 644.8 s | 56 | 10 列 | 21 PASS / 1 FAIL | 3 |
+| R35-3 | `20261009-163203-r35-fixed-3` | — | 454.7 s | 48 | 11 列 | **22 PASS / 0 FAIL** | 0 |
+
+- **entity 冲突提示生效**：三组 `no nested entity anchor — 0 anchors`、`no leftover template placeholder` 全过，附录列数与 R34 完全一致（1 / 10 / 11）。
+- **R35-1 / R35-2 的唯一 FAIL 是同一件事**：`write_file [re-prompted]: File '/workspace/work/draft.md' already exists. Read it first and use edit_file instead or use write_file(overwrite=True)`。这是**模型重复整写已存在草稿**被工具拒（框架重发），非平台缺陷；`arguments refused by the tool (re-issued) = 0`、产物完整、其余断言全过。
+
+### 我方能改的
+
+| 现象 | 证据 | 改法 | 状态 |
+| --- | --- | --- | --- |
+| prompt 从未写清 `write_file` 不会覆盖已存在文件（R32-1/R32-2、R35-1/R35-2 共 4 次同因 FAIL） | 两次 run 的 `no tool errors` FAIL 行逐字相同；两次 `-prompt` 都发生在写 `draft.md` 第二次整写时 | 在 `## Step discipline` 末尾加**第 6 条**：重写自己写过的文件要 `overwrite=True`，或改用 `edit_file`；不得原样重发同一 `write_file`；**该 re-prompt 计入 tool error** | 已改，随之发布 prompt v1.7 并跑 R36 验证 |
+
+### 平台侧（转开发）
+
+- 见 R34 段的「平台追加样板段仍宣传 `entity:` 内联引用」条（问题单全文在 Obsidian）；本轮**无新增**平台缺陷。
+
+## R36 — 加「重写文件」纪律后重跑固定三组（2026-10-09）
+
+**改动**：prompt `## Step discipline` 新增第 6 条（重写自己写过的文件用 `overwrite=True`，或改用 `edit_file`；原样重发同一 `write_file` 计为 tool error）。**只动 prompt**，skill 包/dist 未动；`push-prompt --version 1.7` 原地更新 → `status` in sync。
+
+### 三组结果
+
+| 组 | run 目录 | 墙钟 | 调用 | 附录列 | 断言 | exit |
+| --- | --- | --- | --- | --- | --- | --- |
+| R36-1 | `20261009-164457-r36-fixed-1` | 407.9 s | 55（含 1 args-refused / 1 error） | 1 列 | 21 PASS / 1 FAIL | 3 |
+| R36-2 | `20261009-165157-r36-fixed-2` | 548.6 s | 70 | 10 列 | **22 PASS / 0 FAIL** | 0 |
+| R36-3 | `20261009-170119-r36-fixed-3` | **16.0 s** | **3** | 无产物 | 18 PASS / 4 FAIL | 3 |
+
+- **R36-1 FAIL**：`edit_file [re-prompted]: Could not find the target string in '/workspace/work/draft.md'`。第 6 条把模型从 `write_file` 逼到了 `edit_file`，在长中文草稿上做外科式改写时目标串失配 ⇒ 换个失败点，没解决「反复整写草稿」这个根因（该组 `write_file×7 + edit_file×5`，草稿 churn 明显）。
+- **R36-3（异常，待复跑定性）**：**16.0 秒、3 次调用**（`load_skill` + 参数工具 + 一次 `execute`）后 turn 结束，`timing.completed_at` 有值、`outcome=succeeded`、无 `error_type`；token 只有 output 1,948 / reasoning 1,129（同批 R36-1/2 是 83k/100k output）。**模型在「14 条 esids 都取回、下一步做 digest」处直接收尾**。三组同为 DeepSeek Flash，故不像模型差异；更像上游截断被平台记成正常结束。**runner 没有放行**：`fixed deliverable paths — missing ['output/citations.json','output/report.md']`、`report contains nonempty content`、`citations contains nonempty source entries`、`present_artifact is the final successful call` 四项 FAIL、exit 3，说明「turn outcome=succeeded」不足以证明产物存在，产物契约断言是必要的第二道闸。→ 需复跑定性（见 R37）。
+
+### 我方能改的
+
+| 现象 | 证据 | 改法 | 状态 |
+| --- | --- | --- | --- |
+| 第 6 条只堵了 `write_file`，模型改走 `edit_file` 仍在长草稿上失配 | R36-1 唯一 FAIL 是 `Could not find the target string in '/workspace/work/draft.md'`；该组 write_file×7 / edit_file×5 | 第 6 条重写为「不要在长草稿上做外科式编辑」：机械表格交给脚本、正文**一次写成**（`overwrite=True`），需要修订就整文件重写 | 已改，随之发布并跑 R37 |
+
+### 平台侧（转开发，待复跑确认后转出）
+
+- **「turn 记成 `succeeded` 但只跑了 3 次调用、无任何产物」**：R36-3 在 16 s 内结束且 `outcome=succeeded`、无 `error_type`（token 量与同批相差 ~50 倍）。若为上游 `finish_reason=length`/异常中断被平台归一成成功，则**「终态 succeeded」不能作为交付证据**；本仓库靠产物契约断言兜住了，但平台侧建议：把非正常结束（截断、上游 abort）落成可查的 `error_type`/`state`，否则外部无法区分「模型自己收尾」与「被截断」。问题单全文在 Obsidian：`03-技术与VibeCoding/01-AI与LLM/TS平台样板段仍宣传 entity 内联引用与 v0.16 移除冲突.md` 同目录，标题《TS run 16 秒 succeeded 无产物：终态不可当交付证据》。
+
+## R37 — 第 6 条二次修订（不要在长草稿上做外科式编辑）后重跑固定三组（2026-10-09）
+
+**改动**：prompt `## Step discipline` 第 6 条由「重写已写文件用 `overwrite=True`」重写为 **「Never patch a long draft in place — reuse the ledger, write the file once」**（机械表格全部交给脚本、正文一次写成 `overwrite=True`；需要修订就整文件重写，不做外科式 `edit_file`）。**只动 prompt**，skill 包/dist 未动；`push-prompt --version 1.7` 原地更新 → `status` in sync。
+
+### 三组结果（固定 4 / 18 / 14 条）
+
+| 组 | run 目录 | thread | 墙钟 | 工具尝试 | 附录列 | 断言 | exit |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| R37-1 | `20261009-171121-r37-fixed-1` | `6143cc8f` | 347.7 s | 45（executex27 / read_filex6 / write_filex3 / edit_filex3 / grepx2 / load_skillx1 / paramsx1 / presentx1；1 args-refused） | 1 列 | **22 PASS / 0 FAIL** | 0 |
+| R37-2 | `20261009-171717-r37-fixed-2` | `a7c58280` | 530.5 s | 69（executex37 / read_filex22 / write_filex3 / write_todosx2 / load_skillx1 / lsx1 / paramsx1 / grepx1 / presentx1） | 10 列 | **22 PASS / 0 FAIL** | 0 |
+| R37-3 | `20261009-172619-r37-fixed-3` | `15b0f2b5` | 411.9 s | 48（executex23 / read_filex19 / write_filex2 / load_skillx1 / paramsx1 / grepx1 / presentx1） | 11 列 | **22 PASS / 0 FAIL** | 0 |
+
+- **三组全绿、exit 0**：`no tool errors`、`present_artifact is the final successful call`、`citations: exact keys + date-only time + every entry has a title`、`no leftover template placeholder`、`no nested entity anchor`（0 anchors）全过。第 6 条二次修订生效：三组都没有再出现 `write_file` 拒覆盖或 `edit_file` 目标串失配，写文件次数降到 2–3 次（R35/R36 是 7–12 次 churn）。R37-1 唯一的 args-refused 是模型自己写错字段名（`clinical_result.multicenter`），一次 `INVALID_INPUT` 后按 schema 更正重发，不是内容缺陷。
+- **R37-3 未复现 R36-3 的 16 s 零产物 flake**（411.9 s / 48 次调用 / 22 PASS）。该 flake 的定性仍待样本，见 R36 平台侧条目。
+- 附录列数与 R34/R35/R36 一致（1 / 10 / 11），说明「列 = 试验」的合并语义在真实数据上稳定。
+
+### 我方能改的（本轮新发现，已定位、未在本轮改）
+
+| 现象 | 证据 | 改法 | 状态 |
+| --- | --- | --- | --- |
+| **证据链时间轴图几乎逐字复述时间线表格**（用户反馈「重复的表述」） | 读 `20261009-171121-r37-fixed-1/artifacts/visualizations/evidence-timeline.json`：`data[]` 每节点的 `content` = 表格「本阶段新增的证据」数值块、`description` = 表格「相对前一状态的影响」+refs，`time` = 表格「数据截止/随访」列 | `references/timeline-diagram.md` 新增「图表职责分工」硬规则：图只画骨架（时序/状态名/关系/成熟度），**图内除 `time` 时间锚点外不得出现任何数值**，`content` ≤16 字定性短语、`description` 只写关系+成熟度+refs，图内文本与表格单元格不得有 ≥8 字连续相同文本；`chart-templates.md`、`same-trial-evolution.md`、四个模板同步 | 已改（R38 验证） |
+| **单试验附表退化成 1 列 + `<br>` 堆叠长文本**（用户反馈「难读」） | R37-1 附录 1 列，格内多条披露用 `<br>` 堆叠；同格同时承载设计散文与数值 | 渲染器新增单试验布局：**输入只含一个试验且 ≥2 条披露时改为每条披露一列**（表头 `**ref_n**<br>短版本标签`），保留终点行对齐、去掉堆叠；`appendix_layout`/`appendix_columns` 进 audit | 已改（R38 验证） |
+| **长散文进附录**（题名/设计/试验组/人群覆盖 4 行），与正文和「试验背景」表重复 | R37-1 账本 `records[]` 的 `title` 是整句英文长标题、`design`/`arms`/`coverage` 均为长散文；探针渲染显示这些字段占掉 4 行 | `records[]` 必填收成 `ref`/`identity`/`conclusion`（+ `trial`），`title`/`design`/`arms`/`coverage` 降级为「接受但不渲染」，四个 row 从 `DESIGN_ROWS` 删除；prompt/SKILL 明写「不要为它们花 token」 | 已改（R38 验证） |
+| **附录列头命名风格不一致**（用户反馈「名字不稳定」） | 跨 R33–R37 全部 run 的附录标题完全一致（脚本持有 `## 附录：证据对齐矩阵（数值事实账本）`），真正不稳定的是**列头**：R37-2 同一张表里并存 `LUX-Lung 8（5 条披露）`、`RATIONALE-307（2 条披露）`、`HARMONi-6（4 条披露）`、`CameL-Sq`、`AK105-302` 三种形态 | 列头统一由渲染器生成：多试验 `**试验名**<br>注册号 · N 条披露`；单试验 `**ref_n**<br>短版本标签`（`_short_version` 按 `[·；;｜|]` 取首段、超长去尾部完整括号、绝不截出未闭合 `（`） | 已改（R38 验证） |
+| **行标签不稳定**（同一维度三组叫法不同：「随机人数」vs「随机例数」、「中位 DoR」vs「中位缓解持续时间」） | R37-1 账本含 14 条模型自造设计 fact（`研究中心`/`分层因素`/`试验组方案`/`主要终点定义`/`安全性分析集`/`基线性别分布`/`关键入选条件`/`基线年龄中位数`/`中期 OS 分析计划` 等） | 治理放在 prompt/SKILL 白名单（只允许入组例数、分析集与分母、数据截止与随访、事件数、检验边界、给药方案），**渲染器不加硬截断**——避免把合法长尾事实判成错误 | 已改（R38 验证） |
+
+### 平台侧（转开发）
+
+- 本轮**无新增**平台缺陷。已转出的两份问题单（平台样板段 entity 冲突；run 终态 succeeded 不可当交付证据）仍待开发答复。
+
+## R38 — v0.16.1 四点改动（附录列布局 / 长散文出附录 / 设计 fact 白名单 / 图表去重）原地发布后重跑固定三组（2026-10-09）
+
+**改了哪一层**：**Skill 包内 + prompt 都改了**（`scripts/render-facts.py`、`SKILL.md`、`references/timeline-diagram.md`、`references/chart-templates.md`、`references/same-trial-evolution.md`、四个 `templates/*.md`、`system-prompts/multi-clinical-result-comparison-v0.16.md`）→ **必须重打 dist**（EXPECTED 仍 19）。
+
+**改了什么（对应 R37 取证发现的四次产品面问题）**
+
+1. **图表与表格去重**：证据链时间轴图原来是表格的第二份拷贝（R37-1 的 `content`/`description` 就是表格的「数据截止/随访」「本阶段新增的证据」「相对前一状态的影响」三列）。现在**图只画骨架、表格是数值唯一出处**：`label` ≤18 字、`content` ≤16 字定性短语、`description` 只写关系 + 成熟度 + `{{ref_n}}`；**图内除 `time` 的时间锚点（年月/日期）外不得出现任何数值**；图内文本与任一表格单元格**不得出现 ≥8 个连续相同字符**（专有名词除外）。
+2. **单试验附录改「每条披露一列」**：R37-1 是 1 列 + `<br>` 堆叠长文本；现在输入只含一个试验且 ≥2 条披露时，**列 = 每条披露**，表头 `**ref_n**<br>短版本标签`（`_short_version` 按 `[·；;｜|]` 取首段、超 20 字先去掉尾部完整括号、绝不留未闭合 `（`），保留终点行对齐、去掉堆叠。
+3. **长散文不再进附录**：`records[]` 必填收成 `ref`/`identity`/`conclusion`（+ `trial`），`title`/`design`/`arms`/`coverage` 降级为「接受但不渲染」，`DESIGN_ROWS` 只留 `试验身份`（印 `identity` 首段）。
+4. **附录列头形态统一**（消除「名字不稳定」）：多试验 `**试验名**<br>注册号 · N 条披露`；无注册号时回退 `**名称**<br>N 条披露`。新增 audit `appendix_layout`（`trial-columns` / `disclosure-columns`）与 `appendix_columns`。
+5. **行为标签不稳定靠 prompt/SKILL 白名单治理**：只允许可对齐的数值设计事实（随机/入组例数、分析集与分母、数据截止与随访、事件数、检验边界、给药方案）起行；研究中心数、性别/年龄分布、入选条件、分层因素、终点定义复述列入 ⛔ 禁建清单。**渲染器不加硬截断**（宁可暴露白名单漏项，也不静默丢真实事实）。
+6. **行内限定词上提**：整行所有数值共有的限定词（臂/时点/评估/人群）提到行标签（` · ` 连接、60 字预算贪心），单元格只留差异。
+
+**发布（原地，不新开版本号——用户要求）**：dist 重打 **99,640 B / 19 entries / sha `5457c8c4fd00`** → `push-skill --version 1.0.8`（`skill_id cd93a42af72b4828b1690b3a7bccfa06` 不变、`is_current=True`）；prompt **58,795 B / sha `1d9153c88f3c`** → `push-prompt --version 1.7`；`status` → **in sync**（19/19 支持文件一致）。`deps` 0 变化。
+
+**本地门禁**：`test-render-facts.py` **26/26 OK**；`verify-run-chain.py` → `GATE: PASS`（69 histories / 5 comparable）；`evals/fact-check/mutations.py` → `arm a: flipped 43/43`、`arm b: flipped 12/12`、`never flipped []`、`GATE: PASS`；`pack-dist.py --check` → IDENTICAL。
+
+### 三组结果（固定 4 / 18 / 14 条）
+
+| 组 | run 目录 | thread | 墙钟 | 工具尝试 | 布局 | 列数 | 行数 | 断言 | exit |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| R38-1 | `20261009-175146-r38-fixed-1` | `4014f791` | 390.9 s | 45（write_file×1） | `disclosure-columns` | 4 | 20 | **22 PASS / 0 FAIL** | 0 |
+| R38-2 | `20261009-175825-r38-fixed-2` | `5ddb5fac` | 494.2 s | 61（write_file×3 / edit_file×3） | `trial-columns` | 10 | 47 | **22 PASS / 0 FAIL** | 0 |
+| R38-3 | `20261009-180646-r38-fixed-3` | `c8851877` | 534.4 s | 56（write_file×2 / edit_file×3） | `trial-columns` | 11 | 40 | **22 PASS / 0 FAIL** | 0 |
+
+**四点验收结果（逐项对照产物）**
+
+- **②单试验附录（R38-1，HARMONi-6 / 4 条披露）**：`appendix_layout=disclosure-columns`、`appendix_columns=4`、`appendix_trials=1`；表头四条一致 —— `**ref_1**<br>首次计划 OS 分析`、`**ref_2**<br>首次计划 PFS 分析`、`**ref_3**<br>预设中期 OS 分析`、`**ref_4**<br>首次计划 PFS 分析`。1 列堆叠问题消除。
+- **③长散文出附录（三组）**：附录**没有再出现** 披露标题 / 设计与方案 / 试验组与对照 / 人群与证据覆盖 行；`title`/`design`/`arms`/`coverage` 字段仍被 ledger schema 接受（不阻断旧账本），渲染器不再打印。
+- **④列头统一（R38-2 / R38-3）**：10 列与 11 列表头全部为 `**名称**<br>注册号 · N 条披露`，**同表内三种命名风格混用的情况消失**（R37-2 实测的 `LUX-Lung 8（5 条披露）` / `CameL-Sq` / `AK105-302` 混排不再出现）。缺注册号的 2 个试验（`WJOG7512L`、`Lp(a)FRONTIERS EXPANSION`）回退为 `**名称**<br>N 条披露`，属契约内回退。
+- **⑤设计行白名单（三组）**：R37-1 的 14 条自造设计行（研究中心 / 分层因素 / 主要终点定义 / 安全性分析集 / 基线性别分布 / 关键入选条件 / 基线年龄中位数 / 中期 OS 分析计划 …）**在 R38-1 全部消失**，`试验设计` 段只剩 试验身份 / 披露版本·数据截止 / 随机入组人数 / 中位随访 / OS 检验边界 / PFS 检验边界 / 死亡事件数；R38-2/R38-3 保留的是可对齐的分母类事实（随机化例数、随机并接受治疗例数、安全性分析集例数、可分析人数、倾向性评分匹配后每组例数、OS 分析统计界值、试验组给药方案），未见研究中心 / 性别分布 / 入选条件 / 分层因素 / 终点定义类行。
+- **①图表去重（R38-1）**：`evidence-timeline.json` 三个节点 —— `{time:"2023-08", label:"研究启动（里程碑）", content:"入组启动"}`、`{time:"2025-10-19", label:"主要终点分析 · 会议/主刊", content:"主要终点首次达标"}`、`{time:"2026-05-31", label:"生存终点分析 · 会议/主刊", content:"新增生存终点，随访延长"}`；`description` 只写「与前一状态的关系 + 成熟度 + `{{ref_n}}`」。**图中除 `time` 锚点外无任何数值**，脚本比对（去 `{{ref_n}}` 与标点后 ≥8 字滑窗）**与表格共享 0 处连续文本**。R38-2/R38-3 为跨试验输入，按契约不出时间轴图（无共享时间线），因此去重规则只由 R38-1 覆盖。
+
+### 我方能改的
+
+| 现象 | 证据 | 改法 | 状态 |
+| --- | --- | --- | --- |
+| 跑动期间改 prompt/SKILL 会打破 `deployed prompt == local` 与 `deployed skill == local tree` 断言（断言在**结束时**读本地文件） | 本轮启动 R38 后才发现 `assert` 里 `open(a.sys)` 读的是当时的本地文件；发现后立即 kill（`20261009-174751-r38-fixed-1`，未产出 verification），改完→重打 dist→重发 prompt v1.7 / skill v1.0.8→再跑 | 沿用 `AGENTS.md` §7「真跑期间冻结仓库」，并把「README/AGENTS 等文档也不要在跑动中改 prompt/SKILL 相邻内容」写进交接段 | 已记（本次为自查拦下，无缺陷产物） |
+| 表头缺注册号时形态与其余列不完全一致（`**WJOG7512L**<br>1 条披露`） | R38-2 / R38-3 各 1–2 列如此；来源确实未给注册号 | 视为契约内回退（不编造注册号）；若要求绝对一致，需决定「无注册号时是否用 `study` 名兜底」——**待用户定** | 待定 |
+
+### 平台侧（转开发）
+
+- 本轮**无新增**平台缺陷。已转出两份问题单（平台样板段 entity 冲突；run 终态 `succeeded` 不可当交付证据）仍待答复。R38 三组 `no tool errors` / `no leftover template placeholder` / `no nested entity anchor` 全过，平台样板段冲突的 prompt 压制继续生效。

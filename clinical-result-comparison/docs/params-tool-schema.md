@@ -314,7 +314,7 @@
 
 ### 4.3 嵌套返回结构要点
 
-`arms[]` / `projects` / `company` / `indication` / `target` 等嵌套字段的取值路径以 4.2 的描述为准；实体 ID 路径见 Skill 的 `references/entity-inline-reference.md`。
+`arms[]` / `projects` / `company` / `indication` / `target` 等嵌套字段的取值路径以 4.2 的描述为准。
 
 ## 5. MCP 调用返回封装（平台通用）
 
