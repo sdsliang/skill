@@ -1,0 +1,21 @@
+{
+  "pair": ["ai-flavored.en.md", "humanized.en.md"],
+  "required_tokens": [
+    "KRYSTAL-12",
+    "847",
+    "9.4",
+    "6.1",
+    "0.62",
+    "0.48-0.80",
+    "p<0.001",
+    "2025-06-30",
+    "18.4",
+    "560",
+    "4%",
+    "18%",
+    "12%",
+    "PFS",
+    "KRAS G12C-mutant NSCLC"
+  ],
+  "note": "Facts that must survive the rewrite byte for byte: sample size, effect size and interval, p value, follow-up and data cutoff, planned enrollment, event rates and the endpoint abbreviation. The rewrite may only drop process narration and empty evaluation."
+}
