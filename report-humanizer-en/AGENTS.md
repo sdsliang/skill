@@ -21,7 +21,7 @@ python3 -B skill/report-humanizer-en/scripts/tell-scan.py <file>       # scan on
 diff skill/report-humanizer-en/scripts/tell-scan.py \
      ../report-humanizer-zh/skill/report-humanizer-zh/scripts/tell-scan.py   # must be empty
 python3 -B tools/pack-dist.py --check                                 # dist equals the worktree
-toolsmith-publish status                                              # read-back after publishing
+python3 -B ../tools/verify-skill-upload.py --repo .                   # read-only: deployed skill == worktree == dist (status is prompt-first and refuses here)
 ```
 
 ## Packaging discipline

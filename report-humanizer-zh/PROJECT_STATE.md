@@ -42,9 +42,24 @@ python3 -B evals/test-tell-scan.py  ->  report-humanizer-zh machine gate: 23/23 
 
 ## 待办 / 待用户确认
 
-- [ ] **是否发布到 ToolSmith**：需要 (a) 用户授权；(b) 用户在 TS 侧建 skill family（**创建时要上传附件** → 用 `dist/report-humanizer-zh-v0.1.0.zip`，Windows 侧 UNC 路径见 README）；(c) `~/.config/toolsmith/projects.json` 增加本项目条目（`owned: true`）；(d) `toolsmith-publish push-skill` + `status` 回读。
+- [x] **TS 侧创建**：用户 2026-10-10 上传 `dist/report-humanizer-zh-v0.1.0.zip` 建好 skill（family `407d8fb6…`，平台 v1.0.0）；部署内容已逐字节校验一致。
+- [ ] **后续更新怎么发**：现在只有两条路——(a) 在 TS 界面重新上传新 zip（`python3 -B tools/pack-dist.py` 重打后按 README 的 UNC 路径选文件）；(b) 改 runner 让 `push-skill` 支持「有 skill 无 prompt」的项目（现在 `assert_owned_targets` 会去读 prompt family 而报错）。改 runner 属可改面，但要走备份 + `py_compile` + 零网络闸门 + 台账 O 记录，且要用户点头。
 - [ ] 项目 / skill / 目录命名是否沿用 `report-humanizer-zh`（用户可能想改中文名，如「报告去 AI 味（中文）」）。
-- [ ] 发布后补一次真跑（`toolsmith-publish run`）并记台账。
+- [ ] 本 skill 在 TS 上**尚未真跑过**（`toolsmith-publish run` 需要 project_id 与 prompt，本项目两者都没有）；若要真跑，需先把它挂到一个 TS 项目上，再记台账。
+
+## 线上发布记录（ToolSmith）
+
+| 项 | 值 |
+|---|---|
+| skill 名 | `report-humanizer-zh` |
+| skill family | `407d8fb6ad5045dda22586448c4e5df0` |
+| 当前版本 | 平台 v1.0.0 / skill_id `d7fed181277045dd9f28989b9cb4acb5`（2026-10-10T10:00:09 上传） |
+| 仓库版本 | v0.1.0（`dist/report-humanizer-zh-v0.1.0.zip`，26,621 B / 5 entries / sha `af618fb10fd4`） |
+| 部署校验 | `python3 -B ../tools/verify-skill-upload.py --repo .` → `deployed == worktree and == dist: True`（5/5 逐字节一致） |
+| 配置 | `~/.config/toolsmith/projects.json` 已有本项目条目（`owned: true`，skill-only 无 prompt） |
+| 备注 | 平台上没有对应 prompt family；`toolsmith-publish status` 因「prompt-first」用不了，本项目的部署校验走上面那个脚本 |
+
+> 包名 `v0.1.0` 是仓库自己的版本号，平台版本序列是平台自己的（1.0.x），不要硬套。
 
 ## Git
 

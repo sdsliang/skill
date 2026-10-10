@@ -21,7 +21,7 @@ python3 -B skill/report-humanizer-zh/scripts/tell-scan.py <file>      # 扫描�
 diff skill/report-humanizer-zh/scripts/tell-scan.py \
      ../report-humanizer-en/skill/report-humanizer-en/scripts/tell-scan.py   # 应为空
 python3 -B tools/pack-dist.py --check                                # 打包与工作区一致（发布附件以此为准）
-toolsmith-publish status                                             # 发布前后回读（未发布时会报无配置条目）
+python3 -B ../tools/verify-skill-upload.py --repo .                  # 只读：线上 skill 是否 == 工作区 == dist（本项目用这个，status 是 prompt-first 用不了）
 ```
 
 ## 打包纪律

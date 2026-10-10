@@ -1497,9 +1497,10 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | --- | --- | --- | --- |
 | 第 6 条只堵了 `write_file`，模型改走 `edit_file` 仍在长草稿上失配 | R36-1 唯一 FAIL 是 `Could not find the target string in '/workspace/work/draft.md'`；该组 write_file×7 / edit_file×5 | 第 6 条重写为「不要在长草稿上做外科式编辑」：机械表格交给脚本、正文**一次写成**（`overwrite=True`），需要修订就整文件重写 | 已改，随之发布并跑 R37 |
 
-### 平台侧（转开发，待复跑确认后转出）
+### 平台侧
 
-- **「turn 记成 `succeeded` 但只跑了 3 次调用、无任何产物」**：R36-3 在 16 s 内结束且 `outcome=succeeded`、无 `error_type`（token 量与同批相差 ~50 倍）。若为上游 `finish_reason=length`/异常中断被平台归一成成功，则**「终态 succeeded」不能作为交付证据**；本仓库靠产物契约断言兜住了，但平台侧建议：把非正常结束（截断、上游 abort）落成可查的 `error_type`/`state`，否则外部无法区分「模型自己收尾」与「被截断」。问题单全文在 Obsidian：`03-技术与VibeCoding/01-AI与LLM/TS平台样板段仍宣传 entity 内联引用与 v0.16 移除冲突.md` 同目录，标题《TS run 16 秒 succeeded 无产物：终态不可当交付证据》。
+- ~~「turn 记成 `succeeded` 但只跑了 3 次调用、无任何产物」~~ → **2026-10-10 复核后撤回，判为模型提前收尾，不是平台缺陷**：R36-3 的 `debug-history.json` 里末条 `kind=response` 是 `finish_reason: "stop"`（`provider_details.finish_reason: "stop"`，provider `deepseek`，`state: complete`），parts 只有 `reasoning`（2,922 字符，末句是完整的「Let me write the digest script.」）+ 65 字符 `text`、**无 `tool_call`**——上游自己报的是正常 stop，平台没有把截断归一成成功；`info.stats.steps=3`、`timing.turns[0].completed=true` 与之自洽。同 prompt 其后 6 组（R37-1/2/3、R38-1/2/3）全部正常，全库 72 次 run 仅此一次「秒级结束+零产物」⇒ 单次 flake。**唯一留下的可提项是文档级（非缺陷）**：`turn` 终态只表示回合结束、不保证产物存在，交付校验是调用方责任（按 2026-09-17 规矩仍可提，由开发判）。Obsidian 笔记同标题已同步改状态与结论：《TS run 16 秒 succeeded 无产物-终态不可当交付证据》（`03-技术与VibeCoding/01-AI与LLM/`）。
+- **所有已转出问题单**：平台样板段 `### Entity Inline References` 与 v0.16 移除冲突（见本文件 R33/R35 段与 Obsidian 同名笔记）——**仍待开发处理**。
 
 ## R37 — 第 6 条二次修订（不要在长草稿上做外科式编辑）后重跑固定三组（2026-10-09）
 
@@ -1514,7 +1515,7 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | R37-3 | `20261009-172619-r37-fixed-3` | `15b0f2b5` | 411.9 s | 48（executex23 / read_filex19 / write_filex2 / load_skillx1 / paramsx1 / grepx1 / presentx1） | 11 列 | **22 PASS / 0 FAIL** | 0 |
 
 - **三组全绿、exit 0**：`no tool errors`、`present_artifact is the final successful call`、`citations: exact keys + date-only time + every entry has a title`、`no leftover template placeholder`、`no nested entity anchor`（0 anchors）全过。第 6 条二次修订生效：三组都没有再出现 `write_file` 拒覆盖或 `edit_file` 目标串失配，写文件次数降到 2–3 次（R35/R36 是 7–12 次 churn）。R37-1 唯一的 args-refused 是模型自己写错字段名（`clinical_result.multicenter`），一次 `INVALID_INPUT` 后按 schema 更正重发，不是内容缺陷。
-- **R37-3 未复现 R36-3 的 16 s 零产物 flake**（411.9 s / 48 次调用 / 22 PASS）。该 flake 的定性仍待样本，见 R36 平台侧条目。
+- **R37-3 未复现 R36-3 的 16 s 零产物 flake**（411.9 s / 48 次调用 / 22 PASS）。该 flake 已定性（2026-10-10）：`finish_reason=stop`、模型未发 `tool_call` 即收尾，属模型行为而非平台截断，不作为 bug 单，见 R36 平台侧条目。
 - 附录列数与 R34/R35/R36 一致（1 / 10 / 11），说明「列 = 试验」的合并语义在真实数据上稳定。
 
 ### 我方能改的（本轮新发现，已定位、未在本轮改）

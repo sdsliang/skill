@@ -42,9 +42,24 @@ python3 -B evals/test-tell-scan.py  ->  report-humanizer-en machine gate: 23/23 
 
 ## Open items
 
-- [ ] **Publish to ToolSmith?** Requires (a) user authorisation, (b) creating the skill family on the platform (**that step uploads an attachment** → use `dist/report-humanizer-en-v0.1.0.zip`, UNC path in the README), (c) a `~/.config/toolsmith/projects.json` entry with `owned: true`, (d) `toolsmith-publish push-skill` followed by a `status` read-back.
+- [x] **Created on ToolSmith**: the user uploaded `dist/report-humanizer-en-v0.1.0.zip` on 2026-10-10 (family `5d3eb1c8…`, platform v1.0.0); the deployed bundle was verified byte-for-byte against the worktree and the dist zip.
+- [ ] **How to ship later updates**: either (a) re-upload a fresh zip in the ToolSmith UI (`python3 -B tools/pack-dist.py`, then pick the file over the UNC path from the README), or (b) patch the runner so `push-skill` accepts a skill-only project (today `assert_owned_targets` insists on reading a prompt family and dies). The runner is ours to change, but that needs a backup, `py_compile`, the zero-network gate and an O-entry in the ledger, plus the user's go-ahead.
 - [ ] Confirm the project / skill / directory naming (`report-humanizer-en`).
-- [ ] After publishing, run one real `toolsmith-publish run` and record it in the project log.
+- [ ] This skill has **never been run on ToolSmith**: `toolsmith-publish run` needs a project_id and a prompt, and this repo has neither. Real-run verification would first require attaching it to a platform project.
+
+## Deployment record (ToolSmith)
+
+| item | value |
+|---|---|
+| skill name | `report-humanizer-en` |
+| skill family | `5d3eb1c8c1cd43a4a6148e07afbe008f` |
+| current version | platform v1.0.0 / skill_id `8a872f3a75bf474a97bafad3a0a6fde2` (uploaded 2026-10-10T10:00:32) |
+| repo version | v0.1.0 (`dist/report-humanizer-en-v0.1.0.zip`, 29,002 B / 5 entries / sha `2f1e5b515f16`) |
+| deployment check | `python3 -B ../tools/verify-skill-upload.py --repo .` → `deployed == worktree and == dist: True` (5/5 byte-identical) |
+| config | entry present in `~/.config/toolsmith/projects.json` (`owned: true`, skill-only, no prompt) |
+| note | there is no matching prompt family; `toolsmith-publish status` is prompt-first and refuses here, so this repo's deployment check is the script above |
+
+> The `v0.1.0` in the filename is this repo's own version; the platform keeps its own sequence (1.0.x). Do not conflate them.
 
 ## Git
 
