@@ -283,7 +283,7 @@ Compare the same cohort, study period and design aspect: initial blinding is dis
 **Divergence.** Compare like with like: a divergence is a *material clinical number* that the original
 states differently from the pulled fields (endpoint value, unit, p-value, CI, HR/OR/RR, n, population,
 analysis time point). Then the **original wins** and the report writes both values in the fixed form
-`原文 <值>；库内记录 <值>{{ref_n}}` — never silently pick one. Absence in the original is **not** evidence
+`原文 <值>；库内记录 <值>{{ref_n}}` — never silently pick one. **That fixed form is the only place the phrase `库内记录` may appear**: it is never a shorthand for the library value in another sentence or note (`库内记录为 70.5%` is a contract violation, guarded by `A-P2`), and when the two agree nothing is written at all. Absence in the original is **not** evidence
 that the pulled value is wrong (abstract-level originals are the norm and omit detail): keep the pulled
 value with its normal citation; do not add a divergence warning merely for that absence. Original text never enters the report body — at most a short phrase, never a
 paragraph (a mechanical ≥60-character verbatim guard runs in `evals/fact-check`).

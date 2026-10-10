@@ -1,6 +1,19 @@
 # Project State
 
-## 当前快照：2026-10-10（R46：O42 已结案 —— 工具侧前置拒绝改判 WARN；F1 不再污染 keep/discard 信号）
+## 当前快照：2026-10-10（R47：O43 结案 + O40/O41 报告侧习惯句已原地发布；四组真跑 + 耗时 A/B）
+
+**R47（用户答复「改吧」+「分析下 2–3 条结果也要 5min+ 的耗时分布」）**：按「一次内容改动一轮」纪律，本轮只装 **O43 + O40/O41 报告侧习惯句**；**耗时优化另开 R48 提案**。
+
+- **线上（原地更新，版本标签不变）**：prompt `v1.7` **65,959 B / `f63bf180822c` → 67,591 B / `c1641a46810a`**；Skill `v1.0.8` dist **103,982 B / `47c06e7aa6d4` → 105,347 B / `025aec791b1c`**（19 entries）；发布前 `deps` = `unchanged since the recorded baseline`，发布后 `status` = **in sync**。
+- **改 5 个文件**：prompt 三条 hard rule（**Every chart row names its own trial** / **A marker binds its own record's content** / **`库内记录` has exactly one legitimate use**）、`SKILL.md` 两条中文硬规则（引注归属 / 图表每行点名自己的试验）、`references/chart-templates.md`、`references/citation-and-ref.md` 新节 `## Marker attribution`、`references/input-contract.md`。
+- **四组真跑 4/4 全绿**（顺序执行；`arguments refused = 0`）：`r47-a` 349.1 s / 40 attempts / 离线 **43/44**；`r47-4` 512.1 s / 56；`r47-18` 488.6 s / 56；`r47-14` 569.7 s / 66；均 **22 PASS / 0 FAIL / exit 0 / succeeded**。
+- **O43 结案（4/4 命中）**：柱子 label 前缀由「药名+剂量+间隔+时点」升级为自带试验身份（`OCEAN(a)-DOSE · …`、`NCT02729025 · …`、`HARMONi-6（NCT05840016）· …`、`…（NCT04987320）`）；r47-4 只出单试验时间线图，规则不适用。
+- **O41 收尾**：五份产物 `库内记录` 出现 **0 次**（A-P2 无触发）⇒ 习惯句生效；不改评分器。
+- **O40 第 3 份样本（`r47-loweff-a`）机制定位**：表格 cell 无标记 ⇒ `units()` 继承本行 `ref_1` ⇒ 「OCEAN(a)-DOSE 未评估该终点」只点名 `ref_2` 的试验 ⇒ `A-ATTR` FAIL；R47 正文侧习惯句覆盖不到表格继承 ⇒ **R48 再收**（阴性/缺测句必须带**被点名那条记录**自己的 `{{ref_n}}`，否则不点名对方）。
+- **新增 O44（待样本 n=1）**：`A-C9-mds-tbr-A` 只认减号（`-8\.3`/`-5\.3`），r47-a 写「降低 8.3%／降低 5.3%」（交付物内部一致、`A-S10` PASS）⇒ 离线 43/44；同 spec 的 `A-S10` 自称「符号由模型自选」⇒ 口径不一致。修法 = 各加文字式备选，按 O27/O28 先例等第 2 份样本。
+- **耗时结构（只读，落 `docs/evidence/runtime-breakdown-2026-10-10.md`）**：生成占墙钟 **65–92%**、reasoning 占输出 **46–76%**、工具全部 **<15%**；2 esid 与 18 esid 同量级。**A/B 负结果**：`--reasoning-effort low` 不减 reasoning（44,975 vs 40,304），墙钟 −39 s 全来自步数少 10 步 ⇒ R48 候选 = L2 随包发脚本 / L3 去 `draft.md` 两遍写 / L4 压步数。
+
+## 历史快照：2026-10-10（R46：O42 已结案 —— 工具侧前置拒绝改判 WARN；F1 不再污染 keep/discard 信号）
 
 **R46（用户答复「谁好，你推荐谁」+「你自己看着办吧」+「不管了」）**：按推荐执行 **O42 选项 B 的窄口径**，只改本地 runner（`~/.local/bin/toolsmith-publish`，备份 `toolsmith-publish.v15.bak`），**prompt / Skill / dist 一字未改、TS 无写动作**。
 
@@ -199,7 +212,7 @@ Build the Tool Smith Agent for evidence-grounded synthesis of selected esids, us
 | B6 | ~~**仓库资产**：`eval_attribution` 的归因口径~~ **已完成（2026-09-18，用户授权 O19）** | ✅ 已解除 | 落地为「身份对豁免 + 数值对永不豁免」（`subject: true`），假阳性回归对照 `N25`/`N27`；`arm a 40/40`（第十四轮后同 arm 为 `41/41`）、`GATE: PASS`；R12 `37→39/40`、R15 `36→37/40`、R17 `39→40/40` ⇒ 台账 **F2**、`O19` 已修 |
 | B7 | ~~**仓库资产**：清单条目 `A-T1-title-names-both`~~ **已完成（2026-09-18，用户授权 O20）** | ✅ 已解除（证据从 1 份增至 4 份产物：R12/R15/R16/R17） | 改名 `A-T1-title-identifies-scope` + `op: title_scope`（主题式标题合法；**只点一个药名仍 FAIL**）；`M26`/`M06` 证明有牙、`N26` 证明不误伤 ⇒ 台账 **F2**、`O20` 已修 |
 | B3 | **runner（已落地）**：O1–O18 全已落地，只剩 O4/O5 待样本；**O42 已于 R46 按选项 B 窄口径结案** —— 新增 `TOOL_REFUSED_RX`（两形状 `^` 锚定）+ `REFUSAL_BUDGET = 3`，原恒 PASS 信息行改带预算判定（断言仍 22 条）；备份 `toolsmith-publish.v15.bak`，`py_compile` OK，`test-runner.py` 38 → 39，零网络闸门 `GATE: PASS`，离线重打分 98 份归档 0 error | ✅ 已完成（用户「谁好，你推荐谁」+「你自己看着办吧」授权） | 回滚 = 复原 `v15.bak` + 重跑 39 项；不动线上、无 TS 写动作 |
-| B8 | **仓库资产（已完成）**：R43/R44/R45 三次 prompt/Skill 强化（F1 写入纪律 + F2 一套写法）+ 判分侧 O27 放宽；**均已原地发布并四组真跑** | ✅ 已解除（R41 同授权续用） | prompt v1.7 现值 `f63bf180822c`；dist `47c06e7aa6d4`；`status` in sync |
+| B8 | **仓库资产（已完成）**：R43/R44/R45（F1 + F2 + O27）与 **R47（O43 + O40/O41 报告侧习惯句）** 均已原地发布并四组真跑 | ✅ 已解除（R41 同授权续用） | **prompt v1.7 现值 `c1641a46810a` / 67,591 B；dist `025aec791b1c` / 105,347 B；`status` in sync**（R47 后） |
 | B4 | **仓库资产**：autoresearch harness 骨架 + 把 `tool_results/**` 纳入归档 → 跑 E0「receipts 命中率」回测（不动 `skill/`、0 新 run） | 用户点头 | 纯本地脚本 + 文档 |
 | B5 | **仓库资产**：把「冻结面 + 场景集 + TSV 列」写进 `AGENTS.md`/`PROJECT_STATE.md`，形成常驻 program.md（S4） | 用户点头 | 文档 |
 
@@ -211,10 +224,11 @@ Build the Tool Smith Agent for evidence-grounded synthesis of selected esids, us
 | C2 | 台账 O5：小样本不便宜（1 个 esid 也要 21 次调用 / 173 s / 26k reasoning） | R1 vs R4（14 esid 50 次 / 299 s） | 再攒几次，或用户体感贵时给「单结果解读」轻模板 |
 | C3 | 事实清单 `A-C6`（未报安慰剂组 +3.6%） | R11 唯一 FAIL（现 30/31） | 有第二个同类样本再改规则 |
 | C4 | E1 场景 A 噪声带（23 vs 41 calls 跨了发布，无干净重复） | 5 个 `20260914-*` run 离线重放 | S2 跑 3 次 |
-| C5 | 台账 O40：`A-ATTR` 不给「对对方记录的否定陈述」豁免 | R43-a（3 cell）+ R45-a（2 cell）两份产物，同为「引注甲却只点乙药名/登记号」 | 再攒 ≥2 份同类样本，再决定走「评分侧否定式豁免」还是「报告侧改习惯」 |
-| C6 | 台账 O41：`A-P2` 对「非分歧地提到库内记录」零容忍 | R45-a 一处（「库内记录另含…无法用于对齐」）；同条在 R43-a/R44-a 未触发 | 再攒 ≥2 份样本；若真阳居多则只改报告侧写法 |
+| C5 | 台账 O40：`A-ATTR` 不给「对对方记录的否定陈述」豁免 | **3 份**（R43-a 3 cell / R45-a 2 cell / **R47-loweff-a**：表格 cell 无标记 ⇒ 继承本行 `ref_1`，只点名 `ref_2` 的试验） | **R47 已选报告侧改习惯**（prompt/SKILL 已加句，但**覆盖不到表格 cell 继承**）⇒ **R48 内容轮**收窄为「阴性/缺测句必须带被点名那条记录自己的 `{{ref_n}}`」；评分器仍不动 |
+| C6 | 台账 O41：`A-P2` 对「非分歧地提到库内记录」零容忍 | R45-a 一处；**R47 五份产物 `库内记录` 出现 0 次**（A-P2 无触发） | ✅ **已收尾（R47）**：报告侧「只许出现在固定分歧写法里」已写入四处；不改评分器；再现再议 |
 | C7 | 台账 O42：`no tool errors` 在多写 run 上约 1/4 概率被打掉（R41–R45 共 14 run 失 5） | 失败清单 + 12 run 的三轮对照（见台账 R43/R44/R45） | ✅ **已定案（2026-10-10 R46，选 B）**：runner 改判 + 预算闸门，见台账 O42 / R46 节 |
-| C8 | 台账 O43：图表行（`label`+`description`）必须点名**试验**这条规则只隐式存在于 fixture | r46-a 5 根柱子全无试验名 → 离线 **40/44**；同 prompt 的 r46-a2（试验写进 `description`）**44/44**、R45-a 亦 PASS ⇒ 1/3 丢试验名 | 拟随**下一次内容改动**一轮补 prompt/SKILL 硬规则（与 O40/O41 同批）；若要反过来放宽判分侧，需再攒样本 |
+| C8 | 台账 O43：图表行必须点名**试验** | r46-a 5 根柱子全无试验名 → 40/44 | ✅ **已结案（R47）**：prompt/SKILL/chart-templates 三处硬规则原地发布；**R47 四组 4/4 命中**且未引入新失败 |
+| C9 | 台账 O44：`A-C9-mds-tbr-A` 只认减号写法，不认「降低 8.3%」文字写法（同 spec 的 `A-S10` 却声明「符号由模型自选」） | r47-a（1/7 触发）；历史 6 个 scenario A run 与同日 `low` 臂都写减号 | 按 O27/O28 先例**等第 2 份样本**；修法 = 两条 pattern 各加文字式备选（一行可回退） |
 
 ### D. 已定案不动（别再翻）
 

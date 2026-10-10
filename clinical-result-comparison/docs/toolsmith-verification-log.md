@@ -1214,11 +1214,11 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O37 | 本地 citation/entity 校验缺口 | 引用值、URL、marker/entity 检查；F7 | 21 Node tests PASS；不代表生产渲染器或 HTML 清洗 |
 | O38 | 旧参数/臂数字段/L3 规则冲突与过度非 OA 推断 | live `esids` 适配、入组语义、canonical input-contract；F7 | 本地规则及 deps 基线已改；TS 发布与真跑待授权 |
 | O39 | **runner 的 `tool-doc` 里留着已删文件的指针**（2026-10-09 收尾 entity 移除时发现，**已修**）：`cmd_param_doc` 生成的「4.3 嵌套返回结构要点」写「实体 ID 路径见 Skill 的 `references/entity-inline-reference.md`」，而该文件已在 v0.16 删除 ⇒ 生成物 `docs/params-tool-schema.md` 指向不存在的路径。修法：删掉该从句，`toolsmith-publish tool-doc` 重新生成（31,729 B→31,671 B）；备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v10.bak`，`py_compile` OK，零网络闸门 `GATE: PASS`。**只影响文档生成，不进运行期**。 | 已修（本地 runner + 仓库文档） |
-| O40 | **`A-ATTR` 对「对对方记录的否定陈述」不给豁免**（2026-10-10 R43-a / R45-a 两份产物，2 样本）：引注 `ref_n` 的单元（含按 cell 拆分的表格单元）里点到**另一条记录的身份证**（药名/登记号），而本单元对该记录的陈述是**否定式**（「未给出」「未报告」「未评估」），仍判 FAIL。例：R43-a 第 60 行 cell「OCEAN(a)-DOSE 摘要只给出 LDL-C 基线中位值，未给出变化值」；R45-a「奥帕司兰未给出可归属的 LDL-C 变化值」「依勒尤单抗所取原文与库内记录均未报告安全性结果」。**当前判定：不改评分器**（现行契约 O19/M15 明文：单元必须点到**自己所引**记录的身份才享豁免；否定陈述不构成豁免理由，否则「未优于 X」成了绕开口） | **待样本**（候选方向：(a) 对「只作否定陈述」的单元开否定式豁免；(b) 报告侧习惯改为「提到对方时同时点自己」。需 ≥2 份新样本再定）|
-| O41 | **`A-P2-divergence-shows-both` 对「非分歧地提到库内记录」零容忍**（2026-10-10 R45-a，1 样本）：该条按块要求任意 `库内记录` 出现必须落在 `原文 <值>；库内记录 <值>{{ref_n}}` 相邻双值写成内；R45-a 有一句写「库内记录另含若干按剂量分组的第 36 周百分比变化数值，但未给出可归属的终点名称，无法用于对齐」⇒ 判 FAIL。合同（`references/input-contract.md:224/286`）确实规定了该固定写法，但**未规定「不许在其它语境提到库内记录」**，故本例属**边界**：既可为真阳性（提到库内数值却不给原文对照），也可能只是排版选择 | **待样本**（候选方向：①报告侧把这类句子直接不写（合同 320 行已有「无差异不要写 meta」的内核）；②评分侧仅在块内出现**数值**且无原文对照时才判 FAIL。需 ≥2 份样本）|
+| O40 | **`A-ATTR` 对「对对方记录的否定陈述」不给豁免**（2026-10-10 R43-a / R45-a 两份产物，2 样本）：引注 `ref_n` 的单元（含按 cell 拆分的表格单元）里点到**另一条记录的身份证**（药名/登记号），而本单元对该记录的陈述是**否定式**（「未给出」「未报告」「未评估」），仍判 FAIL。例：R43-a 第 60 行 cell「OCEAN(a)-DOSE 摘要只给出 LDL-C 基线中位值，未给出变化值」；R45-a「奥帕司兰未给出可归属的 LDL-C 变化值」「依勒尤单抗所取原文与库内记录均未报告安全性结果」。**当前判定：不改评分器**（现行契约 O19/M15 明文：单元必须点到**自己所引**记录的身份才享豁免；否定陈述不构成豁免理由，否则「未优于 X」成了绕开口）。**R47 更新（第 3 份样本 `r47-loweff-a`，机制已定位）**：该 run 报告第 62 行表格里，cell=「依洛尤单抗 420 mg 每月一次：-8.3 %{{ref_1}}」使整行 `row_refs={ref_1}`，**末尾无标记的 cell「OCEAN(a)-DOSE 未评估该终点」按 `units()` 继承本行标记 ⇒ 变成「引 `ref_1` 却只点名 `ref_2` 的试验」**判 FAIL；同 run 第 94/95 行同型（「奥帕司兰侧终点名称缺失」「另一研究未评估该终点」）。即 R47 新加的正文侧习惯句**覆盖不到表格 cell 的标记继承**。 | 📝 **仍不改评分器**（契约自洽）；**改法已收窄到一句可机械检查的报告侧规则（R48 内容轮）**：*要写「另一条记录没有这个终点/没报告」时，那一句/那一格必须带上**被点名那条记录**自己的 `{{ref_n}}`（或干脆不点名对方，写「未评估该终点」）；不得让它落在引了本条记录的句/格/行里*。|
+| O41 | **`A-P2-divergence-shows-both` 对「非分歧地提到库内记录」零容忍**（2026-10-10 R45-a，1 样本）：该条按块要求任意 `库内记录` 出现必须落在 `原文 <值>；库内记录 <值>{{ref_n}}` 相邻双值写成内；R45-a 有一句写「库内记录另含若干按剂量分组的第 36 周百分比变化数值，但未给出可归属的终点名称，无法用于对齐」⇒ 判 FAIL。合同（`references/input-contract.md:224/286`）确实规定了该固定写法，但**未规定「不许在其它语境提到库内记录」**，故本例属**边界**：既可为真阳性（提到库内数值却不给原文对照），也可能只是排版选择 | ✅ **R47 收尾（报告侧习惯句已生效）**：R47 在 prompt/SKILL/`citation-and-ref.md`/`input-contract.md` 四处写入「`库内记录` 只许出现在固定分歧写法里」后，**R47 五份产物（a / 4 / 18 / 14 / loweff-a）`库内记录` 出现次数全部为 0** ⇒ 不再出现「非分歧地提到库内记录」的写法（A-P2 无触发）。**不改评分器**；后续样本若再现再议。|
 | O42 | **`no tool errors` 在多写 run 上约 1/4 概率被打掉，三轮 prompt 强化未改变基线**（2026-10-10 R41→R45 共 14 个 run）：失败形态二种——`write_file` 缺 `overwrite`、`edit_file` 目标串过期；二者都只损失**一次工具调用**，平台 re-prompt 后 run 照常完成、其余 21 条断言全过。口径表见下方 R43/R44/R45 三节。 | ✅ **已结案（2026-10-10 R46，选 B 窄口径）**：runner 新增 `TOOL_REFUSED_RX`（两种工具侧前置拒绝、`^` 锚定）+ `REFUSAL_BUDGET = 3`，原恒 PASS 的信息行改成带预算判定（断言仍 22 条）。备份 `toolsmith-publish.v15.bak`；`test-runner.py` 38→**39**；零网络闸门 `GATE: PASS`；离线重打分 98 份归档 = **0 errors**、单 run 最大拒绝 2 次、无超预算样本；线上 r46-a / r46-a2 各 **22 PASS / exit 0`。证据 `docs/evidence/o42-refusal-reclassification-2026-10-10.txt` |
-| O43 | **`A-S9` / `A-S9b` / `A-S10` 要求图表行（`label`+`description`）点名该观察所属**试验**，但 prompt / SKILL 从未把这条写成可检查规则**（2026-10-10 R46-a，1 样本）：r46-a 的 5 根柱子只写「药名 + 剂量 + 间隔 + 时点」（`依洛尤单抗 420 mg 每月一次（第 16 周）`），label 与 description 都不含 `NCT02729025` / `OCEAN(a)-DOSE` ⇒ `identified observations=[] want=[0,1,2,3,4]`，**离线 40/44 FAIL**；同一 prompt 的 r46-a2 把试验放进 `description`（`试验 A（NCT02729025）第 16 周，安慰剂校正`）⇒ **44/44 PASS**。同门径下 R45-a 亦 PASS ⇒ 同一 prompt 3 次 scenario A 里 **1/3 丢试验名**。判分侧口径本身**自洽**（行内 5 个维度须全部出现在 label+description 里，且互斥性仍靠 competing-identity 检查兜底），属**报告侧偶发漏写 + 规则只在 fixture 里隐式存在** | 📝 **待修（不在本轮回合内改）**：候选①在 prompt / `SKILL.md` 补一句可机械检查的硬规则（「每根柱子的 `label`/`description` 必须点名该观察所属试验的短名或注册号，不能只靠药物+剂量」），随**下一次内容改动一起发版**（不单独开一轮；与 O40/O41 的报告侧习惯句同批）；候选②判分侧把 chart 的 `identity_patterns` 去掉试验维度（唯一性仍靠「恰好命中 1 个」兜底）——**n=1 证据不足，本轮不做**。注意 `templates/charts/endpoint-bar.json` 的示例 label 本来就带试验槽位（`试验A · 研究组`）|
-
+| O43 | **`A-S9` / `A-S9b` / `A-S10` 要求图表行（`label`+`description`）点名该观察所属**试验**，但 prompt / SKILL 从未把这条写成可检查规则**（2026-10-10 R46-a，1 样本）：r46-a 的 5 根柱子只写「药名 + 剂量 + 间隔 + 时点」（`依洛尤单抗 420 mg 每月一次（第 16 周）`），label 与 description 都不含 `NCT02729025` / `OCEAN(a)-DOSE` ⇒ `identified observations=[] want=[0,1,2,3,4]`，**离线 40/44 FAIL**；同一 prompt 的 r46-a2 把试验放进 `description`（`试验 A（NCT02729025）第 16 周，安慰剂校正`）⇒ **44/44 PASS**。同门径下 R45-a 亦 PASS ⇒ 同一 prompt 3 次 scenario A 里 **1/3 丢试验名**。判分侧口径本身**自洽**（行内 5 个维度须全部出现在 label+description 里，且互斥性仍靠 competing-identity 检查兜底），属**报告侧偶发漏写 + 规则只在 fixture 里隐式存在** | 📝 **待修（不在本轮回合内改）**：候选①在 prompt / `SKILL.md` 补一句可机械检查的硬规则（「每根柱子的 `label`/`description` 必须点名该观察所属试验的短名或注册号，不能只靠药物+剂量」），随**下一次内容改动一起发版**（不单独开一轮；与 O40/O41 的报告侧习惯句同批）；候选②判分侧把 chart 的 `identity_patterns` 去掉试验维度（唯一性仍靠「恰好命中 1 个」兜底）——**n=1 证据不足，本轮不做**。注意 `templates/charts/endpoint-bar.json` 的示例 label 本来就带试验槽位（`试验A · 研究组`）| ✅ **已结案（2026-10-10 R47，选候选①）**：prompt 「Every chart row names its own trial (hard rule)」+ `SKILL.md` 硬规则段 + `references/chart-templates.md` 各一句（不点名试验 = 不允许，≥2 试验时 `label`/`description` 必须自带试验短名或注册号），随 R47 内容轮原地发布；**R47 四组真跑 4/4 全部命中**：r47-a 五根柱子 label 前缀 `OCEAN(a)-DOSE · …` / `NCT02729025 · …`，r47-18 五根 `HARMONi-6（NCT05840016）· …`，r47-14 三根 `…（NCT04987320）/（jRCT2051240068）`，r47-4 仅时间线图（单试验，不适用）；且**未引入任何新断言失败**（4/4 run 皆 22 PASS / 0 FAIL）。判分侧未动。|
+| O44 | **`A-C9-mds-tbr-A` 只认减号写法，不认「降低 X%」文字写法**（2026-10-10 r47-a，1 样本）：该条 `patterns` 硬编码 `-8\.3` / `-5\.3` / `-3\.0` / `0\.18`，而 r47-a 报告第 62/65 行写「依洛尤单抗 降低 8.3%；安慰剂 降低 5.3%」（**同一交付物内部一致**，`A-S10-sign-convention-consistent` PASS）⇒ 两条 pattern 0 命中，**离线 43/44 FAIL**。同门径的 `A-S10` 规格里自己写着「合同里没有关于符号/幅度的任何字 ⇒ 每次由模型自选」，故**同 spec 内两条断言口径不一致**；历史 6 个 scenario A run（r41-fixed-a / r43-a / r44-a / r45-a / r46-a / r46-a2）与同日的 `r47-loweff-a` 都写减号形式 ⇒ **1/7 触发**。 | 📝 **待样本（不改评分器）**：候选修法 = `A-C9` 的 `-8\.3` / `-5\.3` 各加一个文字式备选（`(?:-8\.3|降低\s*8\.3)`），与 O28「符号容忍」同门径、一行可回退、不产生新假绿（`升高 8.3` 不匹配）。按 O27/O28 先例**等第 2 份样本**再动。 |
 ## 4. 平台侧（转开发）
 
 完整、可直接转发的版本见 Obsidian：
@@ -1956,6 +1956,91 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 - 本轮无新增平台缺陷，**不发新单**。③ 用户已明确「不管了」⇒ 撤回上一轮规划里的「`write_file` 提供 upsert/默认覆盖」平台建议，不再提单。
 - 既有观察保留：`write_file` 拒绝静默覆盖**是对的**，re-prompt 文案本身就给出 `overwrite=True` 改道建议；问题只是 runner 口径把它算成 error（本轮已从 runner 侧收口）。
 
+---
+
 ### R46 收尾状态
 
 线上未变（prompt v1.7 `f63bf180822c` / dist `47c06e7aa6d4`，in sync）；本地门禁 runner-gate **39** / scorer 35 / tools 5+14 / Node 16 / numeric-integrity 28 全 OK；变异闸门 `arm a 44/44, arm b 12/12, GATE: PASS`。**新增待修项 1 条（O43），已有待样本 2 条（O40/O41），三者共用「下次内容改动一轮」的批次。**
+
+---
+
+## R47 — O43 结案 + O40/O41 报告侧习惯句（原地发布）+ 四组真跑 + 一次 `reasoning-effort` A/B（2026-10-10）
+
+用户答复：「改吧」+「分析下 2–3 条结果也要 5min+ 的耗时分布，看哪些步骤可以调整」。
+按「**一次内容改动一轮**」的既有纪律执行：本轮只装 **O43（图表行点名试验）+ O40/O41（报告侧习惯句）**，
+把**耗时优化单独留在 R48 提案**（不给本轮 keep/discard 归因添混）。
+
+### 发布（原地更新，与 v0.16.1 / Phase 2 / Phase B / R41–R45 同一授权：`publish` in place，不改版本标签）
+
+| 项 | 改前（R45） | 改后（R47） |
+| --- | --- | --- |
+| prompt `multi-clinical-result-comparison-v0.16.md` | 65,959 B / sha `f63bf180822c` | **67,591 B / sha `c1641a46810a`** |
+| Skill v1.0.8 bundle（19 entries） | 103,982 B / sha `47c06e7aa6d4` | **105,347 B / sha `025aec791b1c`** |
+| `deps` | — | **`unchanged since the recorded baseline`**（发布前先过） |
+| `status` | in sync | **in sync**（发布后回读逐字节一致） |
+
+改动 5 个文件、共 4 处新增（每处都是"可机械检查"的硬规则，不只是风格建议）：
+
+| 文件 | 新增内容 |
+| --- | --- |
+| `system-prompts/…-v0.16.md` | 三条 hard rule 段：**Every chart row names its own trial**；**A marker binds its own record's content**（否定/比较句必须同时点自己）；**`库内记录` has exactly one legitimate use** |
+| `skill/…/SKILL.md` | 中文硬规则两条（**引注归属** / **图表每一行点名自己的试验**）+ 指向两份 reference |
+| `skill/…/references/chart-templates.md` | **图表每一行点名自己的试验（硬性）**：≥2 试验时 `label`/`description` 必须自含试验短名或注册号，不得只靠标题/图例/颜色 |
+| `skill/…/references/citation-and-ref.md` | 新节 **`## Marker attribution`**（引注归属 + `库内记录` 唯一合法写法） |
+| `skill/…/references/input-contract.md` | 在固定分歧写法那句后补「该写法是 `库内记录` 出现的**唯一**位置」（点名 `A-P2` 作为门禁） |
+
+### 真跑（四组，顺序执行；输入 `/tmp/r40/{a-scenario-a,b-4,c-18,d-14}.txt`）
+
+| tag | run 目录 | thread | turn | 墙钟（server/polled） | 工具尝试 | refused | 断言 | exit | 离线 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| r47-a（2 esid） | `…/20261010-153933-r47-a` | `412a8b27-0bd4-476d-a501-30869404a914` | `e2cc474b-9389-42bc-9599-fb199294d32c` | 349.1 / 349.4 s | 40 | 0 | **22 PASS / 0 FAIL** | 0 | 43/44 FAIL（**A-C9 符号写法**，见 O44） |
+| r47-4（4 esid） | `…/20261010-154531-r47-4` | `3e881375-6c1a-447c-a02b-767761fdb01a` | `fe134060-0df3-4339-a841-9b9ebb469da7` | 512.1 / 514.6 s | 56 | 0 | **22 PASS / 0 FAIL** | 0 | — （4 esid 不在 scenario A 规格内） |
+| r47-18（18 esid） | `…/20261010-155422-r47-18` | `e9dcf898-fc42-4720-92fc-89823c4aebed` | `ca5fee47-c162-4d00-b424-550515167d00` | 488.6 / 496.7 s | 56 | 0 | **22 PASS / 0 FAIL** | 0 | — |
+| r47-14（14 esid） | `…/20261010-160249-r47-14` | `af0b6a07-4a8f-4fb1-bd0b-0e6101fc0fef` | `7dc47608-cff9-492b-a64d-b6a01ce192f7` | 569.7 / 578.1 s | 66 | 0 | **22 PASS / 0 FAIL** | 0 | — |
+| r47-loweff-a（2 esid，附加 A/B 臂：`--reasoning-effort low`） | `…/20261010-161320-r47-loweff-a` | `62e4de53-3800-4a9b-b0b5-8b408e8fa9b2` | `e0ba716c-0c9f-4ffb-9094-f0afbb5db572` | 310.4 / 329.7 s | 35 | 0 | **22 PASS / 0 FAIL** | 0 | 43/44 FAIL（**A-ATTR 表格 cell 继承**，见 O40） |
+
+**四组连续 4/4 无工具拒绝**（O42 的窄口径下 `arguments refused = 0`），日志 `/tmp/r47/{r47-a,r47-4,r47-18,r47-14,low-a}.log`。
+
+### O43 验收：4/4 全部命中（图表行自带试验身份）
+
+| run | 图表 | 行证据 |
+| --- | --- | --- |
+| r47-a | `endpoint-bar-1.json`（5 柱） | `OCEAN(a)-DOSE · 奥帕司兰 225 mg 每 12 周 · 第 36 周`（×4）、`NCT02729025 · 依洛尤单抗 420 mg 每月一次 · 第 16 周` |
+| r47-18 | `endpoint-bar-1.json`（5 柱） | `HARMONi-6（NCT05840016）· 依沃西单抗+化疗`、`TQB2450-III-12（NCT05718167）· …`、`RATIONALE-307（NCT03594747）· …` |
+| r47-14 | `endpoint-bar-1.json`（5 柱） | `奥帕司兰 225 mg 单次皮下（NCT04987320）`、`zerlasiran 300 mg 单次皮下（jRCT2051240068）` |
+| r47-4 | `evidence-timeline.json`（单试验时间线） | 不适用（规则限定 ≥2 试验） |
+
+对比 r46-a（5 根柱子含 0 个试验名 → 离线 40/44）：**同一门径下 1/3 偶发 → R47 后 4/4 全中**。
+
+### 附加 A/B：`reasoning-effort`（回答"耗时能不能靠降思考量砍"）
+
+同日同输入（scenario A），唯一变量 = `--reasoning-effort low`（默认平台值 vs `low`）：
+
+| 臂 | 墙钟 | 步数 | out_tok | reasoning_tok | 工具尝试 | 断言 | 离线 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 默认（r47-a） | 349.1 s | 36 | 60,976 | **40,304** | 40 | 22/0 | 43/44 |
+| `low`（r47-loweff-a） | 310.4 s | 26 | 59,665 | **44,975** | 35 | 22/0 | 43/44 |
+
+⇒ **`reasoning_effort=low` 没有减少 reasoning 量（44,975 vs 40,304，噪声级）**，墙钟差 −39 s 全部来自步数少 10 步；
+**该旗标不是可用杠杆**（负结果，已记入 `docs/evidence/runtime-breakdown-2026-10-10.md`）。
+
+### 我方能改的
+
+| 现象 | 证据 | 改法 | 状态 |
+| --- | --- | --- | --- |
+| **O43：图表行不点名试验（隐性规则）** | r46-a 5 柱 label+description 无试验名 → 40/44 | prompt + SKILL + chart-templates 三处硬规则 | ✅ **已结案**（R47 四组 4/4 命中，判分侧未动） |
+| **O40：`A-ATTR` 否定陈述不给豁免** | 第 3 份样本 r47-loweff-a：表格 cell「OCEAN(a)-DOSE 未评估该终点」**无标记 ⇒ 继承本行 `ref_1`**，只点名 `ref_2` 的试验 ⇒ FAIL；同 run 第 94/95 行同型 | R47 已加正文侧习惯句（**不足以覆盖表格 cell 的标记继承**）；R48 收窄为可机械检查的一条：阴性/缺测句必须带**被点名那条记录**自己的 `{{ref_n}}`，否则不点名对方 | 📝 **R48 内容轮**（不改评分器） |
+| **O41：`库内记录` 非分歧使用** | R47 五份产物 `库内记录` 出现 **0 次**（A-P2 无触发） | 四处写「只许出现在固定分歧写法里」 | ✅ **收尾**（不改评分器；再现再议） |
+| **O44（新）：`A-C9` 只认减号写法** | r47-a 写「降低 8.3%／降低 5.3%」（交付物内部一致，`A-S10` PASS）⇒ `-8\.3`/`-5\.3` 0 命中，43/44 FAIL；历史 6/6 + 同日 low 臂都写减号 ⇒ 1/7 | 候选：`A-C9` 两条 pattern 各加文字式备选；**按 O27/O28 先例等第 2 份样本** | 📝 **待样本** |
+| **耗时结构（新证据）** | 生成占墙钟 **65–92%**、reasoning 占输出 **46–76%**；工具全部 <15%；2 esid 与 18 esid 耗时同量级 | 见 `docs/evidence/runtime-breakdown-2026-10-10.md`（L1 reasoning 旗标 = 已证负；L2 随包发脚本；L3 去 `draft.md` 两遍写；L4 压步数） | 📝 **R48 提案待用户点选** |
+
+### 平台侧（转开发）
+
+- 本轮无新增平台缺陷（`reasoning_effort` 旗标被 API 接受但未见效果，属**模型侧**行为、非平台契约问题；仅作负结果记录，不单独提单）。
+
+### R47 收尾状态
+
+线上 = prompt v1.7 **67,591 B / sha `c1641a46810a`**、Skill v1.0.8（dist **105,347 B / 19 entries / sha `025aec791b1c`**），`status` in sync；
+本地门禁 runner-gate **39** / scorer 35 / tools 5+14 / Node 16 / numeric-integrity 28 全 OK；
+变异闸门 `arm a 44/44, arm b 12/12, never flipped [], GATE: PASS`；
+**结案 2 条（O41 收尾、O43 结案）、待修 1 条（O40 → R48）、待样本 1 条（O44）**。

@@ -9,7 +9,19 @@
 
 ---
 
-## 当前交接（2026-10-10 R46 完成：O42 已结案 —— 工具侧前置拒绝改判；prompt / Skill 本轮回合未动）
+## 当前交接（2026-10-10 R47 完成：O43 结案 + O40/O41 报告侧习惯句已原地发布；四组真跑 + 一次耗时 A/B）
+
+**R47（用户答复「改吧」+「分析下 2–3 条结果也要 5min+ 的耗时分布」）**：按「一次内容改动一轮」纪律，本轮只装 **O43 + O40/O41 报告侧习惯句**，把**耗时优化留作 R48 提案**（不混进本轮 keep/discard 归因）。
+
+1. **已原地发布（同一授权，版本标签不变）**：prompt `v1.7` **65,959 B / `f63bf180822c` → 67,591 B / `c1641a46810a`**；Skill `v1.0.8` dist **103,982 B / `47c06e7aa6d4` → 105,347 B / `025aec791b1c`**（19 entries）；发布前 `deps` = `unchanged since the recorded baseline`，发布后 `status` = **in sync**。改 5 个文件：prompt 三条 hard rule（**每个图表行点名自己的试验** / **marker 绑定本条记录的内容** / **`库内记录` 只有一处合法写法**）、`SKILL.md` 两条中文硬规则、`references/chart-templates.md`、`references/citation-and-ref.md` 新节 `## Marker attribution`、`references/input-contract.md`。
+2. **四组真跑 4/4 全绿**（顺序执行，`arguments refused = 0`）：`r47-a` 349.1 s / 40 attempts、`r47-4` 512.1 s / 56、`r47-18` 488.6 s / 56、`r47-14` 569.7 s / 66，**均 22 PASS / 0 FAIL / exit 0 / succeeded**。
+3. **O43 结案（4/4 命中）**：r47-a 柱子 label 前缀 `OCEAN(a)-DOSE · …` / `NCT02729025 · …`；r47-18 `HARMONi-6（NCT05840016）· …`；r47-14 `…（NCT04987320）/（jRCT2051240068）`；r47-4 只有单试验时间线图（规则不适用）。对比 r46-a（0 个试验名 → 离线 40/44）。
+4. **O41 收尾**：R47 五份产物 `库内记录` 出现 **0 次**（A-P2 无触发）⇒ 习惯句生效，不改评分器。
+5. **O40 需在 R48 再收**（第 3 份样本 `r47-loweff-a`）：表格 cell「OCEAN(a)-DOSE 未评估该终点」**无标记 ⇒ 按 `units()` 继承本行 `ref_1`**，只点名 `ref_2` 的试验 ⇒ `A-ATTR` FAIL；R47 的正文侧习惯句覆盖不到表格继承 ⇒ R48 收窄为一条可机械检查的规则（阴性/缺测句必须带**被点名那条记录**自己的 `{{ref_n}}`，否则不点名对方）。
+6. **新增 O44（待样本，n=1）**：`A-C9-mds-tbr-A` 的 `patterns` 硬编码 `-8\.3`/`-5\.3`，r47-a 写「降低 8.3%／降低 5.3%」（交付物内部一致、`A-S10` PASS）⇒ 离线 43/44 FAIL；同门径 `A-S10` 规格自称「符号由模型自选」⇒ 同 spec 口径不一致。修复=各加文字式备选，**按 O27/O28 先例等第 2 份样本**。
+7. **耗时分析（只读）落 `docs/evidence/runtime-breakdown-2026-10-10.md`**：生成占墙钟 **65–92%**、reasoning 占输出 **46–76%**（180–330 s/run）、工具全部 **<15%**；2 esid 与 18 esid 同量级。**A/B 负结果：`--reasoning-effort low` 不减 reasoning 量（44,975 vs 40,304），墙钟 −39 s 全来自步数少 10 步** ⇒ 该旗标不是杠杆；R48 候选 = L2 随包发脚本（砍 10k–39k 生成 token/run）、L3 去 `draft.md` 两遍写、L4 压步数。
+
+## 历史交接（2026-10-10 R46 完成：O42 已结案 —— 工具侧前置拒绝改判；prompt / Skill 该轮未动）
 
 **R46（用户答复「谁好，你推荐谁」① +「你自己看着办吧」② +「不管了」③）**：按①执行 **O42 选项 B 的窄口径**，**只改本地 runner，prompt / Skill / dist 一字未改，TS 无写动作**（线上仍 = 下面的 R43–R45 值）。备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v15.bak`。
 

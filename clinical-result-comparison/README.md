@@ -2,7 +2,18 @@
 
 Tool Smith project assets for source-grounded synthesis and comparison of multiple selected clinical result records. The default output is a trial-level evidence synthesis for same-trial selections and a comparison-first, domain-aligned cross-trial comparison for mixed selections, each with a compatible chart when the data allow it.
 
-## Current snapshot — 2026-10-10 (R46 closed O42; R43–R45 shipped in place)
+## Current snapshot — 2026-10-10 (R47 closed O43; four green runs + a timing A/B)
+
+**Live state (R47)**: prompt **v1.7 = 67,591 B / sha `c1641a46810a`**; Skill **v1.0.8** (dist **105,347 B / 19 entries / sha `025aec791b1c`**); `deps` = `unchanged since the recorded baseline`; `status` **in sync**. R47 was an in-place update (same version labels) of 5 files: prompt (three new hard rules — *every chart row names its own trial* / *a marker binds its own record's content* / *`库内记录` has exactly one legitimate use*), `SKILL.md`, `references/chart-templates.md`, `references/citation-and-ref.md` (new `## Marker attribution` section), `references/input-contract.md`.
+
+- **O43 closed — 4 of 4 runs now name the trial inside the chart rows**: labels read `OCEAN(a)-DOSE · 奥帕司兰 225 mg 每 12 周 · 第 36 周` / `NCT02729025 · 依洛尤单抗 420 mg 每月一次 · 第 16 周` (r47-a), `HARMONi-6（NCT05840016）· …` (r47-18), `…（NCT04987320）` / `…（jRCT2051240068）` (r47-14); r47-4 emits only a single-trial timeline chart, where the rule does not apply. Compare r46-a (0 trial names → offline 40/44). The scoring side was not touched.
+- **Four sequential live runs, all 22 PASS / 0 FAIL / exit 0 / `arguments refused = 0`** (R47 content): r47-a 349.1 s / 40 tool attempts, r47-4 512.1 s / 56, r47-18 488.6 s / 56, r47-14 569.7 s / 66.
+- **O41 wrapped up**: across the five R47 artifacts the phrase `库内记录` appears **0 times**, so `A-P2` never fires; the report-side sentence stays, the scorer stays.
+- **O40 needs one more round** (third sample, `r47-loweff-a`): a marker-less table cell inherits the row's `ref_1` via `units()`, so `OCEAN(a)-DOSE 未评估该终点` ends up citing `ref_1` while naming only `ref_2`'s trial ⇒ `A-ATTR` FAIL. The R47 prose sentence does not reach table-cell inheritance, so R48 will narrow it to one checkable rule: a negative/missing-data clause must either carry **the cited-and-named record's own** `{{ref_n}}` or not name the other record at all.
+- **New item O44 (1 sample)**: `A-C9-mds-tbr-A` hardcodes `-8\.3` / `-5\.3`, while r47-a writes `降低 8.3%` / `降低 5.3%` (internally consistent — `A-S10` passes) ⇒ offline 43/44. Since `A-S10`'s own spec says the sign convention is the model's choice, the two assertions disagree. Fix is one alternative pattern each; per the O27/O28 precedent this waits for a second sample.
+- **Runtime structure** (`docs/evidence/runtime-breakdown-2026-10-10.md`): generation takes **65–92%** of wall clock, reasoning **46–76%** of output tokens, tools **<15%**; a 2-esid run costs about as much as an 18-esid one. **A/B negative result**: `--reasoning-effort low` does not shrink reasoning (44,975 vs 40,304 tokens) and the −39 s comes entirely from 10 fewer steps ⇒ R48 candidates are L2 (ship helper scripts inside the Skill), L3 (drop the two-pass `work/draft.md`) and L4 (fewer steps).
+
+## Historical snapshot — 2026-10-10 (R46 closed O42; R43–R45 shipped in place)
 
 **Live state (unchanged by R46)**: prompt **v1.7 = 65,959 B / sha `f63bf180822c`**; Skill **v1.0.8** (dist **103,982 B / 19 entries / sha `47c06e7aa6d4`**); `status` **in sync**; `deps` unchanged. R43 → R44 → R45 were all in-place updates of that same release (prompt `e23eef7201d0` / `5b8043bb3779` / `f63bf180822c`, dist `2f4700a2f295` / `cdb4992f9b20` / `47c06e7aa6d4`).
 

@@ -59,6 +59,14 @@ Always mark:
 
 Methodological cautions with no source-specific factual assertion do not require a marker.
 
+## Marker attribution
+
+A marker owns its unit's content. Every number, arm, dose, interval and time point in a sentence, bullet or table cell that carries `{{ref_n}}` must be that record's own number, arm, dose, interval or time point.
+
+Naming another record is allowed and often necessary — a comparison, an exclusion, or a negative claim (`未优于依洛尤单抗`, `与奥帕司兰的终点不是同一构念`) — but then the same unit must **also** name its own record's drug or registry number. A unit that cites one record while naming only another record's drug or number is not readable as attribution. A unit that carries another record's *number* fails outright, regardless of wording.
+
+`库内记录` is bound to one wording only: the fixed divergence form `原文 <值>；库内记录 <值>{{ref_n}}`, both halves plus the marker inside the same unit. Never use the phrase as a shorthand for the library value in any other sentence or note (`库内记录为 70.5%` is not acceptable), and when `原文` and `库内记录` agree, no divergence wording appears at all.
+
 ## Duplicates and multiple sources
 
 For repeated reporting of one analysis, cite the clearest source for the value. Optionally add a duplicate source marker when it contributes material context. Multiple markers must never be presented as independent patient-level confirmation.
