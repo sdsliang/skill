@@ -36,7 +36,7 @@ import zipfile
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 NAME = os.path.basename(REPO)
 SRC = os.path.join(REPO, "skill", NAME)
-VERSION = "v0.1.0"
+VERSION = "v0.1.1"
 OUT = os.path.join(REPO, "dist", f"{NAME}-{VERSION}.zip")
 PREFIX = f"{NAME}/"
 STAMP = (2026, 9, 10, 0, 0, 0)

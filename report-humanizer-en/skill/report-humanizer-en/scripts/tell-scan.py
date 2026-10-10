@@ -19,6 +19,9 @@
     强（strong）— 见到一次就足以改；
     弱（weak）  — 单独出现不是理由，需要同段/同文内有其它命中一起判断。
 
+文档级计数（`W-DASH-COUNT` / `W-BOLD-COUNT` / `W-FMT-MIXED`）只看正文行，
+表格行与代码块不参与。
+
 报告特有的硬规则：交付物里出现过程叙述、工具与流程交代、自我评价、改写仪式、
 AI 元信息时，无论强弱都应删除。
 """
@@ -96,11 +99,31 @@ ZH_RULES = [
      "粗体当装饰：加粗只留给需要定位的关键项"),
 ]
 
+def _mixed_notation(text):
+    """同一文档内同一记号两种写法并存时，返回少数派写法的处数。
+
+    来源材料常混用中圆点小数点与普通小数点、`64%` 与 `64 %`；报告继承下来就成了
+    「同一数值两种形态」。统一的是排版，不是数值本身。
+    """
+    n = 0
+    dot = len(re.findall(r"\d+\.\d+", text))
+    mid = len(re.findall(r"\d+·\d+", text))
+    if dot and mid:
+        n += min(dot, mid)
+    tight = len(re.findall(r"\d+(?:\.\d+)?%", text))
+    spaced = len(re.findall(r"\d+(?:\.\d+)? %", text))
+    if tight and spaced:
+        n += min(tight, spaced)
+    return n
+
+
 ZH_DOC_RULES = [
     ("W-DASH-COUNT", "weak", 3, lambda t: len(re.findall(r"——", t)),
      "破折号使用频繁：检查是否有替代分句关系的用法"),
     ("W-BOLD-COUNT", "weak", 8, lambda t: len(re.findall(r"\*\*[^*\n]+\*\*", t)),
      "粗体过多：加粗密度高时读者跳过全部加粗"),
+    ("W-FMT-MIXED", "weak", 1, _mixed_notation,
+     "数字记号混用：小数点（. 与 ·）与百分号两种形态并存，全篇统一成一种写法（只改排版，数值与位数不动）"),
 ]
 
 # ------------------------------------------------------------------ 英文规则
@@ -166,6 +189,9 @@ EN_DOC_RULES = [
      "Em dashes frequent: check whether any replace a real clause relation"),
     ("W-BOLD-COUNT", "weak", 8, lambda t: len(re.findall(r"\*\*[^*\n]+\*\*", t)),
      "Heavy bold: when everything is bold, nothing is"),
+    ("W-FMT-MIXED", "weak", 1, _mixed_notation,
+     "Mixed notation: both a middle-dot and a full-stop decimal, or both `64%` and `64 %`, "
+     "appear in this document; pick one form throughout (typography only, never the value)"),
 ]
 
 LANG_RULES = {"zh": (ZH_RULES, ZH_DOC_RULES), "en": (EN_RULES, EN_DOC_RULES)}

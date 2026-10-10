@@ -307,6 +307,23 @@ def t_table_rows_are_not_scanned():
     assert rep["strong"] == 0 and rep["weak"] == 0, f"表格行被当成正文命中：{rep['findings']}"
 
 
+def t_mixed_notation_is_flagged():
+    """同一文档内小数点/百分号两种写法并存是命中（弱），这是来源混用带进来的痕迹。"""
+    mixed = "中位 PFS 11.1 个月，对照组 6·9 个月，≥3 级出血 2% 对 1 %。"
+    rep = SCAN.evaluate(mixed, "zh")
+    assert rep["strong"] == 0, f"排版混用不应算强命中：{rep['findings']}"
+    assert "W-FMT-MIXED" in rules(rep), f"混用未被抓到：{rep['findings']}"
+
+
+def t_uniform_notation_is_clean():
+    """写法统一时不报——包括统一成中圆点、以及只有一种形态的单一数值。"""
+    for ok in ("中位 PFS 11.1 个月，对照组 6.9 个月，≥3 级出血 2% 对 1%。",
+               "中位 PFS 11.1 个月，≥3 级出血 2%，HR 0.60（95% CI 0.46–0.78）。",
+               "中位随访 10·3 个月与 21·4 个月，事件数 204 例。"):
+        rep = SCAN.evaluate(ok, "zh")
+        assert "W-FMT-MIXED" not in rules(rep), f"统一写法误报：{ok} -> {rep['findings']}"
+
+
 
 
 # ---------------------------------------------------------- 打包闸门

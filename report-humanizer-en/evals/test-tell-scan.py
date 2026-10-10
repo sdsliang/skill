@@ -306,6 +306,23 @@ def t_dictionary_lookup_verbs_need_an_actor():
     assert SCAN.evaluate("The search covered 27 disclosures; endpoints came from 18 of them.", "en")["strong"] == 0
 
 
+def t_mixed_notation_is_flagged():
+    """Two forms of the same number mark inside one document is a (weak) hit."""
+    mixed = "Median PFS 11.1 months versus 6·9 months; grade >=3 haemorrhage 2% versus 1 %."
+    rep = SCAN.evaluate(mixed, "en")
+    assert rep["strong"] == 0, f"mixed notation must not be a strong hit: {rep['findings']}"
+    assert "W-FMT-MIXED" in rules(rep), f"mixed notation was not caught: {rep['findings']}"
+
+
+def t_uniform_notation_is_clean():
+    """One consistent form (either one) is clean."""
+    for ok in ("Median PFS 11.1 months versus 6.9 months; grade >=3 haemorrhage 2% versus 1%.",
+               "Median PFS 11.1 months; grade >=3 haemorrhage 2%; HR 0.60 (95% CI 0.46-0.78).",
+               "Median follow-up 10·3 and 21·4 months; 204 events."):
+        rep = SCAN.evaluate(ok, "en")
+        assert "W-FMT-MIXED" not in rules(rep), f"uniform notation false positive: {ok} -> {rep['findings']}"
+
+
 
 
 # ------------------------------------------------------------ packaging gate

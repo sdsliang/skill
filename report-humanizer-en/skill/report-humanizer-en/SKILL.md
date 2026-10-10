@@ -57,6 +57,8 @@ The test is one sentence: **Does this statement change what the reader believes 
 
 A second direct test: **Is this sentence about my work, or about the facts?** About my work → delete.
 
+**Wording inside the exception.** A disclosure the host contract mandates (for example "full text not retrieved, checked against the abstract level", "one record was excluded") must be written, but write it as a **property of the material**, not as your runtime environment, tooling or link chain: write "all four records in this batch are abstract-level, none full-text", not "this run had no external network, the PubMed→PMC chain could not be started". The first is the definition the reader needs; the second is working conditions you do not owe anyone.
+
 ## 4. Data and provenance discipline
 
 - Every number, comparison, timepoint in the report must trace back to input or source; **do not produce new numbers**, **do not write "not reported" as "absent"**, **do not directly compare numbers across trials** (unless the input itself provided a comparable control).
@@ -83,7 +85,15 @@ Abbreviations: give full form and abbreviation at first appearance (`pembrolizum
 
 Other entities follow the same rule: trial names and registration numbers (NCT/ChiCTR/..., copy verbatim, do not change case or reorder), company names (standard short form preferred, optionally give full form on first appearance), targets (follow the input's standard form), endpoints (give full form on first abbreviation, e.g. `OS, overall survival`), disease names (standard Chinese name, optionally bracket English), stage and line of therapy (`Phase III trial`, `second-line`, consistent throughout).
 
-English/Chinese mixed text: Chinese prose uses Chinese punctuation, English proper names and abbreviations keep original case and hyphens; do not add spaces between Chinese and English unless the document's existing style does so; numbers use Arabic numerals, percentage and interval formats consistent throughout.
+English/Chinese mixed text: Chinese prose uses Chinese punctuation, English proper names and abbreviations keep original case and hyphens; do not add spaces between Chinese and English unless the document's existing style does so; numbers use Arabic numerals.
+
+**Notation must be consistent across the whole document (typography only, never the value).** Source material mixes decimal points and percent spacing all the time; copying that through gives one value two forms, which is one of the most visible outsourcing/machine tells:
+
+- **One decimal point only**: if the source writes a middle dot (`10·3 months`) while the rest of the prose uses a full stop, normalize to `10.3 months`; never change the number of decimals or the value.
+- **Percent sign tight against the number**: `64%`, not `64 %`.
+- **One range symbol only**: do not mix `0.46–0.78` with `0.46-0.78`; follow the document's existing convention if it has one.
+- **Add nothing**: no thousands separators, no units, no uniform two-decimal rounding invented on your own.
+- **Scope**: prose and lists. Tables, citation markers, code, paths, URLs and IDs follow the host contract; when the host declares tables protected, leave them as they are and at least unify the prose and lists. Only the symbol form and spacing may change — the **value and digit count** of every number must match the draft.
 
 For details and more examples see `references/naming-bilingual.md`.
 
@@ -101,6 +111,7 @@ For details and more examples see `references/naming-bilingual.md`.
 - Are independent information, negations, comparison objects, scope, time, completion status, attribution complete? Are meanings carried by "possibly/reportedly/over/only/planned/not yet" preserved?
 - Any correlation written as causation, not-reported written as absent, subgroup written as primary conclusion?
 - Do numbers, units, confidence intervals, citation markers, table data, IDs match the original verbatim?
+- Is notation consistent throughout (decimal point / percent sign / range symbol)? Does one value appear in two forms? Did unifying it change any value?
 - Is the same entity/abbreviation/drug name written consistently throughout? Do abbreviations have a first-appearance definition? For drug names not found in the dictionary, does the fallback follow direction (English→Chinese keep English, Chinese→English use pinyin) without inventing names?
 - Do closings only repeat praise or best wishes? Any unsupported "significance" sentences left behind?
 - Are originally sound passages forced into change? Are quotes, titles, proper nouns, the terms themselves kept intact?
@@ -125,7 +136,7 @@ Rule families:
 | `S-PROC-01..07` | Process narration, tooling and method accounting, choice rationale, self-assessment and confidence talk, rewrite ceremony, AI meta-labels |
 | `S-INFL-01..04` | Contrast inflation, inflated significance, borrowed authority with no named source, empty evaluation |
 | `S-STRUCT-01..04` | Reciting tables and figures, empty closers, summary restatement, heading restatement |
-| `W-*` | Phrasing level: em dash pairs, overused AI words, hedge stacks, vague association, nominalization, shallow -ing riders, decorative bold, plus document-level counts (dash and bold density) |
+| `W-*` | Phrasing level: em dash pairs, overused AI words, hedge stacks, vague association, nominalization, shallow -ing riders, decorative bold, plus document-level counts (dash and bold density, **mixed notation**) |
 
 Boundaries (important):
 

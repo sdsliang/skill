@@ -26,6 +26,7 @@ Writing for the reader to see your search, filtering, calculation, tools, and wo
 Explaining why you wrote it this way, why you chose these items, what you hesitated over. This reasoning is process, not report content.
 **Before:** The reason we selected only these two trials is that the other trials used inconsistent endpoint definitions and could not be compared; therefore, we can conclude the drug has an advantage in first-line treatment.
 **After:** The drug outperformed the control in first-line treatment (limited to two Phase III trials with consistent endpoint definitions).
+**Exception and wording:** A disclosure the host contract mandates (full text not retrieved, one record excluded, a definitional limit) must appear, but as a **property of the material** — "all four records in this batch are abstract-level, none full-text" is fine; "this run had no external network, the PubMed→PMC chain could not be started" describes working conditions and goes.
 
 ### A4. Inflated contrast (not X but Y) [strong]
 Both halves add information, or the negative corrects a genuine misunderstanding → keep. Otherwise cut.
@@ -155,6 +156,12 @@ Headings capitalize every main word; headings or list items carry emojis or arro
 **After:** ## Strategic negotiations and global partnerships
 
 ### D17. Curly quotation marks [weak]
+
+### D18. Mixed notation — one value, two forms [weak]
+The same report writes `10·3 months` beside `11.1 months`, or `64%` beside `64 %`. Source material mixes these forms, so copying it through leaves a trace; the unifying changes typography only, never the value or digit count. It also spares the reader wondering whether the two forms carry different definitions.
+**Before:** median PFS 11·1 months (95% CI 9·9–NE), grade ≥3 haemorrhage 2 %
+**After:** median PFS 11.1 months (95% CI 9.9–NE), grade ≥3 haemorrhage 2%
+**Boundary:** quotes, code, IDs, URLs and tables (prose and lists only when the host protects tables) stay as they are; no thousands separators or units added on your own.
 Curly quotes ("…") where the format uses straight quotes ("..."). Most editors auto-curl, so this is weak alone.
 
 ---
@@ -225,4 +232,4 @@ Presenting absolute counts without the base or threshold that gives them meaning
 
 ## Relation to the mechanical scanner
 
-`scripts/tell-scan.py` (SKILL.md Section 8) is a separate mechanical layer. Its `S-PROC-*`, `S-INFL-*`, `S-STRUCT-*` and `W-*` identifiers do not map one to one onto the entries above: `S-PROC-01..07` cover A2, A3, A6, E18 and G22 together, `S-INFL-01..04` cover A4, A5, B1, B2, B6 and C11-C14, `S-STRUCT-01..04` cover A6, A7 and G24, and `W-*` covers B3, B4, B8, B10, D15, D16, D17, E18 and the document-level density counts (three or more em dashes, eight or more bold spans). Use the scanner to find candidates and this catalogue to decide.
+`scripts/tell-scan.py` (SKILL.md Section 8) is a separate mechanical layer. Its `S-PROC-*`, `S-INFL-*`, `S-STRUCT-*` and `W-*` identifiers do not map one to one onto the entries above: `S-PROC-01..07` cover A2, A3, A6, E18 and G22 together, `S-INFL-01..04` cover A4, A5, B1, B2, B6 and C11-C14, `S-STRUCT-01..04` cover A6, A7 and G24, and `W-*` covers B3, B4, B8, B10, D15, D16, D17, D18, E18 and the document-level counts (three or more em dashes, eight or more bold spans, `W-FMT-MIXED` mixed notation). Use the scanner to find candidates and this catalogue to decide.
