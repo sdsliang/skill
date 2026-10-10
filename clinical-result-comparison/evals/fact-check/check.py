@@ -633,12 +633,14 @@ def op_original_check_names_class(sv: dict, spec: dict) -> tuple:
     `原文核对：2/2 条已复核` would sail through while hiding that nothing was actually
     re-checked and that one of the records is a press release whose original is the pulled
     body itself.  So the line has to name a retrieval route (PMID / DOI / registration id /
-    registry API) *and* classify the records (esid source class or an explicit reason class).
+    registry API) *and* classify the records (esid source class or the source-side property that capped the
+    check, e.g. 未收录 PMC / 非 OA / 无登记号或 DOI).  Fetch-failure wording is deliberately **not** accepted
+    any more (`A-P10` fails it): the line reports the material and the depth reached.
     """
     route = spec.get("route_regex") or (r"PMID|DOI|doi|注册号|登记号|NCT|api|API|PMC\d|PMC|全文|库内正文|库内即原文|未取")
     cls = spec.get("class_regex") or (
         r"src\s*=\s*\d|来源\s*类|来源[:：]\s*\d|新闻稿|通稿|会议|登记平台|SEC|补录|库内正文|库内即原文"
-        r"|未复核|不可复核|抓取受限|无登记号|该来源不公开|无 \`?pmcid\`?|非 OA")
+        r"|未复核|未收录\s*PMC|无 \`?pmcid\`?|非 OA|无登记号|该来源不公开")
     lines = [ln for ln in (sv["report"] or "").splitlines() if "原文核对" in ln]
     if not lines:
         return True, "no 原文核对 line (A-P1 owns that failure; not reported twice)"
@@ -647,7 +649,7 @@ def op_original_check_names_class(sv: dict, spec: dict) -> tuple:
     if not re.search(route, line):
         miss.append("route(PMID/DOI/登记号/registry API/PMC 全文/库内正文即原文)")
     if not re.search(cls, line):
-        miss.append("source class or reason class")
+        miss.append("source class or source-side property")
     if miss:
         return False, f"原文核对 line misses {' + '.join(miss)}: {line[:150]!r}"
     return True, f"原文核对 line names route and source class: {line[:110]!r}"
@@ -787,6 +789,35 @@ def op_no_rule_metastatement(sv: dict, spec: dict) -> tuple:
     return True, "no rule-shaped statement about the library side (库内… + 一致…, digits-free)"
 
 
+def op_no_run_logistics(sv: dict, spec: dict) -> tuple:
+    """The deliverable states the evidence, never our plumbing.
+
+    R39 (2026-10-10, A/B against the humanizer skill) rendered 「本运行环境无可用的外网抓取通道，全文未取回」
+    inside the coverage line: the reader learns how our sandbox is configured, not how deep the evidence was
+    checked.  The contract now asks for the *depth reached* plus the **source-side property** that capped it
+    (未收录 PMC / 非 OA 元数据 / 无登记号或 DOI) and forbids retrieval-failure, HTTP, timeout, retry, tooling
+    or network narration — here and anywhere else in the report.  Fetch outcomes stay in the run record.
+    """
+    rep = sv.get("report") or ""
+    patterns = spec.get("patterns") or [
+        r"本次运行|本运行环境|运行环境|本轮运行",
+        r"无外网|外网(?:抓取)?(?:通道|链路)|网络受限|联网",
+        r"抓取(?:失败|受限|超时)|取回失败|拉取失败|未能取回|未能发起",
+        r"HTTP\s*[45]\d\d|状态码|接口(?:返回|报错|超时)|返回\s*[45]\d\d",
+        r"超时未(?:返回|响应)|重试|预算(?:用尽|上限)|工具调用",
+    ]
+    rx = re.compile("|".join(f"(?:{p})" for p in patterns))
+    bad = []
+    for blk in blocks(rep):
+        for s in sentences(blk):
+            m = rx.search(s)
+            if m:
+                bad.append(f"{m.group(0)} in {s.strip()[:90]!r}")
+    if bad:
+        return False, "run-side narration in the deliverable: " + "; ".join(bad[:3])
+    return True, "no retrieval-failure, HTTP, timeout, retry or environment narration"
+
+
 def op_title_scope(sv: dict, item: dict) -> tuple:
     """The H1 must identify what is being compared — and never collapse the two into one.
 
@@ -880,6 +911,7 @@ SHAPE_OPS = {
     "fulltext_cite_has_body": op_fulltext_cite_has_body,
     "report_excludes_literals": op_report_excludes_literals,
     "no_rule_metastatement": op_no_rule_metastatement,
+    "no_run_logistics": op_no_run_logistics,
     "glob_count": op_glob_count,
     "citations_keys_exact": op_citations_keys_exact,
     "citations_entry_key_set": op_citations_entry_key_set,

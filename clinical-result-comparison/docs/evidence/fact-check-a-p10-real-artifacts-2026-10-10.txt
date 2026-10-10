@@ -1,0 +1,43 @@
+# A-P10 证据：三份真产物的覆盖行 + 未种子基线的判分输出（2026-10-10）
+# 生成方式（全部离线、只读；不改任何 run 目录）：
+#   MUT_SEED_A=0 python3 -B evals/fact-check/mutations.py                      → 未种子基线只翻 A-P10
+#   python3 -B evals/fact-check/check.py --run <run dir> --scenario a --json …  → 单份产物判分
+
+## 1) 未种子基线（R17 原样）——A-P10 的现场证据（MUT_SEED_A=0 关闭 seed_a 后即此结果）
+arm a: FAIL (baseline not clean: rc=3 bad=['A-P10-no-run-logistics'])
+baseline b: 12 fail-severity items, all PASS
+[OK ] MB12 foreign-turn-calls rc=3 flipped=['B-T1-queried-then-refused']
+
+## 2) R17 原始覆盖行（逐字，含我们这一侧的取回过程）
+原文核对：** 2/2 条已复核（src=1 PubMed 类：PMID 30561610 经 R6 取回 PMCID PMC6933872，但 R7 全文接口返回 500（该刊非 OA），按库内摘要核对；PMID 36342163 经 R6 无 PMCID 且 i
+
+## 3) R39 实验组（挂 humanizer skill）的覆盖行
+原文核对：** 4/4 条已复核；{{ref_1}}、{{ref_2}} 为 src=37 会议摘要，按库内摘要正文核对；{{ref_3}}、{{ref_4}} 为 src=1 期刊论文，按契约需经 R6→R7 取得 PMC 全文，本次运行无外网、全文抓取失败（抓取受限），未取得 PMCID，按库内摘要核对；4 条均按摘要级分析，无未取回记录。
+
+## 4) R39 同日对照组的覆盖行
+原文核对：** 4/4 条已复核。记录 {{ref_1}}（src=37，ASCO 2026 摘要）与记录 {{ref_2}}（src=37，ESMO 2025 摘要）按库内会议摘要正文核对，该来源类无对外可抓取的全文，未另行取回；记录 {{ref_3}}（src=1，PMID 42218899）与记录 {{ref_4}}（src=1，PMID 41125109）在本运行环境无可用的外网抓取通道（抓取受限，PubMed→PMC 全文链路未能发起），PMC 结果：未获取全文，改按库内期刊摘要正文核对。4 条均按摘要级分析，无全文深度记录。
+
+## 5) 三份产物的判分（R17 未种子：只翻 A-P10；R39 两组：A-P10 在列，另因任务形态不同翻其它条目）
+--- 20260918-095553-r17-sign-convention  rc=3  SCORE scenario=a facts 43/44 warn 1/1 -> FAIL
+    未过 1 条：['A-P10-no-run-logistics']
+--- 20261010-101129-r39-hz-1  rc=3  SCORE scenario=a facts 23/44 warn 0/1 -> FAIL
+    未过 22 条：['A-S2-chart-set', 'A-S2a-chart-structure', 'A-S2b-chart-or-reason', 'A-S3-cite-keys', 'A-S5-cite-ref1-record', 'A-S6-cite-ref2-record', 'A-T1-title-identifies-scope', 'A-C1-trial-identity-A', 'A-C2-trial-identity-B', 'A-C3-mechanism', 'A-C4-primary-A', 'A-C5-primary-B-4doses', 'A-C6-primary-B-placebo', 'A-C7-timepoints', 'A-C8-not-head-to-head', 'A-C9-mds-tbr-A', 'A-C11-sample-size', 'A-C11b-sample-size-B', 'A-C13-safety', 'A-C16-hard-outcome-gap', 'A-W1-dose-mapping', 'A-P10-no-run-logistics']
+--- 20261010-102037-r39-ctl-1  rc=3  SCORE scenario=a facts 23/44 warn 0/1 -> FAIL
+    未过 22 条：['A-S2-chart-set', 'A-S2a-chart-structure', 'A-S2b-chart-or-reason', 'A-S3-cite-keys', 'A-S5-cite-ref1-record', 'A-S6-cite-ref2-record', 'A-T1-title-identifies-scope', 'A-C1-trial-identity-A', 'A-C2-trial-identity-B', 'A-C3-mechanism', 'A-C4-primary-A', 'A-C5-primary-B-4doses', 'A-C6-primary-B-placebo', 'A-C7-timepoints', 'A-C8-not-head-to-head', 'A-C9-mds-tbr-A', 'A-C11-sample-size', 'A-C11b-sample-size-B', 'A-C13-safety', 'A-C16-hard-outcome-gap', 'A-W1-dose-mapping', 'A-P10-no-run-logistics']
+
+## 6) 修复后的四组真产物（R40）覆盖行：运行物流字样 grep 计数为 0
+# grep -cE "本次运行|本运行环境|无外网|抓取失败|抓取受限|取回失败|HTTP ?[0-9]{3}|接口返回|超时|重试"
+--- 20261010-104207-r40-fixed-1  matches=0
+原文核对：** 2/2 条已复核（记录1：src=1，库内正文即原文摘要，未取 PMC 全文；记录2：src=1，库内正文即原文摘要，未取 PMC 全文）；2 条均按摘要级分析，0 条全文级；无未复核记录。
+--- 20261010-104210-r40-fixed-2  matches=0
+原文核对：** 4/4 条已复核（记录1：src=37，库内会议摘要正文；记录2：src=37，库内会议摘要正文；记录3、记录4：src=1，库内正文即原文摘要，摘要级，未取 PMC 全文）；0 条按全文分析、4 条为摘要级，无未复核记录。
+--- 20261010-105212-r40-fixed-3  matches=0
+原文核对：** 18 条已取回记录全部按所取回的来源正文核对：11 条会议摘要类来源（检索号中段标识为会议来源）即其完整终稿，7 条 PubMed 期刊来源按摘要级复核；PubMed 组 7 条的实际分析深度为摘要级，未取回 PMC 全文，因此全部分析按摘要级完成（0 条按全文分析 / 7 条仅摘要级）；无记录因缺少登记号或 DOI 而无法核对。
+--- 20261010-105217-r40-fixed-4  matches=0
+原文核对：** 14/14 条已复核（记录 3、10、11：src=37，库内会议摘要原文，摘要级；记录 1–2、4–9、12–14 共 11 条：src=1，库内正文即原文摘要、未取 PMC 全文，摘要级）；0 条按全文分析，14 条按摘要级核对，无未复核记录。全文事实、版本差异与同口径分歧的双值写法均遵守原文优先规则。
+
+## 7) 残留待观察（本轮判 PASS，但属「取回成功」叙述，不是材料属性）
+- R40-3 写了「18 条已取回记录全部按所取回的来源正文核对」；R40-4 写的是「未取 PMC 全文」（后者是深度，属材料属性，保留）。
+- A-P10 patterns 只打**失败 / 环境 / 链路**叙述（取回失败、未能取回、HTTP、重试、无外网、运行环境），
+  不含「已取回 / 成功取回」——那是「材料到手」的可用性陈述，不是我们的沙箱状态，故本轮保留。
+- 若日后要收紧，需同时改 check.py patterns + README + 变异/回归测试，属独立一轮（本轮不再发布重跑）。

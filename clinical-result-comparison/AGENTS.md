@@ -9,6 +9,19 @@
 
 ---
 
+## 当前交接（2026-10-10 Phase 2 完成）
+
+**Phase 2「交付物不写运行物流」已原地发布并四组验证（2026-10-10）**：用户诉求是「取回失败/环境限制」这一类叙述不该出现在对比报告里。落法是**契约 + 机械门禁**双管：
+
+1. **口径**：交付物只写**材料/来源属性 + 分析深度**（`src=1` / 库内正文即原文摘要 / `非 OA` / 未收录 PMC / 无登记号或 DOI / `N 条按摘要级`）；**我们这一侧的取回过程一律不写**（`本次运行无外网`、`全文抓取失败`、`接口返回 500`、`未能发起检索`、`重试`、工具名、链路）。`非 OA` 只能由明确元数据支撑，**HTTP 500 不是非 OA 证据**。
+2. **门禁 `A-P10-no-run-logistics`**（`check.py` `op_no_run_logistics`，fail 级，逐句匹配）；**A-P4 词表删掉 `抓取受限`**、改为接受「来源类或来源侧属性」。
+3. **变异/基线**：`M43`（覆盖行尾部追加运行物流 → 只翻 A-P10）；R17 基线带旧措辞 → 新增 `seed_a()`（**只改覆盖行措辞**，保留 route/来源类/深度），`MUT_SEED_A=0` 复现未种子证据。
+4. **计数**：scenario A **45 条（44 fail + 1 warn）**；变异 **64 项**；回归 **32 项**（`NoRunLogisticsTests` 5 项）。
+5. **发布**：dist **100,422 B / sha `4d92d3b4b7c3`**、prompt **v1.7 59,154 B / sha `2aac60f1c992`**、Skill **v1.0.8**，`status` in sync。**R40 四组（2/4/18/14）各 22 PASS / 0 FAIL**，四份覆盖行物流 grep 全 0。
+6. **R40-1 遗留**：场景 A 下 5 项 FAIL，根因 = 模型未用记录自带 `drug_earth_name_cn`（软规则已存在，属指令遵循偏差）；锐化留待下轮。
+
+**两个 humanizer skill（`report-humanizer-zh` / `-en`，Phase B 已完成）**：加①数字/符号排版统一规则 + 文档级弱命中 `W-FMT-MIXED`（`tell-scan.py` + 两份 `SKILL.md` + 两份 `patterns-*.md` + 各 2 项回归 → 25/25）；②过程口吻边界（宿主契约要求的声明写成**材料属性**，不写运行环境/链路）。bump **v0.1.1**（zh 28,406 B / en 30,765 B），**TS 原地更新成功**（平台版本号仍 1.0.0）。原地更新脚本 = `apps/skill/tools/push-skill-inplace.py`（五道护栏），校验脚本 = `apps/skill/tools/verify-skill-upload.py`（只读）。
+
 ## 当前交接（2026-09-18 全项目审查后）
 
 **三组已跑完（覆盖下文运行中状态）**：R27 4/4、R28 18/18、R29 14/14 均产出报告。R27断言全过；R28写文件冲突导致断言FAIL；R29无FAIL但3次拒参/2次全文500已披露。设计冲突披露部分生效，三组内容审查均有待改项，不宣称全绿。详见台账 R27–R29。以后固定全跑三组。Git本轮仅提交任务相关资产/证据文档，Docker未涉及。
@@ -155,7 +168,8 @@ tools/replay-run.py --tsv --score \
 ```bash
 python3 evals/fact-check/check.py --run <run-dir> --scenario a|b [-v]     # 离线判分（exit 0/3/4）
 python3 evals/numeric-integrity/test-render-facts.py                      # 附录渲染/账本门禁回归（文件名含连字符，**不能**用 unittest discover，直接脚本跑）
-python3 evals/fact-check/mutations.py                                     # 负向对照闸门
+python3 evals/fact-check/mutations.py                                     # 负向对照闸门（64 项变异/合法对照；`MUT_SEED_A=0` 关掉 A-P10 基线种子）
+python3 evals/fact-check/test_regressions.py                              # 门禁回归（32 项，含 A-P10 的 NoRunLogisticsTests 5 项）
 python3 evals/runner-gate/verify-run-chain.py                             # runner 零网络回归
 tools/replay-run.py --tsv --score <run>…                                  # 成本 + 质量一行一 run
 tools/replay-run.py --details <run>                                       # 全字段（含 model_turns / 前缀版本）

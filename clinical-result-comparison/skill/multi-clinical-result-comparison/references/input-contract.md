@@ -175,7 +175,7 @@ source-class limitation without inventing a route.
 | `49`, uuid-only legacy rows | news / company press release | **the release body, copied verbatim** at ingestion (wire dateline `(GLOBE NEWSWIRE) --`, `/PRNewswire/`, `(BUSINESS WIRE)--` present) | wire pages mostly unreachable | no fetch — check the report against the pulled body |
 | numeric-only legacy rows | mostly ClinicalTrials.gov / conference material | registry JSON or abstract text | as the matching class above | same as `2` / `37` |
 | `120` | manual entry (人工补录) | measured 100% empty | company-owned pages reachable, wire hosts not | **R3** if a `doi` exists, else the record's own link (once) |
-| `245`, `398`, other unlisted ids | unclassified ingestion source / SEC filing | measured empty or no usable sample | unknown / EDGAR answers `403`, `data.sec.gov/…json` carries filing **indexes only** | no fetch → record the reason class |
+| `245`, `398`, other unlisted ids | unclassified ingestion source / SEC filing | measured empty or no usable sample | unknown / EDGAR answers `403`, `data.sec.gov/…json` carries filing **indexes only** | no fetch → name the record as not re-checked |
 
 **Retrieval routes.** Fetch only these templates or the record's own link under the last-resort rules
 below; template keys must already be returned in the record, except R7's PMCID obtained through R6.
@@ -209,8 +209,9 @@ the analysis surface**, not a cross-check on the abstract. Measured 2026-09-17 o
 - If R6 has no matching PMID/PMCID or says `inPMC: N`, stop the PMC chain and state
   无匹配记录 / 无 PMCID / 未收录 PMC as observed. These do **not** establish OA status.
   Say **非 OA** only when explicit metadata for the matched paper states it (e.g. `isOpenAccess: N`).
-  An HTTP `500` (or any fetch failure) means **全文抓取失败**, never proof of non-OA; keep the HTTP
-  outcome separate from OA metadata. Without a usable retrieved full-text body, remain at abstract
+  An HTTP `500` (or any fetch failure) means the depth stays at the abstract — it is a run-side
+  classification and **never proof of non-OA**; keep the HTTP outcome in the run record and out of the
+  deliverable's wording. Without a usable retrieved full-text body, remain at abstract
   depth and keep the original citation link.
 
 **Facts that exist only in the full text are allowed — but they must carry their own label.** When a number
@@ -248,7 +249,8 @@ page" as one thing:
   `www.sec.gov`, `cslide.ctimeetingtech.com`, `www.abstractsonline.com`, `ascopubs.org`,
   `meetings.asco.org`, `www.sciencedirect.com`, `jitc.bmj.com`, `www.annalsofoncology.org`,
   `pubmed.ncbi.nlm.nih.gov` (cookie wall), `www.chinadrugtrials.org.cn`, `library.ehaweb.org`,
-  `sabcs.org`, `oncologypro.esmo.org`. Record the reason class instead. (This is the *human-facing* host
+  `sabcs.org`, `oncologypro.esmo.org`. Do not attempt them at all — record the result per class in the run
+  log, not in the deliverable. (This is the *human-facing* host
   class; the API endpoints above, including R7's full text, are unaffected. An earlier note that PMC
   `fullTextXML` was "unusable (500/502)" was wrong: successes show the route works; the failed
   request alone establishes neither the cause nor the paper's OA status.)
@@ -268,7 +270,8 @@ page" as one thing:
 the two calls are the **primary** retrieval, not a fallback for a missing body.
 Whole-run cap: **40** `web_fetch` calls. If the selection is larger than the budget, fetch for the records
 that carry the key conclusions first and state the coverage. A failed fetch is dropped — no retry, no alternative route,
-no substitute URL — and its reason class is recorded. `web_fetch` writes each response under
+no substitute URL — and the record is named as not re-checked at that depth (its source-side property, not
+the failure itself). `web_fetch` writes each response under
 `/workspace/tool_results/web_fetch/…`: copy what you need to `/workspace/sources/<esid>.<route>.json|md|xml`
 (that path is archived with the run, so the evidence stays auditable) and **digest it with a script** —
 never paste a response body into the context.
@@ -288,23 +291,32 @@ paragraph (a mechanical ≥60-character verbatim guard runs in `evals/fact-check
 **Say it in the evidence scope.** The evidence-scope block (unified template's `证据范围`, cross-trial /
 mixed templates' `比较口径`) carries one line beginning `原文核对：` that gives how many retrieved records
 were re-checked against the original, **naming the route or the source class per group**, and which records
-could not be, grouped by reason class (抓取受限 / 无登记号或 DOI / 该来源不公开 / 无 PMCID / 非 OA). A
+could not be re-checked, each named with the **property of the source** that prevented it (无登记号或 DOI /
+该来源不公开 / 未收录 PMC / 非 OA per explicit metadata). A
 non-fetch path is still a named path: `库内正文即原文摘要（src=1，未取 PMC 全文）` is a valid entry. For every
-`src=1` group the line must also state the PMC outcome — full text taken (`PMC11270764`), no `pmcid`, or not
-OA (only with explicit metadata), not in PMC, or a failed fetch with its observed reason — and if a full text was archived under `/workspace/sources/`, both the PMID/PMCID and the word 全文 must
+`src=1` group the line must also state the depth reached — full text taken (`PMC11270764`), no `pmcid`, not in
+PMC, or non-OA per explicit metadata — and if a full text was archived under `/workspace/sources/`, both the PMID/PMCID and the word 全文 must
 appear, so a reader can tell "checked against the actual full text" from "checked against the abstract".
 **State the depth per record, not just per group**: say how many records were analysed at full-text depth
 ("2 条按全文分析 / 1 条仅摘要级"), so that a fact missing from the report can be attributed to the source
 ("the full text does not state it") rather than to the run ("we never looked") — the two must stay
 distinguishable in the deliverable, and a record whose citation `link` was pointed at the full text (C1/C2)
 is exactly such a full-text-depth record.
+
+**The line reports the material and the depth reached — never the retrieval attempt.** Fetch failures, HTTP
+statuses and timeouts, retry counts, tool names, network or sandbox limits and link-chain narration
+(`本次运行无外网`、`全文抓取失败`、`接口返回 500`、`未能发起检索`) belong to the run record, not to the
+deliverable: they tell the reader about our plumbing, not about the evidence. What the reader needs is the
+depth actually obtained (全文 / 摘要级 / 登记正文 / 通稿) and the source-side property that capped it
+(未收录 PMC、非 OA 元数据、无登记号或 DOI). The same rule binds the whole report — an environment or
+retrieval-failure sentence must not appear anywhere else either.
 Example: `原文核对：4/4 条已复核（记录1：src=1，PMC11270764 全文；记录2：src=1，无 PMCID，仅核库内摘要；
 记录3：src=37，库内会议摘要；记录4：src=49，库内通稿原文）；1 条按全文分析，2 条仅摘要级，1 条通稿正文级；
 无未复核记录`. Reading and checking a usable pulled original counts as re-checked without an external fetch.
 A run that
-re-checked none must say so, and a run that fetched nothing because a source class is structurally
-unreachable must name that class instead of reporting a generic failure. The line reports **routes, depths
-and reason classes only**: never restate this rule inside the deliverable. A sentence such as
+re-checked none must say so, and a record that stays at abstract depth because the deeper body is not
+available must be named with its source-side property (未收录 PMC / 非 OA 元数据 / 无登记号或 DOI) rather than
+with a failure of ours. The line reports **routes and depths only**: never restate this rule inside the deliverable. A sentence such as
 `未发现原文与库内记录不一致` is meta text — no value, no ref, nothing a reader can use — and when nothing
 diverged, no divergence sentence belongs in the body at all (R16, 2026-09-18, rendered exactly that).
 `evals/fact-check` guards this twice: `A-P7` (verbatim echo of the spec) and `A-P8` (the same statement

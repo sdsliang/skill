@@ -2,7 +2,9 @@
 """Permanent evaluator regressions. Synthetic bodies concern wooden blocks, not medicine."""
 import copy
 import json
+import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -219,6 +221,74 @@ class ChartTests(unittest.TestCase):
             self.assertIn('endpoint-bar-9.json', sv['charts'])
             self.assertFalse(ck.op_charts_structural(sv, ITEMS['A-S2a-chart-structure'])[0])
             self.assertFalse(ck.op_chart_observations(sv, self.spec)[0])
+
+
+class NoRunLogisticsTests(unittest.TestCase):
+    """A-P10 (2026-10-10): the deliverable states evidence depth, never our plumbing."""
+
+    spec = ITEMS['A-P10-no-run-logistics']
+
+    def verdict(self, prose):
+        return ck.op_no_run_logistics({'report': prose}, self.spec)[0]
+
+    def test_retrieval_failure_and_environment_narration_fail(self):
+        # Every sentence below was taken from a real artifact: the first three from R17/R39, the
+        # last two from R39's run record wording.  A-P4 keeps its own meaning (route + class are
+        # present in all of them), which is exactly why A-P10 has to exist.
+        for prose in [
+            '> **原文核对：** 2/2 条已复核（src=1：PMID 30561610 经 R6 取回 PMCID PMC6933872，'
+            '但 R7 全文接口返回 500（该刊非 OA），按库内摘要核对）。',
+            '> **原文核对：** 2/2 条已复核（src=1：PMID 30561610 按契约需取 PMC 全文，本次运行无外网、'
+            '全文抓取失败（抓取受限），按库内摘要核对）。',
+            '> **原文核对：** 2/2 条已复核（src=1：PMID 30561610 在本运行环境无可用的外网抓取通道'
+            '（抓取受限），按库内摘要核对）。',
+            '- 全文拉取失败，重试两次后放弃。',
+            '- 工具调用超时未返回，故按摘要级核对。',
+        ]:
+            with self.subTest(prose=prose[:40]):
+                self.assertFalse(self.verdict(prose))
+
+    def test_source_side_properties_and_depth_stay_clean(self):
+        # The vocabulary A-P4 was narrowed to accept: material properties and depth reached.  Writing
+        # these must never be flagged, or the fix would force authors to hide the evidence limits.
+        for prose in [
+            '> **原文核对：** 2/2 条已复核（src=1：PMID 30561610 未收录 PMC 全文、按库内摘要核对；'
+            'src=1：PMID 36342163 无 PMCID 且原文非 OA，按库内摘要核对）；本批 0 条按全文分析、2 条仅摘要级。',
+            '> **原文核对：** 2/2 条已复核（src=37 库内正文即会议摘要原文）；0 条按全文分析。',
+            '- 该记录无登记号或 DOI，无可独立核对的原文载体，本报告按库内摘要级处理。',
+        ]:
+            with self.subTest(prose=prose[:40]):
+                self.assertTrue(self.verdict(prose))
+
+    def test_baseline_seed_is_itself_clean(self):
+        # `seed_a()` rewrites R17's coverage line before arm A scores it; if that payload ever grows
+        # run-side narration back, the mutation gate would be measuring a baseline that A-P10 fails.
+        with tempfile.TemporaryDirectory() as tmp:
+            report = Path(tmp) / 'report.md'
+            report.write_text('> **比较口径：** 各研究的试验组方案是主比较对象。原文核对：旧措辞。\n')
+            mut.seed_a(str(report))
+            seeded = report.read_text()
+        self.assertIn('PMC6933872', seeded)          # route kept
+        self.assertIn('src=1', seeded)               # source class kept
+        self.assertIn('2 条仅摘要级', seeded)          # depth kept
+        self.assertTrue(self.verdict(seeded))
+
+    def test_real_r17_artifact_is_the_evidence_for_a_p10(self):
+        # The unseeded baseline is the third independent artifact that fails A-P10 (R39's two runs are
+        # the others).  Skipped only when the run directory is not on this machine.
+        src = os.environ.get('MUT_RUN_A', str(Path(mut.SRC_A)))
+        if not os.path.isdir(src):
+            self.skipTest(f'baseline run dir absent: {src}')
+        d, _, _, _ = mut.fresh('a-p10-evidence', src, mut.COPY_A, True)
+        try:
+            _, bad, _ = mut.score(d, 'a')
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+        self.assertEqual(bad, ['A-P10-no-run-logistics'])
+
+    def test_seed_can_be_switched_off(self):
+        self.assertTrue(mut.MUT_SEED_A)
+        self.assertEqual(mut.MUT_SEED_A, os.environ.get('MUT_SEED_A', '1') != '0')
 
 
 class HarnessTests(unittest.TestCase):

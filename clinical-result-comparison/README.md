@@ -2,13 +2,23 @@
 
 Tool Smith project assets for source-grounded synthesis and comparison of multiple selected clinical result records. The default output is a trial-level evidence synthesis for same-trial selections and a comparison-first, domain-aligned cross-trial comparison for mixed selections, each with a compatible chart when the data allow it.
 
+## Current snapshot — 2026-10-10
+
+**Phase 2 shipped (in-place): the deliverable states material/source properties and analysis depth, never our retrieval plumbing.**
+
+- Contract edits: `system-prompts/multi-clinical-result-comparison-v0.16.md` (6 places), `references/input-contract.md`, the four `templates/*.md` and `SKILL.md` — 「本次运行无外网 / 全文抓取失败 / 接口返回 500 / 未能发起检索」 are gone; 「本批材料均为摘要级 / 未收录 PMC 全文 / 非 OA 元数据 / 无登记号或 DOI / N 条按摘要级」 stay. `非 OA` may only be claimed on explicit metadata — **an HTTP 500 is not evidence of non-OA**.
+- New fail-level gate **`A-P10-no-run-logistics`** (`op_no_run_logistics`) with per-sentence matching; `A-P4`'s accepted vocabulary was narrowed accordingly (no more `抓取受限`). Mutation **`M43`** plus a documented `seed_a()` baseline payload (`MUT_SEED_A=0` reproduces the unseeded evidence).
+- Counts: scenario A **45 items (44 fail + 1 warn)**; mutation/legit controls **64**; offline tests **117** (runner 38, scorer 32, tools 19, Node 16).
+- Published in place: dist **100,422 B / 19 entries / sha `4d92d3b4b7c3`**, prompt **v1.7 = 59,154 B / sha `2aac60f1c992`**, Skill **v1.0.8**, `status` **in sync**. **R40 ran four groups (2/4/18/14 esid), each 22 PASS / 0 FAIL**, and none of the four coverage lines contains run-side narration (grep count 0 each). Verbatim evidence: `docs/evidence/fact-check-a-p10-real-artifacts-2026-10-10.txt`.
+- Known next-round item: R40-1 (scenario A) still fails `A-C1`/`A-C2`/`A-S9*` because the model wrote `evolocumab`/`olpasiran` instead of the record-supplied `drug_earth_name_cn` — an instruction-following gap (the soft rule exists), not a scorer false positive.
+
 ## Current snapshot — 2026-09-18
 
 The whole-project review is complete locally; **the changed prompt and skill are not published and no new online run was made**. Live `status` exits 3 as expected: local pending changes differ from prompt **1.6** (`b9bfcec19538`, 53,347 B) and skill **1.0.7** (`ad75ec2c44334f389a0394895a47b765`, prior dist `404dbccf5058`); 16/19 skill files differ. Publication requires specific confirmation.
 
 Local prompt: 54,311 B, SHA prefix `2ff672b5aa9b`. Local dist: 85,633 B, 19 entries, SHA-256 `4d20d48faeeee012c347aa28eb5956e5238a3e95020999c6b9bd6084fba53b1e`. The live params schema now uses **`esids`**, replacing `extra_esids`; the local schema mirror and rules were adapted and `deps --accept` accepted the local baseline without publishing.
 
-Offline checks: **97 tests** (runner 30, scorer 27, tools 19, Node 21); **63 mutation controls PASS**, covering A 43/43 and B 12/12 fail items. Evaluator **`2026-09-18-r2` is a new baseline**, not a quality gain from 41 to 43. R17/R18 rescore 43/43; R20 12/12. C/D still lack scored baselines. See [review and remaining work](docs/project-review-2026-09-18.md), [evaluator revision](evals/fact-check/EVALUATOR_REVISION.md), and ledger F7. Sections below headed by historical versions retain their original measurements.
+Offline checks: **105 tests** (runner 38, scorer 32, tools 19, Node 16); **64 mutation controls PASS**, covering **A 44/44** and B 12/12 fail items. *(2026-10-10 补注：本行与下面的 43 条均为当时的快照；当前 scenario A 已扩到 45 条、fail 级 44 条，`test_regressions.py` 也已修掉 `tools/test_pack_dist.py` 里 `scripts/` 目录缺失导致的 4 error + 1 failure。)* Evaluator **`2026-09-18-r2` is a new baseline**, not a quality gain from 41 to 43. R17/R18 rescore 43/43; R20 12/12. C/D still lack scored baselines. See [review and remaining work](docs/project-review-2026-09-18.md), [evaluator revision](evals/fact-check/EVALUATOR_REVISION.md), and ledger F7. Sections below headed by historical versions retain their original measurements.
 
 ## Product boundary
 
@@ -232,6 +242,6 @@ python3 evals/fact-check/mutations.py                    # negative control: pro
 ```
 
 Checklists are written from the recorded tool responses *before* any product is inspected, so a report can never certify itself;
-`mutations.py` applies 63 controls to real-run copies: 42 A failure mutations, 14 B failure mutations, and 7 must-remain-clean controls. Missing baselines fail rather than silently skipping checks. Full-text evidence checks establish archived body/source identity, not that every reported number was extracted from it.
+*(2026-10-10 update: scenario A is now **45 items / 44 fail**, `mutations.py` applies **64** controls — see the current snapshot above; the paragraph below is the 2026-09-18 snapshot.)* `mutations.py` applies 63 controls to real-run copies: 42 A failure mutations, 14 B failure mutations, and 7 must-remain-clean controls. Missing baselines fail rather than silently skipping checks. Full-text evidence checks establish archived body/source identity, not that every reported number was extracted from it.
 See `evals/fact-check/README.md` for the item kinds and the known gaps (the deployed-vs-online `iframe_template` equality is only
 checked by the online `run`, and v1 SSE run directories are reconstructed from `debug-history.json`).

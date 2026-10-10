@@ -22,7 +22,10 @@ class PackTests(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.src = self.root / "skill"
-        for directory in ("references", "templates", "templates/charts"):
+        # `collect()` walks every packaging subdirectory unconditionally, so the fixture has to create
+        # all of them; without `scripts/` the four build tests died on FileNotFoundError and only the
+        # read-only one survived (found 2026-10-10, pre-existing since 3cafb12).
+        for directory in ("references", "templates", "templates/charts", "scripts"):
             (self.src / directory).mkdir(parents=True, exist_ok=True)
         for name in ("SKILL.md", "references/z.md", "references/a.md", "templates/a.md", "templates/charts/a.json"):
             (self.src / name).write_bytes((name + "\n").encode() * 200)

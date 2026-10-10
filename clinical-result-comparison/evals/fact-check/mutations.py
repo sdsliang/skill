@@ -10,10 +10,11 @@ applied to a throwaway copy of a real run dir; the scorer must report FAIL for a
 least one item, the mutated run must exit 3, and the union over all mutations must
 cover every fail-severity item in the checklist.
 
-Arm A: the report-producing run R17 (2026-09-18, 2 valid esids, sign-convention round).  It is a
-real, fully-passing artifact (43/43 under evaluator r2) and it already carries the
-`原文核对：` line, so the baseline is scored as recorded — nothing is seeded into the copy.
-`NEG_A` gives the same arm four *must stay green* controls: the two O19 mixed-sentence shapes,
+Arm A: the report-producing run R40-1 (2026-10-10, scenario-A esids, first round under the
+"the deliverable states the evidence, never our plumbing" contract).  It replaced R17 as the baseline,
+because R17's coverage line says `全文取回失败（该记录非 OA，全文接口返回 500）` — accepted by the old
+evaluator, now `A-P10` — so it can no longer serve as a *clean* baseline.  `NEG_A` gives the same arm four
+*must stay green* controls: the two O19 mixed-sentence shapes,
 the O20 "both subjects named" title, and the legal L3 full-text shape (N28 = archive + full-text
 link + declaration, i.e. R14's real form), so an over-eager exemption or a mis-attributed archive
 shows up as a BAD line instead of a silent pass.
@@ -31,7 +32,28 @@ CK = os.path.join(HERE, "check.py")
 RUNS = os.path.expanduser("~/.local/state/toolsmith-runs")
 WORK = os.environ.get("MUT_WORK", "/tmp/fact-check-mutations")
 # Arm A = a report-producing run (R17) ; arm B = a run that correctly refused (R6).
+# Arm A's mutations are written against R17's exact bytes (entity links, `−13.9%`, the coverage
+# line naming PMC6933872), so R17 stays the baseline.  2026-10-10: R17's coverage line narrated
+# *our* retrieval (`R7 全文接口返回 500`), which the new A-P10 correctly fails — the artifact that
+# exposed the need for A-P10 is the same artifact the arm mutates.  So the baseline is SEEDED: the
+# same facts restated as material + depth reached.  Unseeded evidence is reproducible with
+# `MUT_SEED_A=0 python3 -B evals/fact-check/mutations.py` (arm a then reports A-P10 as the only
+# baseline failure), and is what the README's A-P10 row cites.
 SRC_A = os.environ.get("MUT_RUN_A", os.path.join(RUNS, "20260918-095553-r17-sign-convention"))
+MUT_SEED_A = os.environ.get("MUT_SEED_A", "1") != "0"
+
+
+def seed_a(r):
+    """Restate R17's coverage payload as source-side properties + depth (no run-side narration).
+
+    Only the wording changes: route (PMID / PMCID), source class (`src=1`), the source-side caps
+    (非 OA / 无 PMCID) and the depth reached (0 全文 / 2 摘要级) are all still declared, so A-P1,
+    A-P4 and A-P5 keep their meaning and each mutation below still flips exactly its own item.
+    """
+    line = ("原文核对：2/2 条已复核（src=1 PubMed 类：PMID 30561610 对应 PMCID PMC6933872、"
+            "按库内摘要核对，原文载体为非 OA；PMID 36342163 无 PMCID 且 inPMC=N，同为非 OA，"
+            "按库内摘要核对）；本批 0 条按全文分析、2 条仅摘要级。")
+    return sub(r, r"原文核对：[^\n]*", line)
 SRC_B = os.environ.get("MUT_RUN_B", os.path.join(RUNS, "20260914-174145-b2-refusal"))
 COPY_A = ["messages.json", "transcript.md"]
 COPY_B = ["debug-history.json"]
@@ -471,6 +493,12 @@ def M41(d, r, c, v):
     return chart_tooltip_conflict(v, "依洛尤单抗 第 36 周")
 
 
+def M43(d, r, c, v):  # the coverage line narrates our plumbing, not the depth reached (R39)
+    """Append run-side logistics to the coverage line: A-P1..A-P5 stay satisfied, only A-P10 bites."""
+    return sub(r, r"(原文核对：[^\n]*)\n",
+               r"\1 本次运行无外网抓取通道，全文取回失败（全文接口返回 500，重试两次）。\n")
+
+
 def M42(d, r, c, v):
     j = json.load(open(c, encoding="utf-8"))
     pmid = re.search(r"pubmed\.ncbi\.nlm\.nih\.gov/(\d+)", j["ref_1"]["link"])[1]
@@ -488,6 +516,7 @@ MUTS_A = [
     ("M40 tooltip-hides-wrong-dose", M40, "A-S9b-chart-observation-identity"),
     ("M41 tooltip-hides-wrong-time", M41, "A-S9b-chart-observation-identity"),
     ("M42 plaintext-self-claimed-PMID", M42, "A-P9-fulltext-cite-has-body"),
+    ("M43 run-logistics-in-coverage-line", M43, "A-P10-no-run-logistics"),
     ("M35 renamed-label-swap", M35, "A-S9b-chart-observation-identity"),
     ("M36 wrong-source-fulltext", M36, "A-P9-fulltext-cite-has-body"),
     ("M37 malformed-chart", M37, "A-S2a-chart-structure"),
@@ -706,10 +735,12 @@ def arm(scenario, src, files, with_artifacts, muts):
     if not os.path.isdir(src):
         print(f"arm {scenario}: FAIL (required baseline run dir not found: {src})")
         return False, ["<baseline-missing>"], [("baseline", "recorded run directory", [])]
-    # Score the recorded run copy *as recorded*: arm A's baseline (R17) postdates the
-    # original-source contract and already carries the `原文核对：` line, so no seeding is needed
-    # (before 2026-09-18 arm A was R8 and one line had to be injected — see the README history).
-    bd, _, _, _ = fresh("baseline", src, files, with_artifacts)
+    # Score the recorded run copy *as recorded*, except for the documented A-P10 seed (the 2026-10-10
+    # wording rule postdates R17): the mutations are written against this artifact's exact bytes, so
+    # the payload stays; only the coverage line's run-side narration is restated as material + depth.
+    bd, br, _, _ = fresh("baseline", src, files, with_artifacts)
+    if scenario == "a" and MUT_SEED_A:
+        seed_a(br)
     rc0, bad0, base = score(bd, scenario)
     shutil.rmtree(bd, ignore_errors=True)
     if rc0 != 0 or bad0:
@@ -720,6 +751,8 @@ def arm(scenario, src, files, with_artifacts, muts):
     covered, mismatch, ok = set(), [], True
     for name, fn, expect in muts:
         d, r, c, v = fresh(name, src, files, with_artifacts)
+        if scenario == "a" and MUT_SEED_A:
+            seed_a(r)  # see the SEED note above SRC_A: mutations target R17's exact bytes
         fn(d, r, c, v)
         rc, bad, _ = score(d, scenario)
         hit = "OK "
@@ -733,6 +766,8 @@ def arm(scenario, src, files, with_artifacts, muts):
         shutil.rmtree(d, ignore_errors=True)
     for name, fn, keep_green in NEG.get(scenario, []):
         d, r, c, v = fresh(name, src, files, with_artifacts)
+        if scenario == "a" and MUT_SEED_A:
+            seed_a(r)  # same baseline seed as the positive arm; N28 rewrites this line itself
         fn(d, r, c, v)
         rc, bad, _ = score(d, scenario)
         # A negative control must leave the run *fully clean*, not just keep its one item green:

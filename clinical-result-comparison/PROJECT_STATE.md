@@ -1,5 +1,18 @@
 # Project State
 
+## 当前快照：2026-10-10（Phase 2「交付物不写运行物流」已原地发布；A-P10 门禁落地，R40 四组全绿）
+
+**Phase 2（用户第二诉求，2026-10-10 已完成）**：把「抓取受限 / 无外网 / 运行环境」这类**我们这一侧的取回过程**从对比 skill 里整体移除，只留**材料/来源属性 + 分析深度**，并把它变成**机械门禁**而不是口号。
+
+- **契约改动**：`system-prompts/multi-clinical-result-comparison-v0.16.md`（6 处）、`skill/.../references/input-contract.md`、四个 `templates/*.md`、`skill/.../SKILL.md`（覆盖行 + 非 OA 判据两句）。
+- **新门禁 `A-P10-no-run-logistics`**（`check.py` 新增 `op_no_run_logistics`，fail 级）：逐句匹配 `本次运行/本运行环境/运行环境`、`无外网/外网通道/网络受限/联网`、`抓取失败/取回失败/拉取失败/未能取回/未能发起`、`HTTP 4xx|5xx/状态码/接口返回/接口报错`、`超时未返回/重试/预算用尽/工具调用`。**A-P4 的接受词表同时删掉 `抓取受限`**（那正是要禁的措辞），改为接受「来源类或来源侧属性」；`非 OA` 只能由明确元数据支撑，**HTTP 500 不是非 OA 证据**。
+- **变异与种子**：`mutations.py` 追加 `M43`（覆盖行尾部追加运行物流 → 只翻 A-P10）；R17 基线自带旧措辞，故新增 `seed_a()` 只改写覆盖行**措辞**、保留 route/来源类/深度语义（`MUT_SEED_A=0` 可复现未种子基线）。
+- **计数**：`scenario-a.facts.json` 44 → **45 条（44 fail + 1 warn）**；变异/合法对照 **64 项**（`MUTS_A 43 / NEG_A 6 / MUTS_B 14 / NEG_B 1`）。
+- **发布（原地，不新开版本号——沿用既有授权）**：dist **100,422 B / 19 entries / sha `4d92d3b4b7c3`**、prompt **v1.7 = 59,154 B / sha `2aac60f1c992`**、Skill **v1.0.8**，`status` **in sync**。
+- **验证**：`test-render-facts.py` 26/26、`node --test 'test/*.test.mjs'` 16/16、`test_regressions.py` **32/32**（新增 `NoRunLogisticsTests` 5 项）、变异闸门 `arm a 44/44 + arm b 12/12 → GATE: PASS`；**R40 四组（2/4/18/14 esid）各 22 PASS / 0 FAIL**，四份覆盖行运行物流 grep 计数全 0，逐字证据在 `docs/evidence/fact-check-a-p10-real-artifacts-2026-10-10.txt`。
+- **新发现的待办**：R40-1（场景 A）在 `--scenario a` 下 5 项 FAIL，根因单一 = 模型没用记录自带的 `drug_earth_name_cn`（写英文名）→ 属指令遵循偏差，锐化规则留待下轮（本轮不再发布重跑）。
+- **两个 humanizer skill（Phase B）**：①排版统一规则 + 扫描器文档级弱命中 `W-FMT-MIXED`（`tell-scan.py` + 两份 `SKILL.md` + 两份 `patterns-*.md` + 各 +2 回归测试 → 25/25）；②过程口吻措辞边界（宿主契约要求的声明写成**材料属性**，不写运行环境/链路）。bump **v0.1.0 → v0.1.1**（zh 28,406 B / en 30,765 B，`--check` 双向 IDENTICAL），两个 skill **TS 原地更新成功**（平台版本号仍 1.0.0，`is_current=True`，部署 == dist）。
+
 ## 当前快照：2026-10-09（v0.16.1 已原地发布；R38 三组全绿验收四点改动）
 
 **最新（2026-10-09）**：R35 → R36 → R37 连续三轮验证 prompt 的「文件写入纪律」三次迭代，**R37 三组 22 PASS / 0 FAIL / exit 0**（`6143cc8f` / `a7c58280` / `15b0f2b5`，347.7 / 530.5 / 411.9 s），R36-3 的 16 s 零产物 flake 未复现（仍留平台问题单）。R37 产物取证 + 用户五点诉求 → **v0.16.1** 四点改动：①图（时间轴）只画骨架、表格是数值唯一出处，图内除 `time` 锚点外禁数值，图内文本与表格单元格不得有 ≥8 字连续相同文本；②单试验附录改**每条披露一列**（原 1 列 + `<br>` 堆叠长文本）；③`records[]` 必填收成 `ref` / `identity` / `conclusion`（+ `trial`），`title` / `design` / `arms` / `coverage` **接受但不渲染**，四个散文行从 `DESIGN_ROWS` 删除；④附录列头形态由渲染器固定（多试验 `**试验名**<br>注册号 · N 条披露`；单试验 `**ref_n**<br>短版本标签`），新增 audit `appendix_layout` / `appendix_columns`；⑤行标签不稳定由 prompt/SKILL 设计 fact 白名单治理（渲染器不加硬截断）。本地门禁：`test-render-facts.py` **26/26 OK**、`verify-run-chain.py` `GATE: PASS`、`mutations.py` `arm a: flipped 43/43` + `arm b: flipped 12/12`。**原地发布**（用户要求不新开版本号）：dist **99,640 B / 19 entries / sha `5457c8c4fd00`**（`push-skill --version 1.0.8`，`skill_id cd93a42af72b4828b1690b3a7bccfa06` 不变）；prompt **58,795 B / sha `1d9153c88f3c`**（`push-prompt --version 1.7`）；`status` → **in sync**。runner 修 O39（文档悬空指针，`docs/params-tool-schema.md` 31,729 → 31,671 B）。**R38 三组验收全绿**（`4014f791` / `5ddb5fac` / `c8851877`；390.9 / 494.2 / 534.4 s；各 22 PASS / 0 FAIL）；单试验附录 4 列、表头统一、14 条自造设计行消失、图-表共享 0 处 ≥8 字连续文本。详见 `docs/toolsmith-verification-log.md` R35–R38。

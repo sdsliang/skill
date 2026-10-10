@@ -1575,3 +1575,113 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 ### 平台侧（转开发）
 
 - 本轮**无新增**平台缺陷。已转出两份问题单（平台样板段 entity 冲突；run 终态 `succeeded` 不可当交付证据）仍待答复。R38 三组 `no tool errors` / `no leftover template placeholder` / `no nested entity anchor` 全过，平台样板段冲突的 prompt 压制继续生效。
+
+---
+
+## R39 — 效果 A/B：把两个 `report-humanizer-*` 挂到 `clinical_result_xp` 真跑（2026-10-10）
+
+**改了哪一层**：**没有改 prompt、也没有改任何一个 skill 的字节**——只改了 `clinical_result_xp`（project
+`a7cdda6508e0423c8b7afaaf3a68e50d`）挂载的 skills，加了 `report-humanizer-zh` / `report-humanizer-en`。
+所以这一条**不是对比 skill 的加发布验收**，是**新 skill 的实效取证 + 缺陷挖掘**（跑的是 ASCO/ESMO 4 条披露的同一天双跑）。
+
+**为什么要用「真对比任务 + humanizer 指令」这个形态**：runner 的产物断言硬编码 `output/report.md` +
+`output/citations.json`，且 skill-body 断言比的**是部署的 `skill_name` 的 `SKILL.md`**（即对比 skill 正文）。
+纯「只改写一段文字」的任务必然在这两类断言上失败（没有 report.md、citations.json，也没有对的上 skill 正文），
+所以实验形态只能是「**真做一次对比报告 + 额外挂 humanizer 指令**」。**同一天两跑**抵消 run 间波动：
+
+| 组 | 挂载 | run 目录 | thread | 墙钟 | 工具尝试 | 报告字符 | 断言 | exit |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 实验组 R39-hz | + `report-humanizer-zh` | `20261010-101129-r39-hz-1` | `0691aaaf` | 528.4 s | 56（write×6） | 3,868 | **22 PASS / 0 FAIL** | 0 |
+| 对照组 R39-ctl | 不挂 humanizer | `20261010-102037-r39-ctl-1` | `b4306382` | 340.7 s | 46（write×3） | 5,112 | **22 PASS / 0 FAIL** | 0 |
+
+**同日量化（`/tmp/r39-hz/metrics.py`，两稿同输入同模型 DeepSeek Flash）**
+
+| 指标 | ctl（无 humanizer） | hz（挂 humanizer） | 变化 |
+| --- | --- | --- | --- |
+| 正文去空白字符 | 5,112 | 3,868 | **−24%** |
+| 句数 / 平均句长 | 76 / 67.3 | 72 / 53.7 | 平均句长 **−20%** |
+| 破折号（`—–`） | 4 | 8 | +4（口径统一后变多，属排版） |
+| 逗号（`，`） | 139 | 84 | **−40%** |
+| 12-gram 重复率 | 0.0624 | 0.0447 | **−28%** |
+| 引用标记 / 强命中 / 弱命中 | 4 / 0 / 1 | 4 / 0 / 2 | 事实与引用面持平 |
+
+**结论**：humanizer 拿到的是「更短、更少逗号连缀、重复度更低、事实与引用一条不少」的稿子（用户据此**选 B**：
+把两个 humanizer skill 转正为项目常挂能力）。**缺陷面**：实验组与对照组**都**在覆盖行里写了我们这一侧的取回过程
+（见 R40 的三份证据），这直接催生了本轮的 **A-P10**。
+
+### 我方能改的
+
+| 现象 | 证据 | 改法 | 状态 |
+| --- | --- | --- | --- |
+| 两份产物都在覆盖行写「我们这一侧怎么取回」：实验组「本次运行无外网、全文抓取失败（抓取受限）」、对照组「在本运行环境无可用的外网抓取通道（PubMed→PMC 全文链路未能发起）」 | 两份 `report.md` 的 `原文核对：` 行逐字见 `docs/evidence/fact-check-a-p10-real-artifacts-2026-10-10.txt` §3/§4 | 契约层面**移除运行物流叙述**、保留材料属性与深度 → 落成机械门禁 **A-P10**（本轮 R40 已发布并四组验证） | ✅ 已解除（A-P10） |
+| 扫描器 `W-BOLD-COUNT` 在两组真产物上各命中一次（加粗 ≥8 处），但两份稿子的加粗都是表头/标签式加粗，非「强调滥用」 | 两组 hz/ctl 均 `['W-BOLD-COUNT']` | 阈值与统计面已在 fixture 上定标，真产物命中归「待样本」——需要更多报告样本才能判断是否该按 prose 行加权 | 待样本（本轮不改规则） |
+
+### 平台侧（转开发）
+
+- 本轮**无新增**平台缺陷（两跑终态 `succeeded`、产物齐全、无 tool 报错）。既有两份问题单仍待答复。
+
+---
+
+## R40 — A-P10（交付物不写运行物流）落地后重跑四组（2026-10-10）
+
+**改了哪一层**：**Skill 包内 + prompt + 离线门禁都改了**（`references/input-contract.md`、四个
+`templates/*.md`、`skill/.../SKILL.md`、`system-prompts/multi-clinical-result-comparison-v0.16.md`
+6 处、`evals/fact-check/check.py` 新增 `op_no_run_logistics`、`scenario-a.facts.json` 追加 `A-P10`、
+`evals/fact-check/mutations.py` 追加 `M43` + `seed_a()`）。
+
+**改了什么**
+
+1. **口径**：交付物只写**材料/来源属性 + 分析深度**；`本次运行无外网` / `全文抓取失败` / `接口返回 500` /
+   `未能发起检索` / `重试` 这类**我们这一侧的取回过程**一律不写——它们属于 run 记录（`verification.md`），
+   不属于交付物。`非 OA` 只能由明确元数据支撑，**HTTP 500 不是非 OA 证据**（旧 prompt 里正是这么写坏的）。
+2. **A-P4 收窄**：class 词表删掉 `抓取受限`（那正是要禁的措辞），改为接受「来源类或**来源侧属性**」
+   （`未复核|未收录 PMC|无 pmcid|非 OA|无登记号|该来源不公开`）。
+3. **新门禁 `A-P10-no-run-logistics`**（`kind: shape` / `op: no_run_logistics`，fail 级）：逐句匹配
+   `本次运行|本运行环境|运行环境|本轮运行`、`无外网|外网(抓取)?(通道|链路)|网络受限|联网`、
+   `抓取(失败|受限|超时)|取回失败|拉取失败|未能取回|未能发起`、`HTTP [45]\d\d|状态码|接口(返回|报错|超时)|返回 [45]\d\d`、
+   `超时未(返回|响应)|重试|预算(用尽|上限)|工具调用`，命中即 FAIL，文案 `run-side narration in the deliverable: …`。
+4. **变异 `M43`**：在覆盖行**尾部追加**一句运行物流（保持路径/来源类/深度不变）→ 只翻 A-P10。
+
+**发布（原地，不新开版本号——沿用用户既有授权）**：dist 重打 **100,422 B / 19 entries / sha `4d92d3b4b7c3`**
+→ `push-prompt --version 1.7`（**59,154 B / sha `2aac60f1c992`**，`prompt id 394a6e51617842a0ae9403579dcf8f45`）
++ `push-skill --version 1.0.8`（`skill_id cd93a42af72b4828b1690b3a7bccfa06`）→ `status` **in sync**。
+
+**本地门禁**：`test-render-facts.py` **26/26 OK**；`node --test 'test/*.test.mjs'` **16/16**；
+`evals/fact-check/test_regressions.py` **32/32 OK**（新增 `NoRunLogisticsTests` 5 项）；
+`evals/fact-check/mutations.py` → `arm a: flipped 44/44; never flipped []`、`arm b: flipped 12/12`、**`GATE: PASS`**。
+
+### 四组结果（2 / 4 / 18 / 14 条）
+
+| 组 | run 目录 | thread | 墙钟 | 工具尝试 | 附录布局 | 断言 | exit |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| R40-1 | `20261010-104207-r40-fixed-1`（2 esid，场景 A） | `3e393756` | 323.4 s | 37（write×2） | `trial-columns` 3 列 / 15 行 | **22 PASS / 0 FAIL** | 0 |
+| R40-2 | `20261010-104210-r40-fixed-2`（4 esid） | `edd0aad1` | 378.9 s | 48（write×5） | `disclosure-columns` 4 列 / 20 行 | **22 PASS / 0 FAIL** | 0 |
+| R40-3 | `20261010-105212-r40-fixed-3`（18 esid） | `34532ecd` | 560.4 s | 62（write×4） | `trial-columns` 11 列 / 57 行 | **22 PASS / 0 FAIL** | 0 |
+| R40-4 | `20261010-105217-r40-fixed-4`（14 esid） | `45fa8d59` | 519.4 s | 64（write×3） | `trial-columns` 11 列 / 128 行 | **22 PASS / 0 FAIL** | 0 |
+
+**验收结果（逐项对照产物）**
+
+- **A-P10 生效**：四份 `原文核对：` 行**没有任何运行物流字样**（`grep -cE "本次运行|本运行环境|无外网|抓取失败|抓取受限|取回失败|HTTP ?[0-9]{3}|接口返回|超时|重试"` 四份全 **0**），且四份**都仍写足了材料面**：
+  - R40-1：「2/2 条已复核（记录1：src=1，库内正文即原文摘要，未取 PMC 全文；记录2：同）；2 条均按摘要级分析，0 条全文级；无未复核记录。」
+  - R40-2：「4/4 条已复核（记录1、2：src=37，库内会议摘要正文；记录3、4：src=1，库内正文即原文摘要，摘要级，未取 PMC 全文）；0 条按全文分析、4 条为摘要级，无未复核记录。」
+  - R40-3：「18 条已取回记录全部按所取回的来源正文核对：11 条会议摘要类来源（检索号中段标识为会议来源）即其完整终稿，7 条 PubMed 期刊来源按摘要级复核；…（0 条按全文分析 / 7 条仅摘要级）；无记录因缺少登记号或 DOI 而无法核对。」
+  - R40-4：「14/14 条已复核（记录 3、10、11：src=37，库内会议摘要原文，摘要级；记录 1–2、4–9、12–14 共 11 条：src=1，库内正文即原文摘要、未取 PMC 全文，摘要级）；0 条按全文分析，14 条按摘要级核对，无未复核记录。」
+  - 逐字证据与 SCORE 行落在 `docs/evidence/fact-check-a-p10-real-artifacts-2026-10-10.txt`。
+- **A-P10 的「before」证据（同一门禁在三份真产物上 FAIL）**：R17 未种子基线 `43/44 → FAIL`（**只翻 A-P10**，
+  `MUT_SEED_A=0` 可复现）、R39-hz `23/44 → FAIL`、R39-ctl `23/44 → FAIL`（这两组另有与任务形态相关的一批 FAIL，
+  A-P10 与任务形态无关）。三个原句见证据文件 §2–§4。
+
+### 我方能改的
+
+| 现象 | 证据 | 改法 | 状态 |
+| --- | --- | --- | --- |
+| **R40-1 未用记录自带的中文药名**：记录里 `drug_earth_name_cn=['依洛尤单抗','奥帕司兰',…]` 就在手边，报告却通篇写 `evolocumab`（19 次）/ `olpasiran` → 场景 A 清单按中文名判身份，翻 `A-C1-trial-identity-A`、`A-C2-trial-identity-B`（另有 `A-S9`/`A-S9b`/`A-S10` 三项因图表行标签不能唯一识别观察）`39/44 → FAIL` | `drug_earth_name_cn` / `drug_earth_name_en` 成对字段在该批记录里均存在；prompt 第 62 行「…unless the pulled text itself supplies an equivalent Chinese name」、第 133 行「keep a source-supplied Chinese name when present」只写到「若无中文名才保留原文」这个方向 | 定性为**指令遵循偏差**（不是门禁误报）：规则已有但是软约束。可选锐化 —— 在 prompt/SKILL 明写「中文报告一律取记录自带的 `drug_earth_name_cn`」。**本轮不改**（避免再发一版 + 再跑 4 组），列入下轮候选 | 待下轮 |
+| 附录列头在「试验显示名 == 注册号」时重复：`**NCT02729025**<br>NCT02729025 · 1 条披露` | R40-1 产物附录表头 | 属 `render-facts.py` `_column_label()` 的显示名回退问题（显示名取自记录 `trial` 首段，正好等于注册号时不再去重）。改法：显示名与注册号逐字相同则只留其一 | 待下轮（纯渲染，不动契约） |
+| 图内/附录内「观察唯一性」不足：图表行标签 `OCEAN(a)-DOSE · olpasiran 10 mg 每 12 周（第 36 周）` 在同一试验多剂量下不能唯一识别观察 → `A-S9`/`A-S9b`/`A-S10` FAIL | R40-1 | 与上面同源（同一批记录），先解决中文命名与观察标识再复跑 | 待下轮 |
+| 覆盖行出现「已取回 / 成功取回」叙述（R40-3「18 条**已取回**记录」、R40-4「未取 PMC 全文」） | 证据文件 §6/§7 | **本轮判 PASS 刻意保留**：`已取回/成功取回` 属「材料到手」的可用性陈述，不是我们的沙箱状态；`未取 PMC 全文` 是**深度**（与 `非 OA` 同类）。若日后要收紧，需同时改 `check.py` patterns + README + 变异/回归，属独立一轮 | 待观察（已记原句） |
+
+| `tools/test_pack_dist.py` 自 `3cafb12` 起就是 4 error + 1 failure：fixture 只建了 `references/`、`templates/`、`templates/charts/`，而 `collect()` 无条件遍历四个子目录（含 `scripts/`）→ 四个构建类测试全在 `FileNotFoundError` 上炸，只有只读那一个活着 | `git show HEAD:…/test_pack_dist.py` 在 `/tmp` 重跑同样 4 error + 1 failure（**与 Phase 2 无关的存量缺陷**）；补一行 `"scripts"` 后 **5/5 OK** | 给 fixture 补 `scripts` 目录 + 注释说明为何必须建全 | ✅ 已修（本轮，`tools/test_pack_dist.py`） |
+
+### 平台侧（转开发）
+
+- 本轮**无新增**平台缺陷：四组 `outcome=succeeded`、22/22 断言全过、`no tool errors`、`present_artifact` 收尾。
