@@ -80,7 +80,7 @@ ESID_KEYS = (
 PREFIX = "clinical_result_"
 UNUSABLE_RESULTS = {"", "NR", "NE", "未报告", "NA", "N/A", "-", "—"}
 TIMEPOINT_RE = re.compile(r"(?:周|月|天|年|week|day|month)", re.IGNORECASE)
-SENTENCE_SPLIT_RE = re.compile(r"[。！？；;\n]")
+SENTENCE_SPLIT_RE = re.compile(r"[。！？；;]|(?<=[.!?])\s+|\n")
 
 
 def _atomic_write(path: Path, content: str) -> None:
@@ -349,18 +349,35 @@ def _scaffold(args) -> int:
         print(f"ERROR: no payload records found under {tool_results / 'pharmcube-query-clinical-result-with-params'}", file=sys.stderr)
         return 2
 
+    # One esid is regularly pulled several times (the same record also comes back through other
+    # disease/indication keys).  prep_sources.py keeps the last pull per esid, so the scaffold must
+    # collapse them the same way or it emits two records with one `ref` and the ledger compiler
+    # rejects the whole candidate file as a duplicate.
+    payload_by_esid: dict[str, dict] = {}
+    repeated_pulls = 0
+    for pull_index, payload in enumerate(payloads):
+        esid = _payload_esid(payload)
+        if esid and esid in payload_by_esid:
+            repeated_pulls += 1
+        payload_by_esid[esid or f"\x00unmapped-{pull_index}"] = payload
+    payloads = list(payload_by_esid.values())
+
     records: list[dict] = []
     facts: list[dict] = []
     notes = list(load_notes)
+    if repeated_pulls:
+        notes.append(f"payload 中同一 esid 重复取回 {repeated_pulls} 次，只保留最后一次（与 prep_sources.py 按 esid 去重一致）。")
     skipped_esids: list[str] = []
     missing_values = 0
     unresolved_arms = 0
     missing_quotes: list[str] = []
+    defaulted_kinds: list[str] = []
+    time_shaped_endpoints: list[str] = []
     used_ids: set[str] = set()
     endpoint_seen: dict[str, set[str]] = {}
     cwd = Path.cwd()
 
-    for payload_index, payload in enumerate(payloads):
+    for payload in payloads:
         esid = _payload_esid(payload)
         mapped = by_esid.get(esid)
         if mapped is None:
@@ -418,6 +435,10 @@ def _scaffold(args) -> int:
             facts.append(fact)
             if not quote:
                 missing_quotes.append(fact_id)
+            if not KIND_RE.match(kind_raw):
+                defaulted_kinds.append(fact_id)
+            if not endpoint or TIMEPOINT_RE.search(endpoint):
+                time_shaped_endpoints.append(fact_id)
 
     records.sort(key=lambda item: item["ref"])
     facts.sort(key=lambda item: item["ref"])
@@ -428,6 +449,11 @@ def _scaffold(args) -> int:
     notes.append("arm 必须在报告中改写一次为自己的中文身份短语，之后逐字复用。")
     notes.append(f"因 result 为空或为 NR/NE/未报告/NA/N/A/-/—，跳过 {missing_values} 条结果。")
     notes.append(f"有 {len(missing_quotes)} 条事实缺少 quote，必须由模型从原文手工补齐。")
+    if defaulted_kinds:
+        notes.append(f"有 {len(defaulted_kinds)} 条事实的 endpoint_attribute 为空或不在枚举内，kind 暂填「有效性」，必须逐条核对（含：{'、'.join(defaulted_kinds[:5])}）。")
+    if time_shaped_endpoints:
+        notes.append(f"有 {len(time_shaped_endpoints)} 条事实的 endpoint 为空或只是时点形态（payload 未给终点名），必须从原文补写终点名（含：{'、'.join(time_shaped_endpoints[:5])}）。")
+    notes.append("候选行是清单不是账本：按 ledger 契约删除不值得跨披露对齐的行，只保留材料数值。")
     for fact_id in missing_quotes:
         notes.append(f"缺少 quote 的 fact id：{fact_id}。")
     if unresolved_arms:
@@ -441,6 +467,9 @@ def _scaffold(args) -> int:
         print(f"ERROR: cannot write {args.out}: {exc}", file=sys.stderr)
         return 2
     print(f"WROTE {args.out}: {len(records)} record(s), {len(facts)} fact(s) ({len(missing_quotes)} need a quote)")
+    for ref in sorted({fact["ref"] for fact in facts}):
+        mine = [fact for fact in facts if fact["ref"] == ref]
+        print(f"  {ref}: {len(mine)} 条候选值、{len({fact['endpoint'] for fact in mine})} 个终点标签形态")
     for note in notes:
         print(f"  {note}")
     return 0

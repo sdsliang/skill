@@ -15,6 +15,7 @@ directory. Defaults are the contract paths; pass an explicit flag only to deviat
 | Step | Script | Writes |
 | --- | --- | --- |
 | Pull → readable sources + ref inventory | `scripts/prep_sources.py` | `work/sources/ref_<n>.txt`, `work/refs.json` |
+| Payload → candidate facts (never transcribe by hand) | `scripts/build_ledger.py --scaffold` | `work/facts.candidates.json` |
 | Facts → strict ledger (+ the only validation) | `scripts/build_ledger.py` | `work/ledger.json` |
 | Body + appendix + `{{ref_n}}` | `scripts/render-facts.py` | `/workspace/output/report.md` (in place) |
 | Any small edit to an existing file | `scripts/patch.py` | the file, in place |
@@ -50,13 +51,49 @@ python3 scripts/prep_sources.py --esids … --full --quiet
 * Exit `0` all found · `3` at least one selected esid returned no record (files still written for
   the rest) · `2` usage/IO.
 
-## 2. `build_ledger.py` — validate the fact ledger
+## 2. `build_ledger.py` — scaffold candidate facts, then validate the fact ledger
 
 ```
+python3 scripts/build_ledger.py --scaffold        # payload → work/facts.candidates.json (run first)
 python3 scripts/build_ledger.py --stats          # fact counts by ref and kind
 python3 scripts/build_ledger.py --check           # validate only, write nothing
 python3 scripts/build_ledger.py                   # write work/ledger.json
 ```
+
+### 2a. `--scaffold` — the pulled payload written out as candidate rows
+
+Mechanical transcription is the one part of the ledger you should never do by hand: it is where
+values get mistyped and where the largest output-token block goes. Run this **once, after
+`prep_sources.py`** (it needs `work/refs.json` and `work/sources/ref_<n>.txt`) and edit the file it
+writes instead of typing the numbers yourself.
+
+```
+python3 scripts/build_ledger.py --scaffold --tool-results /workspace/tool_results \
+    --refs work/refs.json --sources work/sources --out work/facts.candidates.json
+```
+
+* Output `--out` defaults to `work/facts.candidates.json` and has exactly the `facts.json` shape
+  (`records` / `facts`), plus a `_notes` array the compiler ignores. Fill in the blanks and feed it
+  back with the default mode — you do not hand-write this file from scratch.
+* One `records[]` entry per pulled esid (`conclusion` is always empty — you write it), one `facts[]`
+  entry per `clinical_result_study_results[]` row that carries a usable `result`.
+* `value` / `unit` / `statistics` / `timepoint` / `assessment` are copied **verbatim** from the
+  payload, `arm` is the payload's regimen label, and `quote` is the first source sentence in
+  `work/sources/ref_<n>.txt` that contains that value (`""` plus a note when there is none — then
+  copy the sentence from the original yourself).
+* One esid pulled several times collapses to one record, as in `prep_sources.py`.
+* **The candidate file is a checklist, not the ledger.** Every row still has to be verified against
+  the original, and `_notes` names the ones that need work (no quote, no endpoint name, `kind`
+  defaulted because the payload attributes nothing). Delete every row that is not a material,
+  cross-disclosure-comparable value, and write from the original text the material values the
+  payload never carried — a thin payload (endpoint labels that are only a time point, empty
+  `endpoint_attribute`, several placebo arms per dose) yields mostly unusable rows, and the notes
+  say so; do not pad the ledger to keep them.
+* It never reads `work/facts.json`, never writes `work/ledger.json` and never validates anything:
+  that stays the default mode's job. Exit `0` written · `3` `work/refs.json` missing/empty (run
+  `prep_sources.py` first) · `2` unreadable payload or unwritable `--out`.
+
+### 2b. default mode — the only validation gate
 
 * Input `--facts` (default `work/facts.json`), output `--out` (default `work/ledger.json`),
   `--refs` for trial/`source_file` defaults.
@@ -156,16 +193,58 @@ python3 scripts/check_report.py -v            # then fix what it printed and re-
 ```
 
 Checks the report text (unresolved `[[fact:…]]` tokens, `{{…}}` braces that are not `ref_n`
-markers, `entity:` syntax, the appendix title **and** that it has data rows), marker ⇄ citation
-parity in both directions, citation entry shape (empty title, extra fields, a fenced code block),
+markers, `entity:` syntax, the appendix title **and** that it has data rows, that the appendix
+starts with the renderer's one-line legend rather than a hand-written specification paragraph, and
+that the title appears exactly once so a hand-written appendix can never stand beside the rendered
+one), marker ⇄ citation parity in both directions, citation entry shape (empty title, extra fields,
+a fenced code block),
 chart products (envelope keys exactly `{id, iframe_template, option}`, non-empty data, type vs
 file name, and that every `::visualization` target exists under the fixed prefix), plus internal
 leaks in the delivered text (`source_file`, `tool_results`, `esid`, `/workspace/work/`, a
 `ledger|facts.json` path, a Mermaid block). Warnings only: run-logistics wording, a chart product
 never referenced by the report, a table cell citing the same ref twice, and chart text sharing an
 8-character run with a table cell (registry ids and citation-title text are exempt).
+
+**FAIL** rules that keep one number in one place and the appendix renderer-owned:
+
+* a chart that restates its own plotted value in `subTitle` / `describe` /
+  `data[].description` — chart prose states the basis, the time-point difference, the direction,
+  the comparability and the `{{ref_n}}`, never the plotted number (dose/time/count suffixes such as
+  `225 mg`, `每 12 周`, `129 例` are context and pass, and study-internal control/boundary values
+  stay allowed);
+* a **non-appendix** section that shows a chart *and* a table carrying two or more of that chart's
+  plotted values — move the chart, or drop the repeated values from the table. The appendix is the
+  fact ledger and values there are expected; the aligned-detail section is where the table belongs;
+* an appendix that opens with a prose block instead of the renderer's legend — the appendix is
+  renderer output (title, `—` legend, columns), never a place for a layout specification.
+
 Exit `0` all green · `3` at least one FAIL · `4` warnings only · `2` usage/IO. Run it **before**
 `present_artifact`; the run is not finished while it reports a FAIL.
+
+## Questions this file answers so you never read the scripts
+
+Reading a packaged script's source to guess its behaviour is the most expensive habit in this
+pipeline (it cost a measured 9 tool calls in one run). The answer is here or in `--help`.
+
+* **Who writes the appendix?** `render-facts.py` — title, legend line and columns are generated
+  from `work/ledger.json`. Never hand-write the appendix, a placeholder for it, its legend, or a
+  paragraph describing its layout; its rows come from the facts you declared.
+* **What does an appendix column header look like?** Renderer decision, not yours: several
+disclosures in one trial → `**试验名**<br>注册号 · N 条披露`; one disclosure →
+`**可读短标签**<br>ref_n`; a missing tag → `**ref_n**`. Do not transcribe the layout anywhere in
+  the body.
+* **Which numbers go in the ledger?** Only material, cross-disclosure-comparable values (one row
+  per comparable reading, quoted from `work/sources/ref_<n>.txt`). `--stats` tells you the counts;
+  the `--scaffold` notes tell you which candidate rows still need work.
+* **How do I cite?** `{{ref_n}}` in the body, one `citations.json` entry per ref
+  (`make_citations.py` writes the shape). The same ref is cited once per table cell; the appendix
+  row already carries its own ref, so the body does not need to repeat it there.
+* **`patch.py` says the target is not found.** The string must match the file byte for byte; for a
+  find value starting with `-` use `--find=<text>`. Do not fall back to rewriting the whole file,
+  and do not re-read your own draft to locate strings — re-render or pass the exact source line.
+* **Did my body survive?** One `check_report.py -v` pass, and the assertions inside `patch.py`. A
+  confirmation re-read of your own `output/report.md` is a fallback, not the default; if you need
+  it, read one narrow range once.
 
 ## What is still yours
 

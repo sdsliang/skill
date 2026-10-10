@@ -50,16 +50,7 @@ CITATION_RE = re.compile(r"\{\{([^{}]+)\}\}")
 NUMBER_RE = re.compile(r"(?<![A-Za-z])[-+−]?\d+(?:[.,]\d+)?%?")
 
 APPENDIX_TITLE = "## 附录：证据对齐矩阵（数值事实账本）"
-APPENDIX_INTRO = (
-    "按「试验设计 → 试验结论 → 有效性 → 安全性 → PK/PD → PRO」分段排列。**列为试验**：同一试验的多条披露合并为一列，"
-    "列头为该试验的显示名 + 注册号与披露条数（显示名取可读名：账本 `study` 名 → 记录 `trial` 名 → 身份行首段，注册号只作最后兜底，"
-    "且显示名本身就是注册号时第二行不再重复该注册号）；**输入只含一个试验、且有 ≥2 条披露时改为每条披露一列**（列头为 `ref` 标记 + 版本标签），"
-    "不再把多条披露堆进同一格。行为维度与终点父级（同一终点的不同时点/口径统一到同一行，细分标签写进单元格）；"
-    "一行内所有数值共有的限定词（治疗臂 / 时点 / 评估 / 人群）提到行标签，单元格只留各自的差异部分。"
-    "单元格值部分格式为「治疗臂·时点·评估·人群：结果 单位（统计量）」，紧跟其后的来源标记即该值的引用；同一格内多个数值用 `<br>` 分行。"
-    "`—` 表示该披露在该终点上未报告数值。披露标题、设计与方案、试验组方案、人群覆盖等长文本不进附录："
-    "这些内容由正文与「试验背景」表承载，附录只保留可对齐的数值与结论。"
-)
+APPENDIX_LEGEND = "表中「—」表示该披露在该终点上未报告该数值。"
 SEGMENT_ORDER = ("试验设计", "试验结论", "有效性", "安全性", "PK/PD", "PRO", "其他")
 
 # Record-level row of the 试验设计 block: the trial's short display name only. The long
@@ -576,7 +567,7 @@ def _disclosure_label(column_records: list[dict[str, str]], facts_by_ref: dict[s
     """Short version tag for one disclosure column (`首次计划 OS 分析`, `2024 年会`).
 
     The full cutoff label stays in the `披露版本 / 数据截止` row; the header keeps only the
-    first segment so a one-trial appendix reads as `ref_2 / 首次计划 OS 分析` instead of a wall of text.
+    first segment so a one-trial appendix reads as `首次计划 OS 分析 / ref_2` instead of a wall of text.
     """
     for record in column_records:
         for fact in facts_by_ref.get(record["ref"], []):
@@ -590,14 +581,16 @@ def _disclosure_label(column_records: list[dict[str, str]], facts_by_ref: dict[s
 
 
 def _column_header(label: str, column: list[dict[str, str]], layout: str) -> str:
-    """One uniform two-line header per column: bold name, then identifier and disclosure count."""
+    """Render a two-line header: readable disclosure tag/ref or trial name/id/count."""
     if layout == "disclosure-columns":
         tag = _normalise_markdown(label)
-        return f"**{column[0]['ref']}**<br>{tag}" if tag and tag != column[0]["ref"] else f"**{column[0]['ref']}**"
+        ref = column[0]["ref"]
+        return f"**{tag}**<br>{ref}" if tag and tag != ref else f"**{ref}**"
     identifiers = sorted({rid for record in column for rid in _registration_ids(record)})
     name = _normalise_markdown(label)
-    if identifiers and _identifier_only(label):
-        # The display name *is* the registry id: never print the same id on both header lines.
+    if identifiers:
+        # Drop every registry id already present anywhere in the display-name line, not only a
+        # display name made entirely of identifiers; the second line should add only new details.
         identifiers = [rid for rid in identifiers if rid.casefold() not in name.casefold()]
     details = [" / ".join(identifiers)] if identifiers else []
     details.append(f"{len(column)} 条披露")
@@ -610,7 +603,7 @@ def _appendix_layout(
     """Columns of the appendix: one per trial, or one per disclosure for a single-trial input.
 
     One trial whose disclosures are stacked inside a single cell is the unreadable case: each
-    disclosure then gets its own column (`ref_n` + version tag) so every evidence item keeps a
+    disclosure then gets its own column (readable version tag + `ref_n`) so every evidence item keeps a
     line of its own instead of an HTML `<br>` pile inside one cell.
     """
     keys, ref_to_key = _column_keys(records, facts_by_ref)
@@ -713,7 +706,7 @@ def _appendix(records: list[dict[str, str]], facts: list[dict[str, str]]) -> str
     parts = [
         APPENDIX_TITLE,
         "",
-        APPENDIX_INTRO,
+        APPENDIX_LEGEND,
         "",
         header,
         "| --- |" + " --- |" * len(columns),

@@ -47,6 +47,11 @@ LEAK_PATTERNS = (
 RUN_LOGISTICS = (r"本次运行", r"本运行环境", r"运行环境", r"本轮运行", r"无外网", r"网络受限",
                  r"抓取(?:失败|受限|超时)")
 SHINGLE = 8
+CHART_NUMBER_RE = re.compile(r"[-+−]?\d+(?:\.\d+)?")
+CHART_UNIT_SUFFIX_RE = re.compile(r"\s*(?:mg/?|周|天|月|年|例|名|岁|nmol/L|mmol/L|每)(?![A-Za-z])", re.IGNORECASE)
+# Chart prose must not repeat plotted values; dose/time/count units are allowed context.
+# 表格重复只在图表所属正文 section 生效，附录是事实账本，不参与判断。
+
 # A registry id (or any code-like token) is a proper name: two rows that both name the same trial
 # are supposed to look alike, so ids are masked out before shingles are compared.
 REGISTRY_RX = re.compile(r"[A-Za-z]{2,}[-\s]?\d{4,}[A-Za-z-]*")
@@ -61,6 +66,114 @@ def _shingles(text: str) -> set[str]:
     compact = REGISTRY_RX.sub(lambda match: MASK * len(match.group()), _atomic_note(text))
     return {compact[i:i + SHINGLE] for i in range(max(0, len(compact) - SHINGLE + 1))
             if MASK not in compact[i:i + SHINGLE]}
+
+
+def _chart_number_tokens(text: str) -> list[tuple[str, float, int]]:
+    tokens: list[tuple[str, float, int]] = []
+    for match in CHART_NUMBER_RE.finditer(text.replace("−", "-")):
+        try:
+            tokens.append((match.group(), float(match.group()), match.end()))
+        except ValueError:
+            continue
+    return tokens
+
+
+def _chart_text_findings(name: str, option: dict) -> list[str]:
+    """Return hard findings for plotted values repeated in chart prose."""
+    if str(option.get("type") or "").lower() == "timeline":
+        return []
+    values = [row.get("value") for row in option.get("data", [])
+              if isinstance(row, dict) and isinstance(row.get("value"), (int, float))
+              and not isinstance(row.get("value"), bool)]
+    fields: list[tuple[str, str]] = []
+    for key in ("subTitle", "describe"):
+        if isinstance(option.get(key), str):
+            fields.append((f"option.{key}", option[key]))
+    for index, row in enumerate(option.get("data", [])):
+        if isinstance(row, dict) and isinstance(row.get("description"), str):
+            fields.append((f"option.data[{index}].description", row["description"]))
+    for field, text in fields:
+        for token, number, end in _chart_number_tokens(text):
+            if "." not in token:
+                continue
+            if CHART_UNIT_SUFFIX_RE.match(text[end:]):
+                continue
+            if any(abs(number - value) <= 0.05 for value in values):
+                value = next(value for value in values if abs(number - value) <= 0.05)
+                return [f"chart {name} {field} restates plotted value {value}; remove the value from the chart text or keep it only in the plot data"]
+    return []
+
+
+def _chart_table_findings(report: str, name: str, option: dict, references: list[re.Match[str]]) -> list[str]:
+    """Return hard findings for two plotted values repeated in a non-appendix section table."""
+    if str(option.get("type") or "").lower() == "timeline":
+        return []
+    values = [float(row["value"]) for row in option.get("data", [])
+              if isinstance(row, dict) and isinstance(row.get("value"), (int, float))
+              and not isinstance(row.get("value"), bool)]
+    lines = report.splitlines()
+    heading_re = re.compile(r"^(#{1,6})\s+")
+    for reference in references:
+        line_no = report.count("\n", 0, reference.start())
+        heading_index = 0
+        heading_level = 0
+        heading_text = ""
+        for index in range(line_no, -1, -1):
+            heading = heading_re.match(lines[index])
+            if heading:
+                heading_index = index
+                heading_level = len(heading.group(1))
+                heading_text = lines[index][heading.end():]
+                break
+        if "附录" in heading_text:
+            continue
+        end = len(lines)
+        for index in range(heading_index + 1, len(lines)):
+            heading = heading_re.match(lines[index])
+            if heading and (heading_level == 0 or len(heading.group(1)) <= heading_level):
+                # heading_level == 0 means the chart sits before the first heading: treat the
+                # document head as the section so the appendix can never be counted as a repeat.
+                end = index
+                break
+        matched: set[float] = set()
+        for line in lines[heading_index:end]:
+            if not line.strip().startswith("|"):
+                continue
+            for token, number, token_end in _chart_number_tokens(line):
+                if CHART_UNIT_SUFFIX_RE.match(line[token_end:]):
+                    continue
+                for value in values:
+                    if abs(number - value) <= 0.05:
+                        matched.add(value)
+        if len(matched) >= 2:
+            displayed = ", ".join(str(value) for value in sorted(matched))
+            return [f"chart {name} section table repeats plotted values {displayed}; move the chart to a section without the table or drop the duplicated values"]
+    return []
+
+
+def _appendix_preamble_findings(report: str, max_preamble: int = 100) -> list[str]:
+    """The appendix is renderer output: title, one-line `—` legend, then the table.
+
+    A long prose block between the title and the table means the report is carrying a hand-written
+    specification of the appendix (or an older renderer's spec paragraph) — the defect that made
+    readers scroll past ~600 characters of layout instructions before any data.
+    """
+    lines = report.splitlines()
+    start = next((index for index, line in enumerate(lines) if line.startswith(APPENDIX_TITLE)), None)
+    if start is None:
+        return []
+    for line in lines[start + 1:]:
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if stripped.startswith("|"):
+            return []
+        if len(stripped) > max_preamble:
+            return [f"the appendix opens with a {len(stripped)}-character prose block instead of the "
+                    f"renderer's one-line legend; write no appendix specification paragraph (rows and "
+                    f"columns come from the ledger, the title and legend from render-facts.py)"]
+        return []
+    return []
 
 
 def _table_cells(report: str) -> list[str]:
@@ -130,8 +243,11 @@ def main(argv: list[str] | None = None) -> int:
     appendix_lines = [line for line in report.splitlines() if line.startswith(APPENDIX_TITLE)]
     if not appendix_lines:
         findings.append(f"appendix title `{APPENDIX_TITLE}` not found (the render gate appends it)")
-    elif len(appendix_lines) > 1:
-        warnings.append(f"appendix title appears {len(appendix_lines)} times")
+    else:
+        if len(appendix_lines) > 1:
+            findings.append(f"appendix title appears {len(appendix_lines)} times — the appendix is renderer output; "
+                            "write no appendix of your own and never render the same file twice")
+        findings.extend(_appendix_preamble_findings(report))
     appendix_rows = 0
     if appendix_lines:
         start = report.index(appendix_lines[0])
@@ -279,6 +395,19 @@ def main(argv: list[str] | None = None) -> int:
     else:
         warnings.append(f"no chart directory at {args.charts_dir}")
     checks.append(("chart products", f"{len(charts)} file(s), {len(referenced)} reference(s)"))
+
+    # Hard chart-duplication rules run only for referenced chart products.
+    for name, payload in charts.items():
+        option = payload.get("option")
+        if not isinstance(option, dict) or name not in {Path(item).name for item in referenced}:
+            continue
+        findings.extend(_chart_text_findings(name, option))
+        chart_refs = []
+        for match in VIS_REF_RE.finditer(report):
+            path_match = PATH_ATTR_RE.search(match.group(1))
+            if path_match and Path(path_match.group(1)).name == name:
+                chart_refs.append(match)
+        findings.extend(_chart_table_findings(report, name, option, chart_refs))
 
     # ---- soft content checks ---------------------------------------------------------
     for cell in _table_cells(report):

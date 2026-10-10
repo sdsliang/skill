@@ -198,7 +198,13 @@ class RenderFactsTests(unittest.TestCase):
         self.assertTrue(self.run_render("Summary [[result:F001]] and [[result:F002]]."))
         output = self.out.read_text(encoding="utf-8")
         self.assertIn("## 附录：证据对齐矩阵（数值事实账本）", output)
-        self.assertIn("列为试验", output)
+        self.assertIn(
+            "## 附录：证据对齐矩阵（数值事实账本）\n\n"
+            "表中「—」表示该披露在该终点上未报告该数值。\n\n"
+            "| 维度 |",
+            output,
+        )
+        self.assertNotIn("列为试验", output)
         self.assertIn("| 维度 | **Study alpha**<br>1 条披露 | **Study beta**<br>1 条披露 |", output)
         self.assertIn("| **试验设计** |", output)
         self.assertIn("| **试验结论** |", output)
@@ -221,13 +227,17 @@ class RenderFactsTests(unittest.TestCase):
         self.assertNotIn("Drug vs placebo", output)
         self.assertEqual(self.audit_data()["appendix_layout"], "trial-columns")
 
-    def test_appendix_intro_carries_no_template_placeholder(self):
-        """The runner fails any report containing a literal `{{ref_n}}`-style
-        placeholder that is not a real `{{ref_<digits>}}` marker. The appendix
-        intro is emitted verbatim into the delivered report, so it must
-        describe the cell format without ever spelling the placeholder out."""
+    def test_appendix_uses_short_legend_without_template_placeholder(self):
+        """The appendix uses a short consumer-facing legend rather than an internal spec paragraph.
+
+        The runner also fails any report containing a literal `{{ref_n}}`-style placeholder that is
+        not a real `{{ref_<digits>}}` marker, so keep that regression check here as well.
+        """
         self.assertTrue(self.run_render("Summary [[result:F001]]."))
         output = self.out.read_text(encoding="utf-8")
+        self.assertIn("表中「—」表示该披露在该终点上未报告该数值。", output)
+        self.assertNotIn("按「试验设计", output)
+        self.assertNotIn("列为试验", output)
         leftovers = sorted({m for m in re.findall(r"\{\{[^}]*\}\}", output)
                             if not re.fullmatch(r"\{\{ref_\d+\}\}", m)})
         self.assertEqual(leftovers, [], f"placeholder leaked into the report: {leftovers}")
@@ -288,8 +298,8 @@ class RenderFactsTests(unittest.TestCase):
         header = next(
             line for line in self.out.read_text(encoding="utf-8").splitlines() if line.startswith("| 维度 |")
         )
-        self.assertIn("**ref_1**<br>预设中期 OS 分析", header)
-        self.assertIn("**ref_2**<br>最终 PFS 分析", header)
+        self.assertIn("**预设中期 OS 分析**<br>ref_1", header)
+        self.assertIn("**最终 PFS 分析**<br>ref_2", header)
         self.assertNotIn("数据截止", header)
         self.assertEqual(self.audit_data()["appendix_layout"], "disclosure-columns")
 
@@ -368,8 +378,8 @@ class RenderFactsTests(unittest.TestCase):
         output = self.out.read_text(encoding="utf-8")
         header = next(line for line in output.splitlines() if line.startswith("| 维度 |"))
         self.assertEqual(header.count("|"), 4)
-        self.assertIn("**ref_1**<br>2024 年会", header)
-        self.assertIn("**ref_2**<br>2025 年会更新", header)
+        self.assertIn("**2024 年会**<br>ref_1", header)
+        self.assertIn("**2025 年会更新**<br>ref_2", header)
         os_row = next(line for line in output.splitlines() if line.startswith("| OS"))
         self.assertIn("8.34 %{{ref_1}}", os_row)
         self.assertIn("72 %{{ref_2}}", os_row)
@@ -440,9 +450,11 @@ class RenderFactsTests(unittest.TestCase):
         output = self.out.read_text(encoding="utf-8")
         header = next(line for line in output.splitlines() if line.startswith("| 维度 |"))
         # Same trial key merges even when the display name and identity text differ.
-        self.assertIn("**研究甲（NCT05840016）**<br>NCT05840016 · 2 条披露", header)
+        self.assertIn("**研究甲（NCT05840016）**<br>2 条披露", header)
+        self.assertNotIn("**研究甲（NCT05840016）**<br>NCT05840016 ·", header)
         # The same label on two different trial keys stays two columns and is disambiguated.
-        self.assertIn("**研究甲（NCT09999999）**<br>NCT09999999 · 1 条披露", header)
+        self.assertIn("**研究甲（NCT09999999）**<br>1 条披露", header)
+        self.assertNotIn("**研究甲（NCT09999999）**<br>NCT09999999 ·", header)
         self.assertEqual(header.count("|"), 4)
         os_row = next(line for line in output.splitlines() if line.startswith("| OS"))
         self.assertIn("| OS · Drug；Week 12；ITT；Adults |", os_row)
@@ -452,7 +464,7 @@ class RenderFactsTests(unittest.TestCase):
 
     def test_appendix_header_never_repeats_a_registry_only_display_name(self):
         """When nothing readable exists the display name is the registry id itself; the header must
-        then print that id once, not on both lines (R40 measured `**NCT02729025**<br>NCT02729025 · …`)."""
+        then print that id once, not on both lines (R40 measured `**NCT02729025**<br>1 条披露`)."""
         ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
         for record, registry in zip(ledger["records"], ("NCT02729025", "NCT09999999")):
             record["trial"] = registry
@@ -513,7 +525,7 @@ class RenderFactsTests(unittest.TestCase):
         output = self.out.read_text(encoding="utf-8")
         header = next(line for line in output.splitlines() if line.startswith("| 维度 |"))
         self.assertEqual(header.count("|"), 4)
-        self.assertIn("**ref_1**<br>v1", header)
+        self.assertIn("**v1**<br>ref_1", header)
         self.assertEqual(self.audit_data()["appendix_trials"], 1)
         self.assertEqual(self.audit_data()["appendix_layout"], "disclosure-columns")
 

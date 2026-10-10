@@ -175,6 +175,27 @@ class ScaffoldTests(unittest.TestCase):
         self.assertTrue(self.out.exists())
         self.assertFalse((self.root / "work" / "ledger.json").exists())
 
+    def test_repeated_esid_pulls_collapse_to_one_record(self):
+        repeated = json.loads(json.dumps(self.payload))
+        repeated["disease_id"] = 1403
+        self.write_payload([self.payload, repeated])
+        proc = self.scaffold()
+        candidate = self.candidate()
+        self.assertEqual([record["ref"] for record in candidate["records"]], ["ref_1"])
+        self.assertEqual(len(candidate["facts"]), 3)
+        self.assertIn("同一 esid 重复取回 1 次", proc.stdout)
+        facts = self.root / "work" / "facts.json"
+        candidate["records"][0]["conclusion"] = "披露结论。"
+        for fact in candidate["facts"]:
+            if not fact["quote"]:
+                fact["quote"] = "模型核对：70.5% 出现在后续比较。"
+        (self.sources / "ref_1.txt").write_text(
+            self.source_text + "模型核对：70.5% 出现在后续比较。", encoding="utf-8")
+        facts.write_text(json.dumps(candidate, ensure_ascii=False, indent=2), encoding="utf-8")
+        compiled = self.run_script("--facts", facts, "--out", self.root / "work" / "ledger.json",
+                                   "--refs", self.refs, expect=0)
+        self.assertNotIn("duplicate record ref", compiled.stderr)
+
     def test_anti_empty_artifact(self):
         self.scaffold()
         candidate = self.candidate()
