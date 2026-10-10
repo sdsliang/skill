@@ -9,7 +9,22 @@
 
 ---
 
-## 当前交接（2026-10-10 Phase 2 完成）
+## 当前交接（2026-10-10 R41 完成 + R42 Phase A）
+
+**R41（药名成对字段 + 附录可读名 + humanizer 交接段）已原地发布并四组验证（2026-10-10）**：
+
+1. **(c) 药名硬规则**：中文报告写记录自带 `drug_earth_name_cn`（非空即用）、英文报告写 `_en`；目标语言字段空/`未报告` 才回退另一语言并保源拼写；**永不音译/翻译/归一化/凭记忆映射/查外部字典**。落点：prompt 5 处、`SKILL.md` 2 段、`references/input-and-extraction.md`、`references/input-contract.md`。效果：R40-1 的 `A-C1`/`A-C2` 转 PASS（场景 A 39/44 → **41/44**），R41-18 出现 `卡瑞利珠单抗` 15 / `替雷利珠单抗` 50。
+2. **(b) 附录列头可读名优先**：`render-facts.py` `_identifier_only()` + `_column_label()` + `_column_header()`；**只在显示名本身是纯注册号时**才删第二行重复注册号。实测 `**NCT02729025**<br>NCT02729025 · 1 条披露` → `**NCT02729025**<br>1 条披露`，而 `**OCEAN(a)-DOSE**<br>NCT04270760 · 1 条披露` 不变。`test-render-facts.py` 26 → **28/28**。
+3. **humanizer 交接段**（prompt + SKILL 各一节）：中文报告 → `report-humanizer-zh`、英文 → `report-humanizer-en`，绝不同用；顺序 = 报告 → 账本渲染门禁 → 语言 pass；**本 prompt 优先于 humanizer 风格规则**；受保护集合明确列出（结构、`原文核对：` 行、`{{ref_n}}`、数值/单位/精度/日期、发表时间列与顺序、表格形态、图表 JSON 与 `::visualization` 路径、citation JSON、两个交付路径）。
+4. **清陈旧句**：`SKILL.md` 尾部「`entity:` … must be kept」与 v0.16 移除矛盾 → 改为「`entity:` 不属于本产品，出现即硬失败」；prompt entity 段改为「只用于选专有名词 + 填 `trial` 合并键」。
+5. **发布（原地）**：dist **102,716 B / 19 entries / sha `ab1efaccf624`**、prompt **v1.7 = 63,422 B / sha `78c1a2a71efe`**、Skill **v1.0.8**，`status` **in sync**。发布前 `deps` 报 2 条上游变化（= 我们新建的两个 humanizer skill 首次进基线）→ 先 `deps --accept` 记新基线。
+6. **R41 四组（2/4/18/14 esid）**：22 / 21 / 22 / 22 PASS；唯一 FAIL = 模型 `write_file` 重写 `/workspace/scripts/build_ledger.py` 被平台拒（平台行为正确，见 F1）。
+7. **R42 = Phase A（18/14 esid 的 humanizer 臂）**：21 PASS（同 F1）/ 22 PASS；18 esid 粗体 47→26（−45%）、12-gram 重复率 0.0911→0.0643（−29%）；14 esid 方向相反；**两臂 strong 命中均 0、`{{ref_n}}` 逐条相等（18/18、14/14）**；代价 = 工具尝试 +45~51%、墙钟 +13~17%。**每臂 n=1 → 不宣称可测收益**，默认仍不强制调用 humanizer。
+8. **两条待办（已给证据、未落盘，等用户点头）**：**F1** prompt 第 6 条文件写入纪律只覆盖报告正文 → 扩到「本工作区任何文件」（正文/辅助脚本/图表 JSON）；**F2** 同一观察身份词报告内混用（`每月` 3 次 vs `Q4W` 9 次，源文只有 `monthly`）→ 图表 label 取 `Q4W` 使 `A-S9`/`A-S9b`/`A-S10` FAIL；改法 = ①prompt/SKILL 加「一套写法 + 图表 label 复用正文身份短语」②`scenario-a.facts.json` 该观察 `identity_patterns` 放宽到 `每月|每月一次|QM|Q4W`。
+
+**离线测试计数（2026-10-10，R41 后实测）**：runner **38**、scorer（`test_regressions.py`）**32**、tools **19**（`test_pack_dist.py` 5 + `test_replay_run.py` 14）、Node **16**、`tools/test_pack_dist.py` **5/5**；另有 **`evals/numeric-integrity/test-render-facts.py` 28** 与 `evals/runner-gate/test-runner.py` 38，两者本来就不计入上面那 105/117 的合计口径（README 旧行的 105 = runner 38 + scorer 32 + tools 19 + Node 16，不含 numeric-integrity）。
+
+## 历史交接（2026-10-10 Phase 2 完成）
 
 **Phase 2「交付物不写运行物流」已原地发布并四组验证（2026-10-10）**：用户诉求是「取回失败/环境限制」这一类叙述不该出现在对比报告里。落法是**契约 + 机械门禁**双管：
 
@@ -17,8 +32,8 @@
 2. **门禁 `A-P10-no-run-logistics`**（`check.py` `op_no_run_logistics`，fail 级，逐句匹配）；**A-P4 词表删掉 `抓取受限`**、改为接受「来源类或来源侧属性」。
 3. **变异/基线**：`M43`（覆盖行尾部追加运行物流 → 只翻 A-P10）；R17 基线带旧措辞 → 新增 `seed_a()`（**只改覆盖行措辞**，保留 route/来源类/深度），`MUT_SEED_A=0` 复现未种子证据。
 4. **计数**：scenario A **45 条（44 fail + 1 warn）**；变异 **64 项**；回归 **32 项**（`NoRunLogisticsTests` 5 项）。
-5. **发布**：dist **100,422 B / sha `4d92d3b4b7c3`**、prompt **v1.7 59,154 B / sha `2aac60f1c992`**、Skill **v1.0.8**，`status` in sync。**R40 四组（2/4/18/14）各 22 PASS / 0 FAIL**，四份覆盖行物流 grep 全 0。
-6. **R40-1 遗留**：场景 A 下 5 项 FAIL，根因 = 模型未用记录自带 `drug_earth_name_cn`（软规则已存在，属指令遵循偏差）；锐化留待下轮。
+5. **发布**：dist **100,422 B / sha `4d92d3b4b7c3`**（已被 R41 的 `ab1efaccf624` 取代）、prompt **v1.7 59,154 B / sha `2aac60f1c992`**（已被 R41 的 `78c1a2a71efe` 取代）、Skill **v1.0.8**，`status` in sync。**R40 四组（2/4/18/14）各 22 PASS / 0 FAIL**，四份覆盖行物流 grep 全 0。
+6. **R40-1 遗留已由 R41 处理**：场景 A 下 5 项 FAIL，根因 = 模型未用记录自带 `drug_earth_name_cn`（软规则已存在，属指令遵循偏差）→ R41 锐化为硬规则后 `A-C1`/`A-C2` 转 PASS，剩 3 项见 R41 的 F2。
 
 **两个 humanizer skill（`report-humanizer-zh` / `-en`，Phase B 已完成）**：加①数字/符号排版统一规则 + 文档级弱命中 `W-FMT-MIXED`（`tell-scan.py` + 两份 `SKILL.md` + 两份 `patterns-*.md` + 各 2 项回归 → 25/25）；②过程口吻边界（宿主契约要求的声明写成**材料属性**，不写运行环境/链路）。bump **v0.1.1**（zh 28,406 B / en 30,765 B），**TS 原地更新成功**（平台版本号仍 1.0.0）。原地更新脚本 = `apps/skill/tools/push-skill-inplace.py`（五道护栏），校验脚本 = `apps/skill/tools/verify-skill-upload.py`（只读）。
 

@@ -52,7 +52,8 @@ NUMBER_RE = re.compile(r"(?<![A-Za-z])[-+−]?\d+(?:[.,]\d+)?%?")
 APPENDIX_TITLE = "## 附录：证据对齐矩阵（数值事实账本）"
 APPENDIX_INTRO = (
     "按「试验设计 → 试验结论 → 有效性 → 安全性 → PK/PD → PRO」分段排列。**列为试验**：同一试验的多条披露合并为一列，"
-    "列头为该试验的显示名 + 注册号与披露条数；**输入只含一个试验、且有 ≥2 条披露时改为每条披露一列**（列头为 `ref` 标记 + 版本标签），"
+    "列头为该试验的显示名 + 注册号与披露条数（显示名取可读名：账本 `study` 名 → 记录 `trial` 名 → 身份行首段，注册号只作最后兜底，"
+    "且显示名本身就是注册号时第二行不再重复该注册号）；**输入只含一个试验、且有 ≥2 条披露时改为每条披露一列**（列头为 `ref` 标记 + 版本标签），"
     "不再把多条披露堆进同一格。行为维度与终点父级（同一终点的不同时点/口径统一到同一行，细分标签写进单元格）；"
     "一行内所有数值共有的限定词（治疗臂 / 时点 / 评估 / 人群）提到行标签，单元格只留各自的差异部分。"
     "单元格值部分格式为「治疗臂·时点·评估·人群：结果 单位（统计量）」，紧跟其后的来源标记即该值的引用；同一格内多个数值用 `<br>` 分行。"
@@ -449,13 +450,37 @@ def _study_labels(column_records: list[dict[str, str]], facts_by_ref: dict[str, 
     return labels
 
 
+def _identifier_only(label: str) -> bool:
+    """True when a label carries nothing but registry identifiers (`NCT02729025`, `NCT… / CTR…`).
+
+    A registry number is a locator, not a display name, and the header's second line already
+    lists it, so such a label is only used when the records offer nothing readable.
+    """
+    value = _normalise_text(label).strip()
+    if not value or not REGISTRATION_RE.search(value):
+        return False
+    residue = REGISTRATION_RE.sub("", value)
+    return not re.search(r"[^\s（）()、,，/·\-—－:：;；+＋]+", residue)
+
+
 def _column_label(column_records: list[dict[str, str]], facts_by_ref: dict[str, list[dict[str, str]]]) -> str:
-    """Prefer the study label its facts carry, then the trial key, then the registry id,
-    then the first segment of the identity text."""
-    label = _most_common(_study_labels(column_records, facts_by_ref))
+    """Prefer a readable name: the study label its facts carry, then the record's trial label,
+    then the first segment of the identity text; a bare registry id is the last resort."""
+    readable_studies = [value for value in _study_labels(column_records, facts_by_ref) if not _identifier_only(value)]
+    label = _most_common(readable_studies)
     if label:
         return label
     trials = [_normalise_text(record.get("trial", "")).strip() for record in column_records]
+    label = _most_common([value for value in trials if value and not _identifier_only(value)])
+    if label:
+        return label
+    names = [_identity_name(record["identity"]) for record in column_records]
+    label = _most_common([value for value in names if value and not _identifier_only(value)])
+    if label:
+        return label
+    label = _most_common(_study_labels(column_records, facts_by_ref))
+    if label:
+        return label
     label = _most_common([value for value in trials if value])
     if label:
         return label
@@ -570,6 +595,10 @@ def _column_header(label: str, column: list[dict[str, str]], layout: str) -> str
         tag = _normalise_markdown(label)
         return f"**{column[0]['ref']}**<br>{tag}" if tag and tag != column[0]["ref"] else f"**{column[0]['ref']}**"
     identifiers = sorted({rid for record in column for rid in _registration_ids(record)})
+    name = _normalise_markdown(label)
+    if identifiers and _identifier_only(label):
+        # The display name *is* the registry id: never print the same id on both header lines.
+        identifiers = [rid for rid in identifiers if rid.casefold() not in name.casefold()]
     details = [" / ".join(identifiers)] if identifiers else []
     details.append(f"{len(column)} 条披露")
     return f"**{_normalise_markdown(label)}**<br>{' · '.join(details)}"

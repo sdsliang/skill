@@ -346,14 +346,16 @@ either convention (2026-09-18: 两种写法都可以，只要同一份交付物�
 | `source_paper_release_time_str` | `clinical_result.paper_release_time` (datetime string `YYYY-MM-DD HH:MM:SS`; only its `YYYY-MM-DD` date part goes into the citation JSON) |
 | `source_nct_id` | `clinical_result.projects[].associate_ids` (registration no.) |
 | `source_trial_abbr` | `clinical_result.trial_abbreviation` |
-| `source_drug_entities` (drug_earth ids) | `clinical_result.arms[].drugs[].drug_earth_id` + `drug_earth_name_*` |
+| `source_drug_entities` (drug_earth ids) | `clinical_result.arms[].drugs[].drug_earth_id` + `drug_earth_name_cn` / `drug_earth_name_en` (the paired names are the naming source: `_cn` for a Chinese report, `_en` for an English one) |
 | `source_company_entities` (base_company ids) | `clinical_result.projects[].company_ids` + `company_name_*` |
 | `source_full_text` | no direct equivalent → `abstract_text` / `summary` / `study_results` combined |
 
 **Entity-ID fields** (`projects.associate_ids`, `trial_abbreviation`, `arms[].drugs[].drug_earth_id`,
-`projects.company_ids`) are **display/label metadata, not clinical evidence** — the Agent uses them
+`arms[].drugs[].drug_earth_name_cn` / `drug_earth_name_en`, `projects.company_ids`) are
+**display/label metadata, not clinical evidence** — the Agent uses them
 only to choose the proper name already supported by the source (prefer the source-supported trial
-abbreviation) and to fill the ledger's `trial` merge key and `study` label, never to derive clinical
+abbreviation; for a drug, `drug_earth_name_cn` in a Chinese report and `drug_earth_name_en` in an
+English one) and to fill the ledger's `trial` merge key and `study` label, never to derive clinical
 facts, and **never** to render a `[名字](entity:type:id)` inline reference: that syntax was removed in
 v0.16 and any occurrence blocks delivery. Missing entity fields therefore degrade gracefully — the
 report simply uses the name the evidence text gives, and the appendix falls back to the registry

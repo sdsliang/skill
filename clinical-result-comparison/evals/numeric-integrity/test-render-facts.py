@@ -450,6 +450,42 @@ class RenderFactsTests(unittest.TestCase):
             self.assertIn(marker, os_row)
         self.assertEqual(self.audit_data()["appendix_trials"], 2)
 
+    def test_appendix_header_never_repeats_a_registry_only_display_name(self):
+        """When nothing readable exists the display name is the registry id itself; the header must
+        then print that id once, not on both lines (R40 measured `**NCT02729025**<br>NCT02729025 · …`)."""
+        ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
+        for record, registry in zip(ledger["records"], ("NCT02729025", "NCT09999999")):
+            record["trial"] = registry
+            record["identity"] = registry
+        for fact in ledger["facts"]:
+            fact["study"] = ledger["records"][0]["trial"] if fact["ref"] == "ref_1" else ledger["records"][1]["trial"]
+        self.write_ledger(ledger)
+        self.assertTrue(self.run_render("Summary [[result:F001]] and [[result:F002]]."))
+        header = next(line for line in self.out.read_text(encoding="utf-8").splitlines() if line.startswith("| 维度 |"))
+        self.assertIn("**NCT02729025**<br>1 条披露", header)
+        self.assertIn("**NCT09999999**<br>1 条披露", header)
+        self.assertNotIn("NCT02729025 · ", header)
+        self.assertEqual(self.audit_data()["appendix_layout"], "trial-columns")
+
+    def test_appendix_label_prefers_a_readable_name_over_the_registry_id(self):
+        """A registry id carried by `trial`/`study` is a locator: the display name falls back to the
+        identity line's first segment, and the id stays on the second line where it belongs."""
+        ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
+        for record, registry, identity in zip(
+            ledger["records"],
+            ("NCT02729025", "NCT09999999"),
+            ("HARMONi-2（AK112-301）｜一线晚期 NSCLC｜III 期", "LUX-Lung 8｜二线鳞状 NSCLC｜III 期"),
+        ):
+            record["trial"] = registry
+            record["identity"] = identity
+        for fact in ledger["facts"]:
+            fact["study"] = "未报告" if fact["ref"] == "ref_1" else "NCT09999999"
+        self.write_ledger(ledger)
+        self.assertTrue(self.run_render("Summary [[result:F001]] and [[result:F002]]."))
+        header = next(line for line in self.out.read_text(encoding="utf-8").splitlines() if line.startswith("| 维度 |"))
+        self.assertIn("**HARMONi-2（AK112-301）**<br>NCT02729025 · 1 条披露", header)
+        self.assertIn("**LUX-Lung 8**<br>NCT09999999 · 1 条披露", header)
+
     def test_appendix_merge_fallbacks_for_legacy_ledgers(self):
         """v0.15 ledgers carry no `trial` key: registry id, then the study label, still merge them."""
         ledger = json.loads(self.ledger.read_text(encoding="utf-8"))

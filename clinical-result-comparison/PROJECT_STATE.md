@@ -1,6 +1,18 @@
 # Project State
 
-## 当前快照：2026-10-10（Phase 2「交付物不写运行物流」已原地发布；A-P10 门禁落地，R40 四组全绿）
+## 当前快照：2026-10-10（R41：药名成对字段 + 附录可读名 + humanizer 交接段已原地发布；R42 = Phase A）
+
+**R41（用户 2026-10-10 诉求 b/c + Phase A，已完成发布与四组回归）**：
+
+- **(c) 药名成对字段锐化**：把「中文报告药名」从软约束改成**可机械检查的硬规则** —— 记录自带 `arms[].drugs[].drug_earth_name_cn` / `_en`（`docs/params-tool-schema.md` 已在 ALLOWED_FIELD_NAMES 里），规则写成「中文报告 `_cn` 非空即用、英文报告用 `_en`；目标语言字段空/`未报告` 才回退另一语言并保源拼写；**永不音译/翻译/归一化/凭记忆映射/查外部字典**」。落点：prompt 5 处（命名段 / Plain entity names / final verification / entity 字段段 / 命名 bullet）、`SKILL.md` 2 段、`references/input-and-extraction.md`、`references/input-contract.md`。
+- **(b) 附录列头可读名优先**：`render-facts.py` 新增 `_identifier_only()`；`_column_label()` = 可读账本 `study` 名 → 可读记录 `trial` 名 → 可读 identity 首段 → 原始 study/trial → 注册号 → identity 首段；`_column_header()` **只在显示名本身是纯注册号时**才删第二行重复注册号（`研究甲（NCT05840016）` 这类保持原样，既有测试不动）。`APPENDIX_INTRO` + 四模板表头句同步；`test-render-facts.py` 26 → **28/28**。
+- **humanizer 交接段**：prompt / `SKILL.md` 各加一节，说明「中文报告 → `report-humanizer-zh`、英文报告 → `report-humanizer-en`，绝不同用；顺序 = 报告 → 账本渲染门禁 → 语言 pass；**本 prompt 优先于 humanizer 风格规则**」，并列明受保护集合（结构与小节标题、`原文核对：` 覆盖行、全部 `{{ref_n}}`、数值/单位/精度/日期、发表时间列与顺序、表格形态、图表 JSON 与 `::visualization` 路径、citation JSON、两个固定交付路径）。
+- **发布（原地）**：dist **102,716 B / 19 entries / sha `ab1efaccf624`**、prompt **v1.7 = 63,422 B / sha `78c1a2a71efe`**、Skill **v1.0.8**，`status` **in sync**（发布前 `deps` 报 2 条上游变化 = 我们自己新建的两个 humanizer skill 首次进基线 → 先 `deps --accept`）。
+- **R41 四组（2/4/18/14 esid）**：22 / 21 / 22 / 22 PASS，(b)(c) 均在真产物上验到（`**NCT02729025**<br>1 条披露` 不再重复注册号；中文药名出现 `卡瑞利珠单抗`15 / `替雷利珠单抗`50；场景 A 离线 **39/44 → 41/44**，`A-C1`/`A-C2` 由 FAIL 转 PASS）。
+- **R42 = Phase A（18/14 esid 的 humanizer 臂，对照 = 同 prompt 的 R41）**：21 PASS（1 FAIL = 模型重写辅助脚本被拒）/ 22 PASS。量化：18 esid 粗体 47→26（−45%）、12-gram 重复率 0.0911→0.0643（−29%），14 esid 方向相反（+33% / +24%）；**两臂 strong 命中均 0、`{{ref_n}}` 逐条相等**；代价 = 工具尝试 +45~51%、墙钟 +13~17%。**每臂 n=1 → 不宣称 humanizer 有可测收益**，默认策略仍是不强制。
+- **两条待办（都已给证据，未落盘，等点头）**：**F1** prompt 第 6 条文件写入纪律只覆盖报告正文 → 2/5 run 因重写辅助脚本（`scripts/build_ledger.py`、`scripts/digest.py`）触发 `write_file` 拒写；**F2** 同一观察身份词在报告内混用（`每月` 3 次 vs `Q4W` 9 次，源文只有 `monthly`）→ 图表 label 取 `Q4W` 使 `A-S9`/`A-S9b`/`A-S10` 三项 FAIL（41/44），改法 = prompt/SKILL 加「一套写法」+ `scenario-a.facts.json` 该观察 `identity_patterns` 放宽到 `每月|每月一次|QM|Q4W`。
+
+## 历史快照：2026-10-10（Phase 2「交付物不写运行物流」已原地发布；A-P10 门禁落地，R40 四组全绿）
 
 **Phase 2（用户第二诉求，2026-10-10 已完成）**：把「抓取受限 / 无外网 / 运行环境」这类**我们这一侧的取回过程**从对比 skill 里整体移除，只留**材料/来源属性 + 分析深度**，并把它变成**机械门禁**而不是口号。
 

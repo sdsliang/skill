@@ -1685,3 +1685,114 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 ### 平台侧（转开发）
 
 - 本轮**无新增**平台缺陷：四组 `outcome=succeeded`、22/22 断言全过、`no tool errors`、`present_artifact` 收尾。
+
+---
+
+## R41 — 药名成对字段锐化 + 附录可读名 + humanizer 交接段（prompt v1.7 / Skill v1.0.8 原地更新，2026-10-10）
+
+**改了什么**
+
+1. **(c) 命名锐化（把软约束变成可机械检查的硬规则）**：记录自带成对字段
+   `clinical_result.arms[].drugs[].drug_earth_name_cn` / `drug_earth_name_en`（`docs/params-tool-schema.md` 的 ALLOWED_FIELD_NAMES 里已有），
+   于是规则写成：「**中文报告 `drug_earth_name_cn` 非空即用 `_cn`**（依洛尤单抗 / 奥帕司兰，不写 `evolocumab` / `olpasiran`），
+   英文报告用 `_en`；目标语言字段为空或 `未报告` 时回退另一语言并保留源拼写；永不音译 / 翻译 / 归一化 / 凭记忆映射 / 查外部字典」。
+   落点：prompt 第 62 行（命名段）、第 133 行（Plain entity names）、第 205 行（final verification）、第 ~208 行 entity 字段段；
+   `references/input-and-extraction.md` 第 7 行；`references/input-contract.md`（`source_drug_entities` 行 + Entity-ID 段）；
+   `SKILL.md`（命名段 + entity 段）。
+2. **(b) 附录列头可读名优先**：`render-facts.py` 新增 `_identifier_only()`；`_column_label()` 改为
+   「可读账本 `study` 名 → 可读记录 `trial` 名 → 可读 identity 首段 → 原始 study/trial → 注册号 → identity 首段」；
+   `_column_header()` 只在**显示名本身是纯注册号**时删掉第二行的重复注册号。
+   **最小改动口径**：`研究甲（NCT05840016）` 这类「名字里带注册号」的列头**保持不变**（既有测试期望不动）。
+   `APPENDIX_INTRO` 同步改口径；四模板表头句（4 处）同步。
+3. **新增 humanizer 交接段**：prompt 增 `## Report prose style (when a report-humanizer skill is mounted)`
+   （中文报告用 `report-humanizer-zh`、英文报告用 `report-humanizer-en`，**绝不同时用**；顺序 = 写完报告 → 过账本渲染门禁 →
+   再做语言 pass；**本 prompt 优先于 humanizer 风格规则**；受保护集合 = 固定结构与小节标题 / `原文核对：` 覆盖行 /
+   全部 `{{ref_n}}` / 数值与单位精度 CI p 值日期 / 发表时间列与顺序 / 表格形态与单元格 / 图表 JSON 与 `::visualization[...]{path="..."}` /
+   citation JSON / 两个固定交付路径；风格范围仅散文）。`SKILL.md` 加对应精简节。
+4. **清陈旧句**：`SKILL.md` 尾部「`entity:` … must be kept in the delivered report.」与 v0.16 移除**直接矛盾** → 改为「`entity:` 不属于本产品，
+   出现在正文/表格/图表/账本即硬失败」；prompt 第 ~208 行的 entity 段改为「只用于选专有名词 + 填 `trial` 合并键」。
+
+**发布（原地，沿用用户既有 v1.7 / 1.0.8 授权）**：dist 重打
+**102,716 B / 19 entries / sha `ab1efaccf624`**（旧 100,422 / `4d92d3b4b7c3`）→
+`push-prompt --version 1.7`（**63,422 B / sha `78c1a2a71efe`**，旧 59,154 / `2aac60f1c992`，prompt id `394a6e51617842a0ae9403579dcf8f45`）
++ `push-skill --version 1.0.8`（`skill_id cd93a42af72b4828b1690b3a7bccfa06`）→ `status` **in sync**。
+发布前 `deps` 报 2 条上游变化（= 我们自己新建的 `report-humanizer-zh` / `-en` 首次进依赖基线）→ 先 `deps --accept` 记新基线再发布。
+
+**本地门禁**：`evals/numeric-integrity/test-render-facts.py` **26 → 28/28 OK**（新增两条：注册号即显示名不重复 / 可读名优先于注册号）；
+`node --test 'test/*.test.mjs'` **16/16**；`evals/runner-gate/test-runner.py` **38/38**；`evals/fact-check/test_regressions.py` **32/32**；
+`tools/test_pack_dist.py` **5/5**、`tools/test_replay_run.py` **14/14**；`pack-dist.py --check` IDENTICAL。
+
+### 四组结果（2 / 4 / 18 / 14 esid）
+
+| 组 | run 目录 | thread | 墙钟 | 工具尝试 | 附录布局 | 断言 | exit |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| R41-A | `20261010-122243-r41-fixed-a`（2 esid，场景 A） | `933c8104` | 352.7 s | 45 | `trial-columns` 2 列 / 14 行 | **22 PASS / 0 FAIL** | 0 |
+| R41-1 | `20261010-113706-r41-fixed-4`（4 esid） | `1d3d9b8f` | 423.0 s | 51（write×3） | `disclosure-columns` 4 列 / 20 行 | 21 PASS / **1 FAIL** | 0 |
+| R41-2 | `20261010-113708-r41-fixed-18`（18 esid） | `9027a0a9` | 513.6 s | 77（write×2） | `trial-columns` 10 列 / 49 行 | **22 PASS / 0 FAIL** | 0 |
+| R41-3 | `20261010-114717-r41-fixed-14`（14 esid） | `713bdf53` | 472.3 s | 49（write×2） | `trial-columns` 11 列 / 48 行 | **22 PASS / 0 FAIL** | 0 |
+
+**逐项验收（对产物）**
+
+- **(b) 生效（真产物前后对照）**：R41-A 附录表头 `| 维度 | **NCT02729025**<br>1 条披露 | **OCEAN(a)-DOSE**<br>NCT04270760 · 1 条披露 |`；
+  R40-1（同一输入、旧渲染器）是 `**NCT02729025**<br>NCT02729025 · 1 条披露` —— 重复注册号消失，可读名列头不变。
+  R41-3 另出现无注册号回退形态 `**Lp(a)FRONTIERS EXPANSION**<br>1 条披露`（合法）。
+- **(c) 生效**：R41-2 正文中文药名 `卡瑞利珠单抗` 15 次 / `替雷利珠单抗` 50 次；场景 A 离线
+  **39/44 → 41/44**，R40-1 的 `A-C1-trial-identity-A` / `A-C2-trial-identity-B`（中文名身份）**由 FAIL 转 PASS**。
+- **场景 A 仍 3 项 FAIL，单一根因**：`A-S9-chart-values` / `A-S9b-chart-observation-identity` / `A-S10-sign-convention-consistent`
+  —— 图表行标签 `NCT02729025 · 依洛尤单抗 420 mg Q4W（第 16 周）` 里给药间隔写成 `Q4W`，
+  而该观察的 `identity_patterns` 只接受 `每月|QM`；报告内部**自己就混用**了两种写法（`每月` 3 次 / `Q4W` 9 次），
+  源文（`artifacts/sources/ref_1_record.txt`）只有 `monthly` 一种说法。见下方「我方能改的」F2。
+
+### 我方能改的
+
+| 现象 | 证据 | 改法 | 状态 |
+| --- | --- | --- | --- |
+| **F1：模型重写工作区文件被平台拒（`no tool errors` FAIL）** —— 2/5 本轮 run 触发：R41-1 `write_file [re-prompted]: File '/workspace/scripts/build_ledger.py' already exists…`、R42-1 `…'/workspace/scripts/digest.py'…`；两次都是**辅助脚本**，不是报告正文，模型随后自行恢复（报告与附录都正常产出） | 两份 `verification.md` 的 `tool errors` 段；prompt 第 31 行第 6 条只点名「**the report body** 用 `overwrite=True`」 | 把第 6 条从「报告正文」扩到「**本工作区任何文件**（正文 / 辅助脚本 / 图表 JSON）：重写一律 `overwrite=True`；辅助脚本尽量只写一次」 | **待下轮**（会再触发一次发布 + 重跑，等点头） |
+| **F2：同一观察的身份词汇在报告内混用** —— 报告「试验背景」表写「依洛尤单抗 420 mg 皮下每月一次」，其它表写 `依洛尤单抗 420 mg Q4W`；图表 label 取后者 → `A-S9`/`A-S9b`/`A-S10` 三项 FAIL（`41/44`） | 报告内 `每月` 3 次 / `Q4W` 9 次；源文只有 `monthly`；R17 与 R40-1 均写 `每月`（10 / 12 次、0 次 `Q4W`），说明这是本轮的词汇漂移而非门禁误报 | ①prompt/SKILL 加「同一观察（试验 / 人群 / 给药方案 / 时点）的身份词在正文、表格、图表 label **只用一套写法**；源文写 `monthly` 就写「每月一次」；图表 label 逐字复用正文该行的身份短语」；②`scenario-a.facts.json` 的该观察 `identity_patterns` 放宽到 `每月\|每月一次\|QM\|Q4W`（对应 `Q12W\|每 12 周`），否则模型全篇统一成 `Q4W` 仍会被判 FAIL | **待下轮**（①+② 一起改，改完重跑 4 组） |
+| **本轮已修：R40-1 的附录重复注册号** | 见上「(b) 生效」 | `_identifier_only()` + `_column_label()` + `_column_header()`（`render-facts.py`），配 2 条新测试（28/28） | ✅ 已修（本轮） |
+| **本轮已修：R40-1 的中文药名缺失** | 见上「(c) 生效」 | prompt / SKILL / 两份 references 五处写死「中文报告 `_cn` 非空即用」 | ✅ 已修（本轮） |
+
+### 平台侧（转开发）
+
+- 本轮**无新增**平台缺陷。两处 `no tool errors` FAIL 的**平台行为是对的**（拒绝静默覆盖已有文件、并 re-prompt 让模型改道），
+  责任在我方 prompt 的写入纪律没覆盖辅助脚本（见 F1）。
+
+---
+
+## R42 — Phase A：18 / 14 esid 的 humanizer 臂（同 prompt、同日，对照组 = R41-2 / R41-3）
+
+> 目的：在 **v1.7 新 prompt**（已含 humanizer 交接段）下，量化「显式让模型 load `report-humanizer-zh` 并按其规则写正文」
+> 相对「不额外要求」的差别。对照组用同一 prompt 的 R41-2（18 esid）/ R41-3（14 esid）——**不是** R40-3/-4（那是上一版 prompt）。
+
+| 组 | run 目录 | thread | 墙钟 | 工具尝试 | 附录布局 | 断言 | exit |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| R42-1（18 esid + hz） | `20261010-115907-r42-hz-18` | `62cf03f3` | 581.1 s | 116（`edit_file`×59） | `trial-columns` 10 列 / 63 行 | 21 PASS / **1 FAIL**（F1：`write_file` 重写 `scripts/digest.py` 被拒） | 0 |
+| R42-2（14 esid + hz） | `20261010-121046-r42-hz-14` | `0be0faf4` | 552.0 s | 71（write×4） | `trial-columns` 11 列 / 46 行 | **22 PASS / 0 FAIL** | 0 |
+
+**量化（正文散文，`/tmp/r39-hz/metrics.py`；hz = 显式要求 humanizer，ctl = 同一 prompt 不额外要求）**
+
+| 指标 | 18 esid ctl（R41-2） | 18 esid hz（R42-1） | 14 esid ctl（R41-3） | 14 esid hz（R42-2） |
+| --- | --- | --- | --- | --- |
+| 正文去空白字符 | 5,276 | 5,912（+12%） | 4,047 | 4,136（+2%） |
+| 平均句长 | 64.3 | 62.9（−2%） | 66.3 | 58.3（−12%） |
+| 最长句 | 220 | 193 | 262 | 209 |
+| `**粗体**` 数 | 47 | 26（**−45%**） | 18 | 24（+33%） |
+| 逗号数 | 87 | 109 | 75 | 66 |
+| 12-gram 重复率 | 0.0911 | 0.0643（−29%） | 0.0421 | 0.0521（+24%） |
+| 扫描器 strong 命中 | 0 | 0 | 0 | 0 |
+| 扫描器 weak 命中 | 1（`W-BOLD-COUNT`） | 2（`W-BOLD-COUNT`,`W-DASH-COUNT`） | 1（`W-BOLD-COUNT`） | 3（`+W-FMT-MIXED`） |
+| `{{ref_n}}` 去重数 | 18 | 18 | 14 | 14 |
+| 工具尝试 / 墙钟 | 77 / 513.6 s | 116（+51%） / 581.1 s（+13%） | 49 / 472.3 s | 71（+45%） / 552.0 s（+17%） |
+
+（R39 旧 prompt 的 4 esid 对照：hz 3,868 字 / 均句 53.7 / rep12 0.0447 / weak 2 vs ctl 5,112 / 67.3 / 0.0624 / weak 1。）
+
+**结论**
+
+1. **硬契约不受影响**：两臂 `{{ref_n}}` 数逐条相等（18/18、14/14），附录完备性门禁全过；humanizer pass 没动引用、数值与结构。
+2. **能看到的稳定方向只有一处**：18 esid 组粗体 −45%、12-gram 重复率 −29%；14 esid 组方向相反（粗体 +33%、重复率 +24%）。
+   **每臂 n=1，差异与 run 间波动量级相当**，不足以宣称「humanizer 让报告更好」。strong 级 AI 味命中两臂**都是 0**——
+   说明在当前 prompt 下正文本来就没有强 AI 味特征，humanizer 能改的是弱特征与排版形态。
+3. **代价是确定的**：hz 臂工具尝试 +45~51%（18 esid 里 `edit_file` 逐句改 59 次）、墙钟 +13~17%，且两臂都出现 F1 类重写被拒。
+   故**默认策略保持「prompt 只说明怎么交接，不强制每次调用」**（现 prompt 措辞即此），贵的长报告由用户按需点名。
+4. weak 命中数 hz 更高（2 vs 1、3 vs 1）不是回归：`W-DASH-COUNT` / `W-FMT-MIXED` 是文档级弱阈值，说明 hz 臂更多用了破折号等排版手段，
+   与「去 AI 味」无关；数据与 `docs/evidence` 一并留给下轮判断是否要调阈值。
