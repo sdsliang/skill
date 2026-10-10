@@ -44,3 +44,7 @@ python3 -B evals/test-tell-scan.py  ->  report-humanizer-zh machine gate: 22/22 
 - [ ] **是否发布到 ToolSmith**：需要 (a) 用户授权；(b) 用户在 TS 侧建 skill family；(c) `~/.config/toolsmith/projects.json` 增加本项目条目（`owned: true`）；(d) `toolsmith-publish push-skill` + `status` 回读。
 - [ ] 项目 / skill / 目录命名是否沿用 `report-humanizer-zh`（用户可能想改中文名，如「报告去 AI 味（中文）」）。
 - [ ] 发布后补一次真跑（`toolsmith-publish run`）并记台账。
+
+## Git
+
+首次纳入版本控制：commit `4e88724`（分支 `v0.15-remove-html`，已推送 `origin`）。

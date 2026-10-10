@@ -44,3 +44,7 @@ python3 -B evals/test-tell-scan.py  ->  report-humanizer-en machine gate: 22/22 
 - [ ] **Publish to ToolSmith?** Requires (a) user authorisation, (b) a platform-side skill family, (c) a `~/.config/toolsmith/projects.json` entry with `owned: true`, (d) `toolsmith-publish push-skill` followed by a `status` read-back.
 - [ ] Confirm the project / skill / directory naming (`report-humanizer-en`).
 - [ ] After publishing, run one real `toolsmith-publish run` and record it in the project log.
+
+## Git
+
+First committed as `4e88724` (branch `v0.15-remove-html`, pushed to `origin`).
