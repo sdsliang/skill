@@ -14,7 +14,7 @@
 | `skill/report-humanizer-zh/references/patterns-zh.md` | A1–A10 结构级、B1–B10 措辞级、C1–C7 中文特有、D1–D3 草稿残留；每条〔强〕/〔弱〕+ 报告场景前后对照；末节说明与扫描器编号的关系 |
 | `skill/report-humanizer-zh/references/naming-bilingual.md` | 药名流程：常识优先 → 宿主成对字段 → 字典工具（`report-query-drug` / `pharmcube-mcp-drugBaseLiteCN` / Linking API `drug`）→ 方向性回退（**英→中保留英文原名；中→英用拼音**）；其它实体与格式统一 |
 | `skill/report-humanizer-zh/references/examples.md` | 3 组整段前后对照（结论段 / 疗效段 / 安全性段）+「应当保留」边界；每例标出必须逐字保留的锚点 |
-| `skill/report-humanizer-zh/scripts/tell-scan.py` | 零依赖双语扫描器，20,943 B，与英文版**逐字节一致** |
+| `skill/report-humanizer-zh/scripts/tell-scan.py` | 零依赖双语扫描器，21,351 B，与英文版**逐字节一致** |
 | `evals/test-tell-scan.py` | 机械闸门 22 项（18 项基础 + 2 项 examples 自洽性 + 2 项误报回归） |
 | `evals/fixtures/` | `ai-flavored.zh.md` / `humanized.zh.md` / `keep.zh.md` / `weak-only.zh.md` / `facts.zh.json` |
 

@@ -13,7 +13,7 @@ report-humanizer-zh/
 │   ├── references/patterns-zh.md       # 30 条问题清单（A 结构级 / B 措辞级 / C 中文特有 / D 草稿残留），每条〔强〕〔弱〕+ 报告场景对照
 │   ├── references/naming-bilingual.md  # 实体与药名中英写法：常识优先 → 查字典 → 方向性回退
 │   ├── references/examples.md          # 3 组整段前后对照 + 「应当保留」边界
-│   └── scripts/tell-scan.py            # 零依赖双语扫描器（与英文版逐字节一致）
+│   └── scripts/tell-scan.py            # 零依赖双语扫描器，21,351 B（与英文版逐字节一致）
 └── evals/
     ├── test-tell-scan.py               # 机械闸门 22 项（直接运行，不要用 unittest discover）
     └── fixtures/                       # ai-flavored / humanized / keep / weak-only + facts.json

@@ -13,7 +13,7 @@ report-humanizer-en/
 │   ├── references/patterns-en.md       # 26 entries (A structural / B wording and rhythm / C inflation / D formatting / E leftovers / F wrong reader / G report-specific) with [strong]/[weak] marks
 │   ├── references/naming-bilingual.md  # English/Chinese naming: common knowledge → dictionary → directional fallback
 │   ├── references/examples.md          # 3 full-paragraph before/after pairs + "should be kept" boundaries
-│   └── scripts/tell-scan.py            # dependency-free bilingual scanner (byte-identical to the Chinese twin)
+│   └── scripts/tell-scan.py            # dependency-free bilingual scanner, 21,351 B (byte-identical to the Chinese twin)
 └── evals/
     ├── test-tell-scan.py               # 22-check machine gate (run directly, never via unittest discover)
     └── fixtures/                       # ai-flavored / humanized / keep / weak-only + facts.json

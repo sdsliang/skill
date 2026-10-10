@@ -14,7 +14,7 @@ English report de-AI-flavoring Skill: **content and machine gate complete and gr
 | `skill/report-humanizer-en/references/patterns-en.md` | 26 entries: A structural, B wording and rhythm, C inflation/certainty/sales language, D formatting, E leftovers, F wrong reader, G report-specific, each marked [strong] or [weak] with before/after pairs; closes with how the `S-*`/`W-*` scanner ids relate to these entries |
 | `skill/report-humanizer-en/references/naming-bilingual.md` | Naming flow: common knowledge → host-returned paired fields → one dictionary lookup (`report-query-drug` / `pharmcube-mcp-drugBaseLiteCN` / Linking API `drug`) → directional fallback (**English → Chinese keeps the English name; Chinese → English uses pinyin**); other entities and format consistency |
 | `skill/report-humanizer-en/references/examples.md` | 3 full-paragraph before/after pairs (pipeline status / trial readout / safety and market access) + "should be kept" boundaries, each with verbatim anchors |
-| `skill/report-humanizer-en/scripts/tell-scan.py` | Dependency-free bilingual scanner, 20,943 B, **byte-identical** to the Chinese copy |
+| `skill/report-humanizer-en/scripts/tell-scan.py` | Dependency-free bilingual scanner, 21,351 B, **byte-identical** to the Chinese copy |
 | `evals/test-tell-scan.py` | 22-check machine gate (18 base + 2 examples self-containment + 2 false-positive regressions) |
 | `evals/fixtures/` | `ai-flavored.en.md` / `humanized.en.md` / `keep.en.md` / `weak-only.en.md` / `facts.en.json` |
 
