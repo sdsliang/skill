@@ -22,6 +22,8 @@ Assign any applicable flags internally and expose them when they affect interpre
 
 ## Evidence worksheet
 
+**The mechanical half of this worksheet is already scripted — run it, do not re-do it by hand.** `python3 /workspace/skills/multi-clinical-result-comparison/scripts/prep_sources.py` takes the pull (`--esids` in selection order, or `--esids-file`) and writes one readable file per ref (`work/sources/ref_<n>.txt`: metadata lines plus the body, arms and study results) and `work/refs.json` (title/link/release date plus the clinical identity fields), numbering refs over the records that **returned** and reporting any missing esid without giving it a number. `python3 /workspace/skills/multi-clinical-result-comparison/scripts/build_ledger.py` then compiles and validates the fact ledger against those source files. `references/toolbox.md` lists both with their exact CLI and exit codes. Pass in only the genuinely clinical judgement; do not write a replacement parser, and do not re-read the raw pull by hand to recover anything these files already carry.
+
 Build the following worksheet independently for every source.
 
 ### Identity and timing

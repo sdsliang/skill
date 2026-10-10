@@ -7,7 +7,8 @@ scratch space).
 
 Contract (byte-stable for an unchanged worktree — `toolsmith-publish status` compares the
 deployed zip against this output by member and by bytes):
-  - 20 entries: SKILL.md + references/*.md + templates/*.md + templates/charts/*.json + scripts/*.py
+  - 26 entries: SKILL.md + references/*.md + templates/*.md + templates/charts/*.json + scripts/*.py
+    (R48: scripts grew from 1 to 7 and `references/toolbox.md` was added)
   - arcname prefix `multi-clinical-result-comparison/`
   - fixed date_time stamp, Unix creator, 0644 external_attr, deflate level 6
   - hard checks (also under python -O): exact entry count, no cache/metadata leakage
@@ -38,7 +39,7 @@ VERSION = "v0.16"
 OUT = os.path.join(REPO, "dist", f"multi-clinical-result-comparison-{VERSION}.zip")
 PREFIX = "multi-clinical-result-comparison/"
 STAMP = (2026, 9, 10, 0, 0, 0)
-EXPECTED = 19
+EXPECTED = 26
 COMPRESS_LEVEL = 6
 
 

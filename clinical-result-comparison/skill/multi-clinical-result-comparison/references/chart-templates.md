@@ -38,14 +38,15 @@
 
 ## 二、怎么用
 
-1. **先复制图表 skill 的模板拿到 envelope**（不要直接改模板文件，也不要把本 skill 的临床起点当成品）：
-  `mkdir -p /workspace/visualizations && cp /workspace/skills/chart-visualization-json/templates/bar.json /workspace/visualizations/endpoint-bar-1.json`
-   ——复制来的 `id` / `iframe_template` / `option` 三键**原样保留**，`iframe_template` 每次发布都会变，本 skill 文档里没有、也不该有这个值。
-2. **只替换 `option` 内层**：把 `option` 内的 `data[]` 与文案换成该次运行的临床内容；内容可从本 skill 临床起点
-   `templates/charts/endpoint-bar.json` 拷进去（它是 **`option` 内层，直接当成品校验会报「未包 envelope」**）。
-   只改数据与文案字段：`title`/`subTitle`/`dataSource`/`describe`/`axisXTitle`/`axisYTitle` 与 `data[]`
-   （及 timeline 的 `legend`/`weightLegend`/`time`/`weight`/`content`）。JSON 无注释；不要加 HTML/注释/尾逗号。
-3. **用图表 skill 的 CLI 校验**（见下「自检」），全部 PASS 后再在正文引用；FAIL 则按输出的 JSON path 修正后重跑，直到 PASS。
+1. **只写「内容 spec」，组装与校验交给 `python3 /workspace/skills/multi-clinical-result-comparison/scripts/make_chart.py`**（**不要**自己 `cp` 模板、**不要**手拼 envelope、**不要**自己改 `option` 内层、**不要**手写成品 JSON）：spec 顶层写 `type`（`bar`/`line`/`timeline`）、`file`（固定成品名，如 `endpoint-bar-1.json`）、`title`/`subTitle`/`dataSource`/`describe`、`axisXTitle`/`axisYTitle`（bar/line）与 `data[]`，然后
+
+```bash
+python3 /workspace/skills/multi-clinical-result-comparison/scripts/make_chart.py work/charts/endpoint-bar-1.json
+```
+
+   脚本会从本 skill `templates/charts/` 取 `option` 骨架、从**运行期** chart skill 取 envelope（`id` / `iframe_template` / `option` 三键；`iframe_template` 每次发布都会变，本 skill 文档里没有、也不该有这个值）、写入 `/workspace/visualizations/<固定成品名>` 并跑上游 CLI 校验。`--sort auto|none|value-desc|value-asc|time-asc`（默认 bar `value-desc`、line `none`、timeline `time-asc`）由脚本负责排序，不必自己排。完整 CLI / 退出码见 `references/toolbox.md`。
+2. **只改内容字段**：`title`/`subTitle`/`dataSource`/`describe`/`axisXTitle`/`axisYTitle` 与 `data[]`（及 timeline 的 `legend`/`weightLegend`/`time`/`weight`/`content`）。JSON 无注释；不要加 HTML/注释/尾逗号（脚本会校验结构、`data` 非空与数值形态）。
+3. **`make_chart.py` 退出码 `0`（已写且校验通过）后才在正文引用**；`3` = 结构问题（缺 `label`/`description`、`data` 为空或非数值、timeline 缺 `time`、line 缺 `group`、`file` 与 `type` 不符）**且不写文件**，按提示修 spec 重跑；`4` = 成品已写但校验器不可用，**必须如实说明「未校验」，不得当已校验**。详见下方「自检」。
 4. 正文中用 `::visualization[标题]{path="/workspace/visualizations/endpoint-bar-1.json"}` **绝对路径**引用（workspace 文件 + 引用通道），独占一行；图前后保留解释文字与 `{{ref_n}}` 标记。
    - 交付：文件**先写入** `/workspace/visualizations/`，再引用；引用路径必须从 `/workspace/visualizations/` 开头。
    - 降级：接入方不支持渲染时，正文保留文字结论 + 精确数值表 + 下载链接。
@@ -71,8 +72,7 @@
 
 ### 自检（硬步骤，必跑）
 
-**生成后自检（硬步骤，必跑）**：先确认成品顶层是 envelope 三键（`id` / `iframe_template` / `option`），不是平铺的 `option`；
-再对每个成品运行图表 skill 的校验命令：
+**生成后自检（硬步骤，必跑）**：`make_chart.py` 已把成品写成 envelope 三键（`id` / `iframe_template` / `option`）并跑过一次上游 CLI；交稿前再用 `python3 /workspace/skills/multi-clinical-result-comparison/scripts/check_report.py`（它会检查每个 `::visualization` 目标是否存在、envelope 键是否恰为三键、`data` 是否非空、`type` 与文件名是否一致）确认引用面，并在需要时手动复跑上游校验命令：
 
 ```bash
 node /workspace/skills/chart-visualization-json/scripts/validate-cli.js /workspace/visualizations/endpoint-bar-1.json

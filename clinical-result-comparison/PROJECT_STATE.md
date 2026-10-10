@@ -1,6 +1,22 @@
 # Project State
 
-## 当前快照：2026-10-10（R47：O43 结案 + O40/O41 报告侧习惯句已原地发布；四组真跑 + 耗时 A/B）
+## 当前快照：2026-10-10（R48：随包六脚本 + 单遍正文 + 合批调用；**已原地发布并六次真跑验证**）
+
+**R48（用户答复「L2-4都想要」）**：三条速度杠杆**同轮**落地（覆盖先前「一次一个杠杆」的纪律），归因改用「历史 16 run 基线 + per-lever 签名」。**本轮不动评分器、不改 runner。**
+
+- **触发（决定性证据，`/tmp/l2/attr.py`）**：自写脚本 + heredoc 占各 run 输出 **25–55%** —— `r47-14` 11 个一次性脚本共 59,598 out tokens（`scripts/` 61,470 B，单个最大 `build_ledger.py` 36,753 B）；`r47-a` `report prose draft.md` 13,978 + `execute: other` 17,919；`r47-18` 自写脚本 36,511 B。**根因 = R45「`edit_file` 只限报告正文」把模型逼成「用一次性脚本原地打补丁」。**
+- **L2 随包发脚本（6 个新文件）**：`scripts/prep_sources.py` / `build_ledger.py` / `patch.py` / `check_report.py` / `make_chart.py` / `make_citations.py`；**不共享 `_lib.py`**、写入点一律 `except OSError` → 一行 `ERROR: cannot write …` + exit 2；契约集中写在新增 `references/toolbox.md`（精确 CLI/IO/退出码），并写进 SKILL.md 支持文件清单。测试 `evals/scripts/test-skill-scripts.py` **54/54 OK（15.0 s）**（`subprocess` 直跑六脚本 + 真 `render-facts.py` 端到端链 + 每条「应当失败」配一条「应当通过」邻居）。
+- **L3 单遍正文**：`work/draft.md` 从流水线移除；带 `[[fact:…]]` token 的正文直接写 `/workspace/output/report.md`，一次 `render-facts.py` **原地**渲染（`--draft` == `--out`，已证 `_atomic_write` 先读后写）；后续小改走 `patch.py`。落在 prompt 第 6 条 + 输出契约段 + `SKILL.md` 9/9b + `references/file-delivery.md`、`citation-and-ref.md`、`input-and-extraction.md`、`chart-templates.md`。
+- **L4 合批调用**：prompt 第 7 条目标 **≤ ~25–30 tool calls**；禁止「写 N 分块再拼接」「重复读同一文件」「手工复查脚本已校验的产物」。
+- **运行时路径**：Skill 挂在 `/workspace/skills/multi-clinical-result-comparison/`，六脚本按绝对路径调用（`python3 /workspace/skills/multi-clinical-result-comparison/scripts/<name>.py`）；裸 `scripts/…` 在 cwd `/workspace` 不解析，本轮已把该事实写进 prompt/SKILL.md/toolbox.md/各 reference 与脚本 usage。
+- **打包**：`tools/pack-dist.py` `EXPECTED` 19 → **26**；dist **138,171 B / 26 entries / sha256 `bf0c9cf84ecf`**，`--check` IDENTICAL。
+- **本地门禁全绿**：`py_compile` 六文件 OK；`test-skill-scripts.py` 54；`test_pack_dist.py` 5；`test_replay_run.py` 14；`test-runner.py` **40**（R48 +1）；`test_regressions.py` 35；`test-render-facts.py` 28；Node 16/16；`verify-run-chain.py` `GATE: PASS`（5 可比）；`mutations.py` `arm a 44/44` + `arm b 12/12` + `never flipped []`；`deps` = `unchanged since the recorded baseline`。**计数纪律更新**：**164 = 40 + 35 + 19 + 16 + 54**（numeric-integrity 28 单列）。
+- **发布（用户「原地」）**：`push-prompt --version 1.7` / `push-skill --version 1.0.8` 均 HTTP 200、回读 `matches_local=True`；`status` = **in sync**（zip `entries=26 identical=26 differing=0 missing=0`）；版本标签不变（prompt v1.7 / skill v1.0.8）。
+- **六次真跑 + per-lever 归因**：`r48-a` 28 attempts / 312.9 s / 21 PASS 1 FAIL（模型侧 `read_file offset 越界`）、`r48-4` 42 / 391.1 s、`r48-18`（首次 `inconclusive`，复跑）59 / 496.0 s、`r48-14` 28 / 303.4 s（后三组的 FAIL 均为 **O45**）；修 O45 后 `r48-4b` 51 / 425.9 s、`r48-a2` 45 / 359.5 s **均 22 PASS / 0 FAIL**。**L2**：`artifacts/scripts/` 四组全空（基线 r47-14 为 11 脚本 / 61,470 B ≈ 54% 输出），六脚本每轮全部使用；**L3**：四组皆无 `work/draft.md`、`write_file` 降至 2–3 次整文件写；**L4**：attempts 40→**28** / 56→**42** / 56→59（持平）/ 66→**28（−58 %）**，墙钟 −10 % / −24 % / +2 % / **−47 %**，`read_file` 仍 8–20 次/run。out token −34 % ~ +18%，**不作为判据**。离线 scenario a：r48-a **43/44**（= R47 基线）、r48-a2 40/44（该 run 漏了机制句，属 run 间覆盖率差异；`A-C7` 词形缺口 = 新 O47）。
+- **本轮新增 O 条目**：**O45**（runner 收据正则不认全角 `）` 等 CJK 标点，3/4 组 FAIL；`_RECEIPT_STOP` 重建 `TOOL_RESULTS_RX` + 回归测试 + 离线重放四组全转 PASS，备份 `toolsmith-publish.v16.bak`）、**O46**（模型 `read_file offset` 越界 1/2 组 ⇒ R49 内容轮加硬规则）、**O47**（`A-C7` 只认「第 ?16 ?周」，1 样本 ⇒ 待样本）。
+- **未做**：O46 的 prompt 硬规则（R49）、O44/O47 等第 2 份样本、O40 报告侧机制在新样本上的复现观察。R48 台账节已落 `docs/toolsmith-verification-log.md`。
+
+## 历史快照：2026-10-10（R47：O43 结案 + O40/O41 报告侧习惯句已原地发布；四组真跑 + 耗时 A/B）
 
 **R47（用户答复「改吧」+「分析下 2–3 条结果也要 5min+ 的耗时分布」）**：按「一次内容改动一轮」纪律，本轮只装 **O43 + O40/O41 报告侧习惯句**；**耗时优化另开 R48 提案**。
 

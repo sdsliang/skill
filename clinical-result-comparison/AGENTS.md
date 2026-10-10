@@ -9,6 +9,21 @@
 
 ---
 
+## 当前交接（2026-10-10 R48 完成：随包六脚本 L2 + 单遍正文 L3 + 合批调用 L4；**已原地发布并六次真跑验证**）
+
+**触发**：R47 的 per-step token 归因（`/tmp/l2/attr.py`）——自写脚本 + heredoc 占各 run 输出 25–55%（`r47-14`：11 个一次性脚本共 59,598 out tokens；`r47-a`：`report prose draft.md` 13,978 + `execute: other` 17,919；`r47-18`：自写脚本 36,511 B），根因是 R45「`edit_file` 只限报告正文」把模型逼成「用一次性脚本原地打补丁」。用户「L2-4都想要」⇒ 三条杠杆同轮落地，归因改用**历史 16 run 基线 + per-lever 签名**。
+
+1. **L2 — 六个随包脚本已入库**（`skill/multi-clinical-result-comparison/scripts/`，与既有 `render-facts.py` 并列）：`prep_sources.py`（拉取 → `work/sources/ref_<n>.txt` + `work/refs.json` + digest；`--tool-results` 默认 FALLBACK 链 `/workspace/tool_results` → `tool_results` → `/workspace/work/tool_results`）、`build_ledger.py`（facts → 严格 `work/ledger.json`，唯一的校验点；`--check`/`--stats`）、`patch.py`（带断言原子替换：`--count`/`--insert-after`/`--dry-run`；**`--find` 取值以 `-` 开头必须用 `--find=<text>` 等价形式**）、`make_chart.py`（只写内容 spec，envelope 从运行期 chart skill 现取）、`make_citations.py`（引文 JSON，键 = 报告实引 ref）、`check_report.py`（交稿机械检查；退出码 0/3/4/2，`--vis-prefix` 供镜像/测试布局覆写）。**六脚本各自内联小工具函数、不共享 `_lib.py`**；所有写入点 `except OSError` → 一行 `ERROR: cannot write …` + exit 2，**不吐 traceback、不半写文件**。契约文档 = 新增 `references/toolbox.md`（精确 CLI/IO/退出码），写进 SKILL.md 支持文件清单，**取代「读源码/自己拼 envelope」的步骤**。
+2. **L3 — 正文只写一次**：`work/draft.md` 从流水线移除；带 `[[fact:…]]` token 的正文直接写 `/workspace/output/report.md`，再用**一次** `render-facts.py` **原地**渲染（`--draft` == `--out`，已证 `_atomic_write` 先读后写、安全）；后续小改走 `patch.py`。落在 prompt 第 6 条 + `SKILL.md` 第 9/9b 项 + `references/file-delivery.md` + 输出契约段。
+3. **L4 — 合批调用**：prompt 第 7 条给出**目标 ≤ ~25–30 tool calls**；禁止「写 N 个分块再拼接」「重复读同一文件」「手工复查脚本已校验过的东西」。
+4. **本地门禁（全绿）**：`py_compile` 六文件 OK；`evals/scripts/test-skill-scripts.py` **54/54 OK（15.0 s）**；`test_pack_dist.py` 5；`test_replay_run.py` 14；`test-runner.py` **40**（R48 +1：`test_cjk_punctuation_delimits_a_receipt_path`）；`test_regressions.py` 35；`test-render-facts.py` 28；`node --test 'test/*.test.mjs'` 16/16；`verify-run-chain.py` `GATE: PASS`（5 可比）；`mutations.py` `arm a 44/44` + `arm b 12/12` + `never flipped []`；`deps` = `unchanged since the recorded baseline`。
+5. **运行时路径**：包挂在 `/workspace/skills/multi-clinical-result-comparison/`，脚本一律 `python3 /workspace/skills/multi-clinical-result-comparison/scripts/<name>.py …` —— cwd `/workspace` 下裸写 `scripts/…` **不解析**；prompt / `SKILL.md` / `references/toolbox.md` / 五个 reference 文件与本轮脚本自身的 usage 均已写明。
+6. **打包**：`tools/pack-dist.py` `EXPECTED` 19 → **26**（+6 脚本 +`references/toolbox.md`）；dist **138,171 B / 26 entries / sha256 `bf0c9cf84ecf`**；`--check` IDENTICAL。
+7. **计数纪律更新**：**164 = runner 40 + scorer 35 + tools 19（pack 5 + replay 14）+ Node 16 + 新增 skill-scripts 54**（numeric-integrity 28 仍单列）。
+8. **发布 + 验证（用户「原地」已获批）**：`push-prompt --version 1.7` / `push-skill --version 1.0.8` 均 HTTP 200、回读 `matches_local=True`，`status` = **in sync**（zip `entries=26 identical=26 differing=0`）；六次真跑 = `r48-a` 28 attempts / 312.9 s / **21 PASS 1 FAIL**（模型侧 `read_file offset 越界`）、`r48-4` 42/391.1 s（O45）、`r48-18` 首次 `inconclusive` + 复跑 59/496.0 s（O45）、`r48-14` 28/303.4 s（O45）、修复后 `r48-4b` 51/425.9 s 与 `r48-a2` 45/359.5 s 均 **22 PASS / 0 FAIL**。per-lever 归因：L2 `artifacts/scripts/` 四组全空（基线 r47-14 为 11 脚本 / 61,470 B ≈54% 输出）、L3 四组皆无 `work/draft.md`、L4 attempts a 40→28 / 4 56→42 / 18 56→59（持平）/ **14 66→28（−58 %）**；`read_file` 仍 8–20 次/run。离线 scenario a：r48-a **43/44**（= R47 基线）、r48-a2 40/44。
+9. **本轮新增 O 条目**：**O45**（runner 收据正则不认全角 `）` 等 CJK 标点 ⇒ 3/4 组 FAIL；**已修**：`_RECEIPT_STOP` 重建 `TOOL_RESULTS_RX` + 回归测试，离线重放四组全转 PASS；备份 `toolsmith-publish.v16.bak`）、**O46**（模型 `read_file offset` 越界，1/2 组 ⇒ R49 内容轮加一条可检查硬规则）、**O47**（`A-C7` 只认「第 ?16 ?周」，1 样本 ⇒ 待样本）。
+10. **未做**：O46 的 prompt 硬规则（R49 内容轮）、O44/O47 等第 2 份样本、O40 报告侧机制在新样本上的复现观察。
+
 ## 当前交接（2026-10-10 R47 完成：O43 结案 + O40/O41 报告侧习惯句已原地发布；四组真跑 + 一次耗时 A/B）
 
 **R47（用户答复「改吧」+「分析下 2–3 条结果也要 5min+ 的耗时分布」）**：按「一次内容改动一轮」纪律，本轮只装 **O43 + O40/O41 报告侧习惯句**，把**耗时优化留作 R48 提案**（不混进本轮 keep/discard 归因）。
@@ -60,7 +75,7 @@
 7. **R42 = Phase A（18/14 esid 的 humanizer 臂）**：21 PASS（同 F1）/ 22 PASS；18 esid 粗体 47→26（−45%）、12-gram 重复率 0.0911→0.0643（−29%）；14 esid 方向相反；**两臂 strong 命中均 0、`{{ref_n}}` 逐条相等（18/18、14/14）**；代价 = 工具尝试 +45~51%、墙钟 +13~17%。**每臂 n=1 → 不宣称可测收益**，默认仍不强制调用 humanizer。
 8. **两条待办（已给证据、未落盘，等用户点头）**：**F1** prompt 第 6 条文件写入纪律只覆盖报告正文 → 扩到「本工作区任何文件」（正文/辅助脚本/图表 JSON）；**F2** 同一观察身份词报告内混用（`每月` 3 次 vs `Q4W` 9 次，源文只有 `monthly`）→ 图表 label 取 `Q4W` 使 `A-S9`/`A-S9b`/`A-S10` FAIL；改法 = ①prompt/SKILL 加「一套写法 + 图表 label 复用正文身份短语」②`scenario-a.facts.json` 该观察 `identity_patterns` 放宽到 `每月|每月一次|QM|Q4W`。
 
-**离线测试计数（2026-10-10，R46 后实测）**：runner **39**、scorer（`test_regressions.py`）**35**、tools **19**（`test_pack_dist.py` 5 + `test_replay_run.py` 14）、Node **16**、`tools/test_pack_dist.py` **5/5**；另有 **`evals/numeric-integrity/test-render-facts.py` 28** 与 `evals/runner-gate/test-runner.py` **39**，两者本来就不计入上面那 105/117 的合计口径（README 旧行的 105 = runner 38 + scorer 32 + tools 19 + Node 16，不含 numeric-integrity；R43 把 scorer 提到 35、R46 把 runner 提到 39）。
+**离线测试计数（2026-10-10，R48 后实测）**：runner **40**、scorer（`test_regressions.py`）**35**、tools **19**（`test_pack_dist.py` 5 + `test_replay_run.py` 14）、Node **16**、`tools/test_pack_dist.py` **5/5**；另有 **`evals/numeric-integrity/test-render-facts.py` 28** 与 **`evals/scripts/test-skill-scripts.py` 54**，两者本来就不计入上面那 105/117 的合计口径（README 旧行的 105 = runner 38 + scorer 32 + tools 19 + Node 16，不含 numeric-integrity；R43 把 scorer 提到 35、R46 把 runner 提到 39、**R48 把 runner 提到 40**）。**R48 合计口径 = 40 + 35 + 19 + 16 + 54 = 164**。
 
 ## 历史交接（2026-10-10 Phase 2 完成）
 
@@ -221,8 +236,10 @@ tools/replay-run.py --tsv --score \
 ```bash
 python3 evals/fact-check/check.py --run <run-dir> --scenario a|b [-v]     # 离线判分（exit 0/3/4）
 python3 evals/numeric-integrity/test-render-facts.py                      # 附录渲染/账本门禁回归（文件名含连字符，**不能**用 unittest discover，直接脚本跑）
+python3 evals/scripts/test-skill-scripts.py                              # R48 随包六脚本回归（54 项；同样**不能**用 unittest discover，直接脚本跑；跑的是 subprocess，无 __pycache__ 污染）
 python3 evals/fact-check/mutations.py                                     # 负向对照闸门（64 项变异/合法对照；`MUT_SEED_A=0` 关掉 A-P10 基线种子）
-python3 evals/fact-check/test_regressions.py                              # 门禁回归（32 项，含 A-P10 的 NoRunLogisticsTests 5 项）
+python3 evals/fact-check/test_regressions.py                              # 门禁回归（35 项，含 A-P10 的 NoRunLogisticsTests 5 项）
+python3 evals/runner-gate/test-runner.py                                   # runner 单测（40 项，含 R48 的 CJK 收据分隔符回归；**不能**用 unittest discover）
 python3 evals/runner-gate/verify-run-chain.py                             # runner 零网络回归
 tools/replay-run.py --tsv --score <run>…                                  # 成本 + 质量一行一 run
 tools/replay-run.py --details <run>                                       # 全字段（含 model_turns / 前缀版本）

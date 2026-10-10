@@ -107,6 +107,16 @@ class ReceiptTests(OfflineCase):
         self.assertEqual(ts.receipt_diagnostics('/workspace/tool_results/query/'), [])
         self.assertEqual(ts.receipt_diagnostics('File: ' + POINTER + '.'), [POINTER])
 
+    def test_cjk_punctuation_delimits_a_receipt_path(self):
+        # R48: a digest the model wrote back and re-read quoted the path as `（…/call_x.jsonl）`
+        # and the closing mark was glued to it, failing validation for three runs.
+        for text in [f'（{POINTER}）', f'「{POINTER}」', f'【{POINTER}】', f'{POINTER}。',
+                     f'{POINTER}，', f'{POINTER}：', f'{POINTER}\u3000tail']:
+            with self.subTest(text=text):
+                self.assertEqual(ts.receipt_diagnostics({'text': text}), [POINTER])
+                self.assertEqual(ts.receipt_pointers(
+                    history([ret('1', 'read_file', text)])), [POINTER])
+
     def test_glob_directory_queries_are_not_receipt_candidates(self):
         for pattern in ('*.jsonl', 'call_?.jsonl', 'call_[0-9].jsonl',
                         'call_[!ab].jsonl', 'call.json[ln]', '[ab]/data.jsonl',

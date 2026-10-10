@@ -1219,6 +1219,10 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O42 | **`no tool errors` 在多写 run 上约 1/4 概率被打掉，三轮 prompt 强化未改变基线**（2026-10-10 R41→R45 共 14 个 run）：失败形态二种——`write_file` 缺 `overwrite`、`edit_file` 目标串过期；二者都只损失**一次工具调用**，平台 re-prompt 后 run 照常完成、其余 21 条断言全过。口径表见下方 R43/R44/R45 三节。 | ✅ **已结案（2026-10-10 R46，选 B 窄口径）**：runner 新增 `TOOL_REFUSED_RX`（两种工具侧前置拒绝、`^` 锚定）+ `REFUSAL_BUDGET = 3`，原恒 PASS 的信息行改成带预算判定（断言仍 22 条）。备份 `toolsmith-publish.v15.bak`；`test-runner.py` 38→**39**；零网络闸门 `GATE: PASS`；离线重打分 98 份归档 = **0 errors**、单 run 最大拒绝 2 次、无超预算样本；线上 r46-a / r46-a2 各 **22 PASS / exit 0`。证据 `docs/evidence/o42-refusal-reclassification-2026-10-10.txt` |
 | O43 | **`A-S9` / `A-S9b` / `A-S10` 要求图表行（`label`+`description`）点名该观察所属**试验**，但 prompt / SKILL 从未把这条写成可检查规则**（2026-10-10 R46-a，1 样本）：r46-a 的 5 根柱子只写「药名 + 剂量 + 间隔 + 时点」（`依洛尤单抗 420 mg 每月一次（第 16 周）`），label 与 description 都不含 `NCT02729025` / `OCEAN(a)-DOSE` ⇒ `identified observations=[] want=[0,1,2,3,4]`，**离线 40/44 FAIL**；同一 prompt 的 r46-a2 把试验放进 `description`（`试验 A（NCT02729025）第 16 周，安慰剂校正`）⇒ **44/44 PASS**。同门径下 R45-a 亦 PASS ⇒ 同一 prompt 3 次 scenario A 里 **1/3 丢试验名**。判分侧口径本身**自洽**（行内 5 个维度须全部出现在 label+description 里，且互斥性仍靠 competing-identity 检查兜底），属**报告侧偶发漏写 + 规则只在 fixture 里隐式存在** | 📝 **待修（不在本轮回合内改）**：候选①在 prompt / `SKILL.md` 补一句可机械检查的硬规则（「每根柱子的 `label`/`description` 必须点名该观察所属试验的短名或注册号，不能只靠药物+剂量」），随**下一次内容改动一起发版**（不单独开一轮；与 O40/O41 的报告侧习惯句同批）；候选②判分侧把 chart 的 `identity_patterns` 去掉试验维度（唯一性仍靠「恰好命中 1 个」兜底）——**n=1 证据不足，本轮不做**。注意 `templates/charts/endpoint-bar.json` 的示例 label 本来就带试验槽位（`试验A · 研究组`）| ✅ **已结案（2026-10-10 R47，选候选①）**：prompt 「Every chart row names its own trial (hard rule)」+ `SKILL.md` 硬规则段 + `references/chart-templates.md` 各一句（不点名试验 = 不允许，≥2 试验时 `label`/`description` 必须自带试验短名或注册号），随 R47 内容轮原地发布；**R47 四组真跑 4/4 全部命中**：r47-a 五根柱子 label 前缀 `OCEAN(a)-DOSE · …` / `NCT02729025 · …`，r47-18 五根 `HARMONi-6（NCT05840016）· …`，r47-14 三根 `…（NCT04987320）/（jRCT2051240068）`，r47-4 仅时间线图（单试验，不适用）；且**未引入任何新断言失败**（4/4 run 皆 22 PASS / 0 FAIL）。判分侧未动。|
 | O44 | **`A-C9-mds-tbr-A` 只认减号写法，不认「降低 X%」文字写法**（2026-10-10 r47-a，1 样本）：该条 `patterns` 硬编码 `-8\.3` / `-5\.3` / `-3\.0` / `0\.18`，而 r47-a 报告第 62/65 行写「依洛尤单抗 降低 8.3%；安慰剂 降低 5.3%」（**同一交付物内部一致**，`A-S10-sign-convention-consistent` PASS）⇒ 两条 pattern 0 命中，**离线 43/44 FAIL**。同门径的 `A-S10` 规格里自己写着「合同里没有关于符号/幅度的任何字 ⇒ 每次由模型自选」，故**同 spec 内两条断言口径不一致**；历史 6 个 scenario A run（r41-fixed-a / r43-a / r44-a / r45-a / r46-a / r46-a2）与同日的 `r47-loweff-a` 都写减号形式 ⇒ **1/7 触发**。 | 📝 **待样本（不改评分器）**：候选修法 = `A-C9` 的 `-8\.3` / `-5\.3` 各加一个文字式备选（`(?:-8\.3|降低\s*8\.3)`），与 O28「符号容忍」同门径、一行可回退、不产生新假绿（`升高 8.3` 不匹配）。按 O27/O28 先例**等第 2 份样本**再动。 |
+| O45 | **runner 的 `tool_results` 指针正则不认全角右括号，把模型写在中文括号里的收据路径连括号一起吃进来**（2026-10-10 R48 四组真跑，**3/4 组炸**）：模型把 24 条记录的清单写进 `work/digest.txt`，第一行写「（14 条；来自 `/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_xx.jsonl`）」；该文件随后被 `read_file` 读回，其**返回内容属权威串**，`TOOL_RESULTS_RX` 只把 ASCII `)`/空格/引号当终止符，`）` 不是 ⇒ 抓成 `…call_xx.jsonl）`，`receipt_relpath()` 以「unsafe or unsupported receipt path」拒绝整次验证（`FAIL: 1 final durable pointers`）。**`r48-4` / `r48-18` / `r48-14` 三组的 FAIL 全是这一条**，与产物质量无关 | ✅ **已修（R48，runner 层）**：新增 `_RECEIPT_STOP`（ASCII 分隔符 + `\u3000-\u303f` + `\uff01-\uff0f\uff1a-\uff20\uff3b-\uff40\uff5b-\uff65`），由它重建 `TOOL_RESULTS_RX`；备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v16.bak`、`py_compile` OK、`verify-run-chain` GATE PASS；**用同一批已存 run 离线重放**：r48-a / r48-4 / r48-18 / r48-14 的 `receipt_check` 全部由 FAIL 转 **PASS（all archived and hash-verified）**；新增回归 `test_cjk_punctuation_delimits_a_receipt_path`（（ ））「 」【 】。 ， ： 全角空格共 7 形）⇒ runner 门禁 **39 → 40**。**修复后用同输入复跑 `r48-4b` / `r48-a2` 均为 22 PASS / 0 FAIL** |
+| O46 | **模型仍会用 `read_file(offset=…, limit=…)` 分块重读，且会越过 EOF**（2026-10-10 r48-a，**1/2 组**）：r48-a 的 `read_file` 第 11 次调用给 `offset=148`，而文件只有 136 行 ⇒ 平台返回错误、runner 的 `no tool errors` 断言被打掉（该 run 唯一 FAIL；`r48-a2` 同输入同 prompt 未复现）。**诱发源在平台侧文案**：工具结果过大时平台回「Read it with `read_file(file_path=..., offset=..., limit=...)` to inspect it in chunks」，模型照做；R48 第 7 条虽已要求少调用，但没把「不许凭猜测给 offset」写成可检查句 | 📝 **待修（R49 内容轮，不单独开轮）**：候选①第 7 条补一句硬规则——「不要对本次 run 自己的文件做 offset 分块重读；要看尾部用 `execute: tail -n 40 <path>`，要看全文一次 `read_file` 不加 offset，要看结论跑 `check_report.py`」；候选②第 2 条点明「原始 tool result 过大时**先跑 `prep_sources.py`**，不要分块啃原始文件」。**n=1 复现（1/2）+ 四组 run 的 read_file 调用 8–20 次**作证据，随下一次内容改动发版 |
+| O47 | **`A-C7-timepoints` 只认「第 16 周 / 第 36 周」词形，不认「16 周 / Week 16」**（2026-10-10 r48-a2，1 样本）：r48-a2 报告第 20 行「时点为 16 周与 36 周」、第 51 行「安慰剂组 Lp(a) 在 36 周时平均升高 3.6%」、第 57 行表格「Week 16 / —」，**两个时点事实都在**，但 pattern 写死 `第 ?16 ?周` / `第 ?36 ?周` ⇒ 0 命中、离线 **40/44 FAIL**（同 prompt 同输入的 r48-a 写「第 16 周」×19 ⇒ 该条 PASS）。**与 O20/O27/O28 同门径（词形绑死）** | 📝 **待样本（不改评分器）**：候选修法 = 两条 pattern 各加无「第」备选（`(?:第 ?)?16 ?周|Week ?16`），一行可回退；按 O27/O28 先例**等第 2 份样本**再动 |
+
 ## 4. 平台侧（转开发）
 
 完整、可直接转发的版本见 Obsidian：
@@ -2044,3 +2048,86 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 本地门禁 runner-gate **39** / scorer 35 / tools 5+14 / Node 16 / numeric-integrity 28 全 OK；
 变异闸门 `arm a 44/44, arm b 12/12, never flipped [], GATE: PASS`；
 **结案 2 条（O41 收尾、O43 结案）、待修 1 条（O40 → R48）、待样本 1 条（O44）**。
+
+## R48 — L2/L3/L4 三条速度杠杆同轮落地（随包脚本 / 单遍正文 / 合批调用）+ 六次真跑（2026-10-10）
+
+**用户口径**：*「L2-4都想要」* —— 覆盖先前「一次只动一个杠杆」的纪律，三条杠杆同轮落地；归因改用**历史 run 基线 + per-lever 签名**（不靠单变量 A/B）。
+
+### 本轮改了什么（内容侧）
+
+| 杠杆 | 改动 | 落地文件 |
+|---|---|---|
+| **L2** | 把模型每次自写的辅助脚本换成**随 Skill 发布的六个现成脚本**：`prep_sources.py`（切分 + 编号 + `work/refs.json`）/ `build_ledger.py`（编译 + 校验数值事实账本）/ `patch.py`（原子定点改写）/ `check_report.py`（交付前机械门禁）/ `make_chart.py`（内容 spec → envelope + 跑上游校验器）/ `make_citations.py`（citations 逐字节从 `refs.json` 生成） | `skill/.../scripts/`（1 → **7** 个脚本）+ `references/toolbox.md`（**新增**，唯一 CLI 事实源）+ prompt 第 2 条 |
+| **L3** | 报告正文**只写一次**、直接落在 `/workspace/output/report.md`；`render-facts.py` **原地**渲染 `--draft == --out`；**取消 `work/draft.md`、取消 scratch 渲染与二次拷贝**；审计落 `work/audit.json`；后续小改走 `patch.py` | prompt 第 6 条、`references/file-delivery.md`、`SKILL.md` 第 9/9b 条 |
+| **L4** | 合批：`mkdir` + 切分 + digest 合成一条 `execute`；禁「写 N 个分块再合并」；禁重复读同一文件；目标 ≤ ~25–30 tool calls | prompt 第 7 条 |
+| **运行时路径（同轮修的真缺陷）** | 真实 run 取证：Skill 挂在 `/workspace/skills/multi-clinical-result-comparison/`，裸 `scripts/…` 从 `/workspace` **不解析** ⇒ 全部改为绝对路径 `python3 {SD}/<name>.py`（`references/toolbox.md` 原句「`scripts/…` resolves under the mounted Skill directory」是**事实错误**） | prompt（7 处）、`SKILL.md`、`references/toolbox.md` / `chart-templates.md` / `file-delivery.md` / `input-and-extraction.md` / `citation-and-ref.md`、六脚本 usage 与错误提示 |
+
+`tools/pack-dist.py` `EXPECTED` **19 → 26**（+6 脚本 +1 reference）；dist 重打 `multi-clinical-result-comparison-v0.16.zip` = **138,171 B / 26 entries / sha `bf0c9cf84ecf`**（`--check` IDENTICAL）。
+
+### 发布（原地，版本标签不变）
+
+`toolsmith-publish deps` = `unchanged since the recorded baseline`；`push-prompt --version 1.7` → HTTP 200 / in-place / 回读 `current=v1.7 matches_local=True`；`push-skill --version 1.0.8` → HTTP 200 / skill_id `cd93a42af72b4828b1690b3a7bccfa06` / `is_current=True`；`status` = **in sync**（zip `entries=26 identical=26 differing=0 missing=0`）。护栏：prompt family `91febc286412479a8b6d569fa3b8025e`、skill family `9fe0035bdd324b998436c6cb9c2de212`（属主 = 徐佩佩）。
+
+### 六次真跑
+
+| run | 输入 | 目录 | thread_id | run_id | 墙钟（server / polled） | tool calls | runner 断言 | 离线（scenario a） |
+|---|---|---|---|---|---|---|---|---|
+| r48-a | 2 esid | `…/20261010-165843-r48-a` | `163b3421-2e76-4b2b-bfc6-7e481c3b3740` | `4d47f17a-99f5-4586-acef-c34c318be176` | 312.9 / 313.0 s | 28（27 返回 + 1 error） | **21 PASS / 1 FAIL** | **43/44 FAIL**（A-ATTR） |
+| r48-4 | 4 esid | `…/20261010-170446-r48-4` | `6c874842-5150-4a6c-a74a-36e099b7ef33` | `51fd4dad-1bff-4716-ad76-cf3bcf873e9f` | 391.1 / 391.4 s | 42 | 21 PASS / 1 FAIL（O45） | — |
+| r48-18（首次） | 18 esid | `…/20261010-171141-r48-18` | `e75cc525-e56e-4b86-9878-4af2cbd66927` | `eb2eae41-de26-42ee-adda-a16df93ad918` | 93.2 s | — | **16 PASS / 6 FAIL**（结局 `inconclusive`：平台 `Connection refused`，无 `completed_at`、无产物） | — |
+| r48-18（复跑） | 18 esid | `…/20261010-171358-r48-18` | `4190172d-7236-4eb5-81c1-43bd99ec67f4` | `6d9c9310-070a-46c8-95b6-3c3f67edc691` | 496.0 s | 59 | 21 PASS / 1 FAIL（O45） | — |
+| r48-14 | 14 esid | `…/20261010-172231-r48-14` | `4bd3d02c-290c-4aa6-85d9-6e9a7c63299f` | `3527c837-74a2-4019-8e05-1049f709079e` | 303.4 / 303.5 s | 28 | 21 PASS / 1 FAIL（O45） | — |
+| r48-4b（O45 修复后复跑） | 4 esid | `…/20261010-173112-r48-4b` | `cf7cee6d-b862-43c8-b3f9-7cc20810a3b1` | `e12c4515-1f17-4179-ae60-8bd32339bad7` | 425.9 / 433.6 s | 51 | **22 PASS / 0 FAIL** | — |
+| r48-a2（同输入复跑） | 2 esid | `…/20261010-173839-r48-a2` | `cc9a3368-a9f0-4b06-8fdc-b5ca9ad3f045` | `5e944013-0b20-4ed2-9cce-30f80f4f772e` | 359.5 / 371.9 s | 45 | **22 PASS / 0 FAIL** | **40/44 FAIL**（A-C3 / A-C7 / A-C9 / A-ATTR） |
+
+六次 run 全部产出 `output/report.md` + `output/citations.json` + 至少一张 `visualizations/*.json`；`present_artifact` 均为末次调用。
+
+### per-lever 归因（历史基线 vs 本轮）
+
+**L2（自写辅助脚本）——决定性**
+
+| | 自写脚本文件数 | 自写脚本 / heredoc 字节 | 随包脚本调用 |
+|---|---|---|---|
+| r47-a（基线） | 有自写 `build_chart.py` / `build_citations.py` 等 | `execute` 输出 17,919 tok | 仅 `render-facts` / `build_ledger` |
+| r47-4（基线） | `fix_ledger.py` / `make_timeline.py` / `fix_draft.py` / `finalize.py` / `normalize_ledger.py` | 自写脚本 16,225 out + heredoc 32,710 out | 无 `prep_sources` / `patch` / `make_chart` |
+| r47-14（基线） | **11 个自写脚本 / 61,470 B**（`add_paras.py` / `fix_draft_text*.py` / `patch_baseline.py` / `clean_draft.py` / `check_draft.py` / `digest*.py` / `write_outputs.py` / `build_sources.py` …） | 自写脚本 **59,598 out（≈54%）** | `render-facts` ×22 |
+| **r48-a / 4 / 18 / 14** | **`artifacts/scripts/` 0 个文件** | `execute` 命令合计 5.0–11.7 KB（其中 heredoc 0–5.0 KB） | 六脚本**每轮全部用到**：`prep_sources` ×1、`build_ledger` ×2–3、`make_chart` ×1–4、`render-facts` ×1–9、`make_citations` ×1–2、`check_report` ×1–3、`patch` ×1–2 |
+
+**L3（单遍正文）——决定性**：四组 run 的 `artifacts/work/` 里**都没有 `draft.md`**（基线 r47-* 均有），`write_file` 调用降为 2–3 次且全部为整文件写入。
+
+**L4（合批/步数）——部分达成**
+
+| run | R47 attempts | R48 attempts | Δ | R47 墙钟 | R48 墙钟 | Δ | out tokens（R47 → R48） |
+|---|---|---|---|---|---|---|---|
+| a | 40 | **28** | **−30 %** | 349.1 s | 312.9 s | −10 % | 60,976 → 72,161 |
+| 4 | 56 | 42（复跑 51） | −25 %（−9 %） | 512.1 s | 391.1 s（425.9 s） | −24 %（−17 %） | 103,095 → 76,223 |
+| 18 | 56 | 59 | **+5 %** | 488.6 s | 496.0 s | +2 % | 92,991 → 99,446 |
+| 14 | 66 | **28** | **−58 %** | 569.7 s | 303.4 s | **−47 %** | 104,669 → 69,347 |
+
+⇒ 步数/墙钟在 3/4 组明显下降（14 esid 组最显著），18 esid 组持平；**`read_file` 仍占 8–20 次/run**，是 L4 未吃完的部分（见 O46）。out token 有升有降（−34 % ~ +18 %），**不作为 keep/discard 判据**（AGENTS §9：`calls` 才是可比数）。
+
+### 质量侧
+
+- **runner 22 断言的 3 个 FAIL 全部归因清楚**：`r48-4` / `r48-18` / `r48-14` 同一条 **O45（runner 正则缺陷，已修 + 离线重放全转 PASS + 复跑 22 PASS）**；`r48-a` 的 `read_file offset 越界` 是**模型侧**概率残留（同输入 `r48-a2` 未复现）⇒ **O46，随 R49 内容轮加硬规则**。
+- **离线 scenario a（仅 `r48-a` / `r48-a2` 可判，另两组输入与 fixture 不同源）**：43/44（A-ATTR，O40 家族）与 40/44（A-C3 / A-C7 / A-C9 / A-ATTR）。`r47-a` 基线为 43/44。⇒ **两条新样本**：`A-C7` 词形绑死 = **O47（1 样本，待样本）**；`A-C3`（机制句缺失）是**两次 run 间的覆盖率差异**（r48-a 写了「机制不同（PCSK9 单抗 vs 靶向 Lp(a) 的小干扰 RNA）」，r48-a2 整句漏），**不记 O 条目**（无机械修法，属生成侧偶发）。
+- **未发现速度杠杆带来的结构性质量回归**：图表行点名试验（O43）在四组里仍全部命中；`库内记录`（O41）仍为 0；工具拒绝（O42 窄口径）仍为 0。
+
+### 我方能改的
+
+| 项 | 现象 + 证据 | 改法 | 状态 |
+|---|---|---|---|
+| **O45** | 全角括号粘住收据路径 ⇒ 3/4 组 FAIL | `_RECEIPT_STOP` 重建 `TOOL_RESULTS_RX` + 回归测试 | ✅ 已修（本轮） |
+| **O46** | `read_file offset` 越界 1/2 组；`read_file` 仍 8–20 次/run | R49 内容轮：第 7 条加「不许凭猜测给 offset / 尾部用 `tail`」、第 2 条加「原始 result 过大先跑 `prep_sources.py`」 | 📝 待修（R49） |
+| **O47** | `A-C7` 只认「第 X 周」 | 加无「第」备选；**等第 2 份样本** | 📝 待样本 |
+| O40 / O44 | 仍待第 2 份样本 / 报告侧机制已生效未复现 | 见 O 表 | 📝 待样本 |
+
+### 平台侧（转开发）
+
+- 本轮**无功能性平台缺陷**。仅一条**文案层面**的观察（不改平台、不单独开单，随 O46 记录）：工具结果过大时平台提示「Read it with `read_file(file_path=..., offset=..., limit=...)` to inspect it in chunks」，模型据此频繁分块重读并偶发越界；对被截断的结构化数据，更省的做法是先跑我们随包的 `prep_sources.py`。
+
+### R48 收尾状态
+
+线上 = prompt v1.7（**原地更新**）、Skill v1.0.8（**原地更新**），`status` in sync；
+本地门禁 runner-gate **40** / scorer 35 / tools 5+14 / Node 16 / numeric-integrity 28 / **skill-scripts 54** 全 OK；
+`verify-run-chain` `GATE: PASS (5 comparable runs)`；变异闸门 `arm a 44/44, arm b 12/12, never flipped [], GATE: PASS`；`pack-dist --check` IDENTICAL；
+**结案 0 条、本轮已修 1 条（O45）、待修 2 条（O46 → R49；O40 → 报告侧已落地待复现）、待样本 3 条（O44 / O47 / O41 收尾）**。
