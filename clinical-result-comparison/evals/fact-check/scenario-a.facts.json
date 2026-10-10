@@ -191,14 +191,14 @@
           "identity_patterns": [
             "依洛尤单抗|evolocumab",
             "(?<!\\d)420\\s*mg",
-            "(?:每月|QM)",
+            "(?:每月|每月一次|QM|Q4W)",
             "NCT02729025",
             "(?:第\\s*16\\s*周|Week\\s*16|16-week)"
           ],
           "report_identity_patterns": [
             "依洛尤单抗|evolocumab",
             "(?<!\\d)420\\s*mg",
-            "(?:每月|QM)"
+            "(?:每月|每月一次|QM|Q4W)"
           ],
           "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
           "owner": "ref_1"
@@ -208,14 +208,14 @@
           "identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)10\\s*mg",
-            "Q12W",
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))",
             "OCEAN\\(a\\)-DOSE|NCT04270760",
             "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
           ],
           "report_identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)10\\s*mg",
-            "Q12W"
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))"
           ],
           "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
           "owner": "ref_2"
@@ -225,14 +225,14 @@
           "identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)75\\s*mg",
-            "Q12W",
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))",
             "OCEAN\\(a\\)-DOSE|NCT04270760",
             "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
           ],
           "report_identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)75\\s*mg",
-            "Q12W"
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))"
           ],
           "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
           "owner": "ref_2"
@@ -242,14 +242,14 @@
           "identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)225\\s*mg",
-            "Q24W",
+            "(?:(?:Q24W)|(?:每\\s*24\\s*周))",
             "OCEAN\\(a\\)-DOSE|NCT04270760",
             "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
           ],
           "report_identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)225\\s*mg",
-            "Q24W"
+            "(?:(?:Q24W)|(?:每\\s*24\\s*周))"
           ],
           "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
           "owner": "ref_2"
@@ -259,14 +259,14 @@
           "identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)225\\s*mg",
-            "Q12W",
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))",
             "OCEAN\\(a\\)-DOSE|NCT04270760",
             "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
           ],
           "report_identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)225\\s*mg",
-            "Q12W"
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))"
           ],
           "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
           "owner": "ref_2"
@@ -285,14 +285,14 @@
           "identity_patterns": [
             "依洛尤单抗|evolocumab",
             "(?<!\\d)420\\s*mg",
-            "(?:每月|QM)",
+            "(?:每月|每月一次|QM|Q4W)",
             "NCT02729025",
             "(?:第\\s*16\\s*周|Week\\s*16|16-week)"
           ],
           "report_identity_patterns": [
             "依洛尤单抗|evolocumab",
             "(?<!\\d)420\\s*mg",
-            "(?:每月|QM)"
+            "(?:每月|每月一次|QM|Q4W)"
           ],
           "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
           "owner": "ref_1"
@@ -302,14 +302,14 @@
           "identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)10\\s*mg",
-            "Q12W",
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))",
             "OCEAN\\(a\\)-DOSE|NCT04270760",
             "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
           ],
           "report_identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)10\\s*mg",
-            "Q12W"
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))"
           ],
           "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
           "owner": "ref_2"
@@ -319,14 +319,14 @@
           "identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)75\\s*mg",
-            "Q12W",
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))",
             "OCEAN\\(a\\)-DOSE|NCT04270760",
             "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
           ],
           "report_identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)75\\s*mg",
-            "Q12W"
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))"
           ],
           "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
           "owner": "ref_2"
@@ -336,14 +336,14 @@
           "identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)225\\s*mg",
-            "Q24W",
+            "(?:(?:Q24W)|(?:每\\s*24\\s*周))",
             "OCEAN\\(a\\)-DOSE|NCT04270760",
             "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
           ],
           "report_identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)225\\s*mg",
-            "Q24W"
+            "(?:(?:Q24W)|(?:每\\s*24\\s*周))"
           ],
           "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
           "owner": "ref_2"
@@ -353,14 +353,14 @@
           "identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)225\\s*mg",
-            "Q12W",
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))",
             "OCEAN\\(a\\)-DOSE|NCT04270760",
             "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
           ],
           "report_identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)225\\s*mg",
-            "Q12W"
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))"
           ],
           "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
           "owner": "ref_2"
@@ -391,14 +391,14 @@
           "identity_patterns": [
             "依洛尤单抗|evolocumab",
             "(?<!\\d)420\\s*mg",
-            "(?:每月|QM)",
+            "(?:每月|每月一次|QM|Q4W)",
             "NCT02729025",
             "(?:第\\s*16\\s*周|Week\\s*16|16-week)"
           ],
           "report_identity_patterns": [
             "依洛尤单抗|evolocumab",
             "(?<!\\d)420\\s*mg",
-            "(?:每月|QM)"
+            "(?:每月|每月一次|QM|Q4W)"
           ],
           "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
           "owner": "ref_1"
@@ -408,14 +408,14 @@
           "identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)10\\s*mg",
-            "Q12W",
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))",
             "OCEAN\\(a\\)-DOSE|NCT04270760",
             "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
           ],
           "report_identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)10\\s*mg",
-            "Q12W"
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))"
           ],
           "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
           "owner": "ref_2"
@@ -425,14 +425,14 @@
           "identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)75\\s*mg",
-            "Q12W",
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))",
             "OCEAN\\(a\\)-DOSE|NCT04270760",
             "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
           ],
           "report_identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)75\\s*mg",
-            "Q12W"
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))"
           ],
           "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
           "owner": "ref_2"
@@ -442,14 +442,14 @@
           "identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)225\\s*mg",
-            "Q24W",
+            "(?:(?:Q24W)|(?:每\\s*24\\s*周))",
             "OCEAN\\(a\\)-DOSE|NCT04270760",
             "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
           ],
           "report_identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)225\\s*mg",
-            "Q24W"
+            "(?:(?:Q24W)|(?:每\\s*24\\s*周))"
           ],
           "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
           "owner": "ref_2"
@@ -459,14 +459,14 @@
           "identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)225\\s*mg",
-            "Q12W",
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))",
             "OCEAN\\(a\\)-DOSE|NCT04270760",
             "(?:第\\s*36\\s*周|Week\\s*36|36-week)"
           ],
           "report_identity_patterns": [
             "奥帕司兰|olpasiran",
             "(?<!\\d)225\\s*mg",
-            "Q12W"
+            "(?:(?:Q12W)|(?:每\\s*12\\s*周))"
           ],
           "endpoint_regex": "Lp\\(a\\)|Lipoprotein\\(a\\)|脂蛋白\\(a\\)",
           "owner": "ref_2"
@@ -733,11 +733,11 @@
       "kind": "present",
       "surface": "report",
       "patterns": [
-        "硬结局|心血管事件",
+        "硬结局|硬终点|心血管事件|心血管结局",
         "未报告|无.{0,6}(硬结局|结局)数据|没有"
       ],
       "evidence": "记录 A abstract 无事件数据（随访至第 16 周）；记录 B abstract 'Longer and larger trials will be necessary to determine the effect of olpasiran therapy on cardiovascular disease.'",
-      "rationale": "替代终点不得外推为临床获益，这是本 skill 的红线之一"
+      "rationale": "替代终点不得外推为临床获益，这是本 skill 的红线之一。**2026-10-10 结案 O27（术语绑定过窄，与 O20 同类）**：R16 写「心血管结局事件（如 MACE）」、R43-a（`20261010-131547-r43-a`）写「两项记录都没有心血管结局数据」——两者都把硬结局缺口写成了事实，却被只认 `硬结局|心血管事件` 的旧正则判 0 命中（旧记录：R8/R41-A 用「心血管事件」PASS，R16 FAIL）。要防的是「硬结局缺口不写」这件事实，不是某个词形 ⇒ pattern 1 放宽为 `硬结局|硬终点|心血管事件|心血管结局`；**pattern 2（必须出现否定式）不变**，所以放宽不豁免「写出缺口」这一步。回归：`TextTests.test_hard_outcome_gap_accepts_every_wording_but_still_needs_the_gap`（4 种词形 PASS + 无否定式 FAIL）。"
     },
     {
       "id": "A-ATTR-misattribution",

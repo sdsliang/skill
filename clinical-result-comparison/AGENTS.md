@@ -9,7 +9,22 @@
 
 ---
 
-## 当前交接（2026-10-10 R41 完成 + R42 Phase A）
+## 当前交接（2026-10-10 R43–R45 完成：F1 三轮强化 + F2 修好）
+
+**线上现状**：prompt **v1.7 = 65,959 B / sha `f63bf180822c`**；Skill **v1.0.8**（dist **103,982 B / 19 entries / sha `47c06e7aa6d4`**）；`status` **in sync**；`deps` unchanged。三轮都走**原地更新**（版本标签不变），发布记录：R43 = prompt `e23eef7201d0` / dist `2f4700a2f295`；R44 = prompt `5b8043bb3779` / dist `cdb4992f9b20`；R45 = 现值。
+
+1. **F2（同一观察一套写法）已修好并复验**：生成侧 = prompt 新 hard rule「One wording per observation」+ `SKILL.md` 硬规则段 + `references/chart-templates.md` bullet（图表 `label`/`description` 逐字复用正文身份短语，原文说 `monthly` 就写「每月」）；判分侧 = `evals/fact-check/scenario-a.facts.json` 30 条 `identity_patterns`/`report_identity_patterns` 双向放宽（`(?:每月|每月一次|QM|Q4W)` 等），225 mg Q12W 与 Q24W 仍严格互斥。**证据**：`A-S9` / `A-S9b` / `A-S10` 在 R43-a / R44-a / R45-a **连续四次真跑全 PASS**；R41-A 重打分 **41/44 FAIL → 44/44 PASS**。
+2. **O27 已结案**：`A-C16-hard-outcome-gap` pattern 1 放宽为 `硬结局|硬终点|心血管事件|心血管结局`（pattern 2 的否定式要求不变），配 `test_hard_outcome_gap_accepts_every_wording_but_still_needs_the_gap`；scorer **32 → 34 → 35**。
+3. **F1（写文件被平台拒，`no tool errors` FAIL）三轮强化仍未清零** —— 这是本轮唯一的未结项：
+   - R43 = 第 6 条覆盖面扩到「工作区里你写过的任何文件」→ 仍 **1/4 run** 失败（`work/draft.md`）。
+   - R44 = **每次 `write_file` 一律带 `overwrite=True`（含全新路径首次写入）**、不判断路径新旧 → 仍 **1/4**，但换形态（`edit_file` 对自写脚本 `scripts/build_ledger.py` 目标串过期）。
+   - R45 = **`edit_file` 只准用于 `/workspace/output/report.md`**，自写脚本/账本/digest 一律整文件重发 → 仍 **1/4**（回到 `work/draft.md` 缺 flag）。
+   - 三轮共 12 个 run、失败 3 次，**报告侧其余 21 条断言全部照常通过**（平台 re-prompt 后 run 正常完成、产物完整）⇒ 判为「长 agentic run 里模型偶发漏传布尔参数」的**行为天花板**，不是合同缺口。台账 **O42** 给三个选项：A 接受为已知偶发 / B 改 runner 把「参数被拒但重发成功」降为 WARN / C 把正文改成「脚本从账本渲染一次成文」以减少写次数。**等用户选**。
+4. **新增两条「待样本」（不改评分器）**：**O40** = `A-ATTR` 对「对对方记录的否定陈述」不给豁免（R43-a、R45-a 两样本）；**O41** = `A-P2-divergence-shows-both` 对「非分歧地提到库内记录」零容忍（R45-a 一样本，合同只规定「分歧时必须双值并附引用」）。
+5. **R43 / R44 / R45 各四组真跑**（详见台账）：R43 22/21/22/22、R44 22/22/21/22、R45 22/22/22/21（每次恰一组栽在 F1）。**场景 A 离线判分**：R43-a 43/44、**R44-a 44/44 PASS（首次全绿）**、R45-a 42/44（余 A-ATTR 2 cell + A-P2 1 处）。
+6. **本地门禁**：runner-gate **38** / scorer **35** / tools **5 + 14 = 19** / Node **16** / numeric-integrity **28** 全 OK；fact-check 变异闸门 `arm a 44/44, arm b 12/12` → **`GATE: PASS`**。
+
+## 历史交接（2026-10-10 R41 完成 + R42 Phase A）
 
 **R41（药名成对字段 + 附录可读名 + humanizer 交接段）已原地发布并四组验证（2026-10-10）**：
 

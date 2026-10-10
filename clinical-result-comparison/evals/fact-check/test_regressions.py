@@ -154,6 +154,23 @@ class TextTests(unittest.TestCase):
         self.assertFalse(ck.op_citations_keys_exact({'citations': {'ref_1': {}},
             'report': 'fact{{ref_1}}; bogus{{ref_9}}'}, {'keys': ['ref_1']})[0])
 
+    def test_hard_outcome_gap_accepts_every_wording_but_still_needs_the_gap(self):
+        """O27 (closed 2026-10-10): the item guards a fact, not a word form.
+
+        R16 wrote `心血管结局事件（如 MACE）` and R43-a wrote `两项记录都没有心血管结局数据`; the old
+        `硬结局|心血管事件` pattern scored both as 0 hits.  Widening pattern 1 must not weaken
+        pattern 2, or a report that simply omits the gap would pass on any stray `心血管结局`.
+        """
+        item = ITEMS['A-C16-hard-outcome-gap']
+        for wording in ['硬结局', '硬终点', '心血管事件', '心血管结局']:
+            with self.subTest(wording=wording):
+                sv = {'report': f'两项记录都没有{wording}数据，随访仅至第 16 周。'}
+                self.assertTrue(ck.eval_present(item, sv)[0])
+        for no_gap in ['心血管结局是这类人群的主要关注点。',
+                       '两项记录共报告了 3 项心血管结局相关指标。']:
+            with self.subTest(no_gap=no_gap):
+                self.assertFalse(ck.eval_present(item, {'report': no_gap})[0])
+
     def test_citation_null_not_nonempty_string(self):
         self.assertFalse(ck.op_citations_entry_key_set({'citations': {'ref_1': {'title': None}}}, {'refs': ['ref_1'], 'keys': ['title']})[0])
 
@@ -221,6 +238,53 @@ class ChartTests(unittest.TestCase):
             self.assertIn('endpoint-bar-9.json', sv['charts'])
             self.assertFalse(ck.op_charts_structural(sv, ITEMS['A-S2a-chart-structure'])[0])
             self.assertFalse(ck.op_chart_observations(sv, self.spec)[0])
+
+
+class IdentityWordingTests(unittest.TestCase):
+    """The same observation may be spelled either way, but it stays one observation.
+
+    F2 (2026-10-10): R41-A wrote `Q4W` in a chart label while the body said `每月`, and the
+    spec only accepted `每月|QM`, so A-S9/A-S9b/A-S10 failed on wording rather than on
+    evidence.  The interval dimension now accepts the source's own wording and the common
+    abbreviation in both directions, without letting one observation match another's.
+    """
+
+    spec = ITEMS['A-S9b-chart-observation-identity']
+    VALUES = [-13.9, -70.5, -97.4, -100.5, -101.1]
+    OWNERS = ['1', '2', '2', '2', '2']
+
+    def surfaces(self, labels):
+        rows = [{'label': label, 'description': 'Lp(a) 降幅', 'value': value}
+                for label, value in zip(labels, self.VALUES)]
+        report = '\n\n'.join(
+            f"{label}：Lp(a) 变化 {value}%{{{{ref_{owner}}}}}。"
+            for label, value, owner in zip(labels, self.VALUES, self.OWNERS))
+        return {'charts': {'endpoint-bar-1.json': {'option': {'type': 'bar', 'title': 'Lp(a) 降幅',
+                    'data': rows}}}, 'report': report}
+
+    def test_both_wordings_of_one_interval_identify_the_same_observation(self):
+        for label in ['每月', '每月一次', 'QM', 'Q4W']:
+            with self.subTest(label=label):
+                sv = self.surfaces([
+                    f'NCT02729025 · 依洛尤单抗 420 mg {label}（第 16 周）',
+                    'OCEAN(a)-DOSE · 奥帕司兰 10 mg Q12W（第 36 周）',
+                    'OCEAN(a)-DOSE · 奥帕司兰 75 mg 每 12 周（第 36 周）',
+                    'OCEAN(a)-DOSE · 奥帕司兰 225 mg Q24W（第 36 周）',
+                    'OCEAN(a)-DOSE · 奥帕司兰 225 mg 每 12 周（第 36 周）'])
+                self.assertTrue(ck.op_chart_observations(sv, self.spec)[0], label)
+
+    def test_widening_does_not_merge_two_intervals_of_one_dose(self):
+        # 225 mg q12w and 225 mg q24w are two observations; swapping their labels must fail
+        # on the value, not pass because both intervals now look acceptable.
+        sv = self.surfaces([
+            'NCT02729025 · 依洛尤单抗 420 mg 每月（第 16 周）',
+            'OCEAN(a)-DOSE · 奥帕司兰 10 mg Q12W（第 36 周）',
+            'OCEAN(a)-DOSE · 奥帕司兰 75 mg Q12W（第 36 周）',
+            'OCEAN(a)-DOSE · 奥帕司兰 225 mg 每 12 周（第 36 周）',
+            'OCEAN(a)-DOSE · 奥帕司兰 225 mg 每 24 周（第 36 周）'])
+        ok, why = ck.op_chart_observations(sv, self.spec)
+        self.assertFalse(ok)
+        self.assertIn('|value|', why)
 
 
 class NoRunLogisticsTests(unittest.TestCase):

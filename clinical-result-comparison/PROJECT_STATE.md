@@ -1,6 +1,22 @@
 # Project State
 
-## 当前快照：2026-10-10（R41：药名成对字段 + 附录可读名 + humanizer 交接段已原地发布；R42 = Phase A）
+## 当前快照：2026-10-10（R43–R45：F2 已修好并复验；F1 三轮强化后仍未清零）
+
+**线上状态**：prompt **v1.7 = 65,959 B / sha `f63bf180822c`**；Skill **v1.0.8**（dist **103,982 B / 19 entries / sha `47c06e7aa6d4`**）；`status` **in sync**；`deps` unchanged。三轮均**原地更新**（版本标签不变）：R43 prompt `e23eef7201d0` / dist `2f4700a2f295`；R44 prompt `5b8043bb3779` / dist `cdb4992f9b20`；R45 = 现值。
+
+**F2（同一观察一套写法）已修好且复验**：生成侧 = prompt 新 hard rule「One wording per observation」+ `SKILL.md` 硬规则段 + `references/chart-templates.md` bullet（图表 `label`/`description` 逐字复用正文身份短语；源文 `monthly` 就写「每月」）；判分侧 = `scenario-a.facts.json` 30 条 `identity_patterns`/`report_identity_patterns` 双向放宽（225 mg Q12W vs Q24W 仍互斥）。证据：`A-S9`/`A-S9b`/`A-S10` 在 R43-a/R44-a/R45-a **连续四次 PASS**；R41-A 重打分 **41/44 → 44/44 PASS**。
+
+**O27 已结案**：`A-C16` pattern 1 放宽为 `硬结局|硬终点|心血管事件|心血管结局`（pattern 2 否定式不变）+ 回归测试；scorer **32 → 34 → 35**。
+
+**F1（写入被拒 → `no tool errors` FAIL）三轮强化仍未清零**（唯一未结项）：R43（覆盖面扩到任何文件）1/4 失败；R44（无条件 `overwrite=True`）1/4，换形态（`edit_file` 旧目标串）；R45（`edit_file` 只准用于报告正文）1/4。三轮 12 run 失 3，**其余 21 条断言每次全过**（平台 re-prompt 后 run 正常完成、产物完整）⇒ 判为**行为天花板**，非合同缺口；台账 **O42** 给三选项（A 接受 / B 改 runner 断言口径 / C 正文改为脚本一次成文），**等用户选**。
+
+**新增待样本（不改评分器）**：**O40** `A-ATTR` 对对方记录的否定陈述不给豁免（R43-a、R45-a）；**O41** `A-P2` 对非分歧地提到库内记录零容忍（R45-a）。
+
+**真跑**：R43 22/21/22/22、R44 22/22/21/22、R45 22/22/22/21（每轮恰一组栽在 F1）；场景 A 离线 R43-a 43/44、**R44-a 44/44 PASS（首次全绿）**、R45-a 42/44。
+
+**本地门禁**：runner-gate 38 / scorer 35 / tools 5+14 / Node 16 / numeric-integrity 28 全 OK；变异闸门 `arm a 44/44, arm b 12/12` → `GATE: PASS`。
+
+## 历史快照：2026-10-10（R41：药名成对字段 + 附录可读名 + humanizer 交接段已原地发布；R42 = Phase A）
 
 **R41（用户 2026-10-10 诉求 b/c + Phase A，已完成发布与四组回归）**：
 
@@ -170,7 +186,8 @@ Build the Tool Smith Agent for evidence-grounded synthesis of selected esids, us
 | B2 | **TS 资产**：扇出去重措辞 + L3（分析面/引用落点）——**已 2026-09-18 授权并原地发布完成** | ✅ 已解除 | **已完成**：`publish` 原地更新（prompt `v1.6` / skill `v1.0.7`，回读逐字节一致，`in sync`）+ `R14` 真跑 17/17 PASS（调用 36→26、墙钟 201.8→148.0 s）。台账 `### W6`/`R14` |
 | B6 | ~~**仓库资产**：`eval_attribution` 的归因口径~~ **已完成（2026-09-18，用户授权 O19）** | ✅ 已解除 | 落地为「身份对豁免 + 数值对永不豁免」（`subject: true`），假阳性回归对照 `N25`/`N27`；`arm a 40/40`（第十四轮后同 arm 为 `41/41`）、`GATE: PASS`；R12 `37→39/40`、R15 `36→37/40`、R17 `39→40/40` ⇒ 台账 **F2**、`O19` 已修 |
 | B7 | ~~**仓库资产**：清单条目 `A-T1-title-names-both`~~ **已完成（2026-09-18，用户授权 O20）** | ✅ 已解除（证据从 1 份增至 4 份产物：R12/R15/R16/R17） | 改名 `A-T1-title-identifies-scope` + `op: title_scope`（主题式标题合法；**只点一个药名仍 FAIL**）；`M26`/`M06` 证明有牙、`N26` 证明不误伤 ⇒ 台账 **F2**、`O20` 已修 |
-| B3 | **runner**：无待改项（O1–O18 全已落地，只剩 O4/O5 待样本） | — | — |
+| B3 | **runner**：无待改项（O1–O18 全已落地，只剩 O4/O5 待样本）。**O42 若选 B**（把「参数被拒但重发成功」降为 WARN）则新增一条 runner 改动：待授权，改前备份 + `py_compile` + `evals/runner-gate/verify-run-chain.py` 零网络闸门 + 台账 O/R 记录 | 用户选 O42 的 B | 本地 runner，不动线上 |
+| B8 | **仓库资产（已完成）**：R43/R44/R45 三次 prompt/Skill 强化（F1 写入纪律 + F2 一套写法）+ 判分侧 O27 放宽；**均已原地发布并四组真跑** | ✅ 已解除（R41 同授权续用） | prompt v1.7 现值 `f63bf180822c`；dist `47c06e7aa6d4`；`status` in sync |
 | B4 | **仓库资产**：autoresearch harness 骨架 + 把 `tool_results/**` 纳入归档 → 跑 E0「receipts 命中率」回测（不动 `skill/`、0 新 run） | 用户点头 | 纯本地脚本 + 文档 |
 | B5 | **仓库资产**：把「冻结面 + 场景集 + TSV 列」写进 `AGENTS.md`/`PROJECT_STATE.md`，形成常驻 program.md（S4） | 用户点头 | 文档 |
 
@@ -182,6 +199,9 @@ Build the Tool Smith Agent for evidence-grounded synthesis of selected esids, us
 | C2 | 台账 O5：小样本不便宜（1 个 esid 也要 21 次调用 / 173 s / 26k reasoning） | R1 vs R4（14 esid 50 次 / 299 s） | 再攒几次，或用户体感贵时给「单结果解读」轻模板 |
 | C3 | 事实清单 `A-C6`（未报安慰剂组 +3.6%） | R11 唯一 FAIL（现 30/31） | 有第二个同类样本再改规则 |
 | C4 | E1 场景 A 噪声带（23 vs 41 calls 跨了发布，无干净重复） | 5 个 `20260914-*` run 离线重放 | S2 跑 3 次 |
+| C5 | 台账 O40：`A-ATTR` 不给「对对方记录的否定陈述」豁免 | R43-a（3 cell）+ R45-a（2 cell）两份产物，同为「引注甲却只点乙药名/登记号」 | 再攒 ≥2 份同类样本，再决定走「评分侧否定式豁免」还是「报告侧改习惯」 |
+| C6 | 台账 O41：`A-P2` 对「非分歧地提到库内记录」零容忍 | R45-a 一处（「库内记录另含…无法用于对齐」）；同条在 R43-a/R44-a 未触发 | 再攒 ≥2 份样本；若真阳居多则只改报告侧写法 |
+| C7 | 台账 O42：`no tool errors` 在多写 run 上约 1/4 概率被打掉（R41–R45 共 14 run 失 5） | 失败清单 + 12 run 的三轮对照（见台账 R43/R44/R45） | 一旦用户选 O42 的 A/B/C 即可定案 |
 
 ### D. 已定案不动（别再翻）
 

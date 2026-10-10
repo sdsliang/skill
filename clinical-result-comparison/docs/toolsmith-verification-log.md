@@ -1201,7 +1201,7 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O24 | **模板规格句被照抄进交付报告**（2026-09-18 `R15` 发现，**已修**）：报告覆盖行出现「原文优先于库内加工字段，不一致处同时写出原文值与库内记录值；」—— 模板第 5 行把规则写在 `**原文核对：** [...]` 括号外，模型当正文照抄。四个模板已移进规格括号；新增清单项 `A-P7-no-template-spec-in-report`（`op_report_excludes_literals`）+ 专属变异 `M23`（实测同时带动 `A-P2`）。备份/闸门：`arm a 38/38`、`arm b 12/12`、`GATE: PASS`、`verify-run-chain GATE: PASS`、dist `c55321ad4619` / 84,991 B 逐字节校验。**线上仍是旧模板** ⇒ 需再次授权 `push-skill`（in-place） | R15 / R16 | 已修（仓库 + 已上线一版） | **R16 已复验：三个字面在真产物里 0 命中**；但 R16 又暴露**同类换措辞**写法（`未发现原文与库内记录…不一致`）⇒ 已按 `A-P8` + `M24` + 合同/模板/sys 三处补规则，**R17（发布后同输入真跑）已复验：`A-P2/A-P7/A-P8` 全 PASS、覆盖行无规则句** |
 | O25 | **runner 工具调用计数口径自相矛盾**（2026-09-18 核 R15 数字时发现，**已修**）：schema 被拒的 call 会被框架重发成**新 call**，它既在 durable `calls` 里（无返回）、又不是「已返回」的一次；旧代码两处都印成 `attempts = len(calls) returned + len(rejected)` ⇒ R15 印出「30 attempts = 30 returned + 1 schema-rejected」，且被拒的那次被算进 returned 直方图（`web_fetch`×3，实为 2 次返回 + 1 次被拒）。修法：`ret_n = len(calls) - len(rej_ids)`，直方图剔除被拒项，另加 `[rejected: web_fetch×1]` 单列。备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v6.bak`（95,169 B，**O23 之后 / O25 之前**的状态，由 O25 三处 hunk 反向重建并 `py_compile` 通过）；`verify-run-chain.py` 仍 `GATE: PASS`；`run --resume`（R15 线程）实测新口径输出「29 returned + 1 schema-rejected (…web_fetch×2…) + rejected web_fetch×1」 | R15 | 已修（仅 runner 本地） |
 | O26 | **数值「符号 vs 幅度」写法**（2026-09-18 `R16` 对比 R8/R12/R15 发现）→ **已定案并落地**：用户口径「两种写法没关系，只要自洽就行」⇒ (a) 放弃原先「写死带符号」方案，改成**写法自由 + 同份交付物自洽**：`A-C4`/`A-C5` 模式 `[\u2212-]?` 符号可选（数值仍逐位精确，M01 仍翻）、`A-S9` 比绝对值（M10 仍翻）、**新增 `A-S10-sign-convention-consistent`**（被画进图的量在报告与图表必须同口径；`M25` 先读基线口径再把图表翻成另一种，只翻 A-S10）；合同（`input-contract.md`）+ sys v0.15 同步写清「作用域 = 被画的量，点估计无符号 + CI 带符号是正常渲染」 | R8/R12/R15/R16/R17 | 已改（仓库 + 已 in-place 发布） | **R17 复验通过**（`39/40`，本轮唯一 FAIL 是 O20；R16 幅度口径现在也全 PASS） |
-| O27 | **清单条目 `A-C16-hard-outcome-gap` 术语绑定过窄**（2026-09-18 `R16` 暴露，与 O20 同类）：R16 在表格里明确写了「心血管结局事件（如 MACE）」并标注两侧「未报告／未对齐」，但条目正则只认 `硬结局|心血管事件` ⇒ 被判 0 命中。要防的是「硬结局缺口不写」这件事实，不是某个词形 | 正则放宽为 `硬结局|心血管事件|心血管结局`（仍要求出现在正文），配套检查 M-变异仍能翻 | **待批**（证据：R16 报告第 4.3 节 + 表格行；1 份产物） |（**R17 用「心血管事件」词面 ⇒ 该条 PASS**，故现为 1 失败 / 1 通过，仍按「待样本」不动） |
+| O27 | **清单条目 `A-C16-hard-outcome-gap` 术语绑定过窄**（2026-09-18 `R16` 暴露，与 O20 同类）：R16 在表格里明确写了「心血管结局事件（如 MACE）」并标注两侧「未报告／未对齐」，但条目正则只认 `硬结局|心血管事件` ⇒ 被判 0 命中。要防的是「硬结局缺口不写」这件事实，不是某个词形 | 正则放宽为 `硬结局|硬终点|心血管事件|心血管结局`（pattern 1；pattern 2 的否定式要求不变），配套回归 `test_hard_outcome_gap_accepts_every_wording_but_still_needs_the_gap` + M-变异仍 44/44 全翻 | **已结案（2026-10-10 R43，已修）**：第 2 份误判样本 R43-a 写「两项记录都没有心血管结局数据」（旧正则 0 命中）；放宽后 R43-a 43→**43/44**（该条转 PASS）、R41-A 41→**44/44 PASS**；变异闸门 `arm a 44/44 / arm b 12/12 / GATE: PASS` ⇒ 不产生假绿 |
 | O28 | **`A-ATTR` 的「数值对」分支从未命中过任何产物**（2026-09-18 核 `M27` 时发现，**已修**）：token 写 ASCII `-13\.9`，四份真产物正文一律 U+2212（`−13.9`：R8/R12 各 5 处、R16 有符号式、R17 9 处）⇒ 静默漏检（假绿方向）；改成 `[\u2212-]13\.9` 后四份产物重打**无新增 FAIL**（说明真产物数值归属本来就干净，缺的只是这层检查），`M27` 现在能翻 `A-ATTR` | F2 | 已修（仅仓库评测资产） |
 | O29 | **`A-P6` 在**真产物**上空转（假绿）**（2026-09-18 核 L3 时发现，**已修**）：旧实现只把「文件名以 `ref_<n>` 开头」的归档算作某条 ref 的全文正文（`op_cite_link_is_deepest` 里的 `re.match(r"ref_(\d+)", …)`），而**真产物从不这么命名**（`R14` 是 `PMC11270764_fulltext_jats.xml`）⇒ 拿 `R14` 原产物重打时它报 `no per-ref full-text body archived (check not triggered)` 并 PASS，**一个 citation link 都没看**——而 `R14` 正是催生 L3 规则的那份产物。更麻的是它**能过闸门**：`M21`/`M22` 用的是 harness 自己拼的 `ref_1.pmc-fulltext.xml`，即「拿自己的假设自证」。同时发现规则**只有一个方向**（归档 ⇒ 引用必须指全文），没有任何东西防「引用声称读了全文而一个字没取」 | ① `A-P6` 归位拆**四条通道**（`ref_` 前缀 / esid / 正文 `PMC<id>` 对链接 `PMC<id>` / 正文 PMID 对链接 PMID），归不上不猜、只记诊断；`PMC\d+` 先抹掉再扫 PMID（否则 PMCID 数字会被当 PMID 命中）；② 新增反向断言 **`A-P9-fulltext-cite-has-body`**（`link` 指全文载体 ⇒ `sources/` 里必须有同 `PMC<id>` 的字节；`link` 逐字节等于记录自带 `full_article_link` 时不算深度声明）；③ 变异改用**真产物命名**并新增 `M28`（只翻 `A-P9`）/ `N28`（`R14` 合法形状需三条全绿）；④ `NEG_A` 判据从「我那一条没翻」收紧为「**整轮干净** `rc==0 && flipped==[]`」（旧版下、负向对照把别条目打翻也会报 `[OK]`） | **已修**（2026-09-18，仅仓库评测资产：`check.py` / `scenario-a.facts.json` / `mutations.py` / `README.md` + 两份 evidence）→ 证据 **F4** |
 | O30 | **`tool_results/**` 回执在 run 结束后不可恢复**（2026-09-18 E0 回测）：平台 persist 时删、产物面板过滤 ⇒ `file-download?path=…` 对已结束 run 恒 404；离线扫描 28 个 run 目录 **109 个指针、107 个不可恢复**。而报告里的数字（params JSONL / 抓回来的正文）恰恰只在回执里 | **不进平台问题单**（删/滤是设计如此，属运行期草稿）：runner（`~/.local/bin/toolsmith-publish`）新增 `ReceiptArchiver`，5 s 节奏轮询消息抠指针即时下载 → `<run>/tool_results/**` + `receipts.jsonl` + `run.json.receipts`；两条判定路径各加断言 `tool_results receipts archived`（0 指针 = PASS 且注明 n/a） | **已落地并验证**（R19 暴露目录假指针 → R20 12/12 PASS） |
@@ -1214,6 +1214,9 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O37 | 本地 citation/entity 校验缺口 | 引用值、URL、marker/entity 检查；F7 | 21 Node tests PASS；不代表生产渲染器或 HTML 清洗 |
 | O38 | 旧参数/臂数字段/L3 规则冲突与过度非 OA 推断 | live `esids` 适配、入组语义、canonical input-contract；F7 | 本地规则及 deps 基线已改；TS 发布与真跑待授权 |
 | O39 | **runner 的 `tool-doc` 里留着已删文件的指针**（2026-10-09 收尾 entity 移除时发现，**已修**）：`cmd_param_doc` 生成的「4.3 嵌套返回结构要点」写「实体 ID 路径见 Skill 的 `references/entity-inline-reference.md`」，而该文件已在 v0.16 删除 ⇒ 生成物 `docs/params-tool-schema.md` 指向不存在的路径。修法：删掉该从句，`toolsmith-publish tool-doc` 重新生成（31,729 B→31,671 B）；备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v10.bak`，`py_compile` OK，零网络闸门 `GATE: PASS`。**只影响文档生成，不进运行期**。 | 已修（本地 runner + 仓库文档） |
+| O40 | **`A-ATTR` 对「对对方记录的否定陈述」不给豁免**（2026-10-10 R43-a / R45-a 两份产物，2 样本）：引注 `ref_n` 的单元（含按 cell 拆分的表格单元）里点到**另一条记录的身份证**（药名/登记号），而本单元对该记录的陈述是**否定式**（「未给出」「未报告」「未评估」），仍判 FAIL。例：R43-a 第 60 行 cell「OCEAN(a)-DOSE 摘要只给出 LDL-C 基线中位值，未给出变化值」；R45-a「奥帕司兰未给出可归属的 LDL-C 变化值」「依勒尤单抗所取原文与库内记录均未报告安全性结果」。**当前判定：不改评分器**（现行契约 O19/M15 明文：单元必须点到**自己所引**记录的身份才享豁免；否定陈述不构成豁免理由，否则「未优于 X」成了绕开口） | **待样本**（候选方向：(a) 对「只作否定陈述」的单元开否定式豁免；(b) 报告侧习惯改为「提到对方时同时点自己」。需 ≥2 份新样本再定）|
+| O41 | **`A-P2-divergence-shows-both` 对「非分歧地提到库内记录」零容忍**（2026-10-10 R45-a，1 样本）：该条按块要求任意 `库内记录` 出现必须落在 `原文 <值>；库内记录 <值>{{ref_n}}` 相邻双值写成内；R45-a 有一句写「库内记录另含若干按剂量分组的第 36 周百分比变化数值，但未给出可归属的终点名称，无法用于对齐」⇒ 判 FAIL。合同（`references/input-contract.md:224/286`）确实规定了该固定写法，但**未规定「不许在其它语境提到库内记录」**，故本例属**边界**：既可为真阳性（提到库内数值却不给原文对照），也可能只是排版选择 | **待样本**（候选方向：①报告侧把这类句子直接不写（合同 320 行已有「无差异不要写 meta」的内核）；②评分侧仅在块内出现**数值**且无原文对照时才判 FAIL。需 ≥2 份样本）|
+| O42 | **`no tool errors` 在多写 run 上约 1/4 概率被打掉，三轮 prompt 强化未改变基线**（2026-10-10 R41→R45 共 14 个 run）：失败形态二种——`write_file` 缺 `overwrite`、`edit_file` 目标串过期；二者都只损失**一次工具调用**，平台 re-prompt 后 run 照常完成、其余 21 条断言全过。口径表见下方 R43/R44/R45 三节。 | **待决策**（选项 A 接受为已知偶发；B 改 runner 把「参数被拒但重发成功」降为 WARN；C 改行为把正文改成「脚本从账本渲染一次成文」以减少写次数）|
 
 ## 4. 平台侧（转开发）
 
@@ -1796,3 +1799,103 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
    故**默认策略保持「prompt 只说明怎么交接，不强制每次调用」**（现 prompt 措辞即此），贵的长报告由用户按需点名。
 4. weak 命中数 hz 更高（2 vs 1、3 vs 1）不是回归：`W-DASH-COUNT` / `W-FMT-MIXED` 是文档级弱阈值，说明 hz 臂更多用了破折号等排版手段，
    与「去 AI 味」无关；数据与 `docs/evidence` 一并留给下轮判断是否要调阈值。
+
+---
+
+## R43 — F1（写入纪律扩面）+ F2（同一观察一套写法）落地后重跑四组（2026-10-10）
+
+发布：**prompt v1.7 原地更新 → 65,090 B / sha `e23eef7201d0`**；**Skill v1.0.8 原地更新**（dist **103,693 B / 19 entries / sha `2f4700a2f295`**）；`deps` unchanged；`status` → in sync。
+改动面：`system-prompts/multi-clinical-result-comparison-v0.16.md` 第 6 条覆盖面扩到「工作区里你写过的任何文件」+ 新增 hard rule **One wording per observation**；`skill/.../SKILL.md`（硬规则段 + `## Required distinctions` bullet）、`references/chart-templates.md`、`references/file-delivery.md`；`evals/fact-check/scenario-a.facts.json`（30 条 `identity_patterns`/`report_identity_patterns` 双向放宽）；`evals/fact-check/test_regressions.py` 新增 `IdentityWordingTests`（32 → 34）。
+
+| 组 | run 目录 | thread / turn | 墙钟（server/polled） | 工具尝试 | 附录布局 | 断言 | exit |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| R43-1（2 esid 场景 A） | `20261010-131547-r43-a` | `313d0f8b…` / `08ef3888…` | 384.5 s / 389.1 s | 43 = 42 returned + **1 unresolved**（write_file 被拒） | `trial-columns` 2 列 / 15 行 | 21 PASS / **1 FAIL**（F1） | 3 |
+| R43-2（4 esid） | `20261010-131547-r43-4` | `336aecb9…` / `e2412b9d…` | 498.7 s / 512.8 s | 64（write×4） | `disclosure-columns` 4 列 / 19 行 | **22 PASS / 0 FAIL** | 0 |
+| R43-3（18 esid） | `20261010-132805-r43-18` | `0b980877…` / `d4678968…` | 503.1 s / 512.7 s | 66（write×4） | `trial-columns` 10 列 / 43 行 | **22 PASS / 0 FAIL** | 0 |
+| R43-4（14 esid） | `20261010-132806-r43-14` | `5e541a08…` / `b4239a9b…` | 491.8 s / — | 54（write 写 `/workspace/scripts/digest.py`） | `trial-columns` 11 列 / 49 行 | **22 PASS / 0 FAIL** | 0 |
+
+**F2 验证（本轮的验收点）**
+
+- R43-a 的三项图表断言 `A-S9-chart-values` / `A-S9b-chart-observation-identity` / `A-S10-sign-convention-consistent` **由 FAIL 转 PASS**（R40-1 39/44、R41-A 41/44 都栽在这三项）⇒ 规格放宽 + 「一套写法」硬规则**双管齐下生效**。
+- 附带：`A-C16-hard-outcome-gap` 因 **O27 结案**（术语放宽）也转 PASS；重打分后 **R41-A 41/44 FAIL → 44/44 PASS**、**R43-a 42/44 → 43/44**（仅剩 A-ATTR）。
+
+**F1 仍复发（本轮的未结项）**：R43-a 在 `/workspace/work/draft.md` 上重写时漏传 `overwrite` → `write_file [re-prompted]: File '/workspace/work/draft.md' already exists …`。
+说明「扩到所有文件」还不够——模型自己都写「Re-issuing the draft in one write」却仍漏传 flag ⇒ 第二轮改为**无条件 `overwrite=True`**（R44）。
+
+### 我方能改的
+
+| 现象 | 证据 | 改法 | 状态 |
+| --- | --- | --- | --- |
+| **F2：同一观察身份词汇混用（`每月` vs `Q4W`）** | 图表行标签 `NCT02729025 · 依洛尤单抗 420 mg Q4W（第 16 周）` vs 正文「每月一次」；`op_chart_observations` 按 `label + description` 匹配 `identity_patterns` | 生成侧：prompt / SKILL / `chart-templates.md` 加「一套写法」硬规则（图表 label 逐字复用正文身份短语）；判分侧：`scenario-a.facts.json` 放宽 30 条 pattern（`(?:每月\|每月一次\|QM\|Q4W)` 等），225 mg Q12W 与 Q24W 仍严格互斥，配 2 条回归测试 | ✅ **已修且已验证**（R41-A/R43-a/R44-a/R45-a 四项图表断言连续 4 次 PASS） |
+| **F1：重写工作区文件被平台拒** | R43-a `write_file [re-prompted] … draft.md already exists` | 第一轮：第 6 条覆盖面扩到所有文件（本轮）；**不够** | ⛔ 未修好 → 见 R44 / R45 / O42 |
+| **O27：`A-C16` 术语绑定过窄** | R16（心血管结局事件）+ R43-a（心血管结局）两份误判样本 | pattern 1 放宽为 `硬结局\|硬终点\|心血管事件\|心血管结局`，pattern 2（否定式）不动 + 回归测试（scorer 34 → 35） | ✅ 已结案（变异闸门 `GATE: PASS`） |
+| **O40 / O41（新增待样本）** | A-ATTR 否定陈述（2 样本）、A-P2 非分歧提到库内记录（1 样本） | 本轮**不改评分器**，只记账 | 📝 待样本（≥2 份） |
+
+### 平台侧（转开发）
+
+- 本轮无新增平台缺陷。`write_file` 拒绝静默覆盖的**平台行为是对的**（且 re-prompt 文案已给出 `overwrite=True` 的改道建议）。
+
+---
+
+## R44 — F1 第二轮（无条件 `overwrite=True`）后重跑四组（2026-10-10）
+
+发布：**prompt v1.7 原地更新 → 65,452 B / sha `5b8043bb3779`**；**Skill v1.0.8**（dist **103,846 B / 19 entries / sha `cdb4992f9b20`**）；`status` → in sync。
+改动：第 6 条改为「**每次 `write_file` 一律带 `overwrite=True`，包括全新路径的首次写入**；不要判断路径是否新」（`references/file-delivery.md` + `SKILL.md` 的 Output firewall 同步）。
+
+| 组 | run 目录 | thread / turn | 墙钟（server/polled） | 工具尝试 | 附录布局 | 断言 | exit |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| R44-1（2 esid 场景 A） | `20261010-134027-r44-a` | `23fd4111…` / `e2fbcd2f…` | 495.2 s / 511.1 s | 51（write×8，其中 `output/report.md` ×4、`scripts/gen_ledger.py` ×2） | `trial-columns` 2 列 / 11 行 | **22 PASS / 0 FAIL** | 0 |
+| R44-2（4 esid） | `20261010-134027-r44-4` | `193a3957…` / `8dbdb11b…` | 380.7 s / 390.7 s | 51（write×3） | `disclosure-columns` 4 列 / 27 行 | **22 PASS / 0 FAIL** | 0 |
+| R44-3（18 esid） | `20261010-135018-r44-18` | `0075c41e…` | 655.5 s / 657.3 s | 84 = 83 returned + **1 unresolved**（edit_file 被拒） | `trial-columns` 10 列 / 42 行 | 21 PASS / **1 FAIL**（F1 换形态） | 3 |
+| R44-4（14 esid） | `20261010-135018-r44-14` | `c629e4cd…` | 511.9 s / 513.5 s | 56（write×3） | `trial-columns` 11 列 / 44 行 | **22 PASS / 0 FAIL** | 0 |
+
+**关键证据（说明无条件规则确实在起作用）**：R44-a 里 `output/report.md` 被写了 **4 次**、`scripts/gen_ledger.py` 被写了 **2 次**，而 `already exists` / `re-prompted` 命中 **0** 次（R43-a 的同类重写正是失败点）；transcript 因长 args 截断看不到 flag 本身，但「多次重写 + 零拒绝」只能由「确实带了 `overwrite=True`」解释。
+
+**F1 仍未清零，但换了形态**：R44-3 的失败是 `edit_file [re-prompted]: Could not find the target string in '/workspace/scripts/build_ledger.py'` —— 模型对**自己生成的脚本**做 7 次 `edit_file` 补丁，其中一次目标串已过期。⇒ 第三轮把 `edit_file` 也纳入纪律（R45）。
+
+**场景 A 离线判分**：**44/44 PASS（首次全绿）**，`warn 1/1`；F2 四项图表断言保持 PASS；O27 放宽后 A-C16 也 PASS。
+
+---
+
+## R45 — F1 第三轮（`edit_file` 只准用于报告正文）后重跑四组（2026-10-10）
+
+发布：**prompt v1.7 原地更新 → 65,959 B / sha `f63bf180822c`**；**Skill v1.0.8**（dist **103,982 B / 19 entries / sha `47c06e7aa6d4`**）；`deps` unchanged；`status` → in sync。
+改动：第 6 条追加「**`edit_file` 只用于 `/workspace/output/report.md`**，且只用刚 `read_file` 看到的短 `old_string`；本轮生成的脚本/账本/digest/`work/*` 一律不补丁，改就整文件 `write_file(overwrite=True)` 重发」（`references/file-delivery.md` 同步）。
+
+| 组 | run 目录 | thread / turn | 墙钟（server/polled） | 工具尝试 | 附录布局 | 断言 | exit |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| R45-1（2 esid 场景 A） | `20261010-140534-r45-a` | `204d1c12…` / `24c03296…` | 344.2 s / 346.3 s | 44（write×7） | `trial-columns` 2 列 / 12 行 | **22 PASS / 0 FAIL** | 0 |
+| R45-2（4 esid） | `20261010-140534-r45-4` | `37c35f4a…` / `14e9cde2…` | 390.5 s / 408.3 s | 44（write×8） | `disclosure-columns` 4 列 / 17 行 | **22 PASS / 0 FAIL** | 0 |
+| R45-3（18 esid） | `20261010-141356-r45-18` | `bd20d058…` | 410.5 s / 412.0 s | 56（edit_file×4 全在报告正文，全部成功） | `trial-columns` 10 列 / 33 行 | **22 PASS / 0 FAIL** | 0 |
+| R45-4（14 esid） | `20261010-141356-r45-14` | `a1937a93…` | 627.1 s / 638.5 s | 59 = 58 returned + **1 unresolved**（write_file 被拒） | `trial-columns` 11 列 / 57 行 | 21 PASS / **1 FAIL**（F1 回到 R43-a 形态） | 3 |
+
+**场景 A 离线判分（R45-a）**：`SCORE scenario=a facts 42/44 warn 1/1 -> FAIL`；余留 2 项为 `A-ATTR-misattribution`（2 个 cell，见 O40）+ `A-P2-divergence-shows-both`（1 处，见 O41）；**F2 四项图表断言全部保持 PASS**。
+
+**F1 三轮汇总（R41 → R45，共 14 个 run）**
+
+| 发布轮 | F1 修法 | 结果 | 失败形态 |
+| --- | --- | --- | --- |
+| （历史基线 R38–R40） | 「写一次、修订带 `overwrite=True`」 | 6 run 中 0 失败（但写次数少） | — |
+| R41 / R42 | 同上（覆盖到辅助脚本） | R41 1/4、R42 1/2 失败 | `write_file` 缺 flag（脚本） |
+| **R43** | 覆盖面扩到「工作区里任何文件」 | **1/4 失败** | `write_file` 缺 flag（`work/draft.md`） |
+| **R44** | 无条件 `overwrite=True`（含全新路径） | **1/4 失败** | `edit_file` 目标串过期（自写脚本） |
+| **R45** | `edit_file` 只准用于报告正文 | **1/4 失败** | `write_file` 缺 flag（`work/draft.md`） |
+
+**结论**：三轮措辞强化都**没能把基线从约 1/4 run 挪动**，且失败形态在两种之间摆动；三次失败中报告侧的其它 21 条断言**全部照常通过**（平台 re-prompt 后 run 正常完成、产物完整）⇒ 这不是合同缺口，而是「长 agentic run 里模型对某个布尔参数偶发漏传」的行为天花板。见 O42 三个选项（接受 / 改 runner 断言口径 / 把正文改成脚本一次成文）。
+
+### 我方能改的
+
+| 现象 | 证据 | 改法 | 状态 |
+| --- | --- | --- | --- |
+| **F1（O42）：`write_file` 漏传 `overwrite` / `edit_file` 目标串过期** | R43-a、R44-18、R45-14 三次 `no tool errors` FAIL，各自只损失一次调用 | 已做三轮（覆盖面 → 无条件 flag → `edit_file` 收窄）；**未清零** | ⛔ **未修好**（判为行为天花板，待用户选 O42 的 A/B/C） |
+| **F2：同一观察一套写法** | R43-a / R44-a / R45-a 四项图表断言连续 PASS；R41-A 重打分 44/44 | 生成侧规则 + 判分侧放宽（30 条 pattern）+ 2 条回归测试 | ✅ **已修且已复验** |
+| **O27：A-C16 术语放宽** | R16 + R43-a 两份样本 | pattern 1 放宽 + 1 条回归测试（scorer 35） | ✅ 已结案 |
+| **O40 / O41** | 见上两节 | 只记账 | 📝 待样本 |
+
+### 平台侧（转开发）
+
+- 本轮无新增平台缺陷。若 O42 选 B/C 也不需要平台改动；若想从平台侧根治，可建议 `write_file` 提供「显式 `mode=upsert` 或对已存在路径默认覆盖 + 备份」——**本轮未提单**，等用户决定是否值得报。
+
+---
+
+**R43 / R44 / R45 收尾状态**：线上 = prompt v1.7 **65,959 B / sha `f63bf180822c`**、Skill v1.0.8（dist **103,982 B / 19 entries / sha `47c06e7aa6d4`**），`status` in sync；本地门禁 runner-gate 38 / scorer 35 / tools 5+14 / Node 16 / numeric-integrity 28 全 OK；fact-check 变异闸门 `arm a 44/44, arm b 12/12, GATE: PASS`。
