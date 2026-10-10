@@ -18,6 +18,7 @@ import importlib.util
 import json
 import re
 import subprocess
+import subprocess as SP
 import sys
 from pathlib import Path
 
@@ -305,6 +306,16 @@ def t_table_rows_are_not_scanned():
     rep = SCAN.evaluate(body, "zh")
     assert rep["strong"] == 0 and rep["weak"] == 0, f"表格行被当成正文命中：{rep['findings']}"
 
+
+
+
+# ---------------------------------------------------------- 打包闸门
+
+def t_dist_zip_is_current():
+    """dist 里的上传附件必须等于当前工作区重打的包（发布口径以包为准）。"""
+    out = SP.run([sys.executable, "-B", str(ROOT / "tools" / "pack-dist.py"), "--check"],
+                 capture_output=True, text=True)
+    assert out.returncode == 0, (out.stdout + out.stderr).strip()
 
 
 def main():

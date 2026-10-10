@@ -14,8 +14,9 @@ report-humanizer-en/
 │   ├── references/naming-bilingual.md  # English/Chinese naming: common knowledge → dictionary → directional fallback
 │   ├── references/examples.md          # 3 full-paragraph before/after pairs + "should be kept" boundaries
 │   └── scripts/tell-scan.py            # dependency-free bilingual scanner, 21,351 B (byte-identical to the Chinese twin)
+├── tools/pack-dist.py                  # deterministic packer: dist/report-humanizer-en-v0.1.0.zip (the upload attachment)
 └── evals/
-    ├── test-tell-scan.py               # 22-check machine gate (run directly, never via unittest discover)
+    ├── test-tell-scan.py               # 23-check machine gate (run directly, never via unittest discover)
     └── fixtures/                       # ai-flavored / humanized / keep / weak-only + facts.json
 ```
 
@@ -23,10 +24,10 @@ report-humanizer-en/
 
 ```bash
 cd /home/xupeipeioo1/apps/skill/report-humanizer-en
-python3 -B evals/test-tell-scan.py     # expect: report-humanizer-en machine gate: 22/22 OK
+python3 -B evals/test-tell-scan.py     # expect: report-humanizer-en machine gate: 23/23 OK
 ```
 
-The gate covers scanner behaviour (language detection, fenced-block skipping, `--allow`, exit codes, JSON shape), fixture outcome shape, **no fact loss** (the rewrite may not invent numbers; every `facts.en.json` anchor must survive in both drafts), and **anti empty-artifact** (rewrite ≥200 chars, ≥3 sentences, key facts present, `difflib` ratio < 0.9, AI draft longer than the rewrite). Two further checks validate `references/examples.md` itself: the AFTER paragraph may not contain numbers absent from BEFORE, and every "must survive verbatim" anchor must appear in both. Two more are false-positive regressions found by scanning a real report: a bare noun such as a statistics term must not fire as process narration on its own, and table rows must be excluded from both line scanning and document-level counting.
+The gate covers scanner behaviour (language detection, fenced-block skipping, `--allow`, exit codes, JSON shape), fixture outcome shape, **no fact loss** (the rewrite may not invent numbers; every `facts.en.json` anchor must survive in both drafts), and **anti empty-artifact** (rewrite ≥200 chars, ≥3 sentences, key facts present, `difflib` ratio < 0.9, AI draft longer than the rewrite). Two further checks validate `references/examples.md` itself: the AFTER paragraph may not contain numbers absent from BEFORE, and every "must survive verbatim" anchor must appear in both. One more gates packaging (dist must equal a fresh build). Two more are false-positive regressions found by scanning a real report: a bare noun such as a statistics term must not fire as process narration on its own, and table rows must be excluded from both line scanning and document-level counting.
 
 Fixture baseline (must reproduce on regression):
 
@@ -45,6 +46,27 @@ python3 -B skill/report-humanizer-en/scripts/tell-scan.py <file.md> [--lang auto
 ```
 
 Exit codes: `0` no strong hits / `3` strong hits present (usable as a gate) / `2` usage or file error. It is an **assistant, not a judge**: a hit is not an order to edit, and no hit is not proof of quality.
+
+## Packaging and upload (the attachment ToolSmith asks for)
+
+Creating the skill on ToolSmith requires **uploading a bundle zip**, so the archive has to be one command away and always equal to the worktree:
+
+```bash
+cd /home/xupeipeioo1/apps/skill/report-humanizer-en
+python3 -B tools/pack-dist.py            # builds dist/report-humanizer-en-v0.1.0.zip
+python3 -B tools/pack-dist.py --check    # expect IDENTICAL
+```
+
+- 5 members (`SKILL.md` + `references/*.md` + `scripts/*.py`) under the `report-humanizer-en/` prefix, which matches the `name:` in `SKILL.md` (the platform checks this).
+- Deterministic: fixed timestamp, Unix creator, 0644, deflate level 6 — unchanged worktree, unchanged bytes, which is what `toolsmith-publish status` compares against.
+- `evals/test-tell-scan.py::t_dist_zip_is_current` gates "dist equals worktree", so the bundle cannot change without repacking.
+- When uploading from a Windows browser, use the UNC path:
+
+```
+\\wsl.localhost\Ubuntu-22.04\home\xupeipeioo1\apps\skill\report-humanizer-en\dist\report-humanizer-en-v0.1.0.zip
+```
+
+> Do not copy the zip to `C:\...` and upload from there: the corporate DLP driver can transparently encrypt Windows-side writes, and the platform would receive a broken archive. Read it straight from WSL over UNC.
 
 ## Versioning and publishing
 

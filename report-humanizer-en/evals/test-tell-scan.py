@@ -18,6 +18,7 @@ import importlib.util
 import json
 import re
 import subprocess
+import subprocess as SP
 import sys
 from pathlib import Path
 
@@ -304,6 +305,16 @@ def t_dictionary_lookup_verbs_need_an_actor():
     assert rules(SCAN.evaluate("We searched 27 disclosures and extracted endpoints.", "en"), "strong")
     assert SCAN.evaluate("The search covered 27 disclosures; endpoints came from 18 of them.", "en")["strong"] == 0
 
+
+
+
+# ------------------------------------------------------------ packaging gate
+
+def t_dist_zip_is_current():
+    """The upload attachment in dist/ must equal a fresh build of the worktree."""
+    out = SP.run([sys.executable, "-B", str(ROOT / "tools" / "pack-dist.py"), "--check"],
+                 capture_output=True, text=True)
+    assert out.returncode == 0, (out.stdout + out.stderr).strip()
 
 
 def main():

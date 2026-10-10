@@ -14,8 +14,9 @@ report-humanizer-zh/
 │   ├── references/naming-bilingual.md  # 实体与药名中英写法：常识优先 → 查字典 → 方向性回退
 │   ├── references/examples.md          # 3 组整段前后对照 + 「应当保留」边界
 │   └── scripts/tell-scan.py            # 零依赖双语扫描器，21,351 B（与英文版逐字节一致）
+├── tools/pack-dist.py                  # 确定性打包：dist/report-humanizer-zh-v0.1.0.zip（TS 上传附件）
 └── evals/
-    ├── test-tell-scan.py               # 机械闸门 22 项（直接运行，不要用 unittest discover）
+    ├── test-tell-scan.py               # 机械闸门 23 项（直接运行，不要用 unittest discover）
     └── fixtures/                       # ai-flavored / humanized / keep / weak-only + facts.json
 ```
 
@@ -23,10 +24,10 @@ report-humanizer-zh/
 
 ```bash
 cd /home/xupeipeioo1/apps/skill/report-humanizer-zh
-python3 -B evals/test-tell-scan.py     # 期望：report-humanizer-zh machine gate: 22/22 OK
+python3 -B evals/test-tell-scan.py     # 期望：report-humanizer-zh machine gate: 23/23 OK
 ```
 
-闸门覆盖四件事：扫描器行为（语言判定 / 代码块跳过 / `--allow` / 退出码 / JSON 形状）、fixture 命中形态、**改写不丢事实**（数值不得凭空增加、`facts.zh.json` 的锚点两稿俱在）、**反「空产物蒙分」**（改写稿 ≥200 字符 / ≥3 句 / 含关键事实 / `difflib` 相似度 < 0.9 / AI 味稿必须更长）。另有四项回归：`references/examples.md` 自身（改写后不得出现改写前没有的数值、保留锚点必须两稿俱在）与两处**误报回归**（裸名词「统计/筛选」不得单命中；表格行不参与行级命中与文档级计数）。
+闸门覆盖四件事：扫描器行为（语言判定 / 代码块跳过 / `--allow` / 退出码 / JSON 形状）、fixture 命中形态、**改写不丢事实**（数值不得凭空增加、`facts.zh.json` 的锚点两稿俱在）、**反「空产物蒙分」**（改写稿 ≥200 字符 / ≥3 句 / 含关键事实 / `difflib` 相似度 < 0.9 / AI 味稿必须更长）。另有五项回归：`references/examples.md` 自身（改写后不得出现改写前没有的数值、保留锚点必须两稿俱在）与两处**误报回归**（裸名词「统计/筛选」不得单命中；表格行不参与行级命中与文档级计数），以及打包一致性（`dist` 必须等于工作区重打的包）。
 
 fixture 命中基线（回归必须复现）：
 
@@ -45,6 +46,27 @@ python3 -B skill/report-humanizer-zh/scripts/tell-scan.py <file.md> [--lang auto
 ```
 
 退出码：`0` 无强命中 / `3` 有强命中（可当闸门）/ `2` 用法或文件错误。定位是**助手不是判分器**：命中不等于必须改，没命中不等于没问题。
+
+## 打包与上传（TS 建 skill 用附件）
+
+TS 上创建 skill 需要**上传压缩包附件**，所以包必须能一条命令重打、且与工作区一致：
+
+```bash
+cd /home/xupeipeioo1/apps/skill/report-humanizer-zh
+python3 -B tools/pack-dist.py            # 生成 dist/report-humanizer-zh-v0.1.0.zip
+python3 -B tools/pack-dist.py --check    # 期望 IDENTICAL
+```
+
+- 包内 5 个成员（`SKILL.md` + `references/*.md` + `scripts/*.py`），前缀 `report-humanizer-zh/`，与 `SKILL.md` 的 `name:` 一致（平台按这个校验）。
+- 打包确定性：固定时间戳、Unix creator、0644、deflate 6——工作区不变则字节不变，`toolsmith-publish status` 才能拿它对账。
+- `evals/test-tell-scan.py::t_dist_zip_is_current` 会把「dist 与工作区是否一致」当闸门，改了 bundle 必须重打包，否则测试红。
+- 从 Windows 浏览器上传时用 UNC 路径：
+
+```
+\\wsl.localhost\Ubuntu-22.04\home\xupeipeioo1\apps\skill\report-humanizer-zh\dist\report-humanizer-zh-v0.1.0.zip
+```
+
+> 不要用「复制到 `C:\...` 再上传」的方式绕过 UNC：公司机器有 DLP 透明加密，Windows 侧落盘可能变成密文，传上去就是坏包。走 UNC 直接读 WSL 明文。
 
 ## 版本与发布
 

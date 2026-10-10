@@ -16,12 +16,19 @@ English report de-AI-flavoring Skill. Working directory `/home/xupeipeioo1/apps/
 
 ```bash
 cd /home/xupeipeioo1/apps/skill/report-humanizer-en
-python3 -B evals/test-tell-scan.py                                    # gate, expect 22/22 OK
+python3 -B evals/test-tell-scan.py                                    # gate, expect 23/23 OK
 python3 -B skill/report-humanizer-en/scripts/tell-scan.py <file>       # scan one file
 diff skill/report-humanizer-en/scripts/tell-scan.py \
      ../report-humanizer-zh/skill/report-humanizer-zh/scripts/tell-scan.py   # must be empty
+python3 -B tools/pack-dist.py --check                                 # dist equals the worktree
 toolsmith-publish status                                              # read-back after publishing
 ```
+
+## Packaging discipline
+
+- After touching `skill/report-humanizer-en/**` repack: `python3 -B tools/pack-dist.py` (`--check` must be IDENTICAL). This zip is what ToolSmith takes as the skill attachment.
+- `dist/*.zip` is committed (same rule as `clinical-result-comparison`), because the platform reconciles archives, not worktrees.
+- Upload over the UNC path (`\\wsl.localhost\Ubuntu-22.04\...`), never by copying to `C:\...`: DLP can transparently encrypt Windows-side writes and the platform would receive ciphertext.
 
 ## Editing discipline
 

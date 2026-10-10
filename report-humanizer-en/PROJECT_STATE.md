@@ -15,13 +15,14 @@ English report de-AI-flavoring Skill: **content and machine gate complete and gr
 | `skill/report-humanizer-en/references/naming-bilingual.md` | Naming flow: common knowledge → host-returned paired fields → one dictionary lookup (`report-query-drug` / `pharmcube-mcp-drugBaseLiteCN` / Linking API `drug`) → directional fallback (**English → Chinese keeps the English name; Chinese → English uses pinyin**); other entities and format consistency |
 | `skill/report-humanizer-en/references/examples.md` | 3 full-paragraph before/after pairs (pipeline status / trial readout / safety and market access) + "should be kept" boundaries, each with verbatim anchors |
 | `skill/report-humanizer-en/scripts/tell-scan.py` | Dependency-free bilingual scanner, 21,351 B, **byte-identical** to the Chinese copy |
-| `evals/test-tell-scan.py` | 22-check machine gate (18 base + 2 examples self-containment + 2 false-positive regressions) |
+| `evals/test-tell-scan.py` | 23-check machine gate (18 base + 2 examples self-containment + 2 false-positive regressions + 1 packaging) |
+| `tools/pack-dist.py` | Deterministic packer → `dist/report-humanizer-en-v0.1.0.zip` (29,002 B / 5 entries / sha `2f1e5b515f16`), **the attachment ToolSmith takes when creating the skill** |
 | `evals/fixtures/` | `ai-flavored.en.md` / `humanized.en.md` / `keep.en.md` / `weak-only.en.md` / `facts.en.json` |
 
 ## Verification (local, reproducible)
 
 ```
-python3 -B evals/test-tell-scan.py  ->  report-humanizer-en machine gate: 22/22 OK
+python3 -B evals/test-tell-scan.py  ->  report-humanizer-en machine gate: 23/23 OK
 ```
 
 - Fixture baseline: `ai-flavored` 16 strong / 12 weak across 19 rules; `humanized` 0/0; `keep` 0 strong / 2 weak (`W-ING-RIDER`, `W-NOMINAL`); `weak-only` 0 strong / 1 weak (`S-INFL-04`).
@@ -41,7 +42,7 @@ python3 -B evals/test-tell-scan.py  ->  report-humanizer-en machine gate: 22/22 
 
 ## Open items
 
-- [ ] **Publish to ToolSmith?** Requires (a) user authorisation, (b) a platform-side skill family, (c) a `~/.config/toolsmith/projects.json` entry with `owned: true`, (d) `toolsmith-publish push-skill` followed by a `status` read-back.
+- [ ] **Publish to ToolSmith?** Requires (a) user authorisation, (b) creating the skill family on the platform (**that step uploads an attachment** → use `dist/report-humanizer-en-v0.1.0.zip`, UNC path in the README), (c) a `~/.config/toolsmith/projects.json` entry with `owned: true`, (d) `toolsmith-publish push-skill` followed by a `status` read-back.
 - [ ] Confirm the project / skill / directory naming (`report-humanizer-en`).
 - [ ] After publishing, run one real `toolsmith-publish run` and record it in the project log.
 

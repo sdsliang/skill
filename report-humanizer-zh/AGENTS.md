@@ -16,12 +16,19 @@
 
 ```bash
 cd /home/xupeipeioo1/apps/skill/report-humanizer-zh
-python3 -B evals/test-tell-scan.py                                   # 机械闸门，期望 22/22 OK
+python3 -B evals/test-tell-scan.py                                   # 机械闸门，期望 23/23 OK
 python3 -B skill/report-humanizer-zh/scripts/tell-scan.py <file>      # 扫描单个文件
 diff skill/report-humanizer-zh/scripts/tell-scan.py \
      ../report-humanizer-en/skill/report-humanizer-en/scripts/tell-scan.py   # 应为空
+python3 -B tools/pack-dist.py --check                                # 打包与工作区一致（发布附件以此为准）
 toolsmith-publish status                                             # 发布前后回读（未发布时会报无配置条目）
 ```
+
+## 打包纪律
+
+- 改 `skill/report-humanizer-zh/**` 之后必须重打包：`python3 -B tools/pack-dist.py`（`--check` 应 IDENTICAL）。TS 上创建/更新 skill 传的就是这个 zip。
+- `dist/*.zip` 入库（与 `clinical-result-comparison` 同规矩），因为平台对账用的是包而不是工作区。
+- 上传走 UNC 路径（`\\wsl.localhost\Ubuntu-22.04\...`），不要把包复制到 `C:\...` 再传：DLP 会把 Windows 侧落盘变成密文。
 
 ## 改动纪律
 

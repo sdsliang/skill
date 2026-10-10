@@ -15,13 +15,14 @@
 | `skill/report-humanizer-zh/references/naming-bilingual.md` | 药名流程：常识优先 → 宿主成对字段 → 字典工具（`report-query-drug` / `pharmcube-mcp-drugBaseLiteCN` / Linking API `drug`）→ 方向性回退（**英→中保留英文原名；中→英用拼音**）；其它实体与格式统一 |
 | `skill/report-humanizer-zh/references/examples.md` | 3 组整段前后对照（结论段 / 疗效段 / 安全性段）+「应当保留」边界；每例标出必须逐字保留的锚点 |
 | `skill/report-humanizer-zh/scripts/tell-scan.py` | 零依赖双语扫描器，21,351 B，与英文版**逐字节一致** |
-| `evals/test-tell-scan.py` | 机械闸门 22 项（18 项基础 + 2 项 examples 自洽性 + 2 项误报回归） |
+| `evals/test-tell-scan.py` | 机械闸门 23 项（18 项基础 + 2 项 examples 自洽性 + 2 项误报回归 + 1 项打包一致性） |
+| `tools/pack-dist.py` | 确定性打包器 → `dist/report-humanizer-zh-v0.1.0.zip`（26,621 B / 5 entries / sha `af618fb10fd4`），**TS 创建 skill 上传用的附件** |
 | `evals/fixtures/` | `ai-flavored.zh.md` / `humanized.zh.md` / `keep.zh.md` / `weak-only.zh.md` / `facts.zh.json` |
 
 ## 验证结果（本地，可复现）
 
 ```
-python3 -B evals/test-tell-scan.py  ->  report-humanizer-zh machine gate: 22/22 OK
+python3 -B evals/test-tell-scan.py  ->  report-humanizer-zh machine gate: 23/23 OK
 ```
 
 - zh fixture 基线：`ai-flavored` 14 强 / 2 弱；`humanized` 0/0；`keep` 0 强 / 3 弱（`W-AS-WITH`、`W-PASSIVE`、`W-VERBNOUN`）；`weak-only` 0 强 / 1 弱（`S-INFL-04`）。
@@ -41,7 +42,7 @@ python3 -B evals/test-tell-scan.py  ->  report-humanizer-zh machine gate: 22/22 
 
 ## 待办 / 待用户确认
 
-- [ ] **是否发布到 ToolSmith**：需要 (a) 用户授权；(b) 用户在 TS 侧建 skill family；(c) `~/.config/toolsmith/projects.json` 增加本项目条目（`owned: true`）；(d) `toolsmith-publish push-skill` + `status` 回读。
+- [ ] **是否发布到 ToolSmith**：需要 (a) 用户授权；(b) 用户在 TS 侧建 skill family（**创建时要上传附件** → 用 `dist/report-humanizer-zh-v0.1.0.zip`，Windows 侧 UNC 路径见 README）；(c) `~/.config/toolsmith/projects.json` 增加本项目条目（`owned: true`）；(d) `toolsmith-publish push-skill` + `status` 回读。
 - [ ] 项目 / skill / 目录命名是否沿用 `report-humanizer-zh`（用户可能想改中文名，如「报告去 AI 味（中文）」）。
 - [ ] 发布后补一次真跑（`toolsmith-publish run`）并记台账。
 
