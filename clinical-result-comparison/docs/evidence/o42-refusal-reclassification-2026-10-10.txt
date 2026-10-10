@@ -1,0 +1,106 @@
+O42 — 工具侧「参数被拒但被平台重发成功」改判 WARN（runner 层） 证据包
+日期：2026-10-10      授权：用户「谁好，你推荐谁」+「你自己看着办吧」= 批准按推荐执行（= 选项 B 的窄口径）
+
+--------------------------------------------------------------------------
+1. 轮次背景
+--------------------------------------------------------------------------
+F1（`no tool errors` 断言在长 agentic run 里约 1/4 概率失败）三轮措辞强化（R43 扩覆盖面 →
+R44 无条件 overwrite=True → R45 edit_file 收窄到报告正文）后基线未动，失败形态在
+「`write_file` 漏传 `overwrite`」与「`edit_file` 陈旧 old_string」之间摆动。O42 给三个选项：
+  A 接受为已知偶发
+  B 改 runner：把「参数被拒、随后被平台重发成功」降为带预算的 WARN
+  C 把正文改成「脚本从账本渲染一次成文」（减少写次数）
+判定：A 单独使用等于把机械 flake 留在 keep/discard 信号里；C 是大幅行为改动、收益不明；
+选 **B 的窄口径**：只收编两种**已被实测确认**的工具侧前置条件拒绝，且加预算闸门。
+
+--------------------------------------------------------------------------
+2. runner 改动（本地 CLI，可回滚）
+--------------------------------------------------------------------------
+文件：`~/.local/bin/toolsmith-publish`
+备份：`~/.local/state/toolsmith-publish/toolsmith-publish.v15.bak`（先备份后改）
+`diff` 结果 = 在 5 处新增 21 行、改 3 行，无其它改动：
+
+  (a) 新增 `TOOL_REFUSED_RX`（第 ~746-758 行），`^` 锚定，只匹配两种已观测形状：
+        write_file  `File '<path>' already exists. Read it first and use edit_file instead or
+                     use write_file(overwrite=True) to replace it.`   ← R43-a、R45-14
+        edit_file   `Could not find the target string in '<path>'`        ← R44-18
+      加 `^` 的用意：被包装过的消息（`RuntimeError: File '/x' already exists`、
+      `MCP error: …`）**仍然落 `errors`**（见第 4 节的负例测试）。
+  (b) `retry_kind()` 对上述形状返回 `"rejected"`（此前落到 `"errors"`）。
+  (c) 新增 `REFUSAL_BUDGET = 3`（第 ~760-762 行）。
+  (d) 原本恒为 PASS 的信息性断言改成带预算的判定：
+        旧： add(True, f"arguments refused by the tool (re-issued) = {len(st['rejected'])}")
+        新： add(len(st["rejected"]) <= REFUSAL_BUDGET, ... + f", budget {REFUSAL_BUDGET}")
+      ⇒ 断言条数不变（22），`verification.md` 语义不变，仍是一条 `[PASS]/[FAIL]`。
+  (e) 注释同步（桶语义、预算理由）。
+
+语义边界（写死在注释与测试里）：「工具自己因为前置条件拒绝参数」= 「schema 拒绝参数」同一类，
+平台已按 `retry-prompt` 重发、模型已改道、run 正常完成；这属于**已恢复的调用**，不是失败。
+但**每次 run 最多容忍 3 次**——4 次以上说明模型在系统性误用某个工具的参数，必须整 run FAIL。
+
+--------------------------------------------------------------------------
+3. 离线重打分：98 份历史 run（零新 run、零网络、不改产物）
+--------------------------------------------------------------------------
+方法：对 `~/.local/state/toolsmith-runs/*/debug-history.json` 直接调
+`tool_chain_from_history()`（v2 的唯一证据源 = 持久化消息），不重跑、不改归档。
+命令：`python3 -B /tmp/rescore_o42.py`（脚本含 loader 覆写，与台账同法）。
+
+结果：
+  scanned runs                      = 98
+  runs with errors > 0              = **0**        ← 旧口径下每个 F1 run 的有效载荷都在这里
+  拒绝次数直方图（次数 → run 数）    = {0: 77, 1: 18, 2: 3}
+  单 run 最大拒绝次数                = 2（r36-fixed-1：execute 1 + edit_file 1）
+  超过 REFUSAL_BUDGET(=3) 的 run     = **无**       ← 预算不会误伤任何历史样本
+  有拒绝的 run 共 21 份，逐份明细（工具名）：
+    20260921-110837-r32-fixed-1  write_file 1
+    20260921-111759-r32-fixed-2  write_file 1   （另 fetch_failures=3）
+    20261009-161420-r35-fixed-1  write_file 1
+    20261009-162057-r35-fixed-2  write_file 1
+    20261009-164457-r36-fixed-1  execute 1 + edit_file 1
+    20261009-171121-r37-fixed-1  pharmcube-query-clinical-result-with-params 1
+    20261010-113706-r41-fixed-4  write_file 1   ← 历史 F1 FAIL #1
+    20261010-115907-r42-hz-18    write_file 1   ← 历史 F1 FAIL #2
+    20261010-131547-r43-a        write_file 1   ← 历史 F1 FAIL #3
+    20261010-135018-r44-18       edit_file 1    ← 历史 F1 FAIL #4
+    20261010-141356-r45-14       write_file 1   ← 历史 F1 FAIL #5
+    （其余 10 份各 1 次，均为 write_file / execute / 参数工具，未逐条列出）
+  ⇒ 五次历史 F1 FAIL **各自恰好 1 次拒绝**，与「整 run 因一次可恢复拒绝而红」的定性完全吻合。
+  ⇒ 同时纠正了此前的估计：拒绝在归档里并不只出现在 F1 run 里（21/98 有拒绝），
+     但只有 F1 那 5 次是「拒绝 + 没有其它问题」的组合被断言单独判红。
+
+--------------------------------------------------------------------------
+4. 本地门禁（全绿）
+--------------------------------------------------------------------------
+`python3 -B -m py_compile ~/.local/bin/toolsmith-publish`                      OK
+`evals/runner-gate/test-runner.py`                        38 → **39** tests     OK
+  新增 `test_tool_side_precondition_refusals_are_not_errors`，含负例：
+    包装消息 `RuntimeError: File '…' already exists`  → 仍 `errors`
+    `MCP error: …`                                   → 仍 `errors`
+    两种正例（write_file / edit_file 原文形状）        → `rejected`，且计入预算
+`evals/runner-gate/verify-run-chain.py`  零网络闸门          **GATE: PASS**
+   （96 份历史 / 5 可比 / 91 跳过「v2 run: tap carries no tool events」）
+`tools/test_replay_run.py`                                   14 tests              OK
+`tools/test_pack_dist.py`                                    5 tests               OK
+
+--------------------------------------------------------------------------
+5. 线上真跑验证（两次 scenario A，R45 已发布内容，未改 prompt / Skill）
+--------------------------------------------------------------------------
+`~/.local/bin/toolsmith-publish run --repo . --tag <t> --prompt-file /tmp/r40/a-scenario-a.txt`
+  日志：/tmp/r41/r46a.log、/tmp/r41/r46a2.log
+
+  tag      run 目录                              thread                               墙钟(server/polled)  outcome     断言             refused
+  r46-a    20261010-145926-r46-a                 4327dde4-4717-4944-9e68-de57f2a2b5bd  330.0 / 349.2 s      succeeded   22 PASS / 0 FAIL   0
+  r46-a2   20261010-150625-r46-a2                 f0e29144-a730-433c-b313-63afb2115cc9  360.7 / 371.2 s      succeeded   22 PASS / 0 FAIL   0
+  两次均 `exit=0`，`[PASS] arguments refused by the tool (re-issued) = 0`
+  ⇒ 断言条数、`verification.md` 形态、退出码均与改前一致（回归无副作用）。
+
+--------------------------------------------------------------------------
+6. 残余风险与回滚
+--------------------------------------------------------------------------
+风险 1：把工具侧前置拒绝整体降级，理论上会掩盖「模型反复用错某个工具」的真实缺陷。
+        缓解 = 预算 3 次/run + 双形状 `^` 锚定 + 负例测试；历史最坏样本为 2 次。
+风险 2：若平台改变 re-prompt 文案（例如改写 `already exists` 措辞），正则失配 ⇒ 该 run 回到
+        旧口径（判 FAIL）——即**失败方向是保守的**，不会漏判，只会重新变严。
+回滚：`cp ~/.local/state/toolsmith-publish/toolsmith-publish.v15.bak ~/.local/bin/toolsmith-publish`
+      + 重跑 `evals/runner-gate/test-runner.py`（应回到 38 tests）。未触碰 prompt / Skill / dist，
+      ToolSmith 上无任何写动作。

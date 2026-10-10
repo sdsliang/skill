@@ -1216,7 +1216,8 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O39 | **runner 的 `tool-doc` 里留着已删文件的指针**（2026-10-09 收尾 entity 移除时发现，**已修**）：`cmd_param_doc` 生成的「4.3 嵌套返回结构要点」写「实体 ID 路径见 Skill 的 `references/entity-inline-reference.md`」，而该文件已在 v0.16 删除 ⇒ 生成物 `docs/params-tool-schema.md` 指向不存在的路径。修法：删掉该从句，`toolsmith-publish tool-doc` 重新生成（31,729 B→31,671 B）；备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v10.bak`，`py_compile` OK，零网络闸门 `GATE: PASS`。**只影响文档生成，不进运行期**。 | 已修（本地 runner + 仓库文档） |
 | O40 | **`A-ATTR` 对「对对方记录的否定陈述」不给豁免**（2026-10-10 R43-a / R45-a 两份产物，2 样本）：引注 `ref_n` 的单元（含按 cell 拆分的表格单元）里点到**另一条记录的身份证**（药名/登记号），而本单元对该记录的陈述是**否定式**（「未给出」「未报告」「未评估」），仍判 FAIL。例：R43-a 第 60 行 cell「OCEAN(a)-DOSE 摘要只给出 LDL-C 基线中位值，未给出变化值」；R45-a「奥帕司兰未给出可归属的 LDL-C 变化值」「依勒尤单抗所取原文与库内记录均未报告安全性结果」。**当前判定：不改评分器**（现行契约 O19/M15 明文：单元必须点到**自己所引**记录的身份才享豁免；否定陈述不构成豁免理由，否则「未优于 X」成了绕开口） | **待样本**（候选方向：(a) 对「只作否定陈述」的单元开否定式豁免；(b) 报告侧习惯改为「提到对方时同时点自己」。需 ≥2 份新样本再定）|
 | O41 | **`A-P2-divergence-shows-both` 对「非分歧地提到库内记录」零容忍**（2026-10-10 R45-a，1 样本）：该条按块要求任意 `库内记录` 出现必须落在 `原文 <值>；库内记录 <值>{{ref_n}}` 相邻双值写成内；R45-a 有一句写「库内记录另含若干按剂量分组的第 36 周百分比变化数值，但未给出可归属的终点名称，无法用于对齐」⇒ 判 FAIL。合同（`references/input-contract.md:224/286`）确实规定了该固定写法，但**未规定「不许在其它语境提到库内记录」**，故本例属**边界**：既可为真阳性（提到库内数值却不给原文对照），也可能只是排版选择 | **待样本**（候选方向：①报告侧把这类句子直接不写（合同 320 行已有「无差异不要写 meta」的内核）；②评分侧仅在块内出现**数值**且无原文对照时才判 FAIL。需 ≥2 份样本）|
-| O42 | **`no tool errors` 在多写 run 上约 1/4 概率被打掉，三轮 prompt 强化未改变基线**（2026-10-10 R41→R45 共 14 个 run）：失败形态二种——`write_file` 缺 `overwrite`、`edit_file` 目标串过期；二者都只损失**一次工具调用**，平台 re-prompt 后 run 照常完成、其余 21 条断言全过。口径表见下方 R43/R44/R45 三节。 | **待决策**（选项 A 接受为已知偶发；B 改 runner 把「参数被拒但重发成功」降为 WARN；C 改行为把正文改成「脚本从账本渲染一次成文」以减少写次数）|
+| O42 | **`no tool errors` 在多写 run 上约 1/4 概率被打掉，三轮 prompt 强化未改变基线**（2026-10-10 R41→R45 共 14 个 run）：失败形态二种——`write_file` 缺 `overwrite`、`edit_file` 目标串过期；二者都只损失**一次工具调用**，平台 re-prompt 后 run 照常完成、其余 21 条断言全过。口径表见下方 R43/R44/R45 三节。 | ✅ **已结案（2026-10-10 R46，选 B 窄口径）**：runner 新增 `TOOL_REFUSED_RX`（两种工具侧前置拒绝、`^` 锚定）+ `REFUSAL_BUDGET = 3`，原恒 PASS 的信息行改成带预算判定（断言仍 22 条）。备份 `toolsmith-publish.v15.bak`；`test-runner.py` 38→**39**；零网络闸门 `GATE: PASS`；离线重打分 98 份归档 = **0 errors**、单 run 最大拒绝 2 次、无超预算样本；线上 r46-a / r46-a2 各 **22 PASS / exit 0`。证据 `docs/evidence/o42-refusal-reclassification-2026-10-10.txt` |
+| O43 | **`A-S9` / `A-S9b` / `A-S10` 要求图表行（`label`+`description`）点名该观察所属**试验**，但 prompt / SKILL 从未把这条写成可检查规则**（2026-10-10 R46-a，1 样本）：r46-a 的 5 根柱子只写「药名 + 剂量 + 间隔 + 时点」（`依洛尤单抗 420 mg 每月一次（第 16 周）`），label 与 description 都不含 `NCT02729025` / `OCEAN(a)-DOSE` ⇒ `identified observations=[] want=[0,1,2,3,4]`，**离线 40/44 FAIL**；同一 prompt 的 r46-a2 把试验放进 `description`（`试验 A（NCT02729025）第 16 周，安慰剂校正`）⇒ **44/44 PASS**。同门径下 R45-a 亦 PASS ⇒ 同一 prompt 3 次 scenario A 里 **1/3 丢试验名**。判分侧口径本身**自洽**（行内 5 个维度须全部出现在 label+description 里，且互斥性仍靠 competing-identity 检查兜底），属**报告侧偶发漏写 + 规则只在 fixture 里隐式存在** | 📝 **待修（不在本轮回合内改）**：候选①在 prompt / `SKILL.md` 补一句可机械检查的硬规则（「每根柱子的 `label`/`description` 必须点名该观察所属试验的短名或注册号，不能只靠药物+剂量」），随**下一次内容改动一起发版**（不单独开一轮；与 O40/O41 的报告侧习惯句同批）；候选②判分侧把 chart 的 `identity_patterns` 去掉试验维度（唯一性仍靠「恰好命中 1 个」兜底）——**n=1 证据不足，本轮不做**。注意 `templates/charts/endpoint-bar.json` 的示例 label 本来就带试验槽位（`试验A · 研究组`）|
 
 ## 4. 平台侧（转开发）
 
@@ -1899,3 +1900,62 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 ---
 
 **R43 / R44 / R45 收尾状态**：线上 = prompt v1.7 **65,959 B / sha `f63bf180822c`**、Skill v1.0.8（dist **103,982 B / 19 entries / sha `47c06e7aa6d4`**），`status` in sync；本地门禁 runner-gate 38 / scorer 35 / tools 5+14 / Node 16 / numeric-integrity 28 全 OK；fact-check 变异闸门 `arm a 44/44, arm b 12/12, GATE: PASS`。
+
+---
+
+## R46 — O42 结案：工具侧前置拒绝改判（runner 层）后两次真跑（2026-10-10）
+
+用户答复：①「谁好，你推荐谁」②「你自己看着办吧」③「不管了」（③ = 撤掉「平台文档级建议」那条）。按①的授权执行 **O42 选项 B 的窄口径**；按②自行处置 O40/O41。
+
+**发布状态：本轮 `prompt` / `Skill` / `dist` 一字未改**（只改本地 runner），无 ToolSmith 写动作。线上仍是 R45 的 prompt v1.7 `f63bf180822c` / Skill v1.0.8 dist `47c06e7aa6d4`，`status` in sync。
+
+### 改了什么（`~/.local/bin/toolsmith-publish`，备份 `toolsmith-publish.v15.bak`）
+
+| 项 | 内容 |
+| --- | --- |
+| 新增 `TOOL_REFUSED_RX` | `^` 锚定，收编两种**实测确认**的工具侧前置拒绝：`File '<path>' already exists…`（`write_file`，R43-a / R45-14）、`Could not find the target string in '<path>'`（`edit_file`，R44-18） |
+| `retry_kind()` | 上述形状返回 `"rejected"`（此前落 `"errors"` ⇒ 整 run 的 `no tool errors` 变红） |
+| `REFUSAL_BUDGET = 3` | 原恒 PASS 的信息行改成「拒绝次数 ≤ 3」的判定；**断言条数仍 22**、`verification.md` 语义与退出码不变 |
+| 负例保障 | 被包装的消息（`RuntimeError: File '…' already exists`、`MCP error: …`）**仍落 `errors`**（`^` 锚定 + 单测） |
+| 风险方向 | 若平台改写 re-prompt 文案 ⇒ 正则失配 ⇒ 回到旧口径（**只会变严，不会漏判**） |
+
+### 离线重打分（98 份归档，零新 run / 零网络 / 不改产物）
+
+| 指标 | 结果 |
+| --- | --- |
+| 扫到的 run（有 `debug-history.json`） | **98** |
+| `errors > 0` 的 run | **0** |
+| 拒绝次数直方图（次数 → run 数） | `{0: 77, 1: 18, 2: 3}` |
+| 单 run 最大拒绝次数 | **2**（r36-fixed-1：`execute` 1 + `edit_file` 1） |
+| 超 `REFUSAL_BUDGET` 的 run | **无**（预算不误伤任何历史样本） |
+| 五次历史 F1 FAIL（r41-fixed-4 / r42-hz-18 / r43-a / r44-18 / r45-14） | **各恰好 1 次拒绝** ⇒ 与「一次可恢复拒绝把整 run 判红」的定性吻合 |
+
+### 本地门禁
+
+`py_compile` OK；`evals/runner-gate/test-runner.py` **38 → 39 tests OK**（新增 `test_tool_side_precondition_refusals_are_not_errors`，含 2 个负例）；`evals/runner-gate/verify-run-chain.py` **`GATE: PASS`**（96 份历史 / 5 可比 / 91 跳过）；`tools/test_replay_run.py` **14 OK**；`tools/test_pack_dist.py` **5 OK**。
+
+### 真跑（scenario A，R45 已发布内容）
+
+| tag | run 目录 | thread | turn | 墙钟（server/polled） | 工具尝试 | refused | 断言 | exit | 离线 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| r46-a | `~/.local/state/toolsmith-runs/20261010-145926-r46-a` | `4327dde4-4717-4944-9e68-de57f2a2b5bd` | `f1dbce68-92ed-4b24-b7ed-25f9326f9a7b` | 330.0 / 349.2 s | — | 0 | **22 PASS / 0 FAIL** | 0 | **40/44 FAIL**（O43 ×3 + A-ATTR ×1） |
+| r46-a2 | `…/20261010-150625-r46-a2` | `f0e29144-a730-433c-b313-63afb2115cc9` | `f63a99ae-e453-41a2-ae8e-84ceb7463d15` | 360.7 / 371.2 s | — | 0 | **22 PASS / 0 FAIL** | 0 | **44/44 PASS** |
+
+日志 `/tmp/r41/r46a.log`、`/tmp/r41/r46a2.log`；证据包 `docs/evidence/o42-refusal-reclassification-2026-10-10.txt`。
+
+### 我方能改的
+
+| 现象 | 证据 | 改法 | 状态 |
+| --- | --- | --- | --- |
+| **O42：一次可恢复的工具拒绝打掉整 run** | 98 份归档 0 error、5 次历史 FAIL 各 1 次拒绝、单 run 最大 2 | runner 双形状 `^` 锚定 + 预算 3 + 单测（含负例） | ✅ **已结案**（R46；回滚 = 复原 `v15.bak` + 重跑 39 项） |
+| **O43：图表行必须点名试验（隐性规则）** | r46-a 5 根柱子 label+description 都无试验名 → 40/44；r46-a2 把试验放 `description` → 44/44；R45-a 亦 PASS ⇒ 1/3 丢试验名 | **本轮不改**（n=1）；候选① prompt/SKILL 补一句硬规则（随下次内容改动发版）；候选②判分侧去试验维度 | 📝 **待修**（与 O40/O41 的报告侧习惯句同批，不单独开一轮） |
+| **O40 / O41** | 见上两节（A-ATTR 否定陈述 2 样本；A-P2 非分歧提到库内记录 1 样本） | ②「你自己看着办」⇒ **不改评分器、不单独发版**；候选句随下次内容改动一起进 | 📝 待样本 |
+
+### 平台侧（转开发）
+
+- 本轮无新增平台缺陷，**不发新单**。③ 用户已明确「不管了」⇒ 撤回上一轮规划里的「`write_file` 提供 upsert/默认覆盖」平台建议，不再提单。
+- 既有观察保留：`write_file` 拒绝静默覆盖**是对的**，re-prompt 文案本身就给出 `overwrite=True` 改道建议；问题只是 runner 口径把它算成 error（本轮已从 runner 侧收口）。
+
+### R46 收尾状态
+
+线上未变（prompt v1.7 `f63bf180822c` / dist `47c06e7aa6d4`，in sync）；本地门禁 runner-gate **39** / scorer 35 / tools 5+14 / Node 16 / numeric-integrity 28 全 OK；变异闸门 `arm a 44/44, arm b 12/12, GATE: PASS`。**新增待修项 1 条（O43），已有待样本 2 条（O40/O41），三者共用「下次内容改动一轮」的批次。**

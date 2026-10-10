@@ -1,6 +1,18 @@
 # Project State
 
-## 当前快照：2026-10-10（R43–R45：F2 已修好并复验；F1 三轮强化后仍未清零）
+## 当前快照：2026-10-10（R46：O42 已结案 —— 工具侧前置拒绝改判 WARN；F1 不再污染 keep/discard 信号）
+
+**R46（用户答复「谁好，你推荐谁」+「你自己看着办吧」+「不管了」）**：按推荐执行 **O42 选项 B 的窄口径**，只改本地 runner（`~/.local/bin/toolsmith-publish`，备份 `toolsmith-publish.v15.bak`），**prompt / Skill / dist 一字未改、TS 无写动作**。
+
+- 新增 `TOOL_REFUSED_RX`（`^` 锚定，只收编两种实测形状：`write_file` 的 `File '<path>' already exists…`、`edit_file` 的 `Could not find the target string in '<path>'`）→ `retry_kind()` 返回 `"rejected"`；新增 `REFUSAL_BUDGET = 3`，原恒 PASS 的信息行改成带预算判定（**断言仍 22 条**，`verification.md` 语义与退出码不变）。被包装的消息（`RuntimeError: File '…' already exists`、`MCP error: …`）**仍落 `errors`**。
+- **离线重打分 98 份归档**（零新 run / 零网络）：`errors > 0` 的 run = **0**；拒绝次数直方图 `{0:77, 1:18, 2:3}`；单 run 最大 **2**；超预算样本 **无**；五次历史 F1 FAIL **各恰好 1 次拒绝**。证据 `docs/evidence/o42-refusal-reclassification-2026-10-10.txt`。
+- **本机门禁**：`py_compile` OK；`test-runner.py` **38 → 39 OK**（新增含 2 个负例的前置拒绝单测）；`verify-run-chain.py` **`GATE: PASS`**（98 / 5 可比 / 93 跳过）；`test_replay_run.py` 14 OK；`test_pack_dist.py` 5 OK；`test_regressions.py` 35 OK；Node 16/16；`test-render-facts.py` 28 OK；`pack-dist.py --check` **IDENTICAL**。
+- **线上真跑两次**（scenario A，R45 已发布内容）：`r46-a` 330.0/349.2 s、`r46-a2` 360.7/371.2 s，均 **22 PASS / 0 FAIL / exit 0 / refused=0**。
+- **O40 / O41（自主处置）**：不改评分器、不单独发版，候选句随**下一次内容改动**一轮进（与下面的 O43 同批）。
+- **新增待修 O43**：`A-S9`/`A-S9b`/`A-S10` 要求图表行（`label`+`description`）点名**试验**，但 prompt/SKILL 从未把这条写成规则 → `r46-a` 5 根柱子只写「药名+剂量+间隔+时点」⇒ 离线 **40/44**；`r46-a2` 把试验写进 `description` ⇒ **44/44**；同门径 `R45-a` 亦 PASS ⇒ 同 prompt 3 次 scenario A 里 **1/3 丢试验名**。判分口径自洽（行内 5 维须全部出现），属报告侧偶发漏写 + 规则只在 fixture 隐式存在 ⇒ **本轮不改**（n=1），候选① prompt/SKILL 补一句硬规则（随下次内容改动发版）；候选②判分侧去试验维度（证据不足）。
+- 用户③「不管了」⇒ 撤回「`write_file` 提供 upsert/默认覆盖」的平台建议，**不再提单**。
+
+## 历史快照：2026-10-10（R43–R45：F2 已修好并复验；F1 三轮强化后仍未清零）
 
 **线上状态**：prompt **v1.7 = 65,959 B / sha `f63bf180822c`**；Skill **v1.0.8**（dist **103,982 B / 19 entries / sha `47c06e7aa6d4`**）；`status` **in sync**；`deps` unchanged。三轮均**原地更新**（版本标签不变）：R43 prompt `e23eef7201d0` / dist `2f4700a2f295`；R44 prompt `5b8043bb3779` / dist `cdb4992f9b20`；R45 = 现值。
 
@@ -14,7 +26,7 @@
 
 **真跑**：R43 22/21/22/22、R44 22/22/21/22、R45 22/22/22/21（每轮恰一组栽在 F1）；场景 A 离线 R43-a 43/44、**R44-a 44/44 PASS（首次全绿）**、R45-a 42/44。
 
-**本地门禁**：runner-gate 38 / scorer 35 / tools 5+14 / Node 16 / numeric-integrity 28 全 OK；变异闸门 `arm a 44/44, arm b 12/12` → `GATE: PASS`。
+**本地门禁**（R43–R45 当时值；**R46 后 runner-gate 已 38 → 39**）：runner-gate 38 / scorer 35 / tools 5+14 / Node 16 / numeric-integrity 28 全 OK；变异闸门 `arm a 44/44, arm b 12/12` → `GATE: PASS`。
 
 ## 历史快照：2026-10-10（R41：药名成对字段 + 附录可读名 + humanizer 交接段已原地发布；R42 = Phase A）
 
@@ -186,7 +198,7 @@ Build the Tool Smith Agent for evidence-grounded synthesis of selected esids, us
 | B2 | **TS 资产**：扇出去重措辞 + L3（分析面/引用落点）——**已 2026-09-18 授权并原地发布完成** | ✅ 已解除 | **已完成**：`publish` 原地更新（prompt `v1.6` / skill `v1.0.7`，回读逐字节一致，`in sync`）+ `R14` 真跑 17/17 PASS（调用 36→26、墙钟 201.8→148.0 s）。台账 `### W6`/`R14` |
 | B6 | ~~**仓库资产**：`eval_attribution` 的归因口径~~ **已完成（2026-09-18，用户授权 O19）** | ✅ 已解除 | 落地为「身份对豁免 + 数值对永不豁免」（`subject: true`），假阳性回归对照 `N25`/`N27`；`arm a 40/40`（第十四轮后同 arm 为 `41/41`）、`GATE: PASS`；R12 `37→39/40`、R15 `36→37/40`、R17 `39→40/40` ⇒ 台账 **F2**、`O19` 已修 |
 | B7 | ~~**仓库资产**：清单条目 `A-T1-title-names-both`~~ **已完成（2026-09-18，用户授权 O20）** | ✅ 已解除（证据从 1 份增至 4 份产物：R12/R15/R16/R17） | 改名 `A-T1-title-identifies-scope` + `op: title_scope`（主题式标题合法；**只点一个药名仍 FAIL**）；`M26`/`M06` 证明有牙、`N26` 证明不误伤 ⇒ 台账 **F2**、`O20` 已修 |
-| B3 | **runner**：无待改项（O1–O18 全已落地，只剩 O4/O5 待样本）。**O42 若选 B**（把「参数被拒但重发成功」降为 WARN）则新增一条 runner 改动：待授权，改前备份 + `py_compile` + `evals/runner-gate/verify-run-chain.py` 零网络闸门 + 台账 O/R 记录 | 用户选 O42 的 B | 本地 runner，不动线上 |
+| B3 | **runner（已落地）**：O1–O18 全已落地，只剩 O4/O5 待样本；**O42 已于 R46 按选项 B 窄口径结案** —— 新增 `TOOL_REFUSED_RX`（两形状 `^` 锚定）+ `REFUSAL_BUDGET = 3`，原恒 PASS 信息行改带预算判定（断言仍 22 条）；备份 `toolsmith-publish.v15.bak`，`py_compile` OK，`test-runner.py` 38 → 39，零网络闸门 `GATE: PASS`，离线重打分 98 份归档 0 error | ✅ 已完成（用户「谁好，你推荐谁」+「你自己看着办吧」授权） | 回滚 = 复原 `v15.bak` + 重跑 39 项；不动线上、无 TS 写动作 |
 | B8 | **仓库资产（已完成）**：R43/R44/R45 三次 prompt/Skill 强化（F1 写入纪律 + F2 一套写法）+ 判分侧 O27 放宽；**均已原地发布并四组真跑** | ✅ 已解除（R41 同授权续用） | prompt v1.7 现值 `f63bf180822c`；dist `47c06e7aa6d4`；`status` in sync |
 | B4 | **仓库资产**：autoresearch harness 骨架 + 把 `tool_results/**` 纳入归档 → 跑 E0「receipts 命中率」回测（不动 `skill/`、0 新 run） | 用户点头 | 纯本地脚本 + 文档 |
 | B5 | **仓库资产**：把「冻结面 + 场景集 + TSV 列」写进 `AGENTS.md`/`PROJECT_STATE.md`，形成常驻 program.md（S4） | 用户点头 | 文档 |
@@ -201,7 +213,8 @@ Build the Tool Smith Agent for evidence-grounded synthesis of selected esids, us
 | C4 | E1 场景 A 噪声带（23 vs 41 calls 跨了发布，无干净重复） | 5 个 `20260914-*` run 离线重放 | S2 跑 3 次 |
 | C5 | 台账 O40：`A-ATTR` 不给「对对方记录的否定陈述」豁免 | R43-a（3 cell）+ R45-a（2 cell）两份产物，同为「引注甲却只点乙药名/登记号」 | 再攒 ≥2 份同类样本，再决定走「评分侧否定式豁免」还是「报告侧改习惯」 |
 | C6 | 台账 O41：`A-P2` 对「非分歧地提到库内记录」零容忍 | R45-a 一处（「库内记录另含…无法用于对齐」）；同条在 R43-a/R44-a 未触发 | 再攒 ≥2 份样本；若真阳居多则只改报告侧写法 |
-| C7 | 台账 O42：`no tool errors` 在多写 run 上约 1/4 概率被打掉（R41–R45 共 14 run 失 5） | 失败清单 + 12 run 的三轮对照（见台账 R43/R44/R45） | 一旦用户选 O42 的 A/B/C 即可定案 |
+| C7 | 台账 O42：`no tool errors` 在多写 run 上约 1/4 概率被打掉（R41–R45 共 14 run 失 5） | 失败清单 + 12 run 的三轮对照（见台账 R43/R44/R45） | ✅ **已定案（2026-10-10 R46，选 B）**：runner 改判 + 预算闸门，见台账 O42 / R46 节 |
+| C8 | 台账 O43：图表行（`label`+`description`）必须点名**试验**这条规则只隐式存在于 fixture | r46-a 5 根柱子全无试验名 → 离线 **40/44**；同 prompt 的 r46-a2（试验写进 `description`）**44/44**、R45-a 亦 PASS ⇒ 1/3 丢试验名 | 拟随**下一次内容改动**一轮补 prompt/SKILL 硬规则（与 O40/O41 同批）；若要反过来放宽判分侧，需再攒样本 |
 
 ### D. 已定案不动（别再翻）
 

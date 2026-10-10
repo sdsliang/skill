@@ -427,6 +427,23 @@ class ChainTests(OfflineCase):
         self.assertEqual(ts.retry_kind([]), 'errors')
         self.assertEqual(ts.retry_kind('Failed to fetch: HTTP 500'), 'fetch_failures')
 
+    def test_tool_side_precondition_refusals_are_not_errors(self):
+        """(O42) A tool refusing its own preconditions already recovered — not a harness error.
+
+        Three real runs (R43-a, R44-18, R45-14) failed the whole `no tool errors` assertion
+        on one such refusal while the platform had re-prompted and the run shipped a complete
+        deliverable. The anchors matter: a *wrapped* message is still an error.
+        """
+        self.assertEqual(ts.retry_kind(
+            "File '/workspace/work/draft.md' already exists. Read it first and use edit_file "
+            "instead or use write_file(overwrite=True) to replace it."), 'rejected')
+        self.assertEqual(ts.retry_kind("Could not find the target string in '/workspace/scripts/build_ledger.py'"),
+                         'rejected')
+        self.assertEqual(ts.retry_kind("RuntimeError: File '/workspace/work/draft.md' already exists"),
+                         'errors')
+        self.assertEqual(ts.retry_kind("MCP error: Could not find the target string in '/x'"), 'errors')
+        self.assertEqual(ts.REFUSAL_BUDGET, 3)
+
     def test_orphans_duplicates_conflicts_fail(self):
         cases = [[ret('missing', 'query')],
                  [call('a', 'query'), call('a', 'query')],

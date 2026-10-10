@@ -9,7 +9,18 @@
 
 ---
 
-## 当前交接（2026-10-10 R43–R45 完成：F1 三轮强化 + F2 修好）
+## 当前交接（2026-10-10 R46 完成：O42 已结案 —— 工具侧前置拒绝改判；prompt / Skill 本轮回合未动）
+
+**R46（用户答复「谁好，你推荐谁」① +「你自己看着办吧」② +「不管了」③）**：按①执行 **O42 选项 B 的窄口径**，**只改本地 runner，prompt / Skill / dist 一字未改，TS 无写动作**（线上仍 = 下面的 R43–R45 值）。备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v15.bak`。
+
+1. **改了什么**：`~/.local/bin/toolsmith-publish` 新增 `TOOL_REFUSED_RX`（`^` 锚定，只收编两种实测形状：`write_file` 的 `File '<path>' already exists…`、`edit_file` 的 `Could not find the target string in '<path>'`）⇒ `retry_kind()` 返回 `"rejected"`；新增 `REFUSAL_BUDGET = 3`，原恒 PASS 的信息行改成「拒绝次数 ≤ 3」判定（**断言仍 22 条**、`verification.md` 语义与退出码不变）。被包装的消息（`RuntimeError: File '…' already exists`、`MCP error: …`）**仍落 `errors`**（`^` 锚定 + 负例单测）。失败方向保守：若平台改写 re-prompt 文案 ⇒ 正则失配 ⇒ 回到旧口径。
+2. **离线重打分 98 份归档**（零新 run / 零网络 / 不改产物）：`errors > 0` 的 run = **0**；拒绝次数直方图 `{0: 77, 1: 18, 2: 3}`；单 run 最大 **2**；超预算样本 **无**；五次历史 F1 FAIL（r41-fixed-4 / r42-hz-18 / r43-a / r44-18 / r45-14）**各恰好 1 次拒绝**。证据 `docs/evidence/o42-refusal-reclassification-2026-10-10.txt`。
+3. **本机门禁**：`py_compile` OK；`evals/runner-gate/test-runner.py` **38 → 39 OK**（新增 `test_tool_side_precondition_refusals_are_not_errors`，含 2 负例）；`evals/runner-gate/verify-run-chain.py` **`GATE: PASS`**（98 / 5 可比 / 93 跳过）；`tools/test_replay_run.py` 14 OK；`tools/test_pack_dist.py` 5 OK；`evals/fact-check/test_regressions.py` 35 OK；Node 16/16；`evals/numeric-integrity/test-render-facts.py` 28 OK；`tools/pack-dist.py --check` **IDENTICAL**（103,982 B / `47c06e7aa6d4`）。
+4. **线上真跑两次**（scenario A，R45 已发布内容）：`r46-a`（`4327dde4` / 330.0 / 349.2 s）、`r46-a2`（`f0e29144` / 360.7 / 371.2 s），均 **22 PASS / 0 FAIL / exit 0 / refused=0**。
+5. **O40 / O41（② 自主处置）**：**不改评分器、不单独发版**；候选报告侧习惯句随**下一次内容改动**一轮进。**③「不管了」** ⇒ 撤回「`write_file` 提供 upsert/默认覆盖」的平台建议，不再提。
+6. **新增待修 O43**：`A-S9`/`A-S9b`/`A-S10` 要求图表行（`label`+`description`）点名该观察所属**试验**，而 prompt/SKILL 从未把这条写成可检查规则 —— `r46-a` 的 5 根柱子只写「药名+剂量+间隔+时点」（`依洛尤单抗 420 mg 每月一次（第 16 周）`）⇒ 离线 **40/44**；同一 prompt 的 `r46-a2` 把试验写进 `description` ⇒ **44/44**；`R45-a` 亦 PASS ⇒ 同 prompt 3 次 scenario A 里 **1/3 丢试验名**。判分口径自洽（行内 5 维须全部出现在 label+description，互斥性另有 competing-identity 抽底），属**报告侧偶发漏写 + 规则只在 fixture 隐式存在** ⇒ **本轮不改**（n=1）；候选① prompt/SKILL 补一句硬规则（随下次内容改动发版）；候选②判分侧去试验维度（证据不足）。
+
+## 历史交接（2026-10-10 R43–R45 完成：F1 三轮强化 + F2 修好）
 
 **线上现状**：prompt **v1.7 = 65,959 B / sha `f63bf180822c`**；Skill **v1.0.8**（dist **103,982 B / 19 entries / sha `47c06e7aa6d4`**）；`status` **in sync**；`deps` unchanged。三轮都走**原地更新**（版本标签不变），发布记录：R43 = prompt `e23eef7201d0` / dist `2f4700a2f295`；R44 = prompt `5b8043bb3779` / dist `cdb4992f9b20`；R45 = 现值。
 
@@ -22,7 +33,7 @@
    - 三轮共 12 个 run、失败 3 次，**报告侧其余 21 条断言全部照常通过**（平台 re-prompt 后 run 正常完成、产物完整）⇒ 判为「长 agentic run 里模型偶发漏传布尔参数」的**行为天花板**，不是合同缺口。台账 **O42** 给三个选项：A 接受为已知偶发 / B 改 runner 把「参数被拒但重发成功」降为 WARN / C 把正文改成「脚本从账本渲染一次成文」以减少写次数。**等用户选**。
 4. **新增两条「待样本」（不改评分器）**：**O40** = `A-ATTR` 对「对对方记录的否定陈述」不给豁免（R43-a、R45-a 两样本）；**O41** = `A-P2-divergence-shows-both` 对「非分歧地提到库内记录」零容忍（R45-a 一样本，合同只规定「分歧时必须双值并附引用」）。
 5. **R43 / R44 / R45 各四组真跑**（详见台账）：R43 22/21/22/22、R44 22/22/21/22、R45 22/22/22/21（每次恰一组栽在 F1）。**场景 A 离线判分**：R43-a 43/44、**R44-a 44/44 PASS（首次全绿）**、R45-a 42/44（余 A-ATTR 2 cell + A-P2 1 处）。
-6. **本地门禁**：runner-gate **38** / scorer **35** / tools **5 + 14 = 19** / Node **16** / numeric-integrity **28** 全 OK；fact-check 变异闸门 `arm a 44/44, arm b 12/12` → **`GATE: PASS`**。
+6. **本地门禁**（R43–R45 当时值；**R46 后 runner-gate 已 38 → 39**）：runner-gate **38** / scorer **35** / tools **5 + 14 = 19** / Node **16** / numeric-integrity **28** 全 OK；fact-check 变异闸门 `arm a 44/44, arm b 12/12` → **`GATE: PASS`**。
 
 ## 历史交接（2026-10-10 R41 完成 + R42 Phase A）
 
@@ -37,7 +48,7 @@
 7. **R42 = Phase A（18/14 esid 的 humanizer 臂）**：21 PASS（同 F1）/ 22 PASS；18 esid 粗体 47→26（−45%）、12-gram 重复率 0.0911→0.0643（−29%）；14 esid 方向相反；**两臂 strong 命中均 0、`{{ref_n}}` 逐条相等（18/18、14/14）**；代价 = 工具尝试 +45~51%、墙钟 +13~17%。**每臂 n=1 → 不宣称可测收益**，默认仍不强制调用 humanizer。
 8. **两条待办（已给证据、未落盘，等用户点头）**：**F1** prompt 第 6 条文件写入纪律只覆盖报告正文 → 扩到「本工作区任何文件」（正文/辅助脚本/图表 JSON）；**F2** 同一观察身份词报告内混用（`每月` 3 次 vs `Q4W` 9 次，源文只有 `monthly`）→ 图表 label 取 `Q4W` 使 `A-S9`/`A-S9b`/`A-S10` FAIL；改法 = ①prompt/SKILL 加「一套写法 + 图表 label 复用正文身份短语」②`scenario-a.facts.json` 该观察 `identity_patterns` 放宽到 `每月|每月一次|QM|Q4W`。
 
-**离线测试计数（2026-10-10，R41 后实测）**：runner **38**、scorer（`test_regressions.py`）**32**、tools **19**（`test_pack_dist.py` 5 + `test_replay_run.py` 14）、Node **16**、`tools/test_pack_dist.py` **5/5**；另有 **`evals/numeric-integrity/test-render-facts.py` 28** 与 `evals/runner-gate/test-runner.py` 38，两者本来就不计入上面那 105/117 的合计口径（README 旧行的 105 = runner 38 + scorer 32 + tools 19 + Node 16，不含 numeric-integrity）。
+**离线测试计数（2026-10-10，R46 后实测）**：runner **39**、scorer（`test_regressions.py`）**35**、tools **19**（`test_pack_dist.py` 5 + `test_replay_run.py` 14）、Node **16**、`tools/test_pack_dist.py` **5/5**；另有 **`evals/numeric-integrity/test-render-facts.py` 28** 与 `evals/runner-gate/test-runner.py` **39**，两者本来就不计入上面那 105/117 的合计口径（README 旧行的 105 = runner 38 + scorer 32 + tools 19 + Node 16，不含 numeric-integrity；R43 把 scorer 提到 35、R46 把 runner 提到 39）。
 
 ## 历史交接（2026-10-10 Phase 2 完成）
 
