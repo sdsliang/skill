@@ -331,6 +331,30 @@ class Sandbox(unittest.TestCase):
         ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
         self.assertEqual(ledger["facts"][0]["unit"], "")
 
+    def test_ledger_accepts_an_empty_arm_for_a_design_fact(self):
+        # `--scaffold` emits "arm": "" for a design fact the payload gives no arm for.
+        self.prep()
+        payload = self.facts_payload()
+        payload["facts"][1]["arm"] = ""
+        proc = self.build_ledger(payload, expect=0)
+        self.assertNotIn("WARN:", proc.stderr)
+        ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
+        self.assertEqual(ledger["facts"][1]["arm"], "")
+
+    def test_ledger_warns_when_a_results_fact_has_no_arm(self):
+        self.prep()
+        payload = self.facts_payload()
+        payload["facts"][0]["arm"] = ""
+        proc = self.build_ledger(payload, expect=0)
+        self.assertIn("has no `arm`", proc.stderr)
+
+    def test_ledger_rejects_a_missing_arm_key(self):
+        self.prep()
+        payload = self.facts_payload()
+        del payload["facts"][0]["arm"]
+        proc = self.build_ledger(payload, expect=3)
+        self.assertIn("missing the `arm` key", proc.stderr)
+
     def test_render_drops_the_trailing_space_of_an_empty_unit(self):
         self.prep()
         payload = self.facts_payload()

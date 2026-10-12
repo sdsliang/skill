@@ -124,8 +124,11 @@ python3 scripts/build_ledger.py --scaffold --tool-results /workspace/tool_result
   each fact = the 15 fields `id, ref, study, version, endpoint, arm, population, timepoint,
   assessment, kind, value, unit, statistics, source_file, quote` — absent
   `version`/`population`/`timepoint`/`assessment` are filled with `未报告`, `statistics` with `""`.
-  `unit` must be present as a key but may be `""` (p 界值、HR、NE/NR 等无量纲值；不要编造单位凑过校验，
-  渲染为 `0.0049{{ref_n}}`，不带尾随空格)。
+  `arm` 与 `unit` 必须作为键存在，但值可以为 `""`：设计类事实（随机与样本量、数据截止、检验界值、
+  中位随访等）本身就没有 arm；p 界值、HR、NE/NR 等无量纲值本身就没有 unit。**不要编造分组名或单位
+  凑过校验**——`--scaffold` 自己就会给出空值，编译器必须接受自己的输出。空 `unit` 渲染为
+  `0.0049{{ref_n}}`（不带尾随空格），空 `arm` 在单元格里整段省略、不留分隔符；若 `kind` 不是
+  `试验设计` 而 `arm` 为空，编译通过但打一条 `WARN` 提醒补分组。
   `kind` ∈ `试验设计｜试验结论｜有效性｜安全性｜PK/PD｜PRO｜其他` (a `·家族` suffix is allowed).
 * Checks that fail the whole compile (exit 3, **nothing written**, existing ledger untouched) and
   are printed together: `quote` is not an exact substring of that ref's source file, `value` is

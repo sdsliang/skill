@@ -232,7 +232,7 @@ def validate_ledger(data: Any, ledger_path: Path) -> tuple[list[dict[str, str]],
     ids: set[str] = set()
     source_cache: dict[Path, str] = {}
     for index, fact in enumerate(facts):
-        _validate_string_fields(fact, FACT_FIELDS, f"facts[{index}]", allow_empty=("statistics", "unit"))
+        _validate_string_fields(fact, FACT_FIELDS, f"facts[{index}]", allow_empty=("statistics", "unit", "arm"))
         fact_id = fact["id"]
         if fact_id in ids:
             raise ValidationError(f"duplicate fact id: {fact_id}")

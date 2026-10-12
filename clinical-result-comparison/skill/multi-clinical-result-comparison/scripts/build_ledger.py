@@ -57,6 +57,13 @@ from pathlib import Path
 RECORD_REQUIRED = ("ref", "identity", "conclusion")
 RECORD_ORDER = ("ref", "trial", "identity", "conclusion", "title", "design", "arms", "coverage")
 FACT_REQUIRED = ("id", "ref", "study", "kind", "endpoint", "arm", "value", "unit", "quote")
+# These two must exist as keys but may be "": `--scaffold` itself emits them empty (a design fact
+# such as 随机与样本量 / 数据截止 / 检验界值 has no arm; a p boundary, HR, NE or NR has no unit),
+# so demanding a non-empty value made the compiler refuse the scaffold's own output.
+FACT_MAY_BE_EMPTY = {
+    "arm": " — a design fact has no arm (a results fact must name one)",
+    "unit": " — a p boundary, HR, NE or NR has no unit",
+}
 FACT_ORDER = (
     "id", "ref", "study", "version", "endpoint", "arm", "population", "timepoint",
     "assessment", "kind", "value", "unit", "statistics", "source_file", "quote",
@@ -563,14 +570,14 @@ def main(argv: list[str] | None = None) -> int:
                 fact[key] = value
         label = f"facts[{index}] ({fact.get('id') or 'no id'})"
         for key in FACT_REQUIRED:
-            if key == "unit":
-                # The key is required, but "" is a valid unit: p-value boundaries, HR, NE/NR
-                # and other dimensionless values have none.  Never invent one to pass this gate.
-                if "unit" not in fact:
-                    findings.append(f'{label} is missing the `unit` key (use "unit": "" for a '
-                                    'dimensionless value such as a p boundary, HR or NE)')
+            if key not in fact:
+                findings.append(f"{label} is missing the `{key}` key{FACT_MAY_BE_EMPTY.get(key, '')}")
+            elif key in FACT_MAY_BE_EMPTY:
+                if key == "arm" and not fact.get("arm") and "试验设计" not in (fact.get("kind") or ""):
+                    warnings.append(f"{label} has no `arm`: name the arm this result belongs to "
+                                    f"(only a real design fact may leave it empty)")
             elif not fact.get(key):
-                findings.append(f"{label} is missing `{key}`")
+                findings.append(f"{label} has an empty `{key}`")
         fact_id = fact.get("id", "")
         if fact_id and not ID_RE.match(fact_id):
             findings.append(f"{label}.id must be ASCII letters/digits/._- (no spaces or CJK)")

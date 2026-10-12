@@ -1,11 +1,19 @@
 # Project State
 
-## R54 — 墙钟热点脚本修复（2026-10-12，本地完成，待授权发布）
+## R54 — 空 `arm`/`unit` 门禁修复（2026-10-12，本地完成，待授权发布）
 
-针对 r53-doc-4b transcript 的两处重复往返：
-- **unit 循环**（msgs 13–15，2 次额外 execute + 约 8K 推理字符）：p 界值 0.0049、OS NE 这类无量纲值没有单位，`build_ledger.py` 把 `"unit": ""` 当缺失报错，模型被迫编造 `单侧显著性界限` / `（未达到）` 写进账本。改为 `unit` 键必须存在、值可为 `""`；`render-facts.py` 同步允许空 unit 并去掉尾随空格。缺 `unit` 键仍 exit 3。原计划的 `result_unit_name` 回退作废：根因不是 scaffold 没取到字段，而是值本身无单位。
-- **check_report 假阳性**（msgs 22–25，2 轮 write+execute）：8 字共享片段警告命中 `一线晚期鳞状非小`、`依沃西单抗联合化`。改为自动豁免 `work/ledger.json`（trial / identity 段 / study / arm）与 `work/refs.json`（trial_abbreviation / indication）中已声明的名称；含数字的片段不豁免，真实散文重复照旧报警。用 r53 产物回放：3 个假阳性全豁免，`该终点尚未在对照` 仍报。
-- toolbox.md 补两句说明。本地回归：skill-scripts 61（+3）、scaffold 9、check-report 25、render-facts 28、runner-gate 41、fact-check 35、pack-dist 5、node 16，变异 a 44/44、b 12/12。dist 155,678 B / sha `1a54a0e7636f`，`--check` IDENTICAL。**尚未推 TS、尚未实测。**
+**真实根因（比初判更深）：`build_ledger.py --scaffold` 自己产出空值，编译路径再把它们判死。**
+scaffold 第 431 行写 `"arm": arm_text`，而 `arm_text` 在 payload 找不到可用 arm 时就是 `""`（第 406–409 行 `unresolved_arms += 1`），且 scaffold 自己的 `_notes` 明确写「arm 留空，必须人工核对」（第 460 行）；`unit` 同理来自 `_clean(item.get("result_unit"))`，p 界值 / NE 都是空串。随后同一条编译路径用 `if not fact.get(key)` 把这些空串判成 `missing` → exit 3、不落盘。**即编译器拒绝自己 scaffold 的输出**，模型只能编造值凑过校验。
+
+- 实测证据 r53-doc-4c（已发布版本跑）：`is missing 'arm'` 30 条，全部是设计类事实（随机与样本量、数据截止、中位随访、PFS/OS 检验界值、计划/实际 OS 事件数）；模型在第 14 条消息里明确推理「`arm` must be present (not empty)」，最后编出 `arm="全部随机人群"` 填进 15 条，**与 population 重复且语义错误，已污染附录单元格**。4b 的镜像案例：`f_os_lt1_exp_r1`（kind=有效性，value=NE）被逼编造 `unit="（未达到）"`。
+- 该失败类跨 12 次运行中的 11 次出现（r48-18 20 次 unit、r50-14 16 次 arm、r53-doc-4 25 次 unit、4c 30 次 arm…），属慢性问题而非偶发。
+- **改法**：`arm` 与 `unit` 键必须存在、值可为 `""`（`FACT_MAY_BE_EMPTY`）；缺键仍 exit 3 并提示可给空串。`kind` 不是 `试验设计` 而 `arm` 为空时，走既有非致命 `warnings` 通道打 `WARN`（保住「结果类事实必须指名分组」的安全网，且不阻断编译）。`render-facts.py` 同步允许空 `arm`（附录单元格整段省略、不留分隔符）。
+- **端到端验证**：把 4c 真实 facts.json 的 15 条设计事实 arm 还原成 `""` 后重编译 → exit 0、45 条事实落盘、0 条 arm findings（全为设计类故无 WARN）；同一 payload 喂给收紧到只豁免 `unit` 的对照副本 → 立刻重现 `has an empty 'arm'`。
+- **check_report 假阳性豁免**（本块另一处）：8 字共享片段自动豁免 `work/ledger.json`（trial / identity 段 / study / arm）与 `work/refs.json`（trial_abbreviation / indication）已声明的名称；含数字片段不豁免。实测 4c：WARN 3 → 0，追警告的往返全部消失（4b 的 `RMONi-6（`、`一线晚期鳞状非小` 假阳性不再报，真实散文重复仍报警）。
+
+**已发布内容的实测 r53-doc-4c**（`20261012-162951-r53-doc-4c`）：368.9 s / 45 facts / 14 execute；token in 3,053,663 / out 61,764 / reasoning 44,311；21 断言 PASS、1 FAIL（仍是平台 `tool_results receipts archived`，与改动无关）。vs 4b（338.9 s / 38 facts / 11 execute，out 53,490）：**单次墙钟不可比**——事实数 38→45（+18%），token 全线 +15~26%；三连测 318.6 / 338.9 / 368.9 s 属运行间方差，不能据此判定修复回退。机制层两处各自可验证：`missing unit` 7→0 ✅、8 字共享片段警告 3→0 ✅；但同类失败**转移到 `arm`**（0→30），正是本轮新增 `arm` 豁免要消除的点。
+
+- toolbox.md 同步说明。本地回归：skill-scripts 64（+3）、scaffold 9、check-report 25、render-facts 28、runner-gate 41、fact-check 35、pack-dist 5、node 16，变异 a 44/44、b 12/12。dist 156,131 B / sha `55ad2eea4cd9`，`--check` IDENTICAL。**尚未推 TS、尚未实测。**
 
 ## R53 — toolbox 文档优化，原地发布 + 实测通过（2026-10-12）
 
