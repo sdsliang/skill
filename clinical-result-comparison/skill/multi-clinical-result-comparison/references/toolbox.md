@@ -51,6 +51,27 @@ python3 scripts/prep_sources.py --esids … --full --quiet
 * Exit `0` all found · `3` at least one selected esid returned no record (files still written for
   the rest) · `2` usage/IO.
 
+**Digest 样式（直接读这份输出；数值已在其中，不要再打开 `work/sources/ref_n.txt` 手动提取数字 — `build_ledger.py --scaffold` 会从 payload 自动提取）：**
+
+```
+# 记录清单（2 条；来自 /workspace/tool_results/…/result.jsonl）
+
+## ref_1 · esid=a1b2c3d4 · 正文 1820 字
+title: HARMONi-6: ivonescimab plus chemotherapy versus pembrolizumab plus chemotherapy…
+link: https://doi.org/10.1016/j.lancet.2024.07.013
+release: 2024-09-08
+journal/doi/pm_id: The Lancet / 10.1016/j.lancet.2024.07.013 / 39260374
+trial_abbreviation: HARMONi-6
+indication: 非小细胞肺癌 | primary_endpoint: PFS
+source_file: work/sources/ref_1.txt
+正文：
+median PFS was 11.1 months (95% CI 9.6–12.7) in the ivonescimab plus chemotherapy group
+versus 7.1 months (6.3–8.6) in the pembrolizumab plus chemotherapy group (HR 0.44, p<0.0001)
+…（正文上限 4000 字；`--full` 不截断；`--quiet` 只写文件不打印）
+```
+
+`work/sources/ref_1.txt` 是 `render-facts.py` 验证 `quote` 的来源文件，不是你读数字的入口。
+
 ## 2. `build_ledger.py` — scaffold candidate facts, then validate the fact ledger
 
 ```
@@ -122,6 +143,31 @@ python3 scripts/render-facts.py --ledger work/ledger.json --draft /workspace/out
 file atomically. So the body is written **once**, in the canonical form, and rendered in place —
 there is no separate `work/draft.md` stage and no second copy. Exit `3` on a schema/validation
 failure (unknown token id, missing field) with nothing written.
+
+**Token 语法（直接照抄；不要用 `--help` 或构造临时 ledger 试错探索语法）：**
+
+`build_ledger.py --scaffold` 输出的 `work/facts.candidates.json` 骨架已有正确字段形状，填入 `endpoint` / `arm` / `kind` / `quote` 空项后通过 `build_ledger.py` 编译生成 `work/ledger.json`，再用以下 token 语法引用：
+
+```json
+{"id": "f1", "ref": "ref_1", "study": "HARMONi-6", "version": "",
+ "endpoint": "PFS", "arm": "依沃西单抗+化疗", "population": "",
+ "timepoint": "中位", "assessment": "", "kind": "有效性",
+ "value": "11.1", "unit": "月", "statistics": "HR 0.44, p<0.0001",
+ "source_file": "work/sources/ref_1.txt",
+ "quote": "median PFS was 11.1 months (95% CI 9.6\u20139.6) in the ivonescimab plus chemotherapy group"}
+```
+
+在报告草稿正文里（`[[fact:id]]` 与 `[[result:id]]` 等价）：
+
+```markdown
+依沃西单抗联合化疗组中位 PFS [[fact:f1]]（对比组 [[fact:f2]]）
+```
+
+渲染器把 token 替换为带 `{{ref_n}}` 标记的文本，并在文末追加完整附录。**正文里凡是来自 ledger 的数值，一律写 token，不要硬编码同一数值两次** — token 绑定后格式由渲染器统一，消灭事后 `patch.py` 修正数值格式不一致的循环（这个循环在已测 run 里耗时 3–5 分钟）。
+
+两个强制条件（任一不满足，渲染拒绝写出，文件不变）：
+- `value`（`11.1`）必须逐字出现在 `quote` 里
+- `quote` 必须是对应 `work/sources/ref_1.txt` 的精确子串
 
 ## 4. `patch.py` — asserted, atomic, whole-file find/replace
 
