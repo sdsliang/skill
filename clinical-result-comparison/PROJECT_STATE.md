@@ -4,16 +4,22 @@
 
 **起因**：用户提出「每个证据（每篇来源）开一个 subagent 处理 facts」。该方案只在子代理**真并行**时才对墙钟有意义 —— 平台样板段写「Launch multiple subagents **concurrently**」，本仓 `references/input-contract.md:429/453` 写实测**串行**（并推测后端从未开启 `allow_concurrent_tool_calls`）。两句不能都对，用一次探针判死；探针不依赖任何 skill 内容，故**无需发布、零部署漂移**。
 
-**探针**：thread `5ce05322-60a5-4395-aad8-94e6f18ee03c`，turn `d1fa6eef-98eb-4ee5-8e85-0394a49dc459`，tag `r56-probe-parallel`，`DeepSeek Flash` / web=off。指令：`date` 记 T0 → **同一条消息里**发两个 `task`（A `sleep 60` / B `sleep 45`，各带前后 `date +%s.%N`）→ 都返回后记 T1。判据：并行 span ≈ 65–70 s，串行 ≈ 110–160 s。记录 `~/.local/state/toolsmith-runs/20261012-174039-r56-probe-parallel/`。
+**探针：三轮，前两轮信号相反。** 三轮都用同一模型（`DeepSeek Flash` / web=off），时间戳由沙箱内 `date +%s.%N` 自报，主线程与全部子代理共用一条 epoch 轴；都通过**同一条 assistant 消息里的多个 `task` part** 下发。
 
-**结果：串行、零重叠。** T0 `1791798046.086` → T1 `1791798198.371` = **span 152.285 s**；A 窗口 60.00 s、B 窗口 45.00 s，A 结束到 B 开始空档 **35.93 s**，**重叠 0 s**；整轮 `total_latency_ms` 162,272 ms。→ 本仓「串行」表述正确，平台样板段的 `concurrently` 不成立。
+| 探针 | 子代理 payload | 重叠 |
+|---|---|---|
+| R56-a `20261012-174039-r56-probe-parallel` | A `sleep 60` / B `sleep 45`（纯 `execute`） | **0.00 s**（A `…051.140→…111.141`，B `…147.071→…192.072`） |
+| R56-b `20261012-175403-r56b-probe-puregen` | 各生成 ~15000 字（`write_file`，**不碰 `execute`**） | **28.86 s**（A `…871.732→…916.885`，B `…888.021→…948.344`） |
+| R56-c `20261012-175923-r56c-probe-lock` | A/B/C 各 `sleep 20`（三个子代理） | **0.00 s**，三段首尾相接、间隙 ~2.8 s（60 s 的活花 70.2 s） |
 
-**顺带查实**：① 子代理 `execute` **默认超时 30 s**（B 首条 `execute` → `timed out after 30s` / exit 124，显式 `timeout_seconds: 90` 才成功），与主线程文档 120 s 不一致；② 每个 `task` 调用带 **`data-subagent-trace`** part（子代理 `traces[]` + 独立 `usage`）——A in 24,640 / out 286，B in 37,135 / out 569，合计 in 61,775 / out 855；而本轮 turn `usage.json` = in 185,072 / out 2,130，**看不出是否聚合子代理用量**；③ `task` 只有 `subagent_type` + `description` 两个参数，无状态、只回最终消息、与主线程共享 `/workspace`。
+**结果：① 子代理**是**并发的（机制=模型在同一条消息里发多个 `task`）；② 真正串行的是沙箱 `execute`（全平台单通道）；③ turn `usage.json` 实测**聚合**子代理用量。** R56-b 里 B 的第一条命令（888.021）跑在 A 的最后一条命令（916.885）之前、且当时沙箱无其它命令占用 → 两个子代理同时活着；union 76.61 s vs 串行应 105.47 s ≈ **1.38× 提速**。R56-a/c 两轮纯 `execute` 则每次零重叠。R56-b 两个子代理自报合计 `in 157,335 / out 31,684`，而 turn usage = `in 254,815 / out 35,406` → 子代理输出占 **89.5%**。
 
-**判定：按证据开子代理 —— 否决；分片验收口径不再编写。** 一阶论证：一轮墙钟 = Σ（**该轮内所有**模型生成耗时，主线程 + 全部子代理）+ 工具耗时，而本轮已证明子代理耗时**计入**整轮 wall（162.3 s 含 60 + 45）。把 facts 从主线程搬给子代理只是换个地方生成，Σ 不变且更贵：每个子代理重新载入通用系统提示（实测 25–37 K 输入 token/个）+ 重述完整抽取规格（子代理不继承项目 prompt）+ 重读源文件，主线程还要再加一轮跨 ref 合并校验（ref 编号 / 命名 / 数值格式 / `records[].trial` 合并键仍须全局一致）。**串行前提下分片对墙钟只有「持平或更差」。**
+**判定（已撕掉初判）：** 「按证据开子代理 —— 否决」**不成立**；但也**不是**无条件可行，判据重写为「**只对生成密集环节有效**」：facts 那一次 28,631 token 单发长生成（占该轮输出 43%）**可切并行**；而 `prep_sources`/`build_ledger`/`render-facts`/`patch`/`make_chart`/`make_citations`/`check_report` 全走 `execute` → **分片只会让它们排队**。代价实测：子代理重载通用系统提示（R56-b 两子代理合计 **157,335 输入 token**）+ 不继承项目 prompt（规格需在 `description` 重述）+ 子代理内 `execute` 默认超时 30 s + 主线程仍须做跨 ref 合并校验。粒度上本组输入只选 4 篇 → 只能切 4 片，而墙钟噪声 ±20–40%，效应量正在测量能力边缘。
 
-- **待定（R56-2）**：**度量陷阱** —— 子代理用量记在 `data-subagent-trace.usage`，而 turn `usage.json` 疑似只统计主线程。若真如此，「把活搬给子代理」会让 `output_tokens`（我们的指标）变好看而墙钟持平/变差 → 指标被绕过。需一次 90 秒对照实验判定。
-- **待授权（R56-1）**：把 `input-contract.md:429/453` 的「实测串行」升级为带编号的实测（R56，60+45 s 零重叠）—— 属 skill 内容改动，需一次发布授权。
+**撤回两件事**：① commit `2b476fa` 把 R56-a 的「零重叠」读成「子代理串行」并据此否决分片 —— 把**沙箱队列**误读成**运行器串行**；② 上一条提到的「度量陷阱」不成立（见下）。R56-a 那个 35.93 s 空档在「并发子代理 + 单通道沙箱 + 超时从命令开始执行时计时」下完全自洽。
+
+- **待授权（R56-1）**：`input-contract.md:429/453` 现写「串行执行、当作省上下文的装置、而不是并行提速」—— **半错**（生成并行，工具不并行）；改为带编号的实测，并补「子代理内 `execute` 默认超时 30 s、必须显式传 `timeout_seconds`」。属 skill 内容改动 → 需一次发布授权，本轮只登记不改。
+- **已撤回（R56-2）**：~~**度量陷阱**~~ —— turn `usage.json` 实测已聚合子代理用量，以后把生成搬给子代理**不会**让 `output_tokens` 变好看而墙钟持平。
 - 证据：`docs/evidence/r56-subagent-parallelism-probe-2026-10-12.md`；台账 R56 节；平台问题单 Obsidian `03-技术与VibeCoding/01-AI与LLM/TS子代理声称并行实测串行且子代理execute默认超时30s.md`。
 - **溯源面盘点（本轮副产物）**：流水线的「值 → 出处」绑定共 12 条，其中**只有篇内的 3 条**（`quote` 定位 / `ref`+`source_file` / 篇内 `population`·`endpoint`·`assessment` 一致性）天然可按 ref 切；其余 9 条（esid↔源文件、`{{ref_n}}`⇄`citations.json`、引文字段字节级复制、一数一处、附录引用、`records[].trial` 合并、图表时间锚、叙事归属、C1/C2 链接）全是跨篇/跨产物一致性，**必须主线程兜**。
 

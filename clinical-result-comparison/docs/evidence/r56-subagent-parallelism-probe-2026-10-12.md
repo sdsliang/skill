@@ -1,84 +1,133 @@
-# R56 能力探针 — `task` 子代理到底是并行还是串行（2026-10-12）
+# R56 — 子代理并行性三探针（2026-10-12）
 
-**问题**：用户提出「每个证据（每篇来源）开一个 subagent 处理 facts」。该方案只有在子代理**真并行**时才对指标（墙钟）有意义；平台样板段写着
-「Launch multiple subagents concurrently by emitting multiple `task` tool calls in a single message」，
-而本仓 `references/input-contract.md:429/453` 写着实测**串行**。两句不能都对 → 用一次探针判死。
+**目的**：用户提出「每个证据（每篇来源）开一个 subagent 处理 facts，能不能压缩墙钟」。
+该方案成立与否只取决于一件事：**同一轮里多个 `task` 到底是不是并发跑的**。
+平台样板段写「Launch multiple subagents **concurrently** … in a single message」，
+本仓 `references/input-contract.md:429/453` 却写实测**串行**。两句不能都对 → 用探针判死。
 
-探针**不依赖任何 skill 内容**，因此无需发布、不产生部署漂移。
+**探针不加载任何 skill、不读参考文件 → 不依赖部署内容，无需发布，零部署漂移。**
+三轮都是同一个模型（`DeepSeek Flash`，web=off），时间戳由沙箱内 `date +%s.%N` 自报，
+主线程与全部子代理**共用同一条 epoch 时间轴**，因此可以精确判重叠。
 
-## 1. 探针设计
+---
 
-- 线程 `5ce05322-60a5-4395-aad8-94e6f18ee03c`，turn `d1fa6eef-98eb-4ee5-8e85-0394a49dc459`，tag `r56-probe-parallel`
-- 记录目录 `~/.local/state/toolsmith-runs/20261012-174039-r56-probe-parallel/`
-- 模型 `DeepSeek Flash`，web=off（与既有基线一致）
-- 指令：主线程先 `date +%s.%N` 记 T0 → **在同一条消息里**发两个 `task`（A=`sleep 60`，B=`sleep 45`，各带前后 `date +%s.%N`）
-  → 两个都返回后再 `date +%s.%N` 记 T1 → 只回一个 JSON
-- 判据：真并行 → span ≈ 65–70 s；串行 → span ≈ 110–160 s
+## 1. 三轮探针与结果
 
-## 2. 结果：串行，零重叠
+| # | 记录目录 | 子代理 payload | A 窗口 | B 窗口 | 重叠 |
+|---|---|---|---|---|---|
+| R56-a | `20261012-174039-r56-probe-parallel` | A `sleep 60` / B `sleep 45`（纯 `execute`） | `1791798051.140 → 1791798111.141` | `1791798147.071 → 1791798192.072` | **0.00 s** |
+| R56-b | `20261012-175403-r56b-probe-puregen` | 各生成 ~15000 字，**只用 `write_file`，不碰 `execute`** | `1791798871.732 → 1791798916.885` | `1791798888.021 → 1791798948.344` | **28.86 s** |
+| R56-c | `20261012-175923-r56c-probe-lock`（resume 记录 `20261012-180330-resume-r56c-probe-lock`） | A/B/C 各 `sleep 20`（三个子代理） | `1791799169.895 → 1791799189.896` | B `1791799192.674 → 1791799212.676`；C `1791799215.468 → 1791799235.470` | **0.00 s**（三段首尾相接） |
 
-| 量 | 值 |
+三轮都通过**同一条 assistant 消息里的多个 `task` part** 下发（已核对 `messages.json`）：
+`msg[1]` 的 part 顺序为 `['reasoning','tool-task','data-subagent-trace','tool-task','data-subagent-trace']`
+（R56-c 为三段 `tool-task` + 三段 trace）。即：**模型确实按文档要求并发下发了**。
+
+### R56-a：纯 `execute` payload → 零重叠
+
+`T0 = 1791798046.086` → `T1 = 1791798198.371`，**span 152.285 s**；整轮 `total_latency_ms = 162,272`。
+A 窗口 60.00 s，B 窗口 45.00 s，A 结束到 B 开始空档 **35.93 s**。
+该空档 = B 首次 `execute`（未传 `timeout_seconds`）被默认 **30 s** 超时杀掉后的重试代价：
+B 首条命令返回 `Error: execution timed out after 30s` / exit 124，显式 `timeout_seconds: 90` 才成功。
+
+### R56-b：纯生成 payload（不碰 `execute`）→ **重叠 28.86 s**
+
+- A：`T_start 1791798871.732` → `T_end 1791798916.885`（45.15 s），随后 `write_file /workspace/probe_A.txt`（10 000 字）。
+- B：`T_start 1791798888.021` → `T_end 1791798948.344`（60.32 s），`write_file /workspace/probe_B.txt`（8 459 字）。
+- **B 的第一条命令跑在 A 的最后一条命令之前**（888.021 < 916.885），且当时沙箱无其它命令占用
+  （B 的这条 `date` 是瞬时命令、返回 `exit 0`）→ **A、B 两个子代理同时活着**。
+- 并行效率：union 窗口 `8888.021→8948.344` 实为 `8871.732→8948.344 = 76.61 s`；
+  若串行应为 `45.15 + 60.32 = 105.47 s` → **实测 76.61 s ≈ 1.38× 加速**。
+- `T_all_done = 1791798972.830`，整轮 `total_latency_ms = 131,690`。
+
+### R56-c：三个子代理、各 `sleep 20` → 零重叠，30 s 的活花 70.2 s
+
+```
+A  BEG 1791799169.894785539 → END 1791799189.896388346   (20.00 s)
+B  BEG 1791799192.674033689 → END 1791799212.675514113   (20.00 s)   交接间隙 2.78 s
+C  BEG 1791799215.468239622 → END 1791799235.469726111   (20.00 s)   交接间隙 2.79 s
+T_all_done 1791799240.110     整轮 total_latency_ms = 80,734
+```
+三段严格首尾相接、交接间隙稳定在 ~2.8 s —— 这是**队列/锁**的签名，不是"每个子代理等前一个整轮结束"
+（后者间隙会包含整轮调度开销，且 R56-b 已证伪串行）。
+
+---
+
+## 2. 结论（含对前一轮错误结论的撤回）
+
+### ① 子代理**是**并发的 —— 机制由模型决定，TS 开发者说法正确
+
+后端确实按「**同一条 assistant 消息里出现多个 `task` 调用**」并发启动子代理（R56-b 直接证据）。
+反过来，若模型分成多条消息逐个发 `task`，那就是串行 —— **并行与否取决于模型的调用形状**，
+这正是 TS 开发者的说法。R56-b 已排除"运行器串行"假说。
+
+### ② 真正串行的是沙箱 `execute` —— 全局单通道
+
+R56-a 与 R56-c 的 payload 全是长 `execute`（`sleep`），两轮都是**零重叠 + 稳定交接间隙**。
+因此：
+
+- **模型生成会并行**（占本项目输出 token 的 75%）；
+- **工具执行不会并行**：主线程与所有子代理的 `execute` 排同一条队。
+
+**撤回**：本批第一次提交（commit `2b476fa`）把 R56-a 的"零重叠"读成"子代理串行"，据此否决
+「按证据开子代理」。**该判定错误** —— 把**沙箱队列**误读成**运行器串行**。
+R56-a 的 36 s 空档在"并发子代理 + 单通道沙箱 + 超时从命令开始执行时计时"的模型下完全自洽：
+B 的命令排队到 A 释放（111 s）后才开始跑，跑满 30 s 默认超时被杀，重试才成功。
+
+### ③ turn 级 `usage.json` **聚合**子代理用量 —— 指标没被绕过
+
+R56-b：两个子代理自报合计 `in 157,335 / out 31,684`（A `in 71,489 / out 14,046 / reasoning 9,300`；
+B `in 85,846 / out 17,638 / reasoning 7,436`），而 turn `usage.json` = `in 254,815 / out 35,406 /
+reasoning 19,934`，子代理输出占 turn 输出的 **89.5%**。
+→ **撤回**前一轮提出的「度量陷阱」：把生成搬给子代理**不会**让 `output_tokens` 指标变好看，
+指标仍然诚实。
+
+---
+
+## 3. 对「按证据（按 ref）分片 facts」的重新判定
+
+**不是死路，但收益面比我先前以为的窄，且判据必须重写：**
+
+| | 能否受益于子代理并行 |
 |---|---|
-| T0（主线程开始） | `1791798046.086` |
-| T1（两个 task 都返回后） | `1791798198.371` |
-| **主线程 span** | **152.285 s** |
-| A 窗口 | `1791798051.140` → `1791798111.141` = **60.00 s**（sleep 60，一次成功，显式 `timeout_seconds: 90`） |
-| B 窗口 | `1791798147.071` → `1791798192.072` = **45.00 s** |
-| A 结束 → B 开始 的间隙 | **35.93 s** |
-| **A / B 时间重叠** | **0 s** |
-| 整轮 wall（`timing.json.total_latency_ms`） | 162,272 ms |
+| facts 单发长生成（实测一次 `write_file facts.json` = 28,631 token，占该轮输出 43%） | **能** —— 纯生成，可切片并行 |
+| `prep_sources` / `build_ledger` / `render-facts` / `patch` / `make_chart` / `make_citations` / `check_report` | **不能** —— 全走 `execute`，排同一条队，分片只会让它们排队 |
 
-两个 `task` 写在同一条消息里，平台仍然**先跑完 A 再跑 B**：span = 60 + 45 + 35.9(间隙) + ~11(生成/调度) ≈ 152 s。
+代价（都实测过）：
 
-**结论：`references/input-contract.md` 的「串行」是对的，平台样板段的「concurrently」是不成立的描述。**
+- 每个子代理重新载入**通用**系统提示：R56-b 两个子代理合计 **157,335 输入 token**，
+  其中相当部分是每次重载的通用提示（R56-a 里只回一行输出的子代理也要 `in 24,640` / `37,135`）。
+- 子代理**不继承本项目 system prompt** → 抽取规格必须在 `description` 里重述。
+- 子代理里 `execute` **默认超时 30 s**（主线程文档写 120 s）→ 任何命令必须显式传 `timeout_seconds`。
+- 主线程仍必须做跨 ref 合并校验（ref 编号 / 命名 / 数值格式 / `records[].trial` 合并键全局一致）。
+- 粒度：本组输入只选 4 篇 → 只能切成 4 片；而墙钟同输入噪声是 **±20–40%**，这个效应量正好在测量能力边缘。
 
-## 3. 顺带查实的三件事
+---
 
-### 3.1 子代理 `execute` 默认超时 = 30 s（文档说 120 s）
+## 4. 平台侧发现（供转开发）
 
-B 的 trace 第一条 `execute` 结果：`[stderr] Error: execution timed out after 30s` / `exit code 124`，随后它自己加了
-`timeout_seconds: 90` 才成功。而主线程工具描述写的是「Execution is time-limited to 120 seconds」。
-→ **任何 `task` 的 description 必须显式要求「沙箱命令一律带 `timeout_seconds`」**，否则子代理里超过 30 s 的命令必然中断并重试（本例重试就白烧了 36 s）。
+1. **沙箱 `execute` 全局单通道**：同一条消息里的多个并发工具调用（含子代理内的）会排队串行执行，
+   交接间隙 ~2.8 s。任何"并行工具调用提速"的设计都会撞上这一层。（R56-a / R56-c）
+2. **子代理内 `execute` 默认超时 30 s**，与 `execute` 描述里的 120 s 不一致；且该超时**从命令开始执行时**计时
+   （排队等待也算在内，R56-a 的 B 因此被误杀）。（R56-a）
+3. **`data-subagent-trace`**：每个 `task` 调用附带子代理 `traces[]`（`started`/`tool_call`/`tool_result`/`finished`
+   + `input_summary`/`output_summary`/`tool_call_id`）与**子代理独立 `usage`**；该结构未文档化，
+   但 turn 级 `usage` 已聚合子代理用量（实测，见 §2③）。
 
-### 3.2 子代理的轨迹与用量是**可见**的（`data-subagent-trace`）
+问题单全文写在 Obsidian：`03-技术与VibeCoding/01-AI与LLM/TS子代理并发但沙箱execute单通道串行-子代理execute默认超时30s.md`。
 
-`messages.json` 里每个 `task` 调用带一个 `data-subagent-trace` part，含该子代理的
-`traces[]`（`started` / `tool_call` / `tool_result` / `finished`，带 `input_summary` / `output_summary` / `tool_call_id`）与**独立 `usage`**：
+---
 
-| 子代理 | input | cached | output | reasoning |
-|---|---:|---:|---:|---:|
-| A | 24,640 | 22,016 | 286 | 186 |
-| B | 37,135 | 34,304 | 569 | 399 |
-| **合计** | **61,775** | 56,320 | **855** | 585 |
+## 5. 复现方式
 
-固定开销巨大：一个**只回一行命令输出**的子代理就要 ~25–37 K 输入 token（通用子代理系统提示 + 工具 schema）。
-本轮 turn 级 `usage.json` = input 185,072 / output 2,130 / reasoning 1,524 —— 与子代理各自的 61,775 / 855 **看不出被合并**（待定，见 4.2）。
+```bash
+# 参考 /tmp/probe-puregen.txt（生成型）与 /tmp/probe-lock.txt（工具型）的写法：
+#   同一条消息里发多个 task；每个子代理内部用 `date +%s.%N` 自报窗口；
+#   主线程前后各取一次 date，最后输出一行 JSON。
+cd ~/apps/skill
+toolsmith-publish run --prompt-file /tmp/probe-lock.txt --tag r56c-probe-lock
+# 掉线后重挂（不重发 POST）：
+toolsmith-publish run --resume <thread_id> --tag r56c-probe-lock
+```
 
-### 3.3 `task` 的入参形状（写进契约时别再猜）
-
-只用两个参数：`subagent_type`（本项目仅 `general-purpose`）+ `description`；**无状态、不可追问**；只回最终消息；
-子代理**不继承本项目 system prompt**（本仓 `input-contract.md:450` 已知）；与主线程**共享 `/workspace` 文件系统**。
-
-## 4. 对「按证据开 subagent」这个方案的判定
-
-### 4.1 串行 ⇒ 它**不可能**压缩墙钟（一阶论证，不依赖实测）
-
-一轮的墙钟 = Σ(该轮内**所有**模型生成耗时，主线程 + 所有子代理) + 工具耗时。本轮已证明子代理耗时**计入**整轮 wall（162.3 s 含 60 + 45）。
-
-- 把 facts 撰写从主线程搬给子代理，只是**把生成量换了个地方**，Σ 不变；
-- 且**变贵**：每个子代理要重新载入通用系统提示（实测 25–37 K 输入 token/个）+ 重述完整抽取规格（子代理不继承 prompt）+ 重读源文件；
-- 还要**在主线程加一轮合并/校验**（跨 ref 的 ref 编号、命名、数值格式、`records[].trial` 合并键仍必须全局一致）。
-
-**所以：串行前提下，按 ref 分片对墙钟是「持平或更差」，不存在变快的路径。** 第 2 步（写分片验收口径）的**前提不成立，不再编写**。
-
-### 4.2 附带发现的**度量陷阱**（若以后仍要引入子代理，先解决这个）
-
-子代理用量记在 `data-subagent-trace.usage`，而 `usage.json` 疑似**只统计主线程**。
-若真如此，任何「把活搬给子代理」的改动都会让 `output_tokens`（我们的指标）**很好看**，而墙钟持平或变差 —— 指标会被绕过。
-需要一次 90 秒的对照实验才能定：同一指令跑两次（一次带一个「产出 5 K token 长文」的子代理、一次不带），比较 turn `usage.json` 是否随之上涨。
-
-## 5. 沉淀
-
-- 「子代理 = 省上下文的装置，不是并行提速」现在有**直接实测**（此前只有断言）：`input-contract.md` 的表述可升级为「实测（R56 探针，2026-10-12，60+45 s 睡眠零重叠）」，但那是 skill 内容改动 → **需一次发布授权**，本轮只登记不改。
-- 平台侧（转开发）：① 工具描述承诺并发、后端从不开启并发；② 子代理 `execute` 默认超时 30 s 与文档 120 s 不一致；③ `data-subagent-trace` 未文档化（含子代理独立 usage）。
-  → 问题单全文见 Obsidian `03-技术与VibeCoding/01-AI与LLM/TS子代理声称并行实测串行且子代理execute默认超时30s.md`（本仓只留摘要）。
+探针是**非交付型**运行，runner 的产物类断言（`present_artifact` 等）按预期 FAIL，与结论无关。
