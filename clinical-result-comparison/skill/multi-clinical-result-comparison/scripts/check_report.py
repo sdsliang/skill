@@ -46,6 +46,27 @@ LEAK_PATTERNS = (
 # warning, so a stray word never blocks an otherwise sound delivery mid-run.
 RUN_LOGISTICS = (r"本次运行", r"本运行环境", r"运行环境", r"本轮运行", r"无外网", r"网络受限",
                  r"抓取(?:失败|受限|超时)")
+# The report states clinical findings; it never narrates its own method, classification or
+# bookkeeping.  Labels and chart-decidability wording are the authoring layer's own vocabulary
+# (`分析模式`/`选择依据`/`可比性结论`/`对齐等级`/`可绘图`) and they leak the reasoning process into a
+# deliverable the reader only wants findings from.  Two slots stay: the fixed non-head-to-head
+# caveat and the `原文核对：` coverage line — both written as material statements.
+META_LABEL_RE = re.compile(
+    r"(?:\*\*|^\s*[-*]\s*)(?:分析模式|分析口径|选择依据|可比性结论|对齐等级|不绘图原因|"
+    r"有限并列原因|处理流程|撰写方式|报告结构|检索策略|纳入标准)\s*[:：*]",
+    re.MULTILINE)
+META_COLUMN_RE = re.compile(
+    r"^\s*\|[^\n|]*(?:\|[^\n|]*)*\|\s*(?:对齐等级|分析模式|选择依据|可比性结论|"
+    r"不绘图原因|有限并列原因)\s*\|", re.MULTILINE)
+METHOD_NARRATION_RE = re.compile(
+    r"可绘图|不具备绘图条件|只能有限并列|未生成图表|不生成图表|不生成优效排序|"
+    r"本次选择|本次纳入|纳入本次|我们选择|我们纳入|我们取用|本轮|"
+    r"(?:部分|直接|仅背景|未)对齐|为便于阅读|便于读者理解")
+SELF_AUDIT_RE = re.compile(
+    r"无未复核记录|无遗漏记录|无缺失项|无未取回记录|全部通过(?:自检|校验)|"
+    r"未发现(?:不一致|问题|异常)|不存在未复核")
+INTERNAL_VOCAB_RE = re.compile(r"\bsrc\s*=\s*\d|\bpayload\b|\bJSONL\b|\bMCP\b|沙箱|工作区")
+SELF_REFERENCE_RE = re.compile(r"本报告|本文档|本工具|本流程|本管线|本交付物|本次(?!披露)")
 SHINGLE = 8
 CHART_NUMBER_RE = re.compile(r"[-+−]?\d+(?:\.\d+)?")
 CHART_UNIT_SUFFIX_RE = re.compile(r"\s*(?:mg/?|周|天|月|年|例|名|岁|nmol/L|mmol/L|每)(?![A-Za-z])", re.IGNORECASE)
@@ -176,6 +197,36 @@ def _appendix_preamble_findings(report: str, max_preamble: int = 100) -> list[st
     return []
 
 
+def _meta_narration_findings(report: str) -> tuple[list[str], list[str]]:
+    """Report-about-itself findings: the authoring layer's labels, class and process wording."""
+    findings: list[str] = []
+    warnings: list[str] = []
+    for match in META_LABEL_RE.finditer(report):
+        findings.append(f"the report labels its own method ({match.group().strip()!r}); state the finding, "
+                        f"not how the report was built")
+    for match in META_COLUMN_RE.finditer(report):
+        findings.append(f"table column {match.group().strip()!r} is the report classifying its own work; "
+                        f"replace the label with the material difference it stands for")
+    for label, pattern in (("method/class narration", METHOD_NARRATION_RE),
+                           ("self-audit tail", SELF_AUDIT_RE),
+                           ("internal field or runtime vocabulary", INTERNAL_VOCAB_RE)):
+        seen: set[str] = set()
+        for match in pattern.finditer(report):
+            token = match.group()
+            if token in seen:
+                continue
+            seen.add(token)
+            findings.append(f"{label} in the deliverable: {token!r}")
+    seen = set()
+    for match in SELF_REFERENCE_RE.finditer(report):
+        token = match.group()
+        if token in seen:
+            continue
+        seen.add(token)
+        warnings.append(f"the report refers to itself ({token!r}); write the finding directly")
+    return findings, warnings
+
+
 def _table_cells(report: str) -> list[str]:
     cells: list[str] = []
     for line in report.splitlines():
@@ -265,6 +316,10 @@ def main(argv: list[str] | None = None) -> int:
         hit = re.search(pattern, report)
         if hit:
             warnings.append(f"run-logistics wording in the deliverable (A-P10): {hit.group()!r}")
+    meta_findings, meta_warnings = _meta_narration_findings(report)
+    findings.extend(meta_findings)
+    warnings.extend(meta_warnings)
+    checks.append(("report voice", "findings only — no method/class/self-audit narration"))
     if re.search(r"```\s*mermaid", report, re.IGNORECASE):
         findings.append("Mermaid block emitted; the delivery channel is chart JSON + ::visualization only")
     checks.append(("report text", "tokens/markers/entity/appendix"))

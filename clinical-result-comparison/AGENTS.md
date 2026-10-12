@@ -9,7 +9,23 @@
 
 ---
 
-## 当前交接（2026-10-10 R48 完成：随包六脚本 L2 + 单遍正文 L3 + 合批调用 L4；**已原地发布并六次真跑验证**）
+## 当前交接（2026-10-12 R49+R50 完成：一数一处 / 附录版式 / 列头 + **报告不得叙述自己**；**已与 R49 同批原地发布并两次真跑验证**）
+
+**触发（R49）**：用户在共享报告上提四条交付层投诉（附录开头 ≈600 字版式规格；附录列头不可读/注册号重复；同一小节里图与表重复交付同一批数值；交付耗时）。**触发（R50）**：用户投诉交付报告里出现**模型自己的方法/分类叙述**（现场：`**分析模式：** 跨试验、非头对头、按指标域对齐。` / `**可比性结论：** 可绘图。…`），要求「全篇排查同类思考表述并优化 → 原地更新 TS → 再测试」。两轮内容改动**同批原地发布**（prompt v1.7 / Skill v1.0.8，标签不变）。
+
+1. **R49.1 附录版式**：`render-facts.py` 删 `APPENDIX_INTRO`（≈600 字规格说明），只留一行 `APPENDIX_LEGEND`；`check_report.py` 新增两条 FAIL —— 附录标题与其表格之间出现 **>100 字**散文块、附录标题出现 **>1 次**（手写附录 + 渲染附录并存）。4 模板写明「标题/图例/列由渲染器拥有」。
+2. **R49.2 附录列头**：单试验 ≥2 披露 = `**可读短标签**<br>ref_n`（无标签回退 `**ref_n**`）；第二行注册号若已出现在展示名里则删除（`_column_header` / `_column_label`）。
+3. **R49.3 一数一处（方案 1：图全留、只删重复）**：制度性根因是两个速览模板同时规定「表 + 图」。`check_report.py` 新增两条 FAIL —— 图自身散文（`subTitle`/`describe`/`data[].description`）复述自己的绘图值；非附录小节「有图 + 表里含该图 ≥2 个绘图值」。豁免：剂量/时点/例数数字、研究内对照值与边界值、附录与时间线图。两模板「图表后保留上表」→「不重复上表」。
+4. **R49.4 四条提速杠杆**：`references/toolbox.md` FAQ（别再翻脚本源码）；prompt 禁回读自产文件 + `check_report.py` 一次定稿；`build_ledger.py --scaffold`（原始 payload → 候选事实行，**永不直接写 `ledger.json`**，默认 `work/facts.candidates.json`）；图表 spec 一次成稿。
+5. **R50 第四语域 —— 报告不得叙述自己（本轮核心）**：`check.py` 现有守卫族（A-P1 覆盖行 / `op_original_check_names_class` / A-P5 / A-P7 模板规格回抄 / A-P8 规则元陈述 / A-P10 运行后勤）**都不覆盖**「报告叙述自身方法/分类/处理过程」。新增落点全部在 `check_report.py`（**判分器 `check.py` 一行未动**，保住 44/12 变异套件语义）：6 个常量 + `_meta_narration_findings()` + `main()` 里独立的 `report voice` 检查组。**FAIL** = 自述标签（bullet 或表列：`分析模式`/`分析口径`/`选择依据`/`可比性结论`/`对齐等级`/`不绘图原因`/`有限并列原因`/`纳入标准`/`检索策略`/`报告结构`）、分类判断语（`可绘图`/`只能有限并列`/`不具备绘图条件`/`部分对齐`/`仅背景对齐`）、过程短语（`本次选择`/`本次纳入`/`我们选择`/`本轮`）、内部与运行环境词（`src=`/`esid`/`payload`/`JSONL`/`MCP`/`工作区`/`沙箱`）、自证尾巴（`无未复核记录`/`无遗漏`/`全部通过`）。**WARN** = 宽口径自指（`本报告`/`本次`，负向断言排除合法的「本次披露」）。刻意**不**禁 `token`/`轮次`（会误伤「治疗轮次」）；**`比较口径` 不计 FAIL**（4 模板本来就带该 blockquote）；保留位 = 非头对头声明一句 + `原文核对：` 覆盖行（只写材料与深度）。同一条规则同时写进 `SKILL.md`、prompt 交付前检查段、`references/toolbox.md` §7 + 两条 FAQ、`references/input-contract.md`（覆盖行只写来源类**文字**，`src=N` 等内部字段名不进交付物，且**不写自证尾巴**），4 模板的 `分析模式`/`选择依据`/`对齐等级` 全部删除、差异改写为时点/人群/定义/方向。
+6. **现场取证**：对用户看到的旧产物 `…-r48-a` 回放新检查器，四类语域逐条被抓（`the report labels its own method ('**分析模式：')`、`('**选择依据：')`、`('**可比性结论：')`、4 处 `对齐等级` 表列、`纳入本次`/`只能有限并列`/`不生成优效排序`/`部分对齐`、`self-audit tail: '无未复核记录'`、`internal field or runtime vocabulary: 'src=1'`）。
+7. **本地门禁（全绿）**：`mutations.py` arm a **44/44** + arm b **12/12** + `never flipped []` + `GATE: PASS`；`test-render-facts.py` 28；`test-skill-scripts.py` 54；`test-check-report.py` **12 → 20**（新增 8 条即 R50 语域规则，含两条「不得误报」：材料化覆盖行、解读边界散文）；`test-build-ledger-scaffold.py` 9；`test_regressions.py` 35；`test-runner.py` **40 → 41**（新增「本地 `__pycache__/*.pyc` 不得算作线上缺失」，见 O48）；`test_pack_dist.py` 5；`test_replay_run.py` 14；`node --test` 16/16；`verify-run-chain.py` `GATE: PASS`（**115** histories / 5 可比 / 110 跳过）。**计数纪律 = runner 41 + scorer 35 + tools 19 + Node 16 + skill-scripts 54 + check-report 20 + build-ledger-scaffold 9 = 194**（加 numeric-integrity 28 = **222**）。
+8. **打包/发布**：`pack-dist.py` = **151,330 B / sha256 `df993fdddf83` / 26 entries**（R49 时为 148,346 B / `78b399b26a94`；**EXPECTED 仍 26** —— 两轮都不新增 bundle 文件，`--scaffold` 挂在既有 `build_ledger.py` 上）；prompt = **76,578 B / sha256 `bf7b45dbf5d0`**（R49 时 75,092 B；**有意不再激进瘦身** —— 缓存命中率 96–98%，丢规则的风险大于省 token）；发布前 `deps` = `unchanged since the recorded baseline`；`push-prompt --version 1.7` / `push-skill --version 1.0.8` 均 HTTP 200、回读 `matches_local=True`，`status` = **in sync**（zip `entries=26 identical=26 differing=0`）。
+9. **真跑：2 组 2 esid（与 r48-a/r48-a2 同输入）+ 固定三组回归（4/18/14 esid，输入逐字节复用 R48）**：`r50-a` **24 PASS / 1 FAIL**（唯一 FAIL = **O48** runner 假 FAIL）、`r50-a2` **25 PASS / 0 FAIL / exit 0**；**`r50-4` / `r50-18` / `r50-14` 各 25 PASS / 0 FAIL / exit 0**（25 / 46 / 31 tool calls，墙钟 383.2 / 617.3 / 510.8 s）⇒ 新语域闸门**零 thrash**，**O49 未在 18 esid 组复发**（图表行只点自己那条观察的对照臂）。**语域修法在生产侧生效**：正文无 `分析模式`/`选择依据`/`可比性结论`；速览段只写核心终点要点 + 图，数值表移到 §四并带 `解读边界` 列；覆盖行写成「来源类均为 PubMed 期刊论文，深度为期刊摘要级（库内正文即原文摘要，未取 PMC 全文）」——无 `src=`、无自证尾巴；本地 `check_report.py` 回放两份产物 `report voice` 全绿（余下 FAIL 仅为本地回放的 `::visualization` 前缀差异）。**速度**：同输入 r50-a2 的 tool calls **45 → 26**、out token 69,610 → 63,097、reasoning 51,506 → 43,373、墙钟 359.5 → 343.3 s。**离线 scenario a**：`r50-a` **43/44**（= r48-a 基线，唯一 A-ATTR）、`r50-a2` 38/44。
+10. **本轮新增/结案 O 条目**：**O48 已修**（runner 支撑文件清单把本地 `scripts/__pycache__/*.pyc` 当「线上缺失」⇒ 假 FAIL；改法 = 清单比对前过滤 `__pycache__`/`*.pyc`；备份 `toolsmith-publish.v16.bak` + `py_compile` + 零网络闸门 + `test-runner.py` 40 → **41**）；**O49 待修（1/2 样本）**（图表行 `description` 提到另一治疗臂的剂量/间隔 ⇒ 行身份不再唯一 ⇒ `A-S9`/`A-S9b`/`A-S10` 三条同源 FAIL；改法 = 报告侧一句硬规则，随下一次内容改动发版）；O40 / O44 / O46 / O47 状态不变。
+11. **未做**：O49 的报告侧硬规则（下一次内容轮）、O44/O47 等第 2 份样本、O40 在新样本上的复现观察。
+
+## 历史交接（2026-10-10 R48 完成：随包六脚本 L2 + 单遍正文 L3 + 合批调用 L4；**已原地发布并六次真跑验证**）
 
 **触发**：R47 的 per-step token 归因（`/tmp/l2/attr.py`）——自写脚本 + heredoc 占各 run 输出 25–55%（`r47-14`：11 个一次性脚本共 59,598 out tokens；`r47-a`：`report prose draft.md` 13,978 + `execute: other` 17,919；`r47-18`：自写脚本 36,511 B），根因是 R45「`edit_file` 只限报告正文」把模型逼成「用一次性脚本原地打补丁」。用户「L2-4都想要」⇒ 三条杠杆同轮落地，归因改用**历史 16 run 基线 + per-lever 签名**。
 
@@ -24,7 +40,7 @@
 9. **本轮新增 O 条目**：**O45**（runner 收据正则不认全角 `）` 等 CJK 标点 ⇒ 3/4 组 FAIL；**已修**：`_RECEIPT_STOP` 重建 `TOOL_RESULTS_RX` + 回归测试，离线重放四组全转 PASS；备份 `toolsmith-publish.v16.bak`）、**O46**（模型 `read_file offset` 越界，1/2 组 ⇒ R49 内容轮加一条可检查硬规则）、**O47**（`A-C7` 只认「第 ?16 ?周」，1 样本 ⇒ 待样本）。
 10. **未做**：O46 的 prompt 硬规则（R49 内容轮）、O44/O47 等第 2 份样本、O40 报告侧机制在新样本上的复现观察。
 
-## 当前交接（2026-10-10 R47 完成：O43 结案 + O40/O41 报告侧习惯句已原地发布；四组真跑 + 一次耗时 A/B）
+## 历史交接（2026-10-10 R47 完成：O43 结案 + O40/O41 报告侧习惯句已原地发布；四组真跑 + 一次耗时 A/B）
 
 **R47（用户答复「改吧」+「分析下 2–3 条结果也要 5min+ 的耗时分布」）**：按「一次内容改动一轮」纪律，本轮只装 **O43 + O40/O41 报告侧习惯句**，把**耗时优化留作 R48 提案**（不混进本轮 keep/discard 归因）。
 
@@ -75,7 +91,7 @@
 7. **R42 = Phase A（18/14 esid 的 humanizer 臂）**：21 PASS（同 F1）/ 22 PASS；18 esid 粗体 47→26（−45%）、12-gram 重复率 0.0911→0.0643（−29%）；14 esid 方向相反；**两臂 strong 命中均 0、`{{ref_n}}` 逐条相等（18/18、14/14）**；代价 = 工具尝试 +45~51%、墙钟 +13~17%。**每臂 n=1 → 不宣称可测收益**，默认仍不强制调用 humanizer。
 8. **两条待办（已给证据、未落盘，等用户点头）**：**F1** prompt 第 6 条文件写入纪律只覆盖报告正文 → 扩到「本工作区任何文件」（正文/辅助脚本/图表 JSON）；**F2** 同一观察身份词报告内混用（`每月` 3 次 vs `Q4W` 9 次，源文只有 `monthly`）→ 图表 label 取 `Q4W` 使 `A-S9`/`A-S9b`/`A-S10` FAIL；改法 = ①prompt/SKILL 加「一套写法 + 图表 label 复用正文身份短语」②`scenario-a.facts.json` 该观察 `identity_patterns` 放宽到 `每月|每月一次|QM|Q4W`。
 
-**离线测试计数（2026-10-10，R48 后实测）**：runner **40**、scorer（`test_regressions.py`）**35**、tools **19**（`test_pack_dist.py` 5 + `test_replay_run.py` 14）、Node **16**、`tools/test_pack_dist.py` **5/5**；另有 **`evals/numeric-integrity/test-render-facts.py` 28** 与 **`evals/scripts/test-skill-scripts.py` 54**，两者本来就不计入上面那 105/117 的合计口径（README 旧行的 105 = runner 38 + scorer 32 + tools 19 + Node 16，不含 numeric-integrity；R43 把 scorer 提到 35、R46 把 runner 提到 39、**R48 把 runner 提到 40**）。**R48 合计口径 = 40 + 35 + 19 + 16 + 54 = 164**。
+**离线测试计数（2026-10-12，R49/R50 后实测）**：runner **41**、scorer（`test_regressions.py`）**35**、tools **19**（`test_pack_dist.py` 5 + `test_replay_run.py` 14）、Node **16**、`evals/scripts/test-skill-scripts.py` **54**、`evals/scripts/test-check-report.py` **20**、`evals/scripts/test-build-ledger-scaffold.py` **9**；另有 `evals/numeric-integrity/test-render-facts.py` **28** 单列。**R49/R50 合计 = 41 + 35 + 19 + 16 + 54 + 20 + 9 = 194（含 numeric-integrity 为 222）**。旧口径（R48）：：runner **40**、scorer（`test_regressions.py`）**35**、tools **19**（`test_pack_dist.py` 5 + `test_replay_run.py` 14）、Node **16**、`tools/test_pack_dist.py` **5/5**；另有 **`evals/numeric-integrity/test-render-facts.py` 28** 与 **`evals/scripts/test-skill-scripts.py` 54**，两者本来就不计入上面那 105/117 的合计口径（README 旧行的 105 = runner 38 + scorer 32 + tools 19 + Node 16，不含 numeric-integrity；R43 把 scorer 提到 35、R46 把 runner 提到 39、**R48 把 runner 提到 40**）。**R48 合计口径 = 40 + 35 + 19 + 16 + 54 = 164**。
 
 ## 历史交接（2026-10-10 Phase 2 完成）
 
@@ -90,7 +106,7 @@
 
 **两个 humanizer skill（`report-humanizer-zh` / `-en`，Phase B 已完成）**：加①数字/符号排版统一规则 + 文档级弱命中 `W-FMT-MIXED`（`tell-scan.py` + 两份 `SKILL.md` + 两份 `patterns-*.md` + 各 2 项回归 → 25/25）；②过程口吻边界（宿主契约要求的声明写成**材料属性**，不写运行环境/链路）。bump **v0.1.1**（zh 28,406 B / en 30,765 B），**TS 原地更新成功**（平台版本号仍 1.0.0）。原地更新脚本 = `apps/skill/tools/push-skill-inplace.py`（五道护栏），校验脚本 = `apps/skill/tools/verify-skill-upload.py`（只读）。
 
-## 当前交接（2026-09-18 全项目审查后）
+## 历史交接（2026-09-18 全项目审查后）
 
 **三组已跑完（覆盖下文运行中状态）**：R27 4/4、R28 18/18、R29 14/14 均产出报告。R27断言全过；R28写文件冲突导致断言FAIL；R29无FAIL但3次拒参/2次全文500已披露。设计冲突披露部分生效，三组内容审查均有待改项，不宣称全绿。详见台账 R27–R29。以后固定全跑三组。Git本轮仅提交任务相关资产/证据文档，Docker未涉及。
 
@@ -239,6 +255,8 @@ python3 evals/numeric-integrity/test-render-facts.py                      # 附�
 python3 evals/scripts/test-skill-scripts.py                              # R48 随包六脚本回归（54 项；同样**不能**用 unittest discover，直接脚本跑；跑的是 subprocess，无 __pycache__ 污染）
 python3 evals/fact-check/mutations.py                                     # 负向对照闸门（64 项变异/合法对照；`MUT_SEED_A=0` 关掉 A-P10 基线种子）
 python3 evals/fact-check/test_regressions.py                              # 门禁回归（35 项，含 A-P10 的 NoRunLogisticsTests 5 项）
+python3 evals/scripts/test-check-report.py                                 # 交付层机械检查回归（20 项，含 R49 附录/图表去重与 R50 第四语域；**不能**用 unittest discover）
+python3 evals/scripts/test-build-ledger-scaffold.py                       # `build_ledger.py --scaffold` 回归（9 项；**不能**用 unittest discover）
 python3 evals/runner-gate/test-runner.py                                   # runner 单测（40 项，含 R48 的 CJK 收据分隔符回归；**不能**用 unittest discover）
 python3 evals/runner-gate/verify-run-chain.py                             # runner 零网络回归
 tools/replay-run.py --tsv --score <run>…                                  # 成本 + 质量一行一 run

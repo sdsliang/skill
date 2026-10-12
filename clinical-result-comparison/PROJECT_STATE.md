@@ -1,6 +1,22 @@
 # Project State
 
-## 当前快照：2026-10-10（R48：随包六脚本 + 单遍正文 + 合批调用；**已原地发布并六次真跑验证**）
+## 当前快照：2026-10-12（R49+R50：一数一处 / 附录版式 / 列头 + **报告不得叙述自己**；**已同批原地发布并两次真跑验证**）
+
+**R49（用户四条交付层投诉：1、2 改；3 选方案 1；4「都试试」）+ R50（用户：交付报告出现模型自洽/思考过程式叙述，要求全篇排查同类表述 → 原地更新 TS → 再测试）**：两轮内容改动**同批原地发布**（prompt v1.7 / Skill v1.0.8，标签不变）。
+
+- **R49.1 附录版式**：`render-facts.py` 删 `APPENDIX_INTRO`（≈600 字「本表如何排布」规格说明），只留一行 `APPENDIX_LEGEND`；`check_report.py` 新增两条 FAIL（附录标题与表格之间 **>100 字**散文块；附录标题 **>1 次**）。4 模板写明标题/图例/列由渲染器拥有。
+- **R49.2 附录列头**：单试验 ≥2 披露 = `**可读短标签**<br>ref_n`（无标签回退 `**ref_n**`）；第二行注册号若已出现在展示名里则删除。实测 `**OCEAN(a)-DOSE**<br>NCT04270760 · 1 条披露`（保留）与 `**NCT02729025（依洛曲单抗 Lp(a) 影像研究）**<br>1 条披露`（去重）。
+- **R49.3 一数一处（方案 1：图全留、只删重复）**：制度性根因 = 两个速览模板同时规定「表 + 图」。`check_report.py` 两条 FAIL —— 图自身散文（`subTitle`/`describe`/`data[].description`）复述自己的绘图值；非附录小节「有图 + 表里含该图 ≥2 个绘图值」。豁免 = 剂量/时点/例数数字、研究内对照值与边界值、附录与时间线图。两模板「图表后保留上表」→「不重复上表」。
+- **R49.4 四条提速杠杆**：toolbox FAQ（别再翻脚本源码）；prompt 禁回读自产文件 + `check_report.py` 一次定稿；`build_ledger.py --scaffold`（候选事实行，永**不**直写 `ledger.json`；默认 `work/facts.candidates.json`；同一 esid 留最后一份 payload；空值/`NR`/`NE`/`未报告`/`NA`/`N/A`/`-`/`—` 跳过）；图表 spec 一次成稿。
+- **R50 第四语域（本轮核心）**：判分器 `check.py` **一行未动**（保住 44/12 变异套件语义），规则全落 `check_report.py`：6 常量 + `_meta_narration_findings()` + `main()` 的 `report voice` 检查组。**FAIL** = 自述标签（bullet/表列：`分析模式`/`分析口径`/`选择依据`/`可比性结论`/`对齐等级`/`不绘图原因`/`有限并列原因`/`纳入标准`/`检索策略`/`报告结构`）、分类判断语（`可绘图`/`只能有限并列`/`不具备绘图条件`/`部分对齐`/`仅背景对齐`）、过程短语（`本次选择`/`本次纳入`/`我们选择`/`本轮`）、内部与运行环境词（`src=`/`esid`/`payload`/`JSONL`/`MCP`/`工作区`/`沙箱`）、自证尾巴（`无未复核记录`/`无遗漏`/`全部通过`）。**WARN** = 宽口径自指（`本报告`/`本次`，负向断言排除「本次披露」）。**不**禁 `token`/`轮次`（误伤「治疗轮次」）；**`比较口径` 不计 FAIL**（4 模板本就带该 blockquote）；保留位 = 非头对头声明一句 + `原文核对：` 覆盖行（只写材料与深度）。同步写进 `SKILL.md` 硬规则段、prompt 交付前检查段、`references/toolbox.md` §7 + 两条 FAQ、`references/input-contract.md`（覆盖行只写来源类**文字**；`src=N` 等内部字段名与自证尾巴不进交付物）、4 模板（删 `分析模式`/`选择依据`/`对齐等级`，差异改写为时点/人群/定义/方向）。
+- **现场取证**：旧产物 `…-r48-a`（用户看到缺陷的那份）回放新检查器 ⇒ 四类语域逐条命中（`'**分析模式：'` / `'**选择依据：'` / `'**可比性结论：'` / 4 处 `对齐等级` 表列 / `纳入本次`·`只能有限并列`·`不生成优效排序`·`部分对齐` / `self-audit tail: '无未复核记录'` / `internal field: 'src=1'`）。
+- **本地门禁全绿**：`mutations.py` `arm a 44/44` + `arm b 12/12` + `never flipped []` + `GATE: PASS`；`test-render-facts.py` 28；`test-skill-scripts.py` 54；`test-check-report.py` **12 → 20**；`test-build-ledger-scaffold.py` 9；`test_regressions.py` 35；`test-runner.py` **41**（第 41 条 = 本地 `__pycache__/*.pyc` 不得算作线上缺失，见 O48）；`test_pack_dist.py` 5；`test_replay_run.py` 14；Node 16/16；`verify-run-chain.py` `GATE: PASS`（**115** histories / 5 可比 / 110 跳过）。**计数纪律 = 41 + 35 + 19 + 16 + 54 + 20 + 9 = 194（含 numeric-integrity 28 = 222）**。
+- **打包/发布**：dist **151,330 B / `df993fdddf83` / 26 entries**（R49 时 148,346 B / `78b399b26a94`；`EXPECTED` 仍 **26**，两轮未新增 bundle 文件）；prompt **76,578 B / `bf7b45dbf5d0`**（R49 时 75,092 B；**有意不再激进瘦身**）；`deps` = `unchanged since the recorded baseline`；`push-prompt --version 1.7` / `push-skill --version 1.0.8` 均 HTTP 200、`matches_local=True`；`status` = **in sync**（`entries=26 identical=26 differing=0`）。
+- **真跑：2 组 2 esid（同 r48-a/r48-a2 输入）+ 固定三组回归（4/18/14 esid，输入复用 R48）**：`r50-a` **24 PASS / 1 FAIL**（r50-a 的唯一 FAIL = **O48** runner 假 FAIL）、`r50-a2` **25 PASS / 0 FAIL / exit 0**；**`r50-4` / `r50-18` / `r50-14` 各 25 PASS / 0 FAIL / exit 0**（25 / 46 / 31 calls，383.2 / 617.3 / 510.8 s）⇒ 语域闸门零 thrash、O49 未在 18 esid 组复发。**语域修法在生产侧生效**：无 `分析模式`/`选择依据`/`可比性结论`；速览段只写核心终点要点 + 图；数值表在 §四并带 `解读边界` 列；覆盖行「来源类均为 PubMed 期刊论文，深度为期刊摘要级（库内正文即原文摘要，未取 PMC 全文）」——无 `src=`、无自证尾巴；本地 `check_report.py` 回放 `report voice` 全绿。**速度**：同输入 r50-a2 calls **45 → 26**、out 69,610 → 63,097、reasoning 51,506 → 43,373、墙钟 359.5 → 343.3 s。**离线 scenario a**：`r50-a` **43/44**（= r48-a 基线）、`r50-a2` 38/44。
+- **本轮 O 条目**：**O48 已修**（runner 支撑清单把本地 `scripts/__pycache__/*.pyc` 当「线上缺失」⇒ 假 FAIL；清单比对前过滤 `__pycache__`/`*.pyc`；备份 `toolsmith-publish.v16.bak` + `py_compile` + 零网络闸门 + `test-runner.py` 40 → **41**）；**O49 待修（1/2）**（图表行 `description` 提到另一治疗臂的剂量/间隔 ⇒ 行身份不唯一 ⇒ `A-S9`/`A-S9b`/`A-S10` 同源 FAIL；改法 = 报告侧一句硬规则，随下一次内容轮发版）；O40/O44/O46/O47 状态不变。
+- **未做**：O49 报告侧硬规则、O44/O47 等第 2 份样本、O40 新样本复现观察。台账节见 `docs/toolsmith-verification-log.md`（R49 / R50 两节 + O48/O49）。
+
+## 历史快照：2026-10-10（R48：随包六脚本 + 单遍正文 + 合批调用；**已原地发布并六次真跑验证**）
 
 **R48（用户答复「L2-4都想要」）**：三条速度杠杆**同轮**落地（覆盖先前「一次一个杠杆」的纪律），归因改用「历史 16 run 基线 + per-lever 签名」。**本轮不动评分器、不改 runner。**
 

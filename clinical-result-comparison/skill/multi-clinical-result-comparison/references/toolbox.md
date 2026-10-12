@@ -216,7 +216,15 @@ never referenced by the report, a table cell citing the same ref twice, and char
   plotted values — move the chart, or drop the repeated values from the table. The appendix is the
   fact ledger and values there are expected; the aligned-detail section is where the table belongs;
 * an appendix that opens with a prose block instead of the renderer's legend — the appendix is
-  renderer output (title, `—` legend, columns), never a place for a layout specification.
+  renderer output (title, `—` legend, columns), never a place for a layout specification;
+* the report narrating itself: a self-label bullet or table column (`分析模式` / `选择依据` /
+  `可比性结论` / `对齐等级` / `不绘图原因` / `有限并列原因` / `纳入标准` / `检索策略` / `报告结构`), our own
+  work presented as a class (`可绘图` / `只能有限并列` / `不具备绘图条件` / `部分对齐` / `仅背景对齐`), a
+  process phrase (`本次选择` / `本次纳入` / `我们选择` / `本轮`), an internal field or runtime word
+  (`src=` / `esid` / `payload` / `JSONL` / `MCP` / 工作区 / 沙箱), or a self-audit tail (`无未复核记录` /
+  `无遗漏` / `全部通过`). The two kept slots are the non-head-to-head caveat and the `原文核对：`
+  line, both written as material statements. Broad self-reference (`本报告` / `本次`) is a warning,
+  not a failure.
 
 Exit `0` all green · `3` at least one FAIL · `4` warnings only · `2` usage/IO. Run it **before**
 `present_artifact`; the run is not finished while it reports a FAIL.
@@ -242,6 +250,15 @@ disclosures in one trial → `**试验名**<br>注册号 · N 条披露`; one di
 * **`patch.py` says the target is not found.** The string must match the file byte for byte; for a
   find value starting with `-` use `--find=<text>`. Do not fall back to rewriting the whole file,
   and do not re-read your own draft to locate strings — re-render or pass the exact source line.
+* **What does the coverage line say?** The material and the depth reached: count, source class in
+  words (`PubMed 摘要` / `登记平台结构化结果` / `会议摘要` / `通稿` / `人工补录` / `库内正文即原文摘要`), where
+  the check landed, and any record that stayed shallower with the source-side property that capped
+  it (`未收录 PMC` / `非 OA 元数据` / `无登记号或 DOI`). Route tokens (`src=1`), internal field names and
+  a closing `无未复核记录` are not written into the deliverable.
+* **May I write in prose how I aligned the two trials?** No. The deliverable carries findings,
+  material properties and the resulting limits — not our method, our categories or our bookkeeping.
+  Write the difference itself (timepoint, population, definition, direction) in the reading-boundary
+  column, not the class we assigned to it (`部分对齐`, `可绘图`). `check_report.py` fails those.
 * **Did my body survive?** One `check_report.py -v` pass, and the assertions inside `patch.py`. A
   confirmation re-read of your own `output/report.md` is a fallback, not the default; if you need
   it, read one narrow range once.

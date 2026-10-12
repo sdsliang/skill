@@ -145,6 +145,72 @@ class CheckReportTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 3)
         self.assertIn("appendix title appears 2 times", proc.stdout)
 
+    # ---- report voice: findings only, never the report's own method -------------------
+
+    def test_method_label_bullets_fail(self):
+        """Complaint 5: `**分析模式：** 跨试验、非头对头` is the model describing its own method."""
+        self.chart()
+        self.report_text("## 一、比较范围\n\n- **分析模式：** 跨试验、非头对头、按指标域对齐\n" + self.base_body())
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 3)
+        self.assertIn("labels its own method", proc.stdout)
+        self.assertIn("分析模式", proc.stdout)
+
+    def test_alignment_level_column_fails(self):
+        self.chart()
+        table = ("| 终点（定义） | 试验 A | 时间点 | 对齐等级 | 解读边界 |\n|---|---|---|---|---|\n"
+                 "| Lp(a) 变化 | -13.9%{{ref_1}} | 16 周 | 部分对齐 | 时点不同 |\n")
+        self.report_text(self.base_body() + table)
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 3)
+        self.assertIn("is the report classifying its own work", proc.stdout)
+
+    def test_chart_decidability_wording_fails(self):
+        self.chart()
+        self.report_text("- **可比性结论：** 只能有限并列\n" + self.base_body())
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 3)
+        self.assertIn("method/class narration", proc.stdout)
+        self.assertIn("只能有限并列", proc.stdout)
+
+    def test_self_audit_tail_fails(self):
+        self.chart()
+        self.report_text("## 一、范围\n\n核对完成，无未复核记录。\n" + self.base_body())
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 3)
+        self.assertIn("self-audit tail", proc.stdout)
+
+    def test_internal_field_vocabulary_fails(self):
+        self.chart()
+        self.report_text("> **原文核对：** 2/2 条已复核（2 条均为 src=1，库内正文即原文摘要）\n" + self.base_body())
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 3)
+        self.assertIn("internal field or runtime vocabulary", proc.stdout)
+
+    def test_material_coverage_line_passes(self):
+        """The two kept slots — the coverage line and a comparability caveat — stay writable."""
+        self.chart()
+        self.report_text(
+            "> **证据范围：** 只整合所选结果材料。**原文核对：** 2/2 条已复核（PMID 23841780；登记平台结构化结果；摘要级，未收录 PMC）。\n"
+            "\n核对路径与来源类如上；两条记录均无可用的全文正文。\n" + self.base_body())
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn('"findings": []', proc.stdout)
+
+    def test_interpretation_boundary_prose_passes(self):
+        self.chart()
+        self.report_text("按终点逐行对齐；最后一列写解读边界：时点 16 周与 36 周不同，人群与分析集也不同。\n"
+                         + self.base_body())
+        self.assertEqual(self.run_check().returncode, 0)
+
+    def test_self_reference_is_a_warning_not_a_failure(self):
+        self.chart()
+        self.report_text("## 一、范围\n\n本报告不把两组拼成头对头比较。\n" + self.base_body())
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 4, proc.stdout + proc.stderr)
+        self.assertIn('"findings": []', proc.stdout)
+        self.assertIn("refers to itself", proc.stdout)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

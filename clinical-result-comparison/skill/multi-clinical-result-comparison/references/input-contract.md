@@ -293,8 +293,10 @@ mixed templates' `比较口径`) carries one line beginning `原文核对：` th
 were re-checked against the original, **naming the route or the source class per group**, and which records
 could not be re-checked, each named with the **property of the source** that prevented it (无登记号或 DOI /
 该来源不公开 / 未收录 PMC / 非 OA per explicit metadata). A
-non-fetch path is still a named path: `库内正文即原文摘要（src=1，未取 PMC 全文）` is a valid entry. For every
-`src=1` group the line must also state the depth reached — full text taken (`PMC11270764`), no `pmcid`, not in
+non-fetch path is still a named path: `库内正文即原文摘要（未取 PMC 全文）` is a valid entry. Name the source
+class in words (`PubMed 摘要` / `登记平台结构化结果` / `会议摘要` / `通稿` / `人工补录` / `库内正文即原文摘要`) —
+the internal field name that encodes the class (`src=1`) and any other internal identifier stay out of the
+deliverable. For every PubMed group the line must also state the depth reached — full text taken (`PMC11270764`), no `pmcid`, not in
 PMC, or non-OA per explicit metadata — and if a full text was archived under `/workspace/sources/`, both the PMID/PMCID and the word 全文 must
 appear, so a reader can tell "checked against the actual full text" from "checked against the abstract".
 **State the depth per record, not just per group**: say how many records were analysed at full-text depth
@@ -310,9 +312,11 @@ deliverable: they tell the reader about our plumbing, not about the evidence. Wh
 depth actually obtained (全文 / 摘要级 / 登记正文 / 通稿) and the source-side property that capped it
 (未收录 PMC、非 OA 元数据、无登记号或 DOI). The same rule binds the whole report — an environment or
 retrieval-failure sentence must not appear anywhere else either.
-Example: `原文核对：4/4 条已复核（记录1：src=1，PMC11270764 全文；记录2：src=1，无 PMCID，仅核库内摘要；
-记录3：src=37，库内会议摘要；记录4：src=49，库内通稿原文）；1 条按全文分析，2 条仅摘要级，1 条通稿正文级；
-无未复核记录`. Reading and checking a usable pulled original counts as re-checked without an external fetch.
+Example: `原文核对：4/4 条已复核（记录1：PubMed 全文，PMC11270764；记录2：PubMed，无 PMCID，仅核库内摘要；
+记录3：会议摘要，库内摘要级；记录4：通稿，库内通稿原文）；1 条按全文分析，2 条仅摘要级，1 条通稿正文级。`
+Reading and checking a usable pulled original counts as re-checked without an external fetch. No
+self-audit tail (`无未复核记录` / `无遗漏` / `全部通过`) follows the line: the counts already say it, and a
+sentence with no value and no ref is what readers scroll past.
 A run that
 re-checked none must say so, and a record that stays at abstract depth because the deeper body is not
 available must be named with its source-side property (未收录 PMC / 非 OA 元数据 / 无登记号或 DOI) rather than

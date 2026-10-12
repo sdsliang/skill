@@ -1222,6 +1222,8 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | O45 | **runner 的 `tool_results` 指针正则不认全角右括号，把模型写在中文括号里的收据路径连括号一起吃进来**（2026-10-10 R48 四组真跑，**3/4 组炸**）：模型把 24 条记录的清单写进 `work/digest.txt`，第一行写「（14 条；来自 `/workspace/tool_results/pharmcube-query-clinical-result-with-params/call_xx.jsonl`）」；该文件随后被 `read_file` 读回，其**返回内容属权威串**，`TOOL_RESULTS_RX` 只把 ASCII `)`/空格/引号当终止符，`）` 不是 ⇒ 抓成 `…call_xx.jsonl）`，`receipt_relpath()` 以「unsafe or unsupported receipt path」拒绝整次验证（`FAIL: 1 final durable pointers`）。**`r48-4` / `r48-18` / `r48-14` 三组的 FAIL 全是这一条**，与产物质量无关 | ✅ **已修（R48，runner 层）**：新增 `_RECEIPT_STOP`（ASCII 分隔符 + `\u3000-\u303f` + `\uff01-\uff0f\uff1a-\uff20\uff3b-\uff40\uff5b-\uff65`），由它重建 `TOOL_RESULTS_RX`；备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v16.bak`、`py_compile` OK、`verify-run-chain` GATE PASS；**用同一批已存 run 离线重放**：r48-a / r48-4 / r48-18 / r48-14 的 `receipt_check` 全部由 FAIL 转 **PASS（all archived and hash-verified）**；新增回归 `test_cjk_punctuation_delimits_a_receipt_path`（（ ））「 」【 】。 ， ： 全角空格共 7 形）⇒ runner 门禁 **39 → 40**。**修复后用同输入复跑 `r48-4b` / `r48-a2` 均为 22 PASS / 0 FAIL** |
 | O46 | **模型仍会用 `read_file(offset=…, limit=…)` 分块重读，且会越过 EOF**（2026-10-10 r48-a，**1/2 组**）：r48-a 的 `read_file` 第 11 次调用给 `offset=148`，而文件只有 136 行 ⇒ 平台返回错误、runner 的 `no tool errors` 断言被打掉（该 run 唯一 FAIL；`r48-a2` 同输入同 prompt 未复现）。**诱发源在平台侧文案**：工具结果过大时平台回「Read it with `read_file(file_path=..., offset=..., limit=...)` to inspect it in chunks」，模型照做；R48 第 7 条虽已要求少调用，但没把「不许凭猜测给 offset」写成可检查句 | 📝 **待修（R49 内容轮，不单独开轮）**：候选①第 7 条补一句硬规则——「不要对本次 run 自己的文件做 offset 分块重读；要看尾部用 `execute: tail -n 40 <path>`，要看全文一次 `read_file` 不加 offset，要看结论跑 `check_report.py`」；候选②第 2 条点明「原始 tool result 过大时**先跑 `prep_sources.py`**，不要分块啃原始文件」。**n=1 复现（1/2）+ 四组 run 的 read_file 调用 8–20 次**作证据，随下一次内容改动发版 |
 | O47 | **`A-C7-timepoints` 只认「第 16 周 / 第 36 周」词形，不认「16 周 / Week 16」**（2026-10-10 r48-a2，1 样本）：r48-a2 报告第 20 行「时点为 16 周与 36 周」、第 51 行「安慰剂组 Lp(a) 在 36 周时平均升高 3.6%」、第 57 行表格「Week 16 / —」，**两个时点事实都在**，但 pattern 写死 `第 ?16 ?周` / `第 ?36 ?周` ⇒ 0 命中、离线 **40/44 FAIL**（同 prompt 同输入的 r48-a 写「第 16 周」×19 ⇒ 该条 PASS）。**与 O20/O27/O28 同门径（词形绑死）** | 📝 **待样本（不改评分器）**：候选修法 = 两条 pattern 各加无「第」备选（`(?:第 ?)?16 ?周|Week ?16`），一行可回退；按 O27/O28 先例**等第 2 份样本**再动 |
+| O48 | **runner 的支撑文件清单把本地 `scripts/__pycache__/*.pyc` 当成「线上缺失」⇒ 假 FAIL**（2026-10-12 r50-a，**1/2 组**）：r50-a 唯一一条断言失败 = `manifest mismatch: missing=['scripts/__pycache__/build_ledger.cpython-310.pyc', '…/check_report.cpython-310.pyc']`——这两个文件是**本机跑 `python3 -m py_compile` 留下的字节码**，交付 zip 里从未包含（26 entries 全为 .py/.md/.json，已逐条核对）。同一输入清掉本地 `__pycache__` 再跑（r50-a2）即 **25 PASS / 0 FAIL / exit 0**。危害：任何在本仓跑过语法检查的开发都会给自己的每次真跑塞一条假 FAIL，且失败信息指向「线上缺文件」，与真实漂移（线上旧版/缺文件）不可区分 | ✅ **已修（2026-10-12 R50，runner 层）**：清单比对前剪掉 `__pycache__` 目录并跳过 `*.pyc`（本地开发必然产生字节码，bundle 永不包含）；备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v16b.bak` + `python3 -B -m py_compile` + 零网络闸门 `verify-run-chain.py GATE: PASS`（115/5/110）+ `test-runner.py` 40 → **41**（新增「本地存在 `__pycache__/*.pyc` 不得造成缺失」用例，对旧 runner 必 FAIL）；**对存档 run r50-a 的 A/B 复现**：旧 runner 复现同一句 FAIL、新 runner PASS（`/tmp/o48check.py` 直调 `check_run`，本地 .pyc 故意保留） |
+| O49 | **图表行的 `description` 提到另一治疗臂的剂量/间隔 ⇒ 该行身份不再唯一**（2026-10-12 r50-a2，**1/2 组**）：第 1 行 `label=奥帕司兰 225 mg 每 24 周（OCEAN(a)-DOSE，第 36 周）`，`description` 写「延长给药间隔后降幅与每 12 周方案接近」⇒ 行文本同时命中 obs 2（225 mg 每 12 周）与 obs 3（225 mg 每 24 周），`A-S9` / `A-S9b` / `A-S10` 三条同源 FAIL（离线 38/44）。判分侧口径**自洽**（行身份必须恰好指向一条观察，competing-identity 兜底），属报告侧写法问题：比较性描述不该复述另一臂的身份数字 | 📝 **待修（随下一次内容改动发版）**：报告侧一句硬规则（`references/chart-templates.md` + `SKILL.md`：图表行只点自己那一条观察的身份；要写「与更短给药间隔组接近」这类比较，用不带剂量数字的措辞）|
 
 ## 4. 平台侧（转开发）
 
@@ -2131,3 +2133,102 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 本地门禁 runner-gate **40** / scorer 35 / tools 5+14 / Node 16 / numeric-integrity 28 / **skill-scripts 54** 全 OK；
 `verify-run-chain` `GATE: PASS (5 comparable runs)`；变异闸门 `arm a 44/44, arm b 12/12, never flipped [], GATE: PASS`；`pack-dist --check` IDENTICAL；
 **结案 0 条、本轮已修 1 条（O45）、待修 2 条（O46 → R49；O40 → 报告侧已落地待复现）、待样本 3 条（O44 / O47 / O41 收尾）**。
+
+### R50 收尾状态
+
+线上 = prompt v1.7（`bf7b45dbf5d0` / 76,578 B，**原地更新**）、Skill v1.0.8（dist `df993fdddf83` / 151,330 B / 26 entries，**原地更新**），`status` in sync；
+本地门禁 runner-gate **41** / scorer 35 / tools 5+14 / Node 16 / skill-scripts 54 / check-report **20** / build-ledger-scaffold 9 /（numeric-integrity 28 单列）全 OK ⇒ **193（含 28 = 221）**；
+`verify-run-chain` `GATE: PASS (5 comparable runs / 115 histories)`；变异闸门 `arm a 44/44, arm b 12/12, never flipped [], GATE: PASS`；`pack-dist --check` IDENTICAL；
+真跑 = 2 组 2 esid（r50-a 24/1、r50-a2 25/0）+ **固定三组回归（r50-4 / r50-18 / r50-14 各 25 PASS / 0 FAIL / exit 0）**；
+**结案 0 条、本轮已修 1 条（O48）、待修 2 条（O49 → 下一次内容轮；O46 → R49 规则已落、待更多样本）、待样本 3 条（O44 / O47 / O40 复现）**。
+
+## R49 — 用户四条交付层投诉：附录版式 / 列头 / 一数一处 / 提速杠杆（2026-10-10，本地全绿 + commit）
+
+**用户口径**：*「1、2 改；3 选方案 1（保留图、不重复赘述）；4 都试试」* —— 四条投诉同时处理，第 4 条不得损失质量。本轮**先本地实现 + 全套闸门 + commit（`2063ff0`）**，与 R50 内容**同批**原地发布。
+
+### 本轮改了什么（内容侧）
+
+| 投诉 | 现象（共享报告现场） | 改法 | 落地文件 |
+|---|---|---|---|
+| 1 附录版式 | 附录标题后紧跟 ≈600 字「本表如何排布」的规格说明；读者先读规格再读数据 | `render-facts.py` 删 `APPENDIX_INTRO`，只留一行 `APPENDIX_LEGEND`（说明「—」）；`check_report.py` 新增两条 FAIL：附录标题与表格之间出现 >100 字散文块、附录标题出现 >1 次（手写附录 + 渲染附录并存） | `scripts/render-facts.py`、`scripts/check_report.py`、4 模板 |
+| 2 附录列头 | 第二行重复第一行already含有的注册号；缺可读标签 | 单试验 ≥2 披露改为 `**可读短标签**<br>ref_n`（无标签回退 `**ref_n**`）；第二行注册号若已出现在展示名里则删除 | `scripts/render-facts.py`（`_column_header` / `_column_label`） |
+| 3 图与表重复同一数值 | §二「核心终点速览」同时规定表格 + 图，图里数值与表里数值逐字重复 | **方案 1**：图保留、数值只交付一次。`check_report.py` 新增两条 FAIL（图自身散文不得复述绘图值；非附录小节「有图 + 表里含该图 ≥2 个绘图值」）；两个速览模板的「图表后保留上表」改成「不重复上表」；附录与时间线图豁免；剂量/时点/例数后缀与研究内对照值仍允许 | `scripts/check_report.py`（`CHART_NUMBER_RE` / `_chart_number_tokens` / `_chart_text_findings`）、`references/chart-templates.md`、`templates/cross-trial-report.md`、`templates/mixed-comparison-report.md`、`SKILL.md`、prompt |
+| 4 交付耗时 | 模型反复翻随包脚本源码、回读自产文件、逐条试算账本、图表 spec 反复重写 | 四条杠杆：(1) `references/toolbox.md` 增 FAQ（「不用读脚本源码」）；(2) prompt 硬禁回读自产文件、`check_report.py` 一次定稿；(3) `build_ledger.py --scaffold` 直接产出候选事实行；(4) 图表 spec 一次成稿（不许先写草稿再改） | `references/toolbox.md`、`scripts/build_ledger.py`、`SKILL.md`、prompt |
+
+**`--scaffold` 契约**：挂在 `build_ledger.py` 上（不新增脚本，保住 `EXPECTED=26`）；读 `<tool-results>/pharmcube-query-clinical-result-with-params/*.jsonl`（缺失时回退 `tool_results/` → `/workspace/work/tool_results`）；同一 esid 只留最后一份 payload；空值 /`NR`/`NE`/`未报告`/`NA`/`N/A`/`-`/`—` 一律跳过；输出**候选文件**（默认 `work/facts.candidates.json`，永不直接写 `ledger.json`）；语义不足时**不静默**（`defaulted_kinds` / `time_shaped_endpoints` + note）。smoke：`WROTE work/facts.candidates.json: 2 record(s), 42 fact(s) (0 need a quote)`。
+
+### 本地门禁（R49 收口时）
+
+`mutations.py` arm a **44/44** + arm b **12/12** + never flipped `[]` + `GATE: PASS`；`test-render-facts.py` **28** OK；`test-skill-scripts.py` **54** OK；`test-check-report.py` **12** OK（R50 扩到 20）；`test-build-ledger-scaffold.py` **9** OK；`test_regressions.py` **35** OK；`test-runner.py` **40** OK；`test_pack_dist.py` **5** OK；`node --test` **16** pass / 0 fail；`verify-run-chain.py` `GATE: PASS`（110 histories / 5 comparable / 105 skipped）；`pack-dist.py` = **148,346 B / sha256 `78b399b26a94` / 26 entries**，`--check IDENTICAL`。
+
+**端到端复渲染验证**：`/tmp/r49v/draft.md`（6,910 B）+ 账本 → `render-facts.py` exit 0；新附录三行（标题 / 一行图例 / 表格头），表头实测 `**NCT02729025（依洛曲单抗 Lp(a) 影像研究）**<br>1 条披露` 与 `**OCEAN(a)-DOSE**<br>NCT04270760 · 1 条披露`（第二行注册号去重 ✔）。
+
+**Git**：commit `2063ff0`「R49: appendix/table-chart fixes + delivery-speed levers (local gates green)」，push 到 `v0.15-remove-html`（`0c95e05..2063ff0`）。
+
+## R50 — 报告不得叙述自己的方法与分类（第四语域）+ 与 R49 同批原地发布 + 两次真跑（2026-10-12）
+
+**用户口径**：*「交付报告里出现模型自洽 / 思考过程式叙述（例：**分析模式：** 跨试验、非头对头、按指标域对齐。**可比性结论：** 可绘图。…）→ 全篇排查同类表述并优化 → 原地更新 TS → 再测试」*。
+
+### 问题定性（第四语域）
+
+`evals/fact-check/check.py` 现有守卫族（A-P1 覆盖行、`op_original_check_names_class`、A-P5 `op_fulltext_fetch_is_named`、A-P7 模板规格回抄、A-P8 规则元陈述、A-P10 运行后勤）**没有任何一条覆盖「报告叙述自身方法 / 分类 / 处理过程」**。这类文字对读者零信息量：读者要的是「两项研究的时点/人群/口径差异是什么」，不是「我们把它归类为部分对齐」。故按新禁用语域处理，机械闸门落在 `check_report.py`（判分器 `check.py` **不动**，避免破坏 44/12 变异套件）。
+
+### 本轮改了什么（内容侧，与 R49 同批发布）
+
+| 层 | 改动 |
+|---|---|
+| `scripts/check_report.py` | 新增 6 个常量（`META_LABEL_RE` / `META_COLUMN_RE` / `METHOD_NARRATION_RE` / `SELF_AUDIT_RE` / `INTERNAL_VOCAB_RE` / `SELF_REFERENCE_RE`）与 `_meta_narration_findings()`，`main()` 里作为独立检查组 `report voice` 接入。**FAIL**：自述标签 bullet/表列（`分析模式`/`选择依据`/`可比性结论`/`对齐等级`/`不绘图原因`/`有限并列原因`/`纳入标准`/`检索策略`/`报告结构`）、`可绘图`/`只能有限并列`/`不具备绘图条件`/`部分对齐`/`仅背景对齐` 这类分类判断、过程短语（`本次选择`/`本次纳入`/`我们选择`/`本轮`）、内部字段与运行环境词（`src=`/`esid`/`payload`/`JSONL`/`MCP`/`工作区`/`沙箱`）、自证尾巴（`无未复核记录`/`无遗漏`/`全部通过`）。**WARN**：宽口径自指（`本报告`/`本次`/`本轮`，负面断言排除合法的「本次披露」）。刻意不做 `token`/`轮次`（会误伤「治疗轮次」）。 |
+| `SKILL.md` | 新增「只写发现，不写报告自己（硬规则）」段：列出禁用标签与判断语，要求把差异写成时点/人群/口径/定义/方向，保留两个合法位（非头对头声明一句、`原文核对：` 覆盖行），并说明 FAIL/WARN 分级。 |
+| `system-prompts/…-v0.16.md` | 三处：覆盖行示例去掉 `src=1` 改说来源类文字；速览段「只写核心终点要点」；交付前检查段追加同一条硬规则（含句级判据「若一句话没在说这些试验及其证据，它就不属于交付物」）。 |
+| `references/input-contract.md` | 覆盖行规格：来源类**用文字说**（`PubMed 摘要`/`登记平台结构化结果`/`会议摘要`/`通稿`/`人工补录`/`库内正文即原文摘要`），`src=` 等内部字段名不进交付物；示例改为文字来源类；删除示例末尾的 `无未复核记录` 自证尾巴并写明理由。 |
+| `references/toolbox.md` | §7 FAIL 清单补「报告叙述自身」一条；FAQ 增两条（覆盖行该写什么；**不得在正文里写我们怎么对齐**）。 |
+| 4 个模板 | 删 `分析模式`；`选择依据`/`可比性结论`/`对齐等级`（含速览表与 §4 各表的列）/`不绘图原因`→`可比性限制`/`可绘图` 判断语全部去掉，改为把时点/人群/口径/定义差异写进 `解读边界`；覆盖行规格统一为「只写材料与深度，不写自证话术与内部字段名」；`比较口径` 保留（blockquote 结构位，内容改为材料化的非头对头声明）。 |
+| `evals/scripts/test-check-report.py` | **12 → 20** 用例（新增 8 条：自述标签 bullet、`对齐等级` 表列、绘图可否措辞、自证尾巴、内部字段词、覆盖行不误报、解读边界散文不误报、自指只 WARN）。 |
+
+**`比较口径` 不列入 FAIL**（4 模板本来就有该 blockquote 位，列入则每份报告必挂）；**不改 `check.py` 的覆盖行判分语义**（`op_original_check_names_class` 的 `class_regex` 本就接受文字来源类，禁 `src=` 不与判分冲突）。
+
+### 现场取证（旧产物回放，证明闸门抓得到用户看到的东西）
+
+对 `~/.local/state/toolsmith-runs/20261010-165843-r48-a` 跑新 `check_report.py`：命中 `the report labels its own method ('**分析模式：')`、`('**选择依据：')`、`('**可比性结论：')`、4 处 `table column … 对齐等级 …`、`method/class narration: '纳入本次' / '只能有限并列' / '不生成优效排序' / '部分对齐'`、`self-audit tail: '无未复核记录'`、`internal field or runtime vocabulary: 'src=1'` —— 用户投诉的四类语域**逐条被抓**。
+
+### 发布（原地，版本标签不变）
+
+`toolsmith-publish deps` = `unchanged since the recorded baseline`（`deps_exit=0`）；
+`push-prompt --version 1.7` → HTTP 200 / mode=in-place / 回读 `current=v1.7 matches_local=True`（本地 v0.16 = **76,578 B / sha256 `bf7b45dbf5d0`**，含 R49 + R50）；
+`push-skill --version 1.0.8` → HTTP 200 / skill_id `cd93a42af72b4828b1690b3a7bccfa06` / `is_current=True`（zip **151,330 B / sha256 `df993fdddf83` / 26 entries**，含 R49 + R50）；
+`status` = **in sync**（prompt `deployed == local: True`；skill `entries=26 identical=26 differing=0 missing-locally=0`）。护栏：prompt family `91febc286412479a8b6d569fa3b8025e`、skill family `9fe0035bdd324b998436c6cb9c2de212`（属主 = 徐佩佩）。
+
+### 真跑（2 esid 输入，与 r48-a / r48-a2 同输入）
+
+| run | 目录 | thread_id | 墙钟（server / polled） | tool calls | runner 断言 | 离线（scenario a） |
+|---|---|---|---|---|---|---|
+| r50-a | `…/20261012-091941-r50-a` | `e336bb06-2e12-41fc-bd1b-371657ca22b5` | 372.2 / 380.5 s | 33 | 24 PASS / 1 FAIL（**O48**） | **43/44**（A-ATTR，O40 家族） |
+| r50-a2 | `…/20261012-092606-r50-a2` | — | 343.3 / 356.8 s | **26** | **25 PASS / 0 FAIL** | 38/44（A-S9/A-S9b/A-S10 + A-C3 + A-C9 + A-ATTR） |
+
+**固定三组回归真跑（4 / 18 / 14 esid，输入逐字节复用 R48 的 `/tmp/r50/p-{4,18,14}.txt`，2026-10-12 09:33–09:59）**：
+
+| run | 目录 | 墙钟（polled） | tool calls | runner 断言 | 交付物 | 本地 `check_report.py`（语域组） |
+|---|---|---|---|---|---|---|
+| r50-4 | `…/20261012-093345-r50-4` | 383.2 s | **25**（execute×12 / read_file×8 / write_file×2） | **25 PASS / 0 FAIL / exit 0** | report + citations + `evidence-timeline.json` | ✅ `report voice` 绿（仅本地回放的 `::visualization` 路径差异） |
+| r50-18 | `…/20261012-094013-r50-18` | 617.3 s | 46（execute×28 / read_file×10 / write_file×5） | **25 PASS / 0 FAIL / exit 0** | report + citations + `endpoint-bar-1.json` | ✅ 绿；WARN 一条 8 字重复（`依沃西单抗联合化`，专名语境） |
+| r50-14 | `…/20261012-095037-r50-14` | 510.8 s | 31（execute×14 / read_file×10 / write_file×3） | **25 PASS / 0 FAIL / exit 0** | report + citations（该输入不出图） | ✅ 绿（exit 4 = 无图表目录 WARN） |
+
+**回归判定**：三组全绿、`succeeded`、`args-refused = 0`、`deployed support-file manifest … (25 files)` PASS，**新语域闸门零 thrash**（三组正文都没有被 FAIL 命中「方法/分类/自证」词，说明 FAIL 级规则没有把模型逼进「换词硬写」的死路）。
+**O49 未在 18 esid 组复发**：`endpoint-bar-1.json` 四行 `description` 各点自己那条观察的对照臂（`对照为替雷利珠单抗联合化疗` / `对照为安慰剂联合化疗` …），没有复述**另一根柱子**的剂量/间隔 ⇒ 每行身份唯一。⇒ O49 维持「1/3 样本、报告侧写法」的定性。
+**一数一处（R49.3）在生产侧成立**：三组均未触发「图内复述绘图值」与「有图小节重复该图数值」两条 FAIL；18 esid 组的图表 `subTitle` = `跨试验并列展示≠头对头比较`、`data[].description` 只写对照臂/分析类型/随访，无绘图值。
+
+**语域修法在生产侧生效**：r50-a 正文已无 `分析模式`/`选择依据`/`可比性结论`，速览段只写核心终点要点 + 图，数值表移到 §四并带 `解读边界` 列；覆盖行写成「来源类均为 PubMed 期刊论文，深度为期刊摘要级（库内正文即原文摘要，未取 PMC 全文）」——无 `src=`、无自证尾巴。两份产物用本地 `check_report.py` 回放，`ok: report voice — findings only` 全绿（余下 FAIL 仅为本地回放时 `::visualization` 路径前缀不同；WARN 为 R49 既有的图表/表格 8 字重复 `225mg每月一次` / `(a)-DOSE`，属剂量与专名语境）。
+
+**速度侧**：r50-a2 相对同输入的 r48-a2 —— tool calls **45 → 26**、out token 69,610 → **63,097**、reasoning 51,506 → **43,373**、墙钟 359.5 → **343.3 s**，`read_file` 8 → 9（仍以读原始 payload 为主），自写脚本 0，7 个随包脚本按需调用。
+
+### 我方能改的
+
+| 项 | 现象 + 证据 | 改法 | 状态 |
+|---|---|---|---|
+| **O48** | **runner 的支撑文件清单把本地 `scripts/__pycache__/*.pyc` 当作「线上缺失」⇒ 假 FAIL**：r50-a 唯一 FAIL = `manifest mismatch: missing=['scripts/__pycache__/build_ledger.cpython-310.pyc', '…/check_report.cpython-310.pyc']`；来源是本机 `python3 -m py_compile` 留下的字节码，**zip 内从未包含**（26 entries 全为 .py/.md/.json）。清掉本地 `__pycache__` 后**同输入复跑 r50-a2 即 25 PASS / 0 FAIL** | runner 侧：清单比对时过滤 `__pycache__/` 与 `*.pyc`（本地开发会正常产生字节码，交付包不会） | ✅ **已修（2026-10-12）**：备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v16b.bak`；`expected` 改为 `os.walk` 时剪掉 `__pycache__` 目录、并跳过 `*.pyc`；`python3 -B -m py_compile` OK；零网络闸门 `verify-run-chain.py` → `GATE: PASS`（115 histories / 5 可比 / 110 跳过）；`test-runner.py` **40 → 41**（新增 `test_local_pycache_does_not_become_a_missing_support_file`，对旧 runner **必 FAIL**、对新 runner PASS，非空产物式断言）。**对同一份存档 run 的 A/B 复现**（`/tmp/o48check.py` 直调 `check_run`，本地 `__pycache__/*.pyc` 故意保留）：旧 runner → `FAIL … missing=['scripts/__pycache__/build_ledger.cpython-310.pyc', …]`（与 r50-a 现场逐字相同）；新 runner → `PASS deployed support-file manifest matches local (25 files)` |
+| **O49** | **图表行的 `description` 点名另一治疗臂的剂量/间隔 ⇒ 行身份不再唯一**：r50-a2 第 1 行 `label=奥帕司兰 225 mg 每 24 周（OCEAN(a)-DOSE，第 36 周）` 的 `description` 写「延长给药间隔后降幅与每 12 周方案接近」⇒ 该行同时匹配 obs 2 与 obs 3，`A-S9` / `A-S9b` / `A-S10` 三条同源 FAIL（离线 38/44）；同输入的 r50-a 未触发（**1/2**） | 报告侧一句硬规则（`references/chart-templates.md` + `SKILL.md`）：图表行只点自己那一条观察的身份，比较性描述改用「更短给药间隔组」这类不带剂量数字的措辞 | 📝 待修（随下一次内容改动发版）；**18 esid 回归组未复发 ⇒ 维持 1/3 样本** |
+| O40 / O44 / O46 / O47 | 见 O 表 | — | 📝 待样本 / 待复现 |
+
+### 平台侧（转开发）
+
+- 本轮无新平台缺陷。R48 已记的「工具结果过大时平台建议 `read_file(offset=…, limit=…)` 分块重读」仍是 O46 的诱发源（r50-a / r50-a2 各 11 / 9 次 `read_file`，未再越界）。

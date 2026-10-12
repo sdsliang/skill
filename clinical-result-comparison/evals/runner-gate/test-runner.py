@@ -514,6 +514,16 @@ class ContractTests(OfflineCase):
                 self.parts[1]['content'] = body
                 self.assertTrue(any('manifest' in name for name in self.failures()))
 
+    def test_local_pycache_does_not_become_a_missing_support_file(self):
+        # Running py_compile inside the repo leaves __pycache__/*.pyc behind; the
+        # published bundle never contains bytecode, so the manifest must ignore it
+        # instead of reporting it as "missing on the platform" (O48).
+        cache = self.root / 'skill/demo/__pycache__'
+        cache.mkdir()
+        (cache / 'support.cpython-310.pyc').write_bytes(b'\x00\x01\x02')
+        (self.root / 'skill/demo/stray.pyc').write_bytes(b'\x00')
+        self.assertEqual(self.failures(), [])
+
     def test_unreturned_call_is_failure(self):
         self.parts.insert(2, call('lost', 'query'))
         self.assertIn('every tool call either returned or was re-prompted (nothing lost)', self.failures())
