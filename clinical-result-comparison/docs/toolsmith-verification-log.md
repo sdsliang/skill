@@ -2473,6 +2473,49 @@ R56-b 里 **B 的第一条命令（888.021）跑在 A 的最后一条命令（91
 
 ---
 
+## R57 — ① 按 ref 分片 facts + ② facts 撰写面减法（2026-10-12，原地发布 + n=3 实测，**指标 FAIL；① 未被触发**）
+
+**动机**：找上轮遗留「模型读了但没做」的指令 —— `SKILL.md:33` 让模型跑一次 `build_ledger.py --scaffold` 并改它的行，实测三跑**都照做但全部重写**（id 复用 0/33、`value`+`endpoint` 命中 0/51、缺 ref_4），却每轮照付 1 次 `execute` + 读 33 行候选（≈13 K 字符）。**假设 ①**：facts 行（45 条 × 15 字段手写）正是 R55-3 点名的杠杆，而 R56 已证子代理**生成**真并发 → 按 ref 分片可并行；**假设 ②**：facts 的 `source_file`(13%) + 4 个默认字段(11%) 编译器本就能派生，删掉即纯减法。
+
+**改动**（commit `b200eb6`）：新增 `scripts/merge_ref_facts.py`（确定性合并 + 只查「分片本身」：未知 ref / 跨片重复 id·record / 空片 / 未覆盖 ref 告警；有 finding 则 exit 3 不写）+ `evals/scripts/test-merge-ref-facts.py` 16 例；`SKILL.md` / `references/{input-and-extraction,input-contract,toolbox}.md` / 系统提示词 6 处：分片配方（≥3 refs、同一条消息、显式 `timeout_seconds`）、`task` 实测边界表、facts 字段契约改为**可省略派生字段**；`toolbox.md` 新增 `## 3.` merge 章节、`## 2a.` scaffold 段降级为「仍在、工作流不用」并写入实测采用率（**代码 + 9 个测试保留**）、清掉其余 5 处 scaffold 引用；`pack-dist.py` `EXPECTED` 26 → 27。
+
+**发布**：`deps` = `unchanged since the recorded baseline`；`publish` 原地 —— prompt **v1.8 79,218 B / `f293fb45f39e`**（旧 76,477 / `c4bb1a7b3ee1`），skill **v1.0.9** dist **161,148 B / 27 entries / `a4a6f9de9d1b`**，回读 **27/27 identical / in sync**。本地门禁全绿（62/25/9/16/28/35/41/5/14 + node 8+8 + mutations a44 b12）。
+
+**平台事故（首屏三跑全废）**：`20261012-182425-r57-shard-{1,2,3}` 在 ~264 s **同时卡死** —— `status=idle`、steps 冻结（12/24/9）、**`/timing` 无 `completed_at`**、每个线程 2 次 `GET /messages → Connection refused`；三线程都停在等 `execute` 返回、`task` 调用仍为 0（与本轮改动无关）。`run --resume` 重挂不再重发 POST，但 steps 再不前进 → 判死，弃用重跑（tag `r57b-*`）。问题单见下方平台侧 P-R57-1。
+
+**实测 n=3**（`/tmp/prompt-r53-4.txt` = 4 esids → **4 refs，跨过 ≥3 分片门槛**；同模型 web off）：
+
+| 组 | run dir | out_tokens | reasoning | wall | steps | `task` | facts 行 | 断言 |
+|---|---|---:|---:|---:|---:|---:|---:|---|
+| 基线 | R53-doc-4/4b/4c + R54-base-1/2 + R55-sub-1/2/3（n=8） | 中位数 70,983 | 50,851 | 413.8 s | 17–22 | 0 | — | — |
+| 紧基线 | `20261012-171124-r55-sub-{1,2,3}` | 70,187 | 51,147 | 405.4 s | 20–22 | 0 | 36/51/55 | 21/1 |
+| 实测 | `20261012-183501-r57b-shard-1` | 81,344 | 63,194 | 465.5 s | 24 | **0** | 56 | 21/1 |
+| 实测 | `20261012-183501-r57b-shard-2` | 60,599 | 44,529 | 384.9 s | 20 | **0** | 55 | 21/1 |
+| 实测 | `20261012-183501-r57b-shard-3` | 78,248 | 62,868 | 445.9 s | 23 | **0** | 48 | 21/1 |
+
+- **① 未被执行：`tool-task` = 0/0/0。** 只有 shard-1 权衡过（16 段推理），并被**我们自己文档里的竞争条款**劝退：`## Subagent delegation` 里的「**Prefer straight-through scripting before delegating**…decide in one line and move on」被套到了 facts 行上；新规则是**许可**（"is a real speed-up"/"needs 3 or more refs"）而旧文本仍写 "never mandatory"，**许可打不过成本**；本轮新加的 *one lane* 那条也被当**代价**读（原话：「4 subagent round-trips (which also share the single execute lane)… doing it myself is cheaper… the benefit is context bounding — but my context already holds the sources」）。→ 指令产生**推理空转、零行为改变**，与它要替换的 scaffold 是同一种失效模式。
+- **② 被完整采用**：`source_file` 省略 **159/159 行**，4 个默认字段按行省略 22–49 处；每行序列化字节 **478–482 → 299–337 B**（若补回省略字段应为 400–445 B）= **省 24–26%**（facts 块 ≈ 1.5–2.5 K out token，正是预登记的「≈3%、必然低于噪声」。同时 `--scaffold` 调用 **3/3 → 0/3**，候选文件读取消失 —— 删指令这一半真改了行为。
+- **指标**：wall 中位数 413.8 → **445.9 s = +7.8%**（紧基线 405.4 → 445.9 = **+10.0%**）；out 中位数 70,983 → **78,248 = +10.2%**（护栏 <+10% 阈值 78,081，紧基线 +11.5%）→ **FAIL**（在 n=3 中位数检出极限之外，方向不利）。reasoning 中位数 +23.6%。工具组成：`read_file` 10–12→7–10（符合减法预期），`execute` 13–14→17–21（反而上升）。
+- **质量无退步**：三跑各 **21 PASS / 1 FAIL**，唯一 FAIL 仍是平台侧 `tool_results receipts archived`；`records[]` 4 条、附录/图完整。
+
+**判定：FAIL —— ① 无法评定（模型在 4 refs 上不分片，且其理由与算术一致），② 确认是真实但很小的减法（facts 块 −25%）并顺带删掉一个「付了钱没用」的步骤。** evidence 全文：`docs/evidence/r57-fact-row-sharding-and-field-subtraction-2026-10-12.md`。
+
+**方法论沉淀**：**加一条许可打不过一条既有的成本句** —— 想推 ①②这类行为，必须先**删**竞争条款，否则模型会照旧权衡后拒绝，而权衡本身就要烧 reasoning（本轮 +23.6% 的 reasoning 中位数里就有这份钱）。
+
+### 我方能改的
+
+- **R57-1（已改，已成事实）**：`--scaffold` 工作流指令删除（代码 + 9 个测试保留）；实测 adoption 0/33 已写进 `toolbox.md` 2a。
+- **R57-2（建议 R58 做，属减法，需授权）**：**删掉 facts 行分片配方**（`SKILL.md` :41 段内该分支、`references/input-contract.md` *Delegating the fact rows* 节、系统提示词工作流步 1 指针 + *Fact rows, one subagent per ref* bullet），保留 `merge_ref_facts.py`（可用、16 测试）、`task` 实测边界表、以及「并发而非串行」的更正。若要重试 ①，条件应改为**按源类型**（registration-class 重载荷、≥6 refs），且**先删**「Prefer straight-through scripting before delegating」。
+- **R57-3（记账）**：`## Subagent delegation` 段里 pull 的劝退句被模型外推到 facts 行 —— 该段现在同时承载两条互斥策略，属结构问题，不是措辞问题。
+
+### 平台侧（转开发）
+
+- **P-R57-1（新，本轮实毁 3 次运行）**：**并发 turn 同时卡死** —— 2026-10-12 18:25 起三个线程（`3f21ca05-36cb-42b2-ad0d-220011534df6` / `526a8410-9785-471d-8f20-77fed417eee3` / `e72ec310-c8e4-4357-add6-f1e7223bc3a1`）在 ~264 s **同时**变为 `status=idle` 且 steps 冻结，`/timing` **无 `completed_at`**，期间各 2 次 `GET /api/threads/{id}/messages → Connection refused`；`run --resume <thread>` 重挂后 steps 再不前进（线程 2 曾从 12 涨到 24 后停住）。**建议**：① 查明 18:25–18:30 是否有 worker/容器重启（连接拒绝 + timing 行未落库同时出现，符合重启签名）；② `idle` 且无 timing row 的 turn 应在 API 层标记为 `aborted/lost` 而不是只留 `idle`（现在 runner 只能报 inconclusive，用户无法区分「还在跑」与「已死」）；③ `--resume` 对已失去 worker 的 turn 应明确返回终态，而不是继续轮询到宽限期结束。台账只留摘要，全文见 Obsidian `03-技术与VibeCoding/01-AI与LLM/TS并发turn同时卡死-idle无timing-row-resume也救不回.md`。
+- **P-R53-1（已知，仍每次命中）**：`tool_results receipts archived` 断言失败（`/workspace/tool_results/…/result.jsonl` 被 runner 标为 unsafe receipt path），与本批改动无关，不影响产物正确性。
+- P-R56-1~4 仍在（沙箱单通道 / 子代理 `execute` 默认 30 s / `data-subagent-trace` 未文档化）。
+
+---
+
 ## R52 回退 — 2026-10-12，经用户「回退吧」授权
 
 恢复 R51 commit 3adb77c 的全部运行资产与 dist，撤销 R52 接口测试；R52 失败证据和 Git 历史保留。CLI 无历史版本激活命令，故采用受护栏保护的 publish 原地写回 R51 字节，当前标签 1.8/1.0.9 不变。prompt 76,578 B / bf7b45dbf5d0；bundle 152,558 B / 081cd850befc / 26 entries；deps unchanged，HTTP 200，status in sync，项目当前绑定正确，25 支持文件 + SKILL 全部一致。回退内容已有 R51 三组真实验证，本轮拒绝冒烟 `20261012-132543-r52-rollback-b`：thread `97ac3752-fd44-4a14-bdca-2050d5e5e74f`，36.7 s server / 42.4 s polled，9 attempts（1 次 INVALID_INPUT 参数拒绝后重试成功），14 PASS / 0 FAIL / exit 0；部署 prompt/SKILL/25 支持文件一致，未写报告或 citations。Docker 不涉及。
