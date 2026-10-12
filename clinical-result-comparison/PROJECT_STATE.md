@@ -1,5 +1,10 @@
 # Project State
 
+## R52 回退完成（2026-10-12）
+
+用户已授权回退。运行资产与 dist 恢复到 R51 commit `3adb77c`，R52 新增两份接口测试随实现撤销，失败证据保留在 docs/evidence 与 Git 历史。TS 采用原地恢复内容：当前标签仍 prompt 1.8 / skill 1.0.9（skill_id `16aeb0406e12425bad27a2444f17225e`），实际内容 == R51 的 prompt 1.7 / skill 1.0.8。prompt SHA `bf7b45dbf5d0`，dist SHA `081cd850befc` / 152,558 B；回读 26/26 identical、status in sync、项目绑定正确。此前“尚未回退”段落为历史实验状态，本段覆盖它。
+
+
 ## R52：执行流程梳理（2026-10-12，已发 TS 新版本，四组真实回归完成，未通过优化验收）
 
 用户已明确授权「改了测试，TS 发一个新版本后真实测试」。本轮统一执行／修复契约，保留临床边界，不改 runner、冻结评分器或固定输入。prompt 的累积 Step discipline 改为五阶段执行契约；SKILL 区分执行路由与临床工作；file-delivery 取消生成文件必须整份重写的矛盾规则；时间轴残留 weight 指令清零。

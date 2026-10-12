@@ -2347,3 +2347,8 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 ### 平台侧（转开发）
 
 本轮无新平台缺陷。上游 `chart-visualization-json` 的时间轴 `weight` / `weightLegend` / `legend` / `shape` 仍在 schema 中放行，但部署渲染器不实现这些视觉编码；建议上游拒收这些字段或明确记录时间轴不支持 size/shape/legend 编码。
+
+
+## R52 回退 — 2026-10-12，经用户「回退吧」授权
+
+恢复 R51 commit 3adb77c 的全部运行资产与 dist，撤销 R52 接口测试；R52 失败证据和 Git 历史保留。CLI 无历史版本激活命令，故采用受护栏保护的 publish 原地写回 R51 字节，当前标签 1.8/1.0.9 不变。prompt 76,578 B / bf7b45dbf5d0；bundle 152,558 B / 081cd850befc / 26 entries；deps unchanged，HTTP 200，status in sync，项目当前绑定正确，25 支持文件 + SKILL 全部一致。回退内容已有 R51 三组真实验证，本轮拒绝冒烟 `20261012-132543-r52-rollback-b`：thread `97ac3752-fd44-4a14-bdca-2050d5e5e74f`，36.7 s server / 42.4 s polled，9 attempts（1 次 INVALID_INPUT 参数拒绝后重试成功），14 PASS / 0 FAIL / exit 0；部署 prompt/SKILL/25 支持文件一致，未写报告或 citations。Docker 不涉及。

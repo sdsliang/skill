@@ -1,5 +1,10 @@
 # Clinical Result Comparison
 
+## R52 回退完成（2026-10-12）
+
+用户已授权回退。运行资产与 dist 恢复到 R51 commit `3adb77c`，R52 新增两份接口测试随实现撤销，失败证据保留在 docs/evidence 与 Git 历史。TS 采用原地恢复内容：当前标签仍 prompt 1.8 / skill 1.0.9（skill_id `16aeb0406e12425bad27a2444f17225e`），实际内容 == R51 的 prompt 1.7 / skill 1.0.8。prompt SHA `bf7b45dbf5d0`，dist SHA `081cd850befc` / 152,558 B；回读 26/26 identical、status in sync、项目绑定正确。此前“尚未回退”段落为历史实验状态，本段覆盖它。
+
+
 Tool Smith project assets for source-grounded synthesis and comparison of multiple selected clinical result records. The default output is a trial-level evidence synthesis for same-trial selections and a comparison-first, domain-aligned cross-trial comparison for mixed selections, each with a compatible chart when the data allow it.
 
 ## R52 — workflow refactoring: published as new versions, experiment not accepted

@@ -2,9 +2,6 @@
 # -*- coding: utf-8 -*-
 """Compile `work/facts.json` (data only) into the strict `work/ledger.json` the render gate reads.
 
-Review mode assembles `facts.json` from a scaffold candidate and a complete, fail-closed review
-envelope. It never writes a ledger; run the default mode afterward for source/quote/value validation.
-
 `scripts/render-facts.py` validates the ledger *and* renders the appendix.  It fails closed on
 things a model can only notice when the run is already half-wasted: a missing field, a `value`
 that is not inside its `quote`, a `quote` that is not an exact substring of `source_file`.  This
@@ -38,14 +35,12 @@ Every candidate value is copied from the payload and still needs source verifica
 
 Usage
 -----
-    python3 /workspace/skills/multi-clinical-result-comparison/scripts/build_ledger.py --apply-review work/review.json
     python3 /workspace/skills/multi-clinical-result-comparison/scripts/build_ledger.py --facts work/facts.json --out work/ledger.json
     python3 /workspace/skills/multi-clinical-result-comparison/scripts/build_ledger.py --facts work/facts.json --stats
     python3 /workspace/skills/multi-clinical-result-comparison/scripts/build_ledger.py --scaffold --tool-results /workspace/tool_results
 
-Exit codes: 0 ledger/candidate/facts written; 3 findings or missing scaffold refs (nothing written);
-2 usage / input or write error. Review assembly writes only `facts.json`; the default mode remains
-responsible for validating and writing `ledger.json`.
+Exit codes: 0 ledger/candidate written; 3 findings or missing scaffold refs (nothing written);
+2 usage / input or write error.
 """
 
 from __future__ import annotations
@@ -480,288 +475,13 @@ def _scaffold(args) -> int:
     return 0
 
 
-def _review_error(findings: list[str]) -> int:
-    print(f"FINDINGS ({len(findings)}) — nothing written:", file=sys.stderr)
-    for item in findings:
-        print(f"  - {item}", file=sys.stderr)
-    return 3
-
-
-def _review_object(value, label: str, findings: list[str]) -> dict | None:
-    if not isinstance(value, dict):
-        findings.append(f"{label} must be an object")
-        return None
-    return value
-
-
-def _review_text(value, label: str, findings: list[str]) -> bool:
-    if not isinstance(value, str):
-        findings.append(f"{label} must be a string")
-        return False
-    return True
-
-
-def _review_record(raw, label: str, findings: list[str], require_required: bool = True) -> dict | None:
-    record = _review_object(raw, label, findings)
-    if record is None:
-        return None
-    unknown = sorted(set(record) - set(RECORD_ORDER))
-    if unknown:
-        findings.append(f"{label} has unknown key(s): {', '.join(unknown)}")
-    for key, value in record.items():
-        _review_text(value, f"{label}.{key}", findings)
-    if require_required:
-        for key in RECORD_REQUIRED:
-            if not isinstance(record.get(key), str) or not record.get(key).strip():
-                findings.append(f"{label} is missing non-empty `{key}`")
-    ref = record.get("ref", "")
-    if isinstance(ref, str) and ref and not REF_RE.match(ref):
-        findings.append(f"{label}.ref must look like ref_1 (got {ref!r})")
-    return record if all(isinstance(value, str) for value in record.values()) else None
-
-
-def _review_fact(raw, label: str, findings: list[str], require_required: bool = True) -> dict | None:
-    fact = _review_object(raw, label, findings)
-    if fact is None:
-        return None
-    unknown = sorted(set(fact) - set(FACT_ORDER))
-    if unknown:
-        findings.append(f"{label} has unknown key(s): {', '.join(unknown)}")
-    for key, value in fact.items():
-        _review_text(value, f"{label}.{key}", findings)
-    if require_required:
-        for key in FACT_REQUIRED:
-            if not isinstance(fact.get(key), str) or not fact.get(key).strip():
-                findings.append(f"{label} is missing non-empty `{key}`")
-    fact_id = fact.get("id", "")
-    if isinstance(fact_id, str) and fact_id and not ID_RE.match(fact_id):
-        findings.append(f"{label}.id must be ASCII letters/digits/._- (no spaces or CJK)")
-    kind = fact.get("kind", "")
-    if isinstance(kind, str) and kind and not KIND_RE.match(kind):
-        findings.append(f"{label}.kind must be one of {', '.join(KINDS)}: {kind!r}")
-    return fact if all(isinstance(value, str) for value in fact.values()) else None
-
-
-def _apply_review(args) -> int:
-    candidates_path: Path = args.candidates
-    review_path: Path = args.apply_review
-    if args.out.resolve() in {candidates_path.resolve(), review_path.resolve()}:
-        return _review_error(["review output must not overwrite either input"])
-    try:
-        candidates = _load(candidates_path)
-    except (OSError, json.JSONDecodeError) as exc:
-        print(f"ERROR: cannot read {candidates_path}: {exc}", file=sys.stderr)
-        return 2
-    try:
-        review = _load(review_path)
-    except (OSError, json.JSONDecodeError) as exc:
-        print(f"ERROR: cannot read {review_path}: {exc}", file=sys.stderr)
-        return 2
-
-    findings: list[str] = []
-    if not isinstance(candidates, dict):
-        findings.append("candidates must be an object with `records` and `facts` arrays")
-        candidates = {}
-    if set(candidates) - {"records", "facts", "_notes"}:
-        findings.append("candidates has unknown top-level key(s)")
-    candidate_records = candidates.get("records")
-    candidate_facts = candidates.get("facts")
-    if not isinstance(candidate_records, list):
-        findings.append("candidates.records must be an array")
-        candidate_records = []
-    if not isinstance(candidate_facts, list):
-        findings.append("candidates.facts must be an array")
-        candidate_facts = []
-
-    candidate_by_ref: dict[str, dict] = {}
-    for index, raw in enumerate(candidate_records):
-        record = _review_record(raw, f"candidates.records[{index}]", findings, require_required=False)
-        if record is None:
-            continue
-        for key in RECORD_REQUIRED:
-            if key not in record:
-                findings.append(f"candidates.records[{index}] is missing `{key}`")
-        for key in RECORD_REQUIRED:
-            if not isinstance(record.get(key), str):
-                findings.append(f"candidates.records[{index}].{key} must be a string")
-        ref = record.get("ref", "")
-        if ref in candidate_by_ref:
-            findings.append(f"duplicate candidate record ref: {ref}")
-        else:
-            candidate_by_ref[ref] = record
-
-    candidate_by_id: dict[str, dict] = {}
-    for index, raw in enumerate(candidate_facts):
-        fact = _review_fact(raw, f"candidates.facts[{index}]", findings, require_required=False)
-        if fact is None:
-            continue
-        for key in FACT_ORDER:
-            if key not in fact:
-                findings.append(f"candidates.facts[{index}] is missing `{key}`")
-        fact_id = fact.get("id", "")
-        if not isinstance(fact_id, str) or not fact_id:
-            findings.append(f"candidates.facts[{index}] is missing non-empty `id`")
-        elif fact_id in candidate_by_id:
-            findings.append(f"duplicate candidate fact id: {fact_id}")
-        else:
-            candidate_by_id[fact_id] = fact
-        ref = fact.get("ref", "")
-        if ref and ref not in candidate_by_ref:
-            findings.append(f"candidates.facts[{index}].ref is not in records[]: {ref}")
-
-    if not isinstance(review, dict):
-        findings.append("review must be an object with exactly `records`, `decisions`, and `additions`")
-        return _review_error(findings)
-    expected_review_keys = {"records", "decisions", "additions"}
-    unknown_review_keys = sorted(set(review) - expected_review_keys)
-    missing_review_keys = sorted(expected_review_keys - set(review))
-    if unknown_review_keys:
-        findings.append(f"review has unknown top-level key(s): {', '.join(unknown_review_keys)}")
-    if missing_review_keys:
-        findings.append(f"review is missing top-level key(s): {', '.join(missing_review_keys)}")
-
-    reviewed_records = review.get("records")
-    decisions = review.get("decisions")
-    additions = review.get("additions")
-    if not isinstance(reviewed_records, list):
-        findings.append("review.records must be an array")
-        reviewed_records = []
-    if not isinstance(decisions, list):
-        findings.append("review.decisions must be an array")
-        decisions = []
-    if not isinstance(additions, list):
-        findings.append("review.additions must be an array")
-        additions = []
-
-    reviewed_by_ref: dict[str, dict] = {}
-    for index, raw in enumerate(reviewed_records):
-        record = _review_record(raw, f"review.records[{index}]", findings)
-        if record is None:
-            continue
-        ref = record.get("ref", "")
-        if ref in reviewed_by_ref:
-            findings.append(f"duplicate reviewed record ref: {ref}")
-        else:
-            reviewed_by_ref[ref] = record
-    missing_record_refs = sorted(set(candidate_by_ref) - set(reviewed_by_ref))
-    unknown_record_refs = sorted(set(reviewed_by_ref) - set(candidate_by_ref))
-    if missing_record_refs:
-        findings.append("review.records is missing candidate ref(s): " + ", ".join(missing_record_refs))
-    if unknown_record_refs:
-        findings.append("review.records has unknown candidate ref(s): " + ", ".join(unknown_record_refs))
-
-    decisions_by_id: dict[str, dict] = {}
-    for index, raw in enumerate(decisions):
-        label = f"review.decisions[{index}]"
-        decision = _review_object(raw, label, findings)
-        if decision is None:
-            continue
-        unknown = sorted(set(decision) - {"id", "action", "changes"})
-        if unknown:
-            findings.append(f"{label} has unknown key(s): {', '.join(unknown)}")
-        if not _review_text(decision.get("id"), f"{label}.id", findings):
-            continue
-        if not _review_text(decision.get("action"), f"{label}.action", findings):
-            continue
-        fact_id = decision["id"]
-        action = decision["action"]
-        if fact_id in decisions_by_id:
-            findings.append(f"duplicate decision id: {fact_id}")
-        else:
-            decisions_by_id[fact_id] = decision
-        if fact_id not in candidate_by_id:
-            findings.append(f"decision id is not an existing candidate fact: {fact_id}")
-        if action not in {"keep", "update", "drop"}:
-            findings.append(f"{label}.action must be keep, update, or drop")
-        if action != "update" and "changes" in decision:
-            findings.append(f"{label}.changes is allowed only for update")
-        if action == "update" and ("changes" not in decision or not decision["changes"]):
-            findings.append(f"{label}.update requires non-empty changes")
-        if action == "update" and "changes" in decision:
-            changes = decision["changes"]
-            if not isinstance(changes, dict):
-                findings.append(f"{label}.changes must be an object")
-            else:
-                unknown_changes = sorted(set(changes) - (set(FACT_ORDER) - {"id"}))
-                if unknown_changes:
-                    findings.append(f"{label}.changes has unknown or immutable key(s): {', '.join(unknown_changes)}")
-                for key, value in changes.items():
-                    _review_text(value, f"{label}.changes.{key}", findings)
-
-    missing_decisions = sorted(set(candidate_by_id) - set(decisions_by_id))
-    if missing_decisions:
-        findings.append("review.decisions is missing candidate fact id(s): " + ", ".join(missing_decisions))
-
-    addition_by_id: dict[str, dict] = {}
-    for index, raw in enumerate(additions):
-        fact = _review_fact(raw, f"review.additions[{index}]", findings)
-        if fact is None:
-            continue
-        for key in FACT_ORDER:
-            if key not in fact:
-                findings.append(f"review.additions[{index}] is missing `{key}`")
-        fact_id = fact.get("id", "")
-        if isinstance(fact_id, str) and fact_id:
-            if fact_id in addition_by_id:
-                findings.append(f"duplicate addition id: {fact_id}")
-            else:
-                addition_by_id[fact_id] = fact
-            if fact_id in candidate_by_id:
-                findings.append(f"addition id collides with candidate fact id (including dropped ids): {fact_id}")
-        ref = fact.get("ref", "")
-        if isinstance(ref, str) and ref and ref not in candidate_by_ref:
-            findings.append(f"review.additions[{index}].ref is not in records[]: {ref}")
-
-    if findings:
-        return _review_error(findings)
-
-    facts: list[dict] = []
-    for fact_id, candidate in candidate_by_id.items():
-        decision = decisions_by_id[fact_id]
-        if decision["action"] == "drop":
-            continue
-        if decision["action"] == "keep":
-            facts.append(dict(candidate))
-            continue
-        reviewed = dict(candidate)
-        reviewed.update(decision.get("changes", {}))
-        reviewed["id"] = fact_id
-        facts.append(reviewed)
-    facts.extend(dict(fact) for fact in addition_by_id.values())
-
-    if findings:
-        return _review_error(findings)
-
-    for index, fact in enumerate(facts):
-        _review_fact(fact, f"assembled.facts[{index}]", findings)
-        if fact.get("ref") not in reviewed_by_ref:
-            findings.append(f"assembled.facts[{index}].ref is not in reviewed records")
-    if not facts:
-        findings.append("review must retain or add at least one material fact")
-    if findings:
-        return _review_error(findings)
-
-    output = {"records": [dict(reviewed_by_ref[ref]) for ref in candidate_by_ref], "facts": facts}
-    try:
-        _atomic_write(args.out, json.dumps(output, ensure_ascii=False, indent=2) + "\n")
-    except OSError as exc:
-        print(f"ERROR: cannot write {args.out}: {exc}", file=sys.stderr)
-        return 2
-    print(f"WROTE {args.out}: {len(output['records'])} record(s), {len(facts)} fact(s) from review")
-    return 0
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Validate work/facts.json, scaffold candidates, or apply a reviewed candidate file.",
+        description="Validate work/facts.json or scaffold a candidate from the pulled payload.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("--scaffold", action="store_true",
                         help="build candidate records/facts from the pulled params payload")
-    parser.add_argument("--apply-review", type=Path,
-                        help="apply a strict review JSON to candidate facts and write facts.json")
-    parser.add_argument("--candidates", type=Path, default=Path("work/facts.candidates.json"),
-                        help="candidate facts input for --apply-review")
     parser.add_argument("--facts", type=Path, default=Path("work/facts.json"),
                         help="facts input for the default ledger mode")
     parser.add_argument("--out", type=Path,
@@ -776,14 +496,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--check", action="store_true", help="validate only; write nothing")
     args = parser.parse_args(argv)
     if args.out is None:
-        if args.apply_review is not None:
-            args.out = Path("work/facts.json")
-        else:
-            args.out = Path("work/facts.candidates.json" if args.scaffold else "work/ledger.json")
-    if args.apply_review is not None:
-        if args.scaffold or args.stats or args.check:
-            parser.error("--apply-review cannot be combined with --scaffold, --stats, or --check")
-        return _apply_review(args)
+        args.out = Path("work/facts.candidates.json" if args.scaffold else "work/ledger.json")
     if args.scaffold:
         return _scaffold(args)
 

@@ -1,5 +1,10 @@
 # AGENTS.md — 常驻 program.md（autoresearch 循环）
 
+## R52 回退完成（2026-10-12）
+
+用户已授权回退。运行资产与 dist 恢复到 R51 commit `3adb77c`，R52 新增两份接口测试随实现撤销，失败证据保留在 docs/evidence 与 Git 历史。TS 采用原地恢复内容：当前标签仍 prompt 1.8 / skill 1.0.9（skill_id `16aeb0406e12425bad27a2444f17225e`），实际内容 == R51 的 prompt 1.7 / skill 1.0.8。prompt SHA `bf7b45dbf5d0`，dist SHA `081cd850befc` / 152,558 B；回读 26/26 identical、status in sync、项目绑定正确。此前“尚未回退”段落为历史实验状态，本段覆盖它。
+
+
 ## R52 交接（2026-10-12）
 
 本轮用户授权流程梳理 + TS **新版本** + TS 真测，不是原地更新。运行资产收敛为五阶段执行契约；候选 facts 改为显式差量审校（`--apply-review`），组装不替代原证据校验；prompt/file-delivery 整份重写矛盾与时间轴 weight 残留已清。冻结评分器、事实清单、输入和 runner 未动。新增 review 10 + workflow 3，本地合计 244 绿，变异 44/12 与链路 GATE PASS。发布与实跑已完成，判定不 keep；TS 当前仍为 1.8/1.0.9，回到旧版本须另行取得 TS 写入授权。结果见 PROJECT_STATE / 台账 / R52 证据。
