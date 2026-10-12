@@ -2390,6 +2390,47 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 
 ---
 
+## R55 — 建议项不再阻塞（同批带入 R54 空 `arm`/`unit`）（2026-10-12，原地发布 + n=3 实测，**指标 FAIL**）
+
+**假设 → 指标**：回归 132 个 run 目录（96 份 `usage.json`）得 `wall ≈ 34 s + 0.00536 s × output_tokens`，**R²=0.936 / corr(out)=0.967**（reasoning 0.911、steps 0.862、in 0.890）。此前提速都在压工具调用次数（steps 45–65 → 20–28，但每步 9.2 s → 12–18 s，**净持平**）——**优化错了变量**。指标定为 **output_tokens**。
+
+**改动**（commit `9da2b03`）：`check_report.py` 582 → 491 行（删 8 字共享片段启发式 9 个符号 + `--ledger`/`--refs`；`return 4 if warnings else 0` → **`return 0`**）；`make_chart.py` 4 处完整性检查 findings → warnings；文档 6 处 + prompt v0.16 删 8 字规则；`toolbox.md` 新增「绝不预检建议项」段落。指令面 .md `+10,712 / −10,310` B（**净 +402 B**，行 `+39 / −25`）——语义反转而非瘦身。
+
+**发布**：`deps` = `unchanged since the recorded baseline`；`publish` 原地更新 —— prompt v1.8 **76,477 B / `c4bb1a7b3ee1`**（旧 76,578 / `bf7b45dbf5d0`），skill v1.0.9 HTTP 200 `files=0` `is_current=True`，回读 **26/26 identical / in sync**。同批带入 R54 的 `build_ledger.py` / `render-facts.py`（空 `arm`/`unit` 合法）。
+
+**实测 n=3**（同输入 `/tmp/prompt-r53-4.txt`，同模型 DeepSeek Flash，web off；完整数据见 `docs/evidence/r55-advisory-demotion-measurement-2026-10-12.md`）：
+
+| 组 | run dir | out_tokens | reasoning | wall | steps | reasoning 字符 | 断言 |
+|---|---|---:|---:|---:|---:|---:|---|
+| 基线 | `20261012-164844-r54-base-1` | 77,939 | 50,555 | 419 s | 30 | 147,607 | 20/2 |
+| 基线 | `20261012-164844-r54-base-2` | 73,504 | 54,071 | 418 s | 31 | 159,393 | 20/2 |
+| 基线 | `20261012-162951-r53-doc-4c` | 61,764 | 44,311 | 365 s | 33 | 136,083 | 21/1 |
+| 实测 | `20261012-171124-r55-sub-1` | 63,811 | 41,039 | 382.7 s | 31 | 124,760 | 21/1 |
+| 实测 | `20261012-171124-r55-sub-2` | 70,187 | 51,147 | 395.1 s | 30 | 153,339 | 21/1 |
+| 实测 | `20261012-171124-r55-sub-3` | 71,778 | 51,877 | 418.7 s | 32 | 156,978 | 21/1 |
+
+- out 中位数 **73,504 → 70,187 = −4.5%**，门槛 **< 62,478（−15%）** → **FAIL**。两组分布重叠（`[63,811/70,187/71,778]` vs `[61,764/73,504/77,939]`）。
+- wall 中位数 418 → 419 s **持平**；reasoning 字符中位数 147,607 → 153,339 **持平**；steps 31 → 31 持平（read_file 略降 12→7、execute 略升 13→17，量级在噪声内）。
+- 三跑产物完整（`report.md` 10,952 / 11,096 / 12,274 字符 + `citations.json` + `evidence-timeline.json`），各 **21 PASS / 1 FAIL**，唯一 FAIL 仍是平台侧 `tool_results receipts archived`。**无质量退步。**
+
+**关键反证**：三跑的工具输出里 **`FINDINGS (` / `WARN:` 命中 0 条**（transcript 中的 WARN 字样全来自模型读到的文档正文）——**被降级/删除的路径在这组输入上根本没被触发**。4c 触发过的两处（`make_chart` 空 `description`、`check_report` 8 字假阳性）是随机事件。故「建议项 → 修复轮次」即使存在，**触发率低、单次成本约 1 轮（wall 的 ~5%）**，无法解释输出 token 主体。
+
+**判定：指标 FAIL —— 假设①（门禁是耗时主因）被否。** 作为**正确性**修复仍成立：8 字启发式不健全（假阳性证据：r53-doc-4b 的 `RMONi-6（`、`一线晚期鳞状非小`，4c 的 3 条假 WARN），且 `check_report`「警告也 exit 4」与另两个校验器只对真 finding fail-closed 的语义不一致。keep / revert 待用户裁决（协议默认回滚；我方建议保留：净删规则 + 修掉已证伪的假阳性 + 指标无退步）。
+
+**方法论沉淀**：同输入 output_tokens 方差 **±20–40%** > 我们追过的每一个效应；**n=3 中位数测不出 <20% 的效应** —— 只有结构性改动值得测。
+
+### 我方能改的
+
+- **R55-1（已修）**：8 字共享片段启发式假阳性（`RMONi-6（` / `一线晚期鳞状非小` 等正当共享散文被判 finding）—— 本轮直接删除该规则，不再打补丁。
+- **R55-2（待裁决）**：keep / revert。协议默认回滚；建议保留（理由见上）。
+- **R55-3（下一杠杆候选）**：hypothesis ③ —— 45 条事实 × 15 字段手工撰写 + 引文自查，占三跑 reasoning 的约 1/3，且**不依赖门禁**（属模型自发勤勉）。这是唯一还能动指标的杠杆，也是 R52 失败过的领域，需先设计比 R52 更硬的验收口径。
+
+### 平台侧（转开发）
+
+- **P-R53-1（已知，仍每次命中）**：`tool_results receipts archived` 断言失败 —— `/workspace/tool_results/…/result.jsonl` 被 runner 标为 unsafe receipt path，与本批改动无关，不影响产物正确性。
+
+---
+
 ## R52 回退 — 2026-10-12，经用户「回退吧」授权
 
 恢复 R51 commit 3adb77c 的全部运行资产与 dist，撤销 R52 接口测试；R52 失败证据和 Git 历史保留。CLI 无历史版本激活命令，故采用受护栏保护的 publish 原地写回 R51 字节，当前标签 1.8/1.0.9 不变。prompt 76,578 B / bf7b45dbf5d0；bundle 152,558 B / 081cd850befc / 26 entries；deps unchanged，HTTP 200，status in sync，项目当前绑定正确，25 支持文件 + SKILL 全部一致。回退内容已有 R51 三组真实验证，本轮拒绝冒烟 `20261012-132543-r52-rollback-b`：thread `97ac3752-fd44-4a14-bdca-2050d5e5e74f`，36.7 s server / 42.4 s polled，9 attempts（1 次 INVALID_INPUT 参数拒绝后重试成功），14 PASS / 0 FAIL / exit 0；部署 prompt/SKILL/25 支持文件一致，未写报告或 citations。Docker 不涉及。

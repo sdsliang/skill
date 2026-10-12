@@ -15,9 +15,16 @@
 - **实测协议（先定后改）**：指标 = **output_tokens**（reasoning 单列），同输入（`/tmp/prompt-r53-4.txt`）、**n=3 取中位数**、**中位数下降 > 15% 才算通过**。基线三跑 out = `77,939 / 73,504 / 61,764` → **中位数 73,504，阈值 < 62,478**；wall `419 / 418 / 365` s。
 - **本地门禁（改动后全绿）**：`mutations.py` arm a **44/44** + arm b **12/12** + `never flipped []` + `GATE: PASS`；`test-skill-scripts.py` **62**（删 2 条 8 字豁免测试、新增 1 条「不再因共享散文片段告警」、1 条 line 空 `group` 改为「只告警 + `--strict` 才失败」）；`test-check-report.py` 25；`test-build-ledger-scaffold.py` 9；`test-render-facts.py` 28；`test_regressions.py` 35；`test-runner.py` 41；`test_pack_dist.py` 5；`test_replay_run.py` 14；Node **16/16**；`verify-run-chain.py` `GATE: PASS`（5 可比）。
 - **打包**：dist `multi-clinical-result-comparison-v0.16.zip` **155,133 B / `35248cb29461`**，`--check` IDENTICAL；`status` = **OUT OF SYNC**（14 entries：10 份文档 + `check_report.py`/`make_chart.py` + R54 的 `build_ledger.py`/`render-facts.py`），**尚未发布**。
-- **未做（待授权）**：发布后跑 n=3 实测并比对 62,478；通过则 keep、不通过则把旧内容原地写回。`aa41ac9`（R54 arm/unit）是否随本批一起发布待定——它是「让校验器接受自己的产物」，与本轮「减法」同向，建议随批发布。
+**已发布**：`deps` 无变化；`publish` 原地更新 —— prompt v1.8 **76,477 B / `c4bb1a7b3ee1`**，skill v1.0.9 `is_current=True`、回读 **26/26 identical / in sync**（同批带入 R54 的 `build_ledger.py`/`render-facts.py`）。
 
-## R54 — 空 `arm`/`unit` 门禁修复（2026-10-12，本地完成，待授权发布）
+**n=3 实测结果（2026-10-12 17:11–17:18）**：out_tokens `[77,939 / 73,504 / 61,764]`（基线）vs `[63,811 / 70,187 / 71,778]`（实测）→ **中位数 73,504 → 70,187 = −4.5%**，门槛 **< 62,478（−15%）** → **指标 FAIL**。wall 中位数 418 → 419 s 持平；reasoning 字符中位数 147,607 → 153,339 持平。三跑各 21 PASS / 1 FAIL（唯一 FAIL 为平台侧 `tool_results receipts archived`），产物完整——**无质量退步**。
+- **关键反证**：三跑工具输出里 **`FINDINGS (` / `WARN:` 命中 0 条** —— 被降级/删除的路径在这组输入上**根本没被触发**。故「建议项 → 修复轮次」触发率低、单次成本约 1 轮（wall 的 ~5%），**无法解释输出 token 主体**。
+- **结论：假设①（门禁是耗时主因）被否。** 作为**正确性**修复仍成立（8 字启发式已证伪的假阳性：`RMONi-6（` / `一线晚期鳞状非小`）；keep/revert 待用户裁决，我方建议 **keep**（净删规则 + 指标无退步）。
+- **方法论沉淀**：同输入 output_tokens 方差 ±20–40% > 我们追过的每个效应；**n=3 中位数测不出 <20% 的效应**，只有结构性改动值得测。
+- **下一杠杆候选（hypothesis ③）**：45 条事实 × 15 字段手工撰写 + 引文自查，占三跑 reasoning 约 1/3，且**不依赖门禁**（模型自发勤勉）；这是唯一还能动指标的杠杆，也是 R52 失败过的领域，需先设计比 R52 更硬的验收。
+- 证据：`docs/evidence/r55-advisory-demotion-measurement-2026-10-12.md`；台账 `docs/toolsmith-verification-log.md` 的 R55 节。
+
+## R54 — 空 `arm`/`unit` 门禁修复（2026-10-12，已随 R55 同批发布）
 
 **真实根因（比初判更深）：`build_ledger.py --scaffold` 自己产出空值，编译路径再把它们判死。**
 scaffold 第 431 行写 `"arm": arm_text`，而 `arm_text` 在 payload 找不到可用 arm 时就是 `""`（第 406–409 行 `unresolved_arms += 1`），且 scaffold 自己的 `_notes` 明确写「arm 留空，必须人工核对」（第 460 行）；`unit` 同理来自 `_clean(item.get("result_unit"))`，p 界值 / NE 都是空串。随后同一条编译路径用 `if not fact.get(key)` 把这些空串判成 `missing` → exit 3、不落盘。**即编译器拒绝自己 scaffold 的输出**，模型只能编造值凑过校验。
