@@ -318,9 +318,31 @@ class Sandbox(unittest.TestCase):
         self.build_ledger()
         before = self.ledger.read_bytes()
         payload = self.facts_payload()
-        payload["facts"][0]["unit"] = ""
-        self.build_ledger(payload, expect=3)
+        del payload["facts"][0]["unit"]
+        proc = self.build_ledger(payload, expect=3)
+        self.assertIn("missing the `unit` key", proc.stderr)
         self.assertEqual(self.ledger.read_bytes(), before)
+
+    def test_ledger_accepts_an_empty_unit_for_a_dimensionless_value(self):
+        self.prep()
+        payload = self.facts_payload()
+        payload["facts"][0]["unit"] = ""
+        self.build_ledger(payload, expect=0)
+        ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
+        self.assertEqual(ledger["facts"][0]["unit"], "")
+
+    def test_render_drops_the_trailing_space_of_an_empty_unit(self):
+        self.prep()
+        payload = self.facts_payload()
+        payload["facts"][0]["unit"] = ""
+        self.build_ledger(payload, expect=0)
+        draft = self.root / "work" / "draft.md"
+        draft.write_text("## 速览\n\n变化 [[fact:ocean-tbr]]。\n", encoding="utf-8")
+        out = self.root / "output" / "report.md"
+        self.sh("render-facts.py", "--ledger", self.ledger, "--draft", draft, "--out", out,
+                "--audit", self.root / "work" / "audit.json", expect=0)
+        rendered = out.read_text(encoding="utf-8")
+        self.assertIn("变化 -5.3{{ref_1}}。", rendered)
 
     def test_ledger_check_only_writes_nothing(self):
         self.prep()
@@ -663,6 +685,22 @@ class Sandbox(unittest.TestCase):
                 "| 终点覆盖 | 该终点尚未在对照组评估{{ref_1}} |\n"))
         proc = self.check(paths, expect=4)
         self.assertIn("shares an 8-character run", proc.stdout)
+
+    def test_check_report_exempts_ledger_declared_names_from_the_shared_run_rule(self):
+        # Arm / identity names from the run's own ledger are names, not duplicated prose.
+        paths = self.delivery_fixture(
+            chart=self.chart_envelope({
+                "type": "bar", "title": "两组变化并列展示", "subTitle": "并列展示不等于头对头比较",
+                "dataSource": "本地数值事实账本", "describe": "按组展示",
+                "data": [{"label": "安慰剂每月一次组", "value": -5.3,
+                          "description": "安慰剂每月一次组变化{{ref_1}}"}]}),
+            report_body=(
+                "# 报告\n\n依洛尤单抗{{ref_1}}\n\n"
+                "## 附录：证据对齐矩阵（数值事实账本）\n\n"
+                "| 维度 | **NCT02729025**<br>2 条披露 |\n| --- | --- |\n"
+                "| 安慰剂每月一次组 | -5.3 %{{ref_1}} |\n"))
+        proc = self.check(paths, expect=None)
+        self.assertNotIn("shares an 8-character run", proc.stdout)
 
     def test_check_report_warns_about_a_duplicated_ref_inside_one_cell(self):
         paths = self.delivery_fixture(report_body=(

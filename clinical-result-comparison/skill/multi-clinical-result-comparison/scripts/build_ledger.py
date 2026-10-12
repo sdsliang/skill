@@ -563,7 +563,13 @@ def main(argv: list[str] | None = None) -> int:
                 fact[key] = value
         label = f"facts[{index}] ({fact.get('id') or 'no id'})"
         for key in FACT_REQUIRED:
-            if not fact.get(key):
+            if key == "unit":
+                # The key is required, but "" is a valid unit: p-value boundaries, HR, NE/NR
+                # and other dimensionless values have none.  Never invent one to pass this gate.
+                if "unit" not in fact:
+                    findings.append(f'{label} is missing the `unit` key (use "unit": "" for a '
+                                    'dimensionless value such as a p boundary, HR or NE)')
+            elif not fact.get(key):
                 findings.append(f"{label} is missing `{key}`")
         fact_id = fact.get("id", "")
         if fact_id and not ID_RE.match(fact_id):

@@ -232,7 +232,7 @@ def validate_ledger(data: Any, ledger_path: Path) -> tuple[list[dict[str, str]],
     ids: set[str] = set()
     source_cache: dict[Path, str] = {}
     for index, fact in enumerate(facts):
-        _validate_string_fields(fact, FACT_FIELDS, f"facts[{index}]", allow_empty=("statistics",))
+        _validate_string_fields(fact, FACT_FIELDS, f"facts[{index}]", allow_empty=("statistics", "unit"))
         fact_id = fact["id"]
         if fact_id in ids:
             raise ValidationError(f"duplicate fact id: {fact_id}")
@@ -275,7 +275,7 @@ def _replace_tokens(draft: str, facts_by_id: dict[str, dict[str, str]]) -> str:
         if fact is None:
             raise ValidationError(f"unknown fact token: {fact_id}")
         marker = "{{" + fact["ref"] + "}}"
-        value_unit = f"{fact['value']} {fact['unit']}"
+        value_unit = f"{fact['value']} {fact['unit']}".strip()
         if kind == "fact":
             return value_unit + marker
         statistics = f"；{fact['statistics']}" if fact["statistics"] else ""

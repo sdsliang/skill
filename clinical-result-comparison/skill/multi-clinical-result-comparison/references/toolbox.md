@@ -124,6 +124,8 @@ python3 scripts/build_ledger.py --scaffold --tool-results /workspace/tool_result
   each fact = the 15 fields `id, ref, study, version, endpoint, arm, population, timepoint,
   assessment, kind, value, unit, statistics, source_file, quote` — absent
   `version`/`population`/`timepoint`/`assessment` are filled with `未报告`, `statistics` with `""`.
+  `unit` must be present as a key but may be `""` (p 界值、HR、NE/NR 等无量纲值；不要编造单位凑过校验，
+  渲染为 `0.0049{{ref_n}}`，不带尾随空格)。
   `kind` ∈ `试验设计｜试验结论｜有效性｜安全性｜PK/PD｜PRO｜其他` (a `·家族` suffix is allowed).
 * Checks that fail the whole compile (exit 3, **nothing written**, existing ledger untouched) and
   are printed together: `quote` is not an exact substring of that ref's source file, `value` is
@@ -236,6 +238,8 @@ python3 scripts/make_citations.py --report … --full-text ref_2=https://pmc.ncb
 
 ```
 python3 scripts/check_report.py -v            # then fix what it printed and re-run
+# 图表与表格共享 8 字片段的 WARN 会自动豁免 work/ledger.json 与 work/refs.json 里已声明的
+# 试验名 / 组别 / identity 段 / 适应症；剩下的才是真重复，改掉即可，不要为名字再跑一轮
 ```
 
 Checks the report text (unresolved `[[fact:…]]` tokens, `{{…}}` braces that are not `ref_n`

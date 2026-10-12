@@ -246,6 +246,42 @@ def _table_cells(report: str) -> list[str]:
     return cells
 
 
+NAME_SPLIT_RE = re.compile(r"[+＋、/／｜|（）()·,，;；]|\bvs\b|对比")
+
+
+def _known_names(ledger_path: Path, refs_path: Path) -> tuple[set[str], set[str]]:
+    """Names the run already declared: trial / study / arm / identity segments / indication.
+
+    Returns (whole compact names, name tokens >= 4 chars).  A chart and a table naming the same
+    trial, drug or disease is expected; only prose and values must not be duplicated.
+    """
+    raw: list[str] = []
+    try:
+        ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+        for record in ledger.get("records", []):
+            raw.append(str(record.get("trial") or ""))
+            raw.extend(str(record.get("identity") or "").split("｜"))
+        for fact in ledger.get("facts", []):
+            raw.extend([str(fact.get("study") or ""), str(fact.get("arm") or "")])
+    except (OSError, ValueError, AttributeError):
+        pass
+    try:
+        refs = json.loads(refs_path.read_text(encoding="utf-8"))
+        for entry in refs.values() if isinstance(refs, dict) else []:
+            if isinstance(entry, dict):
+                raw.extend([str(entry.get("trial_abbreviation") or ""), str(entry.get("indication") or "")])
+    except (OSError, ValueError, AttributeError):
+        pass
+    wholes = {_atomic_note(item) for item in raw if _atomic_note(item)}
+    tokens = {_atomic_note(part) for item in raw for part in NAME_SPLIT_RE.split(item)}
+    # Digit-bearing fragments (doses such as `20mg`) are values, not names: never exempt them.
+    return wholes, {token for token in tokens if len(token) >= 4 and not any(c.isdigit() for c in token)}
+
+
+def _is_name_shingle(shingle: str, wholes: set[str], tokens: set[str]) -> bool:
+    return any(shingle in whole for whole in wholes) or any(token in shingle for token in tokens)
+
+
 def _chart_strings(value, out: list[str]) -> None:
     if isinstance(value, dict):
         for key, item in value.items():
@@ -270,6 +306,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--vis-prefix", default="/workspace/visualizations/",
                         help="required prefix of a ::visualization target (fixed at /workspace/visualizations/ "
                              "in the runtime; overridable only for a mirrored/test layout)")
+    parser.add_argument("--ledger", type=Path, default=None,
+                        help="ledger whose trial/arm/indication names are exempt from the shared-run warning "
+                             "(default: <report dir>/../work/ledger.json)")
+    parser.add_argument("--refs", type=Path, default=None,
+                        help="refs.json (default: <report dir>/../work/refs.json)")
     parser.add_argument("--json", action="store_true", help="print a machine-readable result")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
@@ -500,12 +541,16 @@ def main(argv: list[str] | None = None) -> int:
     cell_shingles: set[str] = set()
     for cell in _table_cells(report):
         cell_shingles |= _shingles(MARKER_RE.sub("", cell))
+    work_dir = args.report.resolve().parent.parent / "work"
+    name_wholes, name_tokens = _known_names(args.ledger or work_dir / "ledger.json",
+                                            args.refs or work_dir / "refs.json")
     shared: list[str] = []
     for name, payload in charts.items():
         strings: list[str] = []
         _chart_strings(payload.get("option"), strings)
         for text in strings:
             run = (_shingles(MARKER_RE.sub("", text)) & cell_shingles) - citation_shingles
+            run = {item for item in run if not _is_name_shingle(item, name_wholes, name_tokens)}
             if run:
                 shared.append(f"{name}: {sorted(run)[0]!r}")
                 break

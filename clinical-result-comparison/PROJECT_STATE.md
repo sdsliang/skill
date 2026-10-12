@@ -1,5 +1,12 @@
 # Project State
 
+## R54 — 墙钟热点脚本修复（2026-10-12，本地完成，待授权发布）
+
+针对 r53-doc-4b transcript 的两处重复往返：
+- **unit 循环**（msgs 13–15，2 次额外 execute + 约 8K 推理字符）：p 界值 0.0049、OS NE 这类无量纲值没有单位，`build_ledger.py` 把 `"unit": ""` 当缺失报错，模型被迫编造 `单侧显著性界限` / `（未达到）` 写进账本。改为 `unit` 键必须存在、值可为 `""`；`render-facts.py` 同步允许空 unit 并去掉尾随空格。缺 `unit` 键仍 exit 3。原计划的 `result_unit_name` 回退作废：根因不是 scaffold 没取到字段，而是值本身无单位。
+- **check_report 假阳性**（msgs 22–25，2 轮 write+execute）：8 字共享片段警告命中 `一线晚期鳞状非小`、`依沃西单抗联合化`。改为自动豁免 `work/ledger.json`（trial / identity 段 / study / arm）与 `work/refs.json`（trial_abbreviation / indication）中已声明的名称；含数字的片段不豁免，真实散文重复照旧报警。用 r53 产物回放：3 个假阳性全豁免，`该终点尚未在对照` 仍报。
+- toolbox.md 补两句说明。本地回归：skill-scripts 61（+3）、scaffold 9、check-report 25、render-facts 28、runner-gate 41、fact-check 35、pack-dist 5、node 16，变异 a 44/44、b 12/12。dist 155,678 B / sha `1a54a0e7636f`，`--check` IDENTICAL。**尚未推 TS、尚未实测。**
+
 ## R53 — toolbox 文档优化，原地发布 + 实测通过（2026-10-12）
 
 **改动**（commit `08e6929`）：`references/toolbox.md` §1 新增 digest 输出样例；§3 新增 `[[fact:id]]` token 语法示例 + 两条硬验证条件。`SKILL.md` 把参考文件拆为必读 5 个 + 按场景条件读 3 个；scaffold 后加数值格式统一决策步骤。161 项本地回归全过。
