@@ -2,6 +2,14 @@
 
 Tool Smith project assets for source-grounded synthesis and comparison of multiple selected clinical result records. The default output is a trial-level evidence synthesis for same-trial selections and a comparison-first, domain-aligned cross-trial comparison for mixed selections, each with a compatible chart when the data allow it.
 
+## R52 — workflow refactoring: published as new versions, experiment not accepted
+
+The execution and repair contract now has five stages, with explicit candidate keep/update/drop review and the existing evidence compiler retained. Prompt **1.8** / Skill **1.0.9** were published after authorization and read back in sync (26/26 files). Local checks: **244 passed**, mutation gates 44/44 and 12/12.
+
+Real ToolSmith regressions on unchanged R51 inputs all passed the 22 mechanical delivery checks, but server time increased: 4 records **309.2 → 680.1 s**, 18 **462.9 → 569.5 s**, 14 **494.7 → 691.6 s**. Candidate reuse was low; probing, scratch assembly scripts and repeated repairs remained. Content review found unsupported mechanism attribution and internal contradictions. The refusal run passed 14 deployment checks, while the frozen offline checker scored 11/12 due to wording.
+
+**R52 is not accepted as an optimization.** TS still binds 1.8/1.0.9; no rollback has been executed. Evidence and limitations are recorded in [R52 evidence](docs/evidence/r52-workflow-review-2026-10-12.md) and the verification ledger. Runner, frozen scorer and fixtures remain unchanged.
+
 ## R49 + R50 — one delivery per value, an appendix that is a table, and a report that never narrates itself (published in place, five live runs)
 
 Prompt **v0.16** and the Skill bundle changed again, **in place** (labels v1.7 / v1.0.8 unchanged), from five defects the user found in the delivered report: four layout/duplication complaints (R49) and one register complaint (R50) — *"the report contains the model's own reasoning: `**分析模式：** 跨试验、非头对头…`, `**可比性结论：** 可绘图.`"* — with the instruction to sweep the whole report for that register, fix it, republish in place and test again.

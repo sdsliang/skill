@@ -2303,6 +2303,47 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 | **O50** | **`deps` 只比版本标签 ⇒ 上游「原地更新同一版本号」检测不到**：本轮 `deps` 报 `unchanged since the recorded baseline`，而部署端 `chart-visualization-json` 的 `1.0.12` 已从 20260914 构建换成 **20260921 构建**（47 文件 / 54,684 B → **48 文件 / 64,214 B**，新增 `docs/development.md`，`config.js` 的 `IFRAME_TEMPLATE` 换目录，4 个模板 envelope 删 `width`/`height`，`validate.js` 新增只有 warning 级的标题字宽/元标签检查）。**发现路径 = 用户投诉 → 手动拉部署端 zip + diff 本地 vendor 快照**；无人投诉就会静默漂移，日后核对渲染行为会得出错误结论 | `vendor/` 同一版本号的第二次构建**另起目录**（`1.0.12-20260921/`，本轮已落 + README 记源包 SHA/文件数/`IFRAME_TEMPLATE`/「平台 current 仍标同版本」）；部署端行为以**下载到的 zip 与渲染 bundle** 为权威、不以 `deps` 的 `unchanged` 为权威；`vendor/README.md` 更新流程加步 3 纪律 | 📝 **待应对（runner 侧不可改：比较语义在 `toolsmith-publish` 内部）**，本轮已完成留档与纪律 |
 | O40 / O44 / O46 / O47 / O49 | 见 O 表 | — | 📝 待样本 / 待复现 |
 
+## R52 — 执行流程梳理 + 差量 facts 审校 + TS 新版本真实回归（2026-10-12）
+
+### 本轮假设与本地门禁
+
+将累积的执行规则收敛为五阶段：准备 → 原文审校 → 编译 → 一次成文 → 交付；候选 facts 不再由模型整份重写，而是通过 `facts.review.json` 的完整 records、逐候选 keep/update/drop 决策和 additions 组装 `facts.json`，再走既有 quote/value/ID/ref 编译门禁。冻结评分器、固定输入、runner、citation renderer 未改。
+
+本地：review 10、workflow 3、既有全套 231，共 **244 项通过**；mutations arm a **44/44**、arm b **12/12**、`GATE: PASS`；runner 零网络链 `118 histories / 5 comparable / GATE: PASS`；`deps` unchanged。代码 commit **`7852b73`** 已推送。
+
+### 发布
+
+按用户授权改为新版本发布，不覆盖 R51：
+
+- prompt **1.8**：71,555 B，SHA 前缀 `ed5ec6c7afe9`，平台 prompt id `475039ccebfe46a3a39002febe28b1f4`。
+- skill **1.0.9**：skill_id `16aeb0406e12425bad27a2444f17225e`，26/26 文件一致，dist 156,456 B，SHA256 `0826b8a02e7fee52e16359f65c38055b1fbebbe63803ff2afd9d7802ac14df8d`。
+- `status`: in sync；R51 的 prompt 1.7 / skill 1.0.8 保留。
+
+### 固定真实回归
+
+模型 DeepSeek Flash，web=off，输入按 R51 `run.json` 原样复用；归档目录 `~/.local/state/toolsmith-runs/20261012-123356-r52-{4,18,14,b}`。
+
+| 场景 | R52 server / polled | calls | runner | R51 对照 server / calls | 结论 |
+|---|---:|---:|---|---:|---|
+| 4 条 | 680.1 / 682.6 s | 69 | 22 PASS / 0 FAIL | 309.2 s / 23 | 内容门禁通过，速度明显退步 |
+| 18 条 | 569.5 / 575.8 s | 45 | 22 PASS / 0 FAIL | 462.9 s / 36 | 内容门禁通过，速度退步 |
+| 14 条 | 691.6 / 708.3 s | 66 | 22 PASS / 0 FAIL | 494.7 s / 38 | 内容门禁通过，速度明显退步 |
+| B 拒绝 | 39.9 / 44.4 s | 8 | refusal 14 项部署断言通过 | — | 离线事实 11/12，固定措辞 A3 未命中 |
+
+三组总 server wall 相对 R51 增加约 53%，不能判定为速度优化成功。4 条场景候选 33 行最终为 update 32 / drop 1 / keep 0 + additions 19；18 条为 drop 165 + additions 140；14 条为 update 50 / drop 61 + additions 41。实际运行显示模型仍会先写 `mk_review.py`、反复探针和重建 facts，候选复用率不足时差量接口不能节省生成成本。
+
+### 内容验收与新问题
+
+机械断言通过不等于临床内容通过。4 条产物把免疫相关事件差异解释为「主要来自非免疫机制」，原文只支持事件率，不支持该机制归因。18 条产物出现「只有 LUX-Lung 8 报告 PRO」但同段又列出 SQUIRE 的 PRO，以及把不同随访时点写成同一时点方向一致。另发现 prompt 旧段落把 `execute` 参数写为 `shell_command`，而 live schema required=`command`；跑动期间未修改，列为下一轮我方修复项。
+
+**判定：R52 不 keep（实验未通过，尚未执行回退）。** 新版本已完成发布和真实测试，但在速度与内容质量上均未达到验收要求。代码与本轮证据保留，下一轮应先修工具 schema 参数漂移和报告内部矛盾，再决定是否继续保留差量审校路线。
+
+### 我方能改的
+
+- O51：execute 参数指令漂移（live required command，旧 prompt shell_command），待修。
+- O52：差量审校未产生复用收益、探针与自写组装脚本仍大量出现，证据见上述三组，待重新设计。
+- O53：机制归因／摘要内部矛盾及内容自检失效，证据见上述报告原句，未通过内容验收。
+
 ### 平台侧（转开发）
 
-- 本轮无新平台缺陷。**上游 `chart-visualization-json` 侧值得转达的一条**：时间轴的 `weight` / `weightLegend` / `legend` / `shape` 在 schema 里仍是合法字段、`validate-cli.js` 也放行（exit 0、零 warning），但渲染器（`{r:3, shape:"circle"}` 硬编码 + `Fm(){return []}` 空图例）**完全不实现** ⇒ 下游 skill 会写出「读者以为有编码、实际没有」的产物。建议二选一：schema/校验器对 timeline 拒收这些字段，或在文档里明确「timeline 不支持 size/shape/legend 编码」。
+本轮无新平台缺陷。上游 `chart-visualization-json` 的时间轴 `weight` / `weightLegend` / `legend` / `shape` 仍在 schema 中放行，但部署渲染器不实现这些视觉编码；建议上游拒收这些字段或明确记录时间轴不支持 size/shape/legend 编码。

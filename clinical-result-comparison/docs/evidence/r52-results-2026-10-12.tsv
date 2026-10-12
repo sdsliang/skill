@@ -1,0 +1,5 @@
+r	commit	deployed_sys_sha	scenario	turns	calls	wall_s	params_calls	execute	edit_file	thinking_chars	gate_pass	facts_ok	facts_total	status	description
+20261012-123356-r52-4	7852b73	0990dd9d3cbc	unknown	1	69	682.6	1	42	1	262412	1			not-accepted	R52 workflow review; mechanical gate passes; cost/content acceptance failed
+20261012-123356-r52-18	7852b73	0990dd9d3cbc	unknown	1	45	575.8	1	21	4	194150	1			not-accepted	R52 workflow review; mechanical gate passes; cost/content acceptance failed
+20261012-123356-r52-14	7852b73	0990dd9d3cbc	unknown	1	66	708.3	1	46	3	226165	1			not-accepted	R52 workflow review; mechanical gate passes; cost/content acceptance failed
+20261012-123356-r52-b	7852b73	0990dd9d3cbc	b	1	8	44.4	3	2	0	11374	1	11	12	not-accepted	R52 workflow review; mechanical gate passes; cost/content acceptance failed
