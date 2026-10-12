@@ -1,5 +1,15 @@
 # Project State
 
+## R53 — toolbox 文档优化，原地发布 + 实测通过（2026-10-12）
+
+**改动**（commit `08e6929`）：`references/toolbox.md` §1 新增 digest 输出样例；§3 新增 `[[fact:id]]` token 语法示例 + 两条硬验证条件。`SKILL.md` 把参考文件拆为必读 5 个 + 按场景条件读 3 个；scaffold 后加数值格式统一决策步骤。161 项本地回归全过。
+
+**dist 重建**：154,430 B / sha `9326006d9d59`（旧 152,558 B 未含本次改动）；`push-skill --version 1.0.9` 原地推，HTTP 200，status 26/26 identical。
+
+**实测 r53-doc-4b**（`20261012-142802-r53-doc-4b`，thread `4c630621`）：320.3 s server / 338.9 s polled，32 calls，输出 token 53,490（vs R51 基线 ~107K，-50%），execute 11 次（vs R51 17 次，-35%），read_file 11 次（vs R51 5 次，读文档而非试错命令）。21/22 断言 PASS，唯一 FAIL 为 `tool_results receipts archived`（平台侧已知 unsafe path 问题，与本次改动无关）。**判定：有效，keep。**
+
+---
+
 ## R52 回退完成（2026-10-12）
 
 用户已授权回退。运行资产与 dist 恢复到 R51 commit `3adb77c`，R52 新增两份接口测试随实现撤销，失败证据保留在 docs/evidence 与 Git 历史。TS 采用原地恢复内容：当前标签仍 prompt 1.8 / skill 1.0.9（skill_id `16aeb0406e12425bad27a2444f17225e`），实际内容 == R51 的 prompt 1.7 / skill 1.0.8。prompt SHA `bf7b45dbf5d0`，dist SHA `081cd850befc` / 152,558 B；回读 26/26 identical、status in sync、项目绑定正确。此前“尚未回退”段落为历史实验状态，本段覆盖它。

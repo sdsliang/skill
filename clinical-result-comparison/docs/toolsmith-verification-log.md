@@ -2349,6 +2349,47 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 本轮无新平台缺陷。上游 `chart-visualization-json` 的时间轴 `weight` / `weightLegend` / `legend` / `shape` 仍在 schema 中放行，但部署渲染器不实现这些视觉编码；建议上游拒收这些字段或明确记录时间轴不支持 size/shape/legend 编码。
 
 
+## R53 — toolbox 文档优化：digest 样例 + token 语法 + 条件参考文件加载（2026-10-12，原地发布 + 真跑验证）
+
+**目标**：消灭三类已测量的运行时浪费：（1）模型通过 `--help` + 临时 ledger 试错发现 `[[fact:id]]` 语法（r51-4 约 15 次工具调用）；（2）模型反复打开 `ref_n.txt` 手动提取数值而非从 digest 读取；（3）render 后数值格式不一致触发 `patch.py` 修正循环（约 3–5 分钟）。
+
+**改动**（仓库资产，commit `08e6929`）：
+- `references/toolbox.md §1`：新增 digest 输出样例，明确说明数值已在 digest 中，不需要再打开 `work/sources/ref_n.txt`。
+- `references/toolbox.md §3`：新增 `[[fact:id]]` token 语法示例，含完整 facts.json 片段、报告写法和两条硬验证条件（value 在 quote 里、quote 是源文件精确子串）。
+- `SKILL.md`：必读 5 个参考文件 + 按场景条件读 3 个（替代原来每次都读 9 个）；scaffold 后加数值格式统一决策步骤。
+
+**发布**：161 项本地回归全过；`dist` 重建（154,430 B / sha `9326006d9d59`，旧 152,558 B 未含本次改动）；`push-skill --version 1.0.9` 原地推，HTTP 200，status 26/26 identical。
+
+**真跑 r53-doc-4b**（`20261012-142802-r53-doc-4b`）：
+
+| 指标 | R51-4 基线 | r53-doc-4b | 变化 |
+|---|---:|---:|---|
+| 服务端墙钟 | 309.2 s | 320.3 s | +3.6% |
+| 工具调用次数 | 23 | 32 | +39% |
+| 输出 token | ~107K | 53,490 | **-50%** |
+| 推理 token | — | 35,287 | — |
+| execute 调用 | 17 | 11 | **-35%** |
+| read_file 调用 | 5 | 11 | +120% |
+| 机械断言 | 22 PASS | 21 PASS / 1 FAIL | ↓1 |
+
+- thread `4c630621-cdc3-4ac6-bbff-4c465a4d0cac`，turn `ed140c6b-d482-43ac-b6e8-8d6ac905606c`
+- 产物：`output/citations.json`, `output/report.md`, `visualizations/evidence-timeline.json`
+- 唯一 FAIL：`tool_results receipts archived`（unsafe receipt path）—— 与本次改动无关，平台侧已知问题（见下方平台侧）。
+- read_file 增加（5→11）表明模型确实在读文档而非运行试错命令；execute 减少（17→11）验证了探测循环被削减；输出 token 降 50% 是语法探索循环被消灭的直接体现。
+- 首次 run（`r53-doc-4`，`20261012-141831`）因 skill 未含本次改动（dist 尚未重建）而失败，已排除，不计入对比。
+
+**判定**：输出 token 和 execute 次数显著下降，说明文档改动达到预期效果。墙钟略升（+11 s / +3.6%），在噪声范围内，不视为退步。21/22 机械断言通过，1 FAIL 为平台侧已知问题。**判定：有效，keep。**
+
+### 我方能改的
+
+- （本轮无新增我方缺陷）
+
+### 平台侧（转开发）
+
+- **P-R53-1（已知）**：`tool_results receipts archived` 断言失败——`/workspace/tool_results/.../result.jsonl` 被 runner 标为 unsafe receipt path，每次运行都会命中。与本次改动无关，属 runner 已知限制，不影响产物正确性。O 编号待分配。
+
+---
+
 ## R52 回退 — 2026-10-12，经用户「回退吧」授权
 
 恢复 R51 commit 3adb77c 的全部运行资产与 dist，撤销 R52 接口测试；R52 失败证据和 Git 历史保留。CLI 无历史版本激活命令，故采用受护栏保护的 publish 原地写回 R51 字节，当前标签 1.8/1.0.9 不变。prompt 76,578 B / bf7b45dbf5d0；bundle 152,558 B / 081cd850befc / 26 entries；deps unchanged，HTTP 200，status in sync，项目当前绑定正确，25 支持文件 + SKILL 全部一致。回退内容已有 R51 三组真实验证，本轮拒绝冒烟 `20261012-132543-r52-rollback-b`：thread `97ac3752-fd44-4a14-bdca-2050d5e5e74f`，36.7 s server / 42.4 s polled，9 attempts（1 次 INVALID_INPUT 参数拒绝后重试成功），14 PASS / 0 FAIL / exit 0；部署 prompt/SKILL/25 支持文件一致，未写报告或 citations。Docker 不涉及。
