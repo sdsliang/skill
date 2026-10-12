@@ -2413,7 +2413,9 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 - wall 中位数 418 → 419 s **持平**；reasoning 字符中位数 147,607 → 153,339 **持平**；steps 31 → 31 持平（read_file 略降 12→7、execute 略升 13→17，量级在噪声内）。
 - 三跑产物完整（`report.md` 10,952 / 11,096 / 12,274 字符 + `citations.json` + `evidence-timeline.json`），各 **21 PASS / 1 FAIL**，唯一 FAIL 仍是平台侧 `tool_results receipts archived`。**无质量退步。**
 
-**关键反证**：三跑的工具输出里 **`FINDINGS (` / `WARN:` 命中 0 条**（transcript 中的 WARN 字样全来自模型读到的文档正文）——**被降级/删除的路径在这组输入上根本没被触发**。4c 触发过的两处（`make_chart` 空 `description`、`check_report` 8 字假阳性）是随机事件。故「建议项 → 修复轮次」即使存在，**触发率低、单次成本约 1 轮（wall 的 ~5%）**，无法解释输出 token 主体。
+**关键反证（2026-10-12 修正）**：初判「三跑 `FINDINGS (` / `WARN:` 命中 0 条」是**我自己解析脚本有 bug 造成的假象**——工具调用的实参/结果在 `part["input"]` / `part["output"]`，不在 `part["text"]`，而初判只扫了 `text`。按正确字段重扫：**sub-2 真实触发了 16 条门禁输出** = `WARN: facts[20/23/26/29/32/34/36/38] … has no `arm``（8 条事实缺 arm），**非阻塞、三跑均正常交付**；sub-1 / sub-3 命中为 0（transcript 中的 WARN 字样全来自模型读到的文档正文）。
+
+这两组事实合起来才是完整结论：① **R54 的 arm/unit 宽松化已被真跑验证**（此前 12 次近期运行中 11 次因此 exit 3 → 模型编造 arm，现已改为告警放行）；② **被 R55 降级/删除的路径（`check_report` exit 4 / `make_chart` 完整性检查）在这组输入上一次都没被触发**——4c 触发过的两处（`make_chart` 空 `description`、`check_report` 8 字假阳性）是随机事件。故「建议项 → 修复轮次」触发率低、单次成本约 1 轮（wall 的 ~5%），**无法解释输出 token 主体**——假设①仍被否，但**否的依据要换成「量级不匹配」，不是「一次都没发生」**。
 
 **判定：指标 FAIL —— 假设①（门禁是耗时主因）被否。** 作为**正确性**修复仍成立：8 字启发式不健全（假阳性证据：r53-doc-4b 的 `RMONi-6（`、`一线晚期鳞状非小`，4c 的 3 条假 WARN），且 `check_report`「警告也 exit 4」与另两个校验器只对真 finding fail-closed 的语义不一致。keep / revert 待用户裁决（协议默认回滚；我方建议保留：净删规则 + 修掉已证伪的假阳性 + 指标无退步）。
 
@@ -2423,11 +2425,39 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 
 - **R55-1（已修）**：8 字共享片段启发式假阳性（`RMONi-6（` / `一线晚期鳞状非小` 等正当共享散文被判 finding）—— 本轮直接删除该规则，不再打补丁。
 - **R55-2（待裁决）**：keep / revert。协议默认回滚；建议保留（理由见上）。
-- **R55-3（下一杠杆候选）**：hypothesis ③ —— 45 条事实 × 15 字段手工撰写 + 引文自查，占三跑 reasoning 的约 1/3，且**不依赖门禁**（属模型自发勤勉）。这是唯一还能动指标的杠杆，也是 R52 失败过的领域，需先设计比 R52 更硬的验收口径。
+- **R55-3（下一杠杆候选）**：hypothesis ③ —— 45 条事实 × 15 字段手工撰写 + 引文自查，占三跑 reasoning 的约 1/3，且**不依赖门禁**（属模型自发勤勉）。这是唯一还能动指标的杠杆，也是 R52 失败过的领域，需先设计比 R52 更硬的验收口径。**R56 探针已排除「改用子代理分片」这条替代路线**（串行，见 R56）。
 
 ### 平台侧（转开发）
 
 - **P-R53-1（已知，仍每次命中）**：`tool_results receipts archived` 断言失败 —— `/workspace/tool_results/…/result.jsonl` 被 runner 标为 unsafe receipt path，与本批改动无关，不影响产物正确性。
+
+---
+
+## R56 — 能力探针：`task` 子代理并行性（2026-10-12，**非 skill 运行**，未改动、未发布）
+
+**问题**：用户提出「每个证据（每篇来源）开一个 subagent 处理」。该方案只在子代理**真并行**时才对墙钟有意义；平台样板段写 `concurrently`，本仓 `references/input-contract.md:429/453` 写实测**串行** —— 用一次探针判死。探针不依赖任何 skill 内容，故无需发布、零部署漂移。
+
+**探针**：thread `5ce05322-60a5-4395-aad8-94e6f18ee03c`，turn `d1fa6eef-98eb-4ee5-8e85-0394a49dc459`，tag `r56-probe-parallel`，模型 `DeepSeek Flash`，web=off。指令：`date` 记 T0 → **同一条消息里**发两个 `task`（A `sleep 60` / B `sleep 45`，各带前后 `date`）→ 都返回后记 T1。判据：并行 span ≈ 65–70 s，串行 ≈ 110–160 s。记录 `~/.local/state/toolsmith-runs/20261012-174039-r56-probe-parallel/`。
+
+**结果：串行、零重叠。** T0 `1791798046.086` → T1 `1791798198.371` = **span 152.285 s**；A 窗口 `…051.140→…111.141`（60.00 s），B 窗口 `…147.071→…192.072`（45.00 s），A 结束到 B 开始空档 **35.93 s**，**重叠 0 s**；整轮 `total_latency_ms` 162,272 ms。→ 本仓「串行」表述正确，平台样板段的 `concurrently` 不成立。
+
+**顺带查实三点**：① 子代理 `execute` **默认超时 30 s**（B 首条 `execute` 返回 `timed out after 30s` / exit 124，显式 `timeout_seconds: 90` 才成功），与主线程文档 120 s 不一致；② 每个 `task` 调用带 **`data-subagent-trace`** part（子代理 `traces[]` + 独立 `usage`）—— 子代理轨迹与成本可见（A in 24,640 / out 286，B in 37,135 / out 569；合计 in 61,775 / out 855），而本轮 turn `usage.json` = in 185,072 / out 2,130，**看不出是否聚合子代理用量**；③ `task` 只有 `subagent_type` + `description` 两个参数，无状态、只回最终消息、与主线程共享 `/workspace`。
+
+**判定：按证据开子代理 —— 否决，第 2 步（分片验收口径）不再编写。** 一阶论证：一轮墙钟 = Σ(**该轮内所有**模型生成耗时，主线程 + 全部子代理) + 工具耗时；本轮已证明子代理耗时**计入**整轮 wall（162.3 s 含 60 + 45）。把 facts 从主线程搬给子代理只是换个地方生成，Σ 不变，且**更贵**：每个子代理重新载入通用系统提示（实测 25–37 K 输入 token/个）+ 重述完整抽取规格（子代理不继承项目 prompt）+ 重读源文件，主线程还要再加一轮跨 ref 合并校验（ref 编号 / 命名 / 数值格式 / `records[].trial` 合并键仍须全局一致）。**串行前提下分片对墙钟只有「持平或更差」。**
+
+**证据**：`docs/evidence/r56-subagent-parallelism-probe-2026-10-12.md`。
+
+### 我方能改的
+
+- **R56-1（待授权）**：`references/input-contract.md:429/453` 的「实测串行」可升级为带编号的实测（R56 探针，60+45 s 睡眠零重叠）；属 skill 内容改动 → 需一次发布授权，本轮只登记不改。
+- **R56-2（若以后仍要引入子代理，先解决）**：**度量陷阱** —— 子代理用量记在 `data-subagent-trace.usage`，而 turn `usage.json` 疑似只统计主线程。若真如此，「把活搬给子代理」会让 `output_tokens`（我们的指标）变好看而墙钟持平或变差，指标被绕过。需一次 90 秒对照实验判定（同指令跑两次：一次带一个「产出 ~5 K token 长文」的子代理、一次不带，比较 turn `usage.json` 是否上涨）。
+
+### 平台侧（转开发）
+
+- **P-R56-1**：`task` 工具描述与系统样板段承诺同消息多调用**并发**，实测**严格串行零重叠**（建议：要么后端开启并发，要么把 `concurrently` 改成 `executed serially`）。
+- **P-R56-2**：子代理 `execute` 默认超时 **30 s**，而 `execute` 描述写 120 s（建议统一，或写明「子代理中默认 30 s」）。
+- **P-R56-3**：`data-subagent-trace`（结构 + 子代理独立 usage）未文档化，且 **turn 级 usage 是否聚合子代理用量未定义**（建议补文档，必要时给 `usage_by_agent`）。
+- 问题单全文：Obsidian `03-技术与VibeCoding/01-AI与LLM/TS子代理声称并行实测串行且子代理execute默认超时30s.md`。
 
 ---
 

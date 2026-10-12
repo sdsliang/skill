@@ -1,6 +1,23 @@
 # Project State
 
-## R55 — 建议项不再阻塞（2026-10-12，本地实现完成 + 本地门禁全绿，**未发布**，待授权实测）
+## R56 — 能力探针：`task` 子代理并行性（2026-10-12，**非 skill 运行**，未改动、未发布）
+
+**起因**：用户提出「每个证据（每篇来源）开一个 subagent 处理 facts」。该方案只在子代理**真并行**时才对墙钟有意义 —— 平台样板段写「Launch multiple subagents **concurrently**」，本仓 `references/input-contract.md:429/453` 写实测**串行**（并推测后端从未开启 `allow_concurrent_tool_calls`）。两句不能都对，用一次探针判死；探针不依赖任何 skill 内容，故**无需发布、零部署漂移**。
+
+**探针**：thread `5ce05322-60a5-4395-aad8-94e6f18ee03c`，turn `d1fa6eef-98eb-4ee5-8e85-0394a49dc459`，tag `r56-probe-parallel`，`DeepSeek Flash` / web=off。指令：`date` 记 T0 → **同一条消息里**发两个 `task`（A `sleep 60` / B `sleep 45`，各带前后 `date +%s.%N`）→ 都返回后记 T1。判据：并行 span ≈ 65–70 s，串行 ≈ 110–160 s。记录 `~/.local/state/toolsmith-runs/20261012-174039-r56-probe-parallel/`。
+
+**结果：串行、零重叠。** T0 `1791798046.086` → T1 `1791798198.371` = **span 152.285 s**；A 窗口 60.00 s、B 窗口 45.00 s，A 结束到 B 开始空档 **35.93 s**，**重叠 0 s**；整轮 `total_latency_ms` 162,272 ms。→ 本仓「串行」表述正确，平台样板段的 `concurrently` 不成立。
+
+**顺带查实**：① 子代理 `execute` **默认超时 30 s**（B 首条 `execute` → `timed out after 30s` / exit 124，显式 `timeout_seconds: 90` 才成功），与主线程文档 120 s 不一致；② 每个 `task` 调用带 **`data-subagent-trace`** part（子代理 `traces[]` + 独立 `usage`）——A in 24,640 / out 286，B in 37,135 / out 569，合计 in 61,775 / out 855；而本轮 turn `usage.json` = in 185,072 / out 2,130，**看不出是否聚合子代理用量**；③ `task` 只有 `subagent_type` + `description` 两个参数，无状态、只回最终消息、与主线程共享 `/workspace`。
+
+**判定：按证据开子代理 —— 否决；分片验收口径不再编写。** 一阶论证：一轮墙钟 = Σ（**该轮内所有**模型生成耗时，主线程 + 全部子代理）+ 工具耗时，而本轮已证明子代理耗时**计入**整轮 wall（162.3 s 含 60 + 45）。把 facts 从主线程搬给子代理只是换个地方生成，Σ 不变且更贵：每个子代理重新载入通用系统提示（实测 25–37 K 输入 token/个）+ 重述完整抽取规格（子代理不继承项目 prompt）+ 重读源文件，主线程还要再加一轮跨 ref 合并校验（ref 编号 / 命名 / 数值格式 / `records[].trial` 合并键仍须全局一致）。**串行前提下分片对墙钟只有「持平或更差」。**
+
+- **待定（R56-2）**：**度量陷阱** —— 子代理用量记在 `data-subagent-trace.usage`，而 turn `usage.json` 疑似只统计主线程。若真如此，「把活搬给子代理」会让 `output_tokens`（我们的指标）变好看而墙钟持平/变差 → 指标被绕过。需一次 90 秒对照实验判定。
+- **待授权（R56-1）**：把 `input-contract.md:429/453` 的「实测串行」升级为带编号的实测（R56，60+45 s 零重叠）—— 属 skill 内容改动，需一次发布授权。
+- 证据：`docs/evidence/r56-subagent-parallelism-probe-2026-10-12.md`；台账 R56 节；平台问题单 Obsidian `03-技术与VibeCoding/01-AI与LLM/TS子代理声称并行实测串行且子代理execute默认超时30s.md`。
+- **溯源面盘点（本轮副产物）**：流水线的「值 → 出处」绑定共 12 条，其中**只有篇内的 3 条**（`quote` 定位 / `ref`+`source_file` / 篇内 `population`·`endpoint`·`assessment` 一致性）天然可按 ref 切；其余 9 条（esid↔源文件、`{{ref_n}}`⇄`citations.json`、引文字段字节级复制、一数一处、附录引用、`records[].trial` 合并、图表时间锚、叙事归属、C1/C2 链接）全是跨篇/跨产物一致性，**必须主线程兜**。
+
+## R55 — 建议项不再阻塞（2026-10-12，**已原地发布** + n=3 实测，**指标 FAIL**；同批带入 R54）
 
 **起因（第一性复盘，「越修越慢」）**：132 个 run 目录（96 份 `usage.json`）回归得 `wall ≈ 34 s + 0.00536 s × output_tokens`，**R² = 0.936、corr(out)=0.967**（reasoning 0.911 / steps 0.862 / in_tokens 0.890）——**运行时长基本等于输出 token 数**。此前所有提速改动都在压工具调用次数（steps 从 45–65 降到 20–28，但每步耗时 9.2 s → 12–18 s，**净持平**），**优化错了变量**。「越修越慢」本身**不成立**（全史 wall 平在 300–690 s，无单调趋势）；真实的三件事是：(a) 同输入方差 ±20–40%，大于我们追过的每一个效应；(b) 步数减半、每步翻倍；(c) **R48（`b5a8282`）引入的门禁层是全史唯一产生修复轮次的来源**（`FINDINGS (` / `WARN:` 在 R33–R47 为 0，R48 起才出现），修复轮次占 wall 的 2–15%。
 
@@ -14,11 +31,11 @@
 - **指令面净变化**：`+10,712 B / -10,310 B`（.md 净 **+402 B**，行数 `+39 / -25`）——**基本持平而非瘦身**；真正的收益是**行为**（不再写前自检）与 validator 代码 **-91 行**。诚实记录：这不是「指令瘦身」，是指令语义反转。
 - **实测协议（先定后改）**：指标 = **output_tokens**（reasoning 单列），同输入（`/tmp/prompt-r53-4.txt`）、**n=3 取中位数**、**中位数下降 > 15% 才算通过**。基线三跑 out = `77,939 / 73,504 / 61,764` → **中位数 73,504，阈值 < 62,478**；wall `419 / 418 / 365` s。
 - **本地门禁（改动后全绿）**：`mutations.py` arm a **44/44** + arm b **12/12** + `never flipped []` + `GATE: PASS`；`test-skill-scripts.py` **62**（删 2 条 8 字豁免测试、新增 1 条「不再因共享散文片段告警」、1 条 line 空 `group` 改为「只告警 + `--strict` 才失败」）；`test-check-report.py` 25；`test-build-ledger-scaffold.py` 9；`test-render-facts.py` 28；`test_regressions.py` 35；`test-runner.py` 41；`test_pack_dist.py` 5；`test_replay_run.py` 14；Node **16/16**；`verify-run-chain.py` `GATE: PASS`（5 可比）。
-- **打包**：dist `multi-clinical-result-comparison-v0.16.zip` **155,133 B / `35248cb29461`**，`--check` IDENTICAL；`status` = **OUT OF SYNC**（14 entries：10 份文档 + `check_report.py`/`make_chart.py` + R54 的 `build_ledger.py`/`render-facts.py`），**尚未发布**。
+- **打包**：dist `multi-clinical-result-comparison-v0.16.zip` **155,133 B / `35248cb29461`**，`--check` IDENTICAL（发布用件为 **155,216 B / `defefed872c8`**，差异为发布前最后一次打包）。
 **已发布**：`deps` 无变化；`publish` 原地更新 —— prompt v1.8 **76,477 B / `c4bb1a7b3ee1`**，skill v1.0.9 `is_current=True`、回读 **26/26 identical / in sync**（同批带入 R54 的 `build_ledger.py`/`render-facts.py`）。
 
 **n=3 实测结果（2026-10-12 17:11–17:18）**：out_tokens `[77,939 / 73,504 / 61,764]`（基线）vs `[63,811 / 70,187 / 71,778]`（实测）→ **中位数 73,504 → 70,187 = −4.5%**，门槛 **< 62,478（−15%）** → **指标 FAIL**。wall 中位数 418 → 419 s 持平；reasoning 字符中位数 147,607 → 153,339 持平。三跑各 21 PASS / 1 FAIL（唯一 FAIL 为平台侧 `tool_results receipts archived`），产物完整——**无质量退步**。
-- **关键反证**：三跑工具输出里 **`FINDINGS (` / `WARN:` 命中 0 条** —— 被降级/删除的路径在这组输入上**根本没被触发**。故「建议项 → 修复轮次」触发率低、单次成本约 1 轮（wall 的 ~5%），**无法解释输出 token 主体**。
+- **关键反证（2026-10-12 修正）**：初判「命中 0 条」是**我自己解析脚本 bug 的假象**——工具调用的实参/结果在 `part["input"]` / `part["output"]`，不在 `part["text"]`，而初扫只看了 `text`。按正确字段重扫：**sub-2 真实触发 16 条门禁输出**（`WARN: facts[20/23/26/29/32/34/36/38] … has no `arm``，8 条事实缺 arm），**非阻塞、正常交付** —— 这同时**真跑验证了 R54 的宽松化**（此前 12 次近期运行中 11 次因它 exit 3 → 模型编造 arm）；而**被 R55 降级/删除的路径（`check_report` exit 4 / `make_chart` 完整性检查）在这组输入上确实一次未触发**。故假设①仍被否，但依据是**量级不匹配**（触发率低 + 单次约 1 轮 ≈ wall 的 5%），不是「一次都没发生」。
 - **结论：假设①（门禁是耗时主因）被否。** 作为**正确性**修复仍成立（8 字启发式已证伪的假阳性：`RMONi-6（` / `一线晚期鳞状非小`）；keep/revert 待用户裁决，我方建议 **keep**（净删规则 + 指标无退步）。
 - **方法论沉淀**：同输入 output_tokens 方差 ±20–40% > 我们追过的每个效应；**n=3 中位数测不出 <20% 的效应**，只有结构性改动值得测。
 - **下一杠杆候选（hypothesis ③）**：45 条事实 × 15 字段手工撰写 + 引文自查，占三跑 reasoning 约 1/3，且**不依赖门禁**（模型自发勤勉）；这是唯一还能动指标的杠杆，也是 R52 失败过的领域，需先设计比 R52 更硬的验收。
