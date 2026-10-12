@@ -2233,3 +2233,76 @@ run 目录：`~/.local/state/toolsmith-runs/20260917-141451-webflag-on`、`20260
 ### 平台侧（转开发）
 
 - 本轮无新平台缺陷。R48 已记的「工具结果过大时平台建议 `read_file(offset=…, limit=…)` 分块重读」仍是 O46 的诱发源（r50-a / r50-a2 各 11 / 9 次 `read_file`，未再越界）。
+
+## R51 — 部署端时间轴不编码任何东西：撤掉 `weight` / `weightLegend` / `legend` / `shape` / `group` / `width` / `height`（2026-10-12，本地全绿 + 原地发布 + 固定三组真跑）
+
+**用户口径**：*「这个 `weight` 字段必须移除，部署端时间轴 JSON 不支持 `weight` 大小」*。
+
+### 问题定性（读者被暗示了一个不存在的编码）
+
+本 skill 的时间轴图模板与文档此前把 `weight` 当作「证据成熟度」编码（宣称「圆点大小 = 成熟度」，并配 `weightLegend` 图例），把 `legend[].shape` 当作节点形状编码。**部署端渲染器根本不实现这些**——读者会以为「大点 = 证据更硬」，而实际所有节点长得一模一样。
+
+### 部署端证据链（权威，2026-10-12 实测）
+
+| 项 | 事实 |
+|---|---|
+| 上游 family / current | `ee7d944445134cbba5771714f2188cb1` · 版本标签 `1.0.12` · id `1506a6ac693746f299055ee198abf697` · `updated=2026-09-21T11:58:40` |
+| 部署端 `templates/timeline.json` | `weight` / `weightLegend` 出现 **0 次** |
+| 渲染 bundle | `…/20260921-085926/static/index-9EvceNR0.js`（288,806 B）：节点构造**硬编码 `{ r: dm, shape: "circle" }`（`dm = 3`）**；DOM 节点 dot = `.mf-ai-charts-timeline-dot{width:6px;height:6px;…border-radius:50%}`（**固定 6×6 灰圆点，无 group/color/shape 类**） |
+| 时间轴图例 | 渲染器 = **`function Fm(){ return [] }`（空数组）** ⇒ 时间轴**不渲染任何图例**；`empty-circle` 只是 legend swatch 的类名 `mf-ai-charts-legend-empty` |
+| ⇒ 结论 | `weight` / `weightLegend` / `legend`（含 `shape`）/ `group` 对时间轴**零视觉效果**；`width`/`height` 上游新模板也已移除（固定 920px 在窄容器会溢出） |
+| 上游校验器 | 故意造带 `weight`+`weightLegend` 的 spec 跑新 `validate-cli.js` ⇒ **`exit=0`、零 warning**；`references/schemas/timeline.js` 仍保留 `weight`（`z.number().min(0).optional().default(0)`）与 `weightLegend` |
+
+**⇒ `schema 允许 ≠ 渲染生效`，上游不会拦这个回归，必须本 skill 自建门禁。** 另经此查证发现部署端 `iframe_template` 已指向 `20260921-085926` 构建（平台**原地更新了同一版本号**，见 O50）。
+
+### 本轮改了什么（7 个 bundle 文件）
+
+| 文件 | 改动 |
+|---|---|
+| `templates/charts/evidence-timeline.json` | 整体重写：删 `weight`/`weightLegend`/`legend`/`group`/`width`/`height`，键序收敛为 `_comment`/`type`/`title`/`subTitle`/`dataSource`/`describe`/`data`；`describe` 写死「**竖向列表：数组顺序即时间顺序（自上而下）、模板不重排、节点等大等形、不渲染图例；大小/形状/颜色都不作编码**，成熟度与分类判断一律写进正文与节点文字」 |
+| `references/timeline-diagram.md` | 新增**构建规则第 8 条硬规则**（禁止 `weight`/`weightLegend`/`legend`，拒绝面含「成品与相关文字表述」）；删示例中全部已死字段；顺带修正此前「从左到右」的顺序误述（DOM 是 flex column ⇒ **自上而下**） |
+| `references/chart-templates.md` | 表格单元描述 / 字段清单 / 退出码 `3` 清单 / 「数据填充约束」段同步；`value` 的说明删掉「timeline 的图例 key」 |
+| `scripts/make_chart.py` | **阻断层**（exit 3、不写文件）：row `weight` / row `shape` / spec `weightLegend` / spec `legend` 四类 findings；docstring 同步 |
+| `scripts/check_report.py` | **成品+正文层**（findings、exit 3）：图表 JSON 同四类；另加报告级文本守卫 `CHART_ENCODING_CLAIM_RE = 节点大小\|圆点大小\|节点权重\|权重图例\|节点形状\|形状编码\|大小编码\|空心圆\|实心圆`（挂在 `_meta_narration_findings`，label = `chart cue that does not exist`） |
+| `templates/charts/endpoint-bar.json` / `endpoint-line.json` | 三个骨架的 `subTitle` 缩到上游新字宽上限内（≤32），消掉生产 run 里的上游 `⚠` |
+| `vendor/` | 新增 `chart-visualization-json/1.0.12-20260921/`（48 文件 / 源包 64,214 B / SHA-256 `423c50a5c857…`）+ `vendor/README.md` 记录「同一版本号被原地更新」与更新流程步 3 纪律 |
+
+**刻意保留（不误伤）**：`group` **不拒收**（bar/line 合法、timeline 上惰性不误导，仅在文档注为「上游保留字段、本 skill 不用」）；报告模板里作为**内容术语**的「证据成熟度」保留；裸 `图例` 不进守卫词表（59 份历史产物回扫，唯一命中的 `r37:191`「正文、表格与图例采用原文的『双盲』」是合法用例）；`PROJECT_STATE.md:869` 那条废弃 HTML 路线里的旧表述保留原文，由新快照节声明其已退役。
+
+### 本地门禁（全绿）
+
+`mutations.py` arm a **44/44** + arm b **12/12** + `never flipped []` + `GATE: PASS`；`test-render-facts.py` **28** OK；`test-skill-scripts.py` **54 → 58**（+4：`weight` 被拒文案、`legend`+`shape` 被拒且不写文件、骨架与两份 reference 文档不得再出现已退役字段）；`test-check-report.py` **20 → 25**（+5：`weight` / `legend`+`shape` 被拒、正文声称不存在的图表编码 ⇒ exit 3）；`test-build-ledger-scaffold.py` 9；`test_regressions.py` 35；`test-runner.py` 41；`test_pack_dist.py` 5；`test_replay_run.py` 14；`node --test 'test/*.test.mjs'` **16 pass / 0 fail**。**计数 = 41 + 35 + 19 + 16 + 58 + 25 + 9 = 203**（含 numeric-integrity 28 = **231**）。
+
+**反回潮断言**（非空产物式）：`test_shipped_timeline_assets_stop_encoding_maturity_as_node_size` 直读骨架 JSON 文本，断言 `weight`/`weightLegend`/`legend`/`group`/`shape`/`width`/`height` **一个都不出现**，并对两份 reference 文档断言 `weight 驱动`、`"weight": `、`"weightLegend": `、`"legend": `、`weight 0–N`、`weight=0`、`weight=证据成熟度`、`大小=证据成熟度`、`节点分类形状`、`legend.shape 决定节点形状`、`` `legend[].key` `` 全部不存在 —— 文档侧不能悄悄回潮。
+
+**打包**：`pack-dist.py --check` → `DIFFERS`（151,330 → 152,558 B，预期）→ 重打 → **152,558 B / 26 entries / sha256 `081cd850befc`** → `--check` **IDENTICAL**（`EXPECTED` 仍 26，本轮不新增 bundle 文件）。
+
+### 发布（原地，版本标签不变）
+
+`deps` = `unchanged since the recorded baseline`（⚠ 但见 O50）；`push-skill --version 1.0.8` → **HTTP 200 / mode=in-place / `is_current=True` / skill_id `cd93a42af72b4828b1690b3a7bccfa06` 不变**（zip 152,558 B / `081cd850befc` / 26 entries）；**prompt 一字未动**（本地 v0.16 = 76,578 B / `bf7b45dbf5d0` = 线上 v1.7）；`status` = **in sync**（`entries=26 identical=26 differing=0 missing-locally=0`）。护栏：skill family `9fe0035bdd324b998436c6cb9c2de212`（属主 = 徐佩佩）。
+
+### 真跑：固定三组回归（4 / 18 / 14 esid，输入逐字节复用 R48 → R50 的 `/tmp/r50/p-{4,18,14}.txt`，2026-10-12 10:49–11:11）
+
+| run | 目录 | thread | 墙钟（server / polled） | tool calls | 交付物 | runner 断言 |
+|---|---|---|---|---|---|---|
+| r51-4 | `…/20261012-104926-r51-4` | `3f58a744-…` | 309.2 / 318.6 s | **23**（execute×13 / read_file×5 / write_file×2 / load_skill×1 / params×1 / present_artifact×1） | report + citations + `evidence-timeline.json` | **22 PASS / 0 FAIL / exit 0** |
+| r51-18 | `…/20261012-105457-r51-18` | `44aa54bf-…` | 462.9 / 464.7 s | 36（execute×20 / read_file×11 / write_file×2 / load_skill×1 / params×1 / present_artifact×1） | report + citations + `endpoint-bar-1.json` | **22 PASS / 0 FAIL / exit 0** |
+| r51-14 | `…/20261012-110252-r51-14` | `95264ebb-…` | 494.7 / 500.9 s | 38（execute×20 / read_file×11 / grep×2 / load_skill×1 / ls×1 / params×1 / write_file×1 / present_artifact×1） | report + citations + `endpoint-bar-1/2.json` + `endpoint-line-1.json` | **22 PASS / 0 FAIL / exit 0** |
+
+**产物侧核对（本轮核心）**：
+
+- **时间轴骨架已无任何已死字段**：r51-4 的 `evidence-timeline.json` 顶层 = `{id, iframe_template, option}`，`option` = `{type,title,subTitle,dataSource,describe,data}`，两行 data 的键 = `label` / `content` / `description` / `time` —— **`weight` / `weightLegend` / `legend` / `group` / `shape` / `width` / `height` 一个都没有**。
+- **`iframe_template` = `…/20260921-085926/iframe-template.json`** ⇒ 生产 run 实际取的就是本轮核对过的那个新构建（部署端与本地结论同源）。
+- **正文侧无「声称不存在的编码」**：三组报告过 `check_report.py`，`chart cue that does not exist` 零命中；`report voice` 组绿（余下 FAIL 仅为本地回放的 `::visualization target does not exist` —— `/workspace/…` 绝对路径在本地必然不存在，已知回放假 FAIL）。
+- bar/line 的 `"group"` 命中（`"group": false` 与 line 的队列标签）属**合法用法**，与 timeline 无关；守卫只在 `chart_type == "timeline"` 时生效。
+
+### 我方能改的
+
+| 项 | 现象 + 证据 | 改法 | 状态 |
+|---|---|---|---|
+| **O50** | **`deps` 只比版本标签 ⇒ 上游「原地更新同一版本号」检测不到**：本轮 `deps` 报 `unchanged since the recorded baseline`，而部署端 `chart-visualization-json` 的 `1.0.12` 已从 20260914 构建换成 **20260921 构建**（47 文件 / 54,684 B → **48 文件 / 64,214 B**，新增 `docs/development.md`，`config.js` 的 `IFRAME_TEMPLATE` 换目录，4 个模板 envelope 删 `width`/`height`，`validate.js` 新增只有 warning 级的标题字宽/元标签检查）。**发现路径 = 用户投诉 → 手动拉部署端 zip + diff 本地 vendor 快照**；无人投诉就会静默漂移，日后核对渲染行为会得出错误结论 | `vendor/` 同一版本号的第二次构建**另起目录**（`1.0.12-20260921/`，本轮已落 + README 记源包 SHA/文件数/`IFRAME_TEMPLATE`/「平台 current 仍标同版本」）；部署端行为以**下载到的 zip 与渲染 bundle** 为权威、不以 `deps` 的 `unchanged` 为权威；`vendor/README.md` 更新流程加步 3 纪律 | 📝 **待应对（runner 侧不可改：比较语义在 `toolsmith-publish` 内部）**，本轮已完成留档与纪律 |
+| O40 / O44 / O46 / O47 / O49 | 见 O 表 | — | 📝 待样本 / 待复现 |
+
+### 平台侧（转开发）
+
+- 本轮无新平台缺陷。**上游 `chart-visualization-json` 侧值得转达的一条**：时间轴的 `weight` / `weightLegend` / `legend` / `shape` 在 schema 里仍是合法字段、`validate-cli.js` 也放行（exit 0、零 warning），但渲染器（`{r:3, shape:"circle"}` 硬编码 + `Fm(){return []}` 空图例）**完全不实现** ⇒ 下游 skill 会写出「读者以为有编码、实际没有」的产物。建议二选一：schema/校验器对 timeline 拒收这些字段，或在文档里明确「timeline 不支持 size/shape/legend 编码」。
