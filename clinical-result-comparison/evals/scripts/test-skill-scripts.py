@@ -484,12 +484,17 @@ class Sandbox(unittest.TestCase):
         self.assertIn('"validation": "unavailable"', proc.stdout)
         self.assertTrue((self.root / "visualizations" / "endpoint-bar-1.json").is_file())
 
-    def test_make_chart_requires_a_group_on_a_line_row(self):
+    def test_make_chart_only_warns_about_a_missing_group_on_a_line_row(self):
+        # R55: an empty `group` is a completeness advisory, not a structural one — the series plots
+        # fine, so it must not cost a turn.  `--strict` stays as the opt-in escape hatch.
         spec = {"type": "line", "file": "endpoint-line-1.json", "title": "t", "subTitle": "s",
                 "dataSource": "d", "describe": "x", "data": [{"label": "第 36 周", "value": -70.5,
                                                               "description": "Lp(a) 变化{{ref_2}}"}]}
-        proc = self.chart(spec, expect=3)
-        self.assertIn("group is empty", proc.stderr)
+        proc = self.chart(spec, expect=0)
+        self.assertIn('"warnings": ["data[0].group is empty', proc.stdout)
+        self.assertTrue((self.root / "visualizations" / "endpoint-line-1.json").is_file())
+        strict = self.chart(spec, "--strict", expect=3)
+        self.assertIn("STRICT: warnings treated as failures", strict.stderr)
 
     def test_make_chart_rejects_a_timeline_weight_encoding(self):
         spec = {"type": "timeline", "file": "evidence-timeline.json", "title": "t", "subTitle": "s",
@@ -684,18 +689,13 @@ class Sandbox(unittest.TestCase):
             "# 报告\n\n依洛尤单抗{{ref_1}}（本次运行环境无外网）\n\n"
             "## 附录：证据对齐矩阵（数值事实账本）\n\n"
             "| 维度 | **NCT02729025**<br>2 条披露 |\n| --- | --- |\n| 入组例数 | 129 例{{ref_1}} |\n"))
-        self.assertEqual(self.check(logistic, expect=4).returncode, 4)
+        self.assertEqual(self.check(logistic, expect=0).returncode, 0)
 
-    def test_check_report_exempts_registry_ids_from_the_shared_run_rule(self):
-        paths = self.delivery_fixture(chart=self.chart_envelope({
-            "type": "bar", "title": "两组变化并列展示", "subTitle": "并列展示不等于头对头比较",
-            "dataSource": "本地数值事实账本", "describe": "按组展示",
-            "data": [{"label": "NCT02729025 · 依洛尤单抗组", "value": -8.3,
-                      "description": "NCT02729025 组较基线变化{{ref_1}}"}]}))
-        proc = self.check(paths, expect=0)
-        self.assertNotIn("shares an 8-character run", proc.stdout)
-
-    def test_check_report_still_warns_about_a_duplicated_prose_run(self):
+    def test_check_report_no_longer_warns_about_a_shared_prose_run(self):
+        # R55: the 8-character shared-run heuristic was unsound here — this domain is full of long
+        # shared proper nouns (trial / drug / indication / arm names), and the rule made the model
+        # simulate a longest-common-substring search by hand.  The rule is gone; the numeric
+        # ownership rules (a chart never restates its own plotted values) stay.
         paths = self.delivery_fixture(
             chart=self.chart_envelope({
                 "type": "bar", "title": "两组变化并列展示", "subTitle": "并列展示不等于头对头比较",
@@ -707,23 +707,7 @@ class Sandbox(unittest.TestCase):
                 "## 附录：证据对齐矩阵（数值事实账本）\n\n"
                 "| 维度 | **NCT02729025**<br>2 条披露 |\n| --- | --- |\n"
                 "| 终点覆盖 | 该终点尚未在对照组评估{{ref_1}} |\n"))
-        proc = self.check(paths, expect=4)
-        self.assertIn("shares an 8-character run", proc.stdout)
-
-    def test_check_report_exempts_ledger_declared_names_from_the_shared_run_rule(self):
-        # Arm / identity names from the run's own ledger are names, not duplicated prose.
-        paths = self.delivery_fixture(
-            chart=self.chart_envelope({
-                "type": "bar", "title": "两组变化并列展示", "subTitle": "并列展示不等于头对头比较",
-                "dataSource": "本地数值事实账本", "describe": "按组展示",
-                "data": [{"label": "安慰剂每月一次组", "value": -5.3,
-                          "description": "安慰剂每月一次组变化{{ref_1}}"}]}),
-            report_body=(
-                "# 报告\n\n依洛尤单抗{{ref_1}}\n\n"
-                "## 附录：证据对齐矩阵（数值事实账本）\n\n"
-                "| 维度 | **NCT02729025**<br>2 条披露 |\n| --- | --- |\n"
-                "| 安慰剂每月一次组 | -5.3 %{{ref_1}} |\n"))
-        proc = self.check(paths, expect=None)
+        proc = self.check(paths, expect=0)
         self.assertNotIn("shares an 8-character run", proc.stdout)
 
     def test_check_report_warns_about_a_duplicated_ref_inside_one_cell(self):
@@ -731,8 +715,9 @@ class Sandbox(unittest.TestCase):
             "# 报告\n\n依洛尤单抗{{ref_1}}\n\n## 附录：证据对齐矩阵（数值事实账本）\n\n"
             "| 维度 | **NCT02729025**<br>2 条披露 |\n| --- | --- |\n"
             "| 入组例数 | 129 例{{ref_1}}；101 例{{ref_1}} |\n"))
-        proc = self.check(paths, expect=4)
+        proc = self.check(paths, expect=0)
         self.assertIn("cites the same ref more than once", proc.stdout)
+        self.assertIn("WARN:", proc.stdout)
 
     # -- the chain the model actually runs ------------------------------------------------
     def test_end_to_end_chain_produces_a_delivery_the_real_gate_accepts(self):

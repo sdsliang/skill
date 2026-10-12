@@ -1,5 +1,22 @@
 # Project State
 
+## R55 — 建议项不再阻塞（2026-10-12，本地实现完成 + 本地门禁全绿，**未发布**，待授权实测）
+
+**起因（第一性复盘，「越修越慢」）**：132 个 run 目录（96 份 `usage.json`）回归得 `wall ≈ 34 s + 0.00536 s × output_tokens`，**R² = 0.936、corr(out)=0.967**（reasoning 0.911 / steps 0.862 / in_tokens 0.890）——**运行时长基本等于输出 token 数**。此前所有提速改动都在压工具调用次数（steps 从 45–65 降到 20–28，但每步耗时 9.2 s → 12–18 s，**净持平**），**优化错了变量**。「越修越慢」本身**不成立**（全史 wall 平在 300–690 s，无单调趋势）；真实的三件事是：(a) 同输入方差 ±20–40%，大于我们追过的每一个效应；(b) 步数减半、每步翻倍；(c) **R48（`b5a8282`）引入的门禁层是全史唯一产生修复轮次的来源**（`FINDINGS (` / `WARN:` 在 R33–R47 为 0，R48 起才出现），修复轮次占 wall 的 2–15%。
+
+**归因证据（4c，26 段 reasoning，136,083 字符）**：msg[14] 22,793 字符是**模型手算 `check_report` 的「8 字连续相同」最长公共子串**；msg[11] 54,141 字符是把 45 条引文逐条对回原文；msg[13] 4,619 字符是在纠结设计类事实的 `arm`。三者 ≈ 81 K 字符 ≈ 23 K token ≈ 输出 token 的 37%，**全部是 fail-closed 门禁逼出来的写前自检**。
+
+- **改法（只做减法，不新增规则）**：
+  1. **致命度分级**——`check_report.py`（582 → 491 行）删除整块软性 8 字启发式（`SHINGLE`/`REGISTRY_RX`/`MASK`/`_atomic_note`/`_shingles`/`NAME_SPLIT_RE`/`_known_names`/`_is_name_shingle`/`_chart_strings` 及 `--ledger`/`--refs` 两个参数），`return 4 if warnings else 0` → **`return 0`**：**WARN 不再改退出码**，只有真 finding 才 exit 3。
+  2. **`make_chart.py` 完整性检查降级**：空 `label`、空 `description`（timeline / bar / line）、line 空 `group` 从 findings 移到 warnings（exit 0、成品照写）；结构性/数值/x 轴锚点/weight/shape/legend/envelope 检查**一条未动**。
+  3. **文档**：8 字规则从全部 6 处文档（`SKILL.md`、`chart-templates.md`、`same-trial-evolution.md`、`timeline-diagram.md`、`toolbox.md`、4 个模板中的 3 个）与 prompt v0.16 中删除；`toolbox.md` 新增「两级输出 / 绝不预检建议项」段落（FAIL 表 + WARN 表 + 硬规则「写之前不要预检任何建议项：先写、再跑、只修 FAIL」）。
+- **为什么删掉而不是留作警告**：**有它存在（哪怕只是警告）才会让模型手算 LCS**；规则一旦写进文档就要被逐字满足。删除不丢正确性保证——「表是数值唯一出处」另有 `_chart_table_findings` / `_digits_without_anchor` 与 `label`/`content` 长度限制独立看守。
+- **指令面净变化**：`+10,712 B / -10,310 B`（.md 净 **+402 B**，行数 `+39 / -25`）——**基本持平而非瘦身**；真正的收益是**行为**（不再写前自检）与 validator 代码 **-91 行**。诚实记录：这不是「指令瘦身」，是指令语义反转。
+- **实测协议（先定后改）**：指标 = **output_tokens**（reasoning 单列），同输入（`/tmp/prompt-r53-4.txt`）、**n=3 取中位数**、**中位数下降 > 15% 才算通过**。基线三跑 out = `77,939 / 73,504 / 61,764` → **中位数 73,504，阈值 < 62,478**；wall `419 / 418 / 365` s。
+- **本地门禁（改动后全绿）**：`mutations.py` arm a **44/44** + arm b **12/12** + `never flipped []` + `GATE: PASS`；`test-skill-scripts.py` **62**（删 2 条 8 字豁免测试、新增 1 条「不再因共享散文片段告警」、1 条 line 空 `group` 改为「只告警 + `--strict` 才失败」）；`test-check-report.py` 25；`test-build-ledger-scaffold.py` 9；`test-render-facts.py` 28；`test_regressions.py` 35；`test-runner.py` 41；`test_pack_dist.py` 5；`test_replay_run.py` 14；Node **16/16**；`verify-run-chain.py` `GATE: PASS`（5 可比）。
+- **打包**：dist `multi-clinical-result-comparison-v0.16.zip` **155,133 B / `35248cb29461`**，`--check` IDENTICAL；`status` = **OUT OF SYNC**（14 entries：10 份文档 + `check_report.py`/`make_chart.py` + R54 的 `build_ledger.py`/`render-facts.py`），**尚未发布**。
+- **未做（待授权）**：发布后跑 n=3 实测并比对 62,478；通过则 keep、不通过则把旧内容原地写回。`aa41ac9`（R54 arm/unit）是否随本批一起发布待定——它是「让校验器接受自己的产物」，与本轮「减法」同向，建议随批发布。
+
 ## R54 — 空 `arm`/`unit` 门禁修复（2026-10-12，本地完成，待授权发布）
 
 **真实根因（比初判更深）：`build_ledger.py --scaffold` 自己产出空值，编译路径再把它们判死。**

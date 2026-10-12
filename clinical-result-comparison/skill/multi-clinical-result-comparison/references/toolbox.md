@@ -12,6 +12,20 @@ invoke each script by its full path — `python3 /workspace/skills/multi-clinica
 does **not** resolve from cwd `/workspace`. Below, `scripts/<name>.py` is shorthand for that
 directory. Defaults are the contract paths; pass an explicit flag only to deviate.
 
+## Two levels of output — and what you never pre-verify
+
+Every script here separates **FAIL** from **WARN**, and the exit code follows that split:
+
+| level | meaning | exit | what you do |
+| --- | --- | --- | --- |
+| `FAIL` / `FINDINGS (n) — nothing written` | provenance or structure is broken: a value that is not in its quote, a quote that is not in its source, a broken `{{ref_n}}`, a malformed envelope, a non-numeric value | `3` | stop, fix the input, re-run — the file was **not** written |
+| `WARN` / `advisory` | completeness or style advice: an empty caption, a chart the report never references, a cell repeating a ref, run-logistics wording | `0` | the artifact is written and deliverable — **do nothing**, it is not a failure |
+
+**Never pre-verify an advisory.** Hand-simulating a completeness or style rule while writing —
+before the script has run — costs more output tokens than this whole mechanical layer, and it
+cannot come out right: the scripts own those rules. Write the artifact, run the script once, act
+on the `FAIL`s. A `WARN` you never act on is a normal, finished run.
+
 | Step | Script | Writes |
 | --- | --- | --- |
 | Pull → readable sources + ref inventory | `scripts/prep_sources.py` | `work/sources/ref_<n>.txt`, `work/refs.json` |
@@ -212,12 +226,13 @@ python3 scripts/make_chart.py work/charts/endpoint-bar-1.json
   in the report), `evidence-timeline.json`. A `file`/`type` mismatch or a slug name exits 2.
 * `--sort auto|none|value-desc|value-asc|time-asc` (defaults: bar `value-desc`, line `none`,
   timeline `time-asc`), `--strict` (warnings become failures), `--dry-run`, `--json`.
-* Exit `0` written and validated · `3` structural finding, nothing written (missing label/
-  description, empty or non-numeric `data`, a timeline event without `time`, a line row without
-  `group`) · `4` written but the validator is unavailable — say so, never call it validated · `2`
-  usage/IO.
-* Warnings only (on stderr): label > 18 / content > 16 characters, and a digit outside the `time`
-  anchor in a timeline row (registry ids such as `NCT02729025` are exempt). `--strict` fails them.
+* Exit `0` written (that includes a run that only warned) · `3` structural finding, nothing written
+  (empty or non-numeric `data`, a timeline event without `time`, a `file`/`type` mismatch) · `4`
+  written but the validator is unavailable — say so, never call it validated · `2` usage/IO.
+* Warnings only (on stderr, exit stays `0`): an empty `label` / `description` / `group`, label >
+  18 / content > 16 characters, and a digit outside the `time` anchor in a timeline row (registry
+  ids such as `NCT02729025` are exempt). Never pre-check these while writing the spec; `--strict`
+  is the opt-in switch that turns them into failures.
 
 ## 6. `make_citations.py` — the citation JSON
 
@@ -240,9 +255,9 @@ python3 scripts/make_citations.py --report … --full-text ref_2=https://pmc.ncb
 ## 7. `check_report.py` — the mechanical pre-delivery pass
 
 ```
-python3 scripts/check_report.py -v            # then fix what it printed and re-run
-# 图表与表格共享 8 字片段的 WARN 会自动豁免 work/ledger.json 与 work/refs.json 里已声明的
-# 试验名 / 组别 / identity 段 / 适应症；剩下的才是真重复，改掉即可，不要为名字再跑一轮
+python3 scripts/check_report.py -v            # then fix what FAILED and re-run
+# WARN 不阻塞（exit 仍是 0），也不要在写之前预检它们：先写、再跑、只修 FAIL。
+# 只有 --help 里写明会 fail-closed 的开关（如 make_chart.py --strict）才把建议当致命。
 ```
 
 Checks the report text (unresolved `[[fact:…]]` tokens, `{{…}}` braces that are not `ref_n`
@@ -255,8 +270,7 @@ chart products (envelope keys exactly `{id, iframe_template, option}`, non-empty
 file name, and that every `::visualization` target exists under the fixed prefix), plus internal
 leaks in the delivered text (`source_file`, `tool_results`, `esid`, `/workspace/work/`, a
 `ledger|facts.json` path, a Mermaid block). Warnings only: run-logistics wording, a chart product
-never referenced by the report, a table cell citing the same ref twice, and chart text sharing an
-8-character run with a table cell (registry ids and citation-title text are exempt).
+never referenced by the report, and a table cell citing the same ref twice.
 
 **FAIL** rules that keep one number in one place and the appendix renderer-owned:
 
@@ -279,8 +293,9 @@ never referenced by the report, a table cell citing the same ref twice, and char
   line, both written as material statements. Broad self-reference (`本报告` / `本次`) is a warning,
   not a failure.
 
-Exit `0` all green · `3` at least one FAIL · `4` warnings only · `2` usage/IO. Run it **before**
-`present_artifact`; the run is not finished while it reports a FAIL.
+Exit `0` — nothing fatal (warnings are printed and do **not** change the exit code) · `3` at least
+one FAIL, the product is broken · `2` usage/IO. Run it **before** `present_artifact`; the run is
+not finished while it reports a FAIL. Fix FAILs only.
 
 ## Questions this file answers so you never read the scripts
 

@@ -40,8 +40,10 @@ turns them into failures.  After writing, the upstream CLI
 a stale local copy of the chart skill is not accepted (exit 4 = validator unavailable, product
 written but unvalidated: say so instead of citing it as validated).
 
-Exit codes: 0 written and validated; 3 structural finding (nothing written); 4 written but the
-validator was unavailable; 2 usage / IO.
+Exit codes: 0 written (a WARN-only run is still 0); 3 structural finding (nothing written); 4
+written but the validator was unavailable; 2 usage / IO.  Completeness gaps (empty
+label/description/group, over-length text) print WARN and never change the exit code — do not
+pre-check them before writing the spec.
 """
 
 from __future__ import annotations
@@ -197,12 +199,13 @@ def main(argv: list[str] | None = None) -> int:
             findings.append(f"data[{index}] is not an object")
             continue
         if not str(row.get("label") or "").strip():
-            findings.append(f"data[{index}].label is empty")
+            warnings.append(f"data[{index}].label is empty (advisory: the chart still renders)")
         if kind == "timeline":
             if not str(row.get("time") or "").strip():
                 findings.append(f"data[{index}].time is empty (a timeline event needs its date anchor)")
             if not str(row.get("description") or "").strip():
-                findings.append(f"data[{index}].description is empty (relationship + maturity + {{ref_n}})")
+                warnings.append(f"data[{index}].description is empty (relationship + maturity + {{ref_n}}) "
+                                f"— advisory: the node still renders on its time anchor")
             if len(str(row.get("label") or "")) > MAX_LABEL:
                 warnings.append(f"data[{index}].label is {len(str(row['label']))} chars (limit {MAX_LABEL})")
             if len(str(row.get("content") or "")) > MAX_CONTENT:
@@ -224,9 +227,10 @@ def main(argv: list[str] | None = None) -> int:
             if not isinstance(value, (int, float)) or isinstance(value, bool):
                 findings.append(f"data[{index}].value must be a number (got {value!r})")
             if not str(row.get("description") or "").strip():
-                findings.append(f"data[{index}].description is empty")
+                warnings.append(f"data[{index}].description is empty (advisory: the value still plots)")
             if kind == "line" and not str(row.get("group") or "").strip():
-                findings.append(f"data[{index}].group is empty (a line needs its cohort/treatment group)")
+                warnings.append(f"data[{index}].group is empty (a line names its cohort/treatment group) "
+                                f"— advisory: the series still plots")
 
     if kind == "timeline" and spec.get("weightLegend") is not None:
         findings.append(

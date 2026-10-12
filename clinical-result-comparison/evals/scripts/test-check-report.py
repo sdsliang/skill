@@ -207,7 +207,7 @@ class CheckReportTests(unittest.TestCase):
         self.chart()
         self.report_text("## 一、范围\n\n本报告不把两组拼成头对头比较。\n" + self.base_body())
         proc = self.run_check()
-        self.assertEqual(proc.returncode, 4, proc.stdout + proc.stderr)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertIn('"findings": []', proc.stdout)
         self.assertIn("refers to itself", proc.stdout)
 

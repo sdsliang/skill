@@ -13,7 +13,8 @@ or a `::visualization` reference pointing at nothing.
         --citations /workspace/output/citations.json --charts-dir /workspace/visualizations -v
 
 Fixed defaults are the delivery contract paths, so a bare run is the normal case.  Exit codes:
-0 all checks pass; 3 at least one finding (fix before delivering); 4 warnings only; 2 usage/IO.
+0 nothing fatal (warnings are printed and never change the exit code); 3 at least one finding
+(fix before delivering); 2 usage/IO.
 """
 
 from __future__ import annotations
@@ -72,27 +73,10 @@ INTERNAL_VOCAB_RE = re.compile(r"\bsrc\s*=\s*\d|\bpayload\b|\bJSONL\b|\bMCP\b|�
 CHART_ENCODING_CLAIM_RE = re.compile(
     r"节点大小|圆点大小|节点权重|权重图例|节点形状|形状编码|大小编码|空心圆|实心圆")
 SELF_REFERENCE_RE = re.compile(r"本报告|本文档|本工具|本流程|本管线|本交付物|本次(?!披露)")
-SHINGLE = 8
 CHART_NUMBER_RE = re.compile(r"[-+−]?\d+(?:\.\d+)?")
 CHART_UNIT_SUFFIX_RE = re.compile(r"\s*(?:mg/?|周|天|月|年|例|名|岁|nmol/L|mmol/L|每)(?![A-Za-z])", re.IGNORECASE)
 # Chart prose must not repeat plotted values; dose/time/count units are allowed context.
 # 表格重复只在图表所属正文 section 生效，附录是事实账本，不参与判断。
-
-# A registry id (or any code-like token) is a proper name: two rows that both name the same trial
-# are supposed to look alike, so ids are masked out before shingles are compared.
-REGISTRY_RX = re.compile(r"[A-Za-z]{2,}[-\s]?\d{4,}[A-Za-z-]*")
-MASK = "\x00"
-
-
-def _atomic_note(text: str) -> str:
-    return re.sub(r"\s+", "", text)
-
-
-def _shingles(text: str) -> set[str]:
-    compact = REGISTRY_RX.sub(lambda match: MASK * len(match.group()), _atomic_note(text))
-    return {compact[i:i + SHINGLE] for i in range(max(0, len(compact) - SHINGLE + 1))
-            if MASK not in compact[i:i + SHINGLE]}
-
 
 def _chart_number_tokens(text: str) -> list[tuple[str, float, int]]:
     tokens: list[tuple[str, float, int]] = []
@@ -246,55 +230,6 @@ def _table_cells(report: str) -> list[str]:
     return cells
 
 
-NAME_SPLIT_RE = re.compile(r"[+＋、/／｜|（）()·,，;；]|\bvs\b|对比")
-
-
-def _known_names(ledger_path: Path, refs_path: Path) -> tuple[set[str], set[str]]:
-    """Names the run already declared: trial / study / arm / identity segments / indication.
-
-    Returns (whole compact names, name tokens >= 4 chars).  A chart and a table naming the same
-    trial, drug or disease is expected; only prose and values must not be duplicated.
-    """
-    raw: list[str] = []
-    try:
-        ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
-        for record in ledger.get("records", []):
-            raw.append(str(record.get("trial") or ""))
-            raw.extend(str(record.get("identity") or "").split("｜"))
-        for fact in ledger.get("facts", []):
-            raw.extend([str(fact.get("study") or ""), str(fact.get("arm") or "")])
-    except (OSError, ValueError, AttributeError):
-        pass
-    try:
-        refs = json.loads(refs_path.read_text(encoding="utf-8"))
-        for entry in refs.values() if isinstance(refs, dict) else []:
-            if isinstance(entry, dict):
-                raw.extend([str(entry.get("trial_abbreviation") or ""), str(entry.get("indication") or "")])
-    except (OSError, ValueError, AttributeError):
-        pass
-    wholes = {_atomic_note(item) for item in raw if _atomic_note(item)}
-    tokens = {_atomic_note(part) for item in raw for part in NAME_SPLIT_RE.split(item)}
-    # Digit-bearing fragments (doses such as `20mg`) are values, not names: never exempt them.
-    return wholes, {token for token in tokens if len(token) >= 4 and not any(c.isdigit() for c in token)}
-
-
-def _is_name_shingle(shingle: str, wholes: set[str], tokens: set[str]) -> bool:
-    return any(shingle in whole for whole in wholes) or any(token in shingle for token in tokens)
-
-
-def _chart_strings(value, out: list[str]) -> None:
-    if isinstance(value, dict):
-        for key, item in value.items():
-            if key in ("id", "iframe_template"):
-                continue
-            _chart_strings(item, out)
-    elif isinstance(value, list):
-        for item in value:
-            _chart_strings(item, out)
-    elif isinstance(value, str):
-        out.append(value)
-
-
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Mechanical pre-delivery checks for report.md, citations.json and /workspace/visualizations/*.json",
@@ -306,11 +241,6 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--vis-prefix", default="/workspace/visualizations/",
                         help="required prefix of a ::visualization target (fixed at /workspace/visualizations/ "
                              "in the runtime; overridable only for a mirrored/test layout)")
-    parser.add_argument("--ledger", type=Path, default=None,
-                        help="ledger whose trial/arm/indication names are exempt from the shared-run warning "
-                             "(default: <report dir>/../work/ledger.json)")
-    parser.add_argument("--refs", type=Path, default=None,
-                        help="refs.json (default: <report dir>/../work/refs.json)")
     parser.add_argument("--json", action="store_true", help="print a machine-readable result")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args(argv)
@@ -534,29 +464,6 @@ def main(argv: list[str] | None = None) -> int:
         refs = MARKER_RE.findall(cell)
         if len(refs) != len(set(refs)):
             warnings.append(f"table cell cites the same ref more than once: {cell[:60]!r}")
-    citation_shingles: set[str] = set()
-    for entry in citations.values():
-        if isinstance(entry, dict):
-            citation_shingles |= _shingles(str(entry.get("title") or "")) | _shingles(str(entry.get("link") or ""))
-    cell_shingles: set[str] = set()
-    for cell in _table_cells(report):
-        cell_shingles |= _shingles(MARKER_RE.sub("", cell))
-    work_dir = args.report.resolve().parent.parent / "work"
-    name_wholes, name_tokens = _known_names(args.ledger or work_dir / "ledger.json",
-                                            args.refs or work_dir / "refs.json")
-    shared: list[str] = []
-    for name, payload in charts.items():
-        strings: list[str] = []
-        _chart_strings(payload.get("option"), strings)
-        for text in strings:
-            run = (_shingles(MARKER_RE.sub("", text)) & cell_shingles) - citation_shingles
-            run = {item for item in run if not _is_name_shingle(item, name_wholes, name_tokens)}
-            if run:
-                shared.append(f"{name}: {sorted(run)[0]!r}")
-                break
-    if shared:
-        warnings.append("chart text shares an 8-character run with a table cell (proper names excepted): "
-                        + "; ".join(shared[:3]))
 
     if args.json:
         print(json.dumps({"findings": findings, "warnings": warnings, "checks": checks}, ensure_ascii=False))
@@ -573,9 +480,12 @@ def main(argv: list[str] | None = None) -> int:
                   + (f", {len(warnings)} warning(s)" if warnings else "")
                   + f" — report {len(report.encode('utf-8'))} B, {len(markers)} marker(s), "
                     f"{len(charts)} chart file(s)")
+    # Findings fail closed (the product is broken).  Warnings never change the exit code: a warning
+    # is a note for the operator, and a non-zero exit here costs the model a whole turn on an
+    # advisory.  See the two-level doctrine in references/toolbox.md.
     if findings:
         return 3
-    return 4 if warnings else 0
+    return 0
 
 
 if __name__ == "__main__":

@@ -58,7 +58,7 @@ Two files are produced each run:
    - marker/key parity holds (every `{{ref_n}}` in the report has a matching JSON key and every key is used — see `references/citation-and-ref.md`);
    - every chart product referenced in the report exists under `/workspace/visualizations/` and passed the chart skill CLI validation;
    - citation fields follow `references/input-contract.md`: `title` byte-for-byte from `paper_title`, `link` byte-for-byte from `full_article_link` or the required C1/C2 substitution backed by the retrieved, archived full text, and `paper_release_time_str` equal to the `YYYY-MM-DD` date part of `paper_release_time` (no `HH:MM:SS`, no reformatting).
-5. Call `present_artifact('/workspace/output/report.md')` as the **final tool call** (after `check_report.py` exits 0, or 4 with warnings only). Once it succeeds, end the response immediately: do not call any further tool and do not append report text.
+5. Call `present_artifact('/workspace/output/report.md')` as the **final tool call** (after `check_report.py` exits 0 — warnings are printed but never block). Once it succeeds, end the response immediately: do not call any further tool and do not append report text.
 
 ## Chat body rule (empty body — 方案 B)
 
