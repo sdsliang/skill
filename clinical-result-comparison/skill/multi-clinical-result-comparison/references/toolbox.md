@@ -1,4 +1,4 @@
-# Toolbox — the six packaged scripts (use these, do not write your own)
+# Toolbox — the packaged scripts (use these, do not write your own)
 
 Every mechanical step of this Skill already has a script, shipped inside this bundle under
 `scripts/` (next to `render-facts.py`). **Run them; do not re-implement them.** Writing your own
@@ -29,7 +29,7 @@ on the `FAIL`s. A `WARN` you never act on is a normal, finished run.
 | Step | Script | Writes |
 | --- | --- | --- |
 | Pull → readable sources + ref inventory | `scripts/prep_sources.py` | `work/sources/ref_<n>.txt`, `work/refs.json` |
-| Payload → candidate facts (never transcribe by hand) | `scripts/build_ledger.py --scaffold` | `work/facts.candidates.json` |
+| Per-ref shard files → the merged facts file | `scripts/merge_ref_facts.py` | `work/facts.json` |
 | Facts → strict ledger (+ the only validation) | `scripts/build_ledger.py` | `work/ledger.json` |
 | Body + appendix + `{{ref_n}}` | `scripts/render-facts.py` | `/workspace/output/report.md` (in place) |
 | Any small edit to an existing file | `scripts/patch.py` | the file, in place |
@@ -65,7 +65,7 @@ python3 scripts/prep_sources.py --esids … --full --quiet
 * Exit `0` all found · `3` at least one selected esid returned no record (files still written for
   the rest) · `2` usage/IO.
 
-**Digest 样式（直接读这份输出；数值已在其中，不要再打开 `work/sources/ref_n.txt` 手动提取数字 — `build_ledger.py --scaffold` 会从 payload 自动提取）：**
+**Digest 样式（直接读这份输出；数值已在其中，不要再打开 `work/sources/ref_n.txt` 手动提取数字）：**
 
 ```
 # 记录清单（2 条；来自 /workspace/tool_results/…/result.jsonl）
@@ -86,47 +86,37 @@ versus 7.1 months (6.3–8.6) in the pembrolizumab plus chemotherapy group (HR 0
 
 `work/sources/ref_1.txt` 是 `render-facts.py` 验证 `quote` 的来源文件，不是你读数字的入口。
 
-## 2. `build_ledger.py` — scaffold candidate facts, then validate the fact ledger
+## 2. `build_ledger.py` — validate the fact ledger (and merge the shards first)
 
 ```
-python3 scripts/build_ledger.py --scaffold        # payload → work/facts.candidates.json (run first)
-python3 scripts/build_ledger.py --stats          # fact counts by ref and kind
-python3 scripts/build_ledger.py --check           # validate only, write nothing
-python3 scripts/build_ledger.py                   # write work/ledger.json
+python3 scripts/merge_ref_facts.py            # per-ref shard files → work/facts.json (only when you delegated)
+python3 scripts/build_ledger.py --stats        # fact counts by ref and kind
+python3 scripts/build_ledger.py --check        # validate only, write nothing
+python3 scripts/build_ledger.py                # write work/ledger.json
 ```
 
-### 2a. `--scaffold` — the pulled payload written out as candidate rows
+### 2a. authoring the rows — write only what a script cannot derive
 
-Mechanical transcription is the one part of the ledger you should never do by hand: it is where
-values get mistyped and where the largest output-token block goes. Run this **once, after
-`prep_sources.py`** (it needs `work/refs.json` and `work/sources/ref_<n>.txt`) and edit the file it
-writes instead of typing the numbers yourself.
+The rows are the clinical judgement and the largest generated block in a run. Two rules keep that
+block small without touching a single fact:
 
-```
-python3 scripts/build_ledger.py --scaffold --tool-results /workspace/tool_results \
-    --refs work/refs.json --sources work/sources --out work/facts.candidates.json
-```
+* **Omit `source_file`.** The compiler resolves it from `ref` through `work/refs.json`.
+* **Omit `version` / `population` / `timepoint` / `assessment` / `statistics`** when the source reports
+  nothing for them: the compiler fills `未报告` / empty. Those keys are *allowed* to be absent — writing
+  them out is pure token cost.
 
-* Output `--out` defaults to `work/facts.candidates.json` and has exactly the `facts.json` shape
-  (`records` / `facts`), plus a `_notes` array the compiler ignores. Fill in the blanks and feed it
-  back with the default mode — you do not hand-write this file from scratch.
-* One `records[]` entry per pulled esid (`conclusion` is always empty — you write it), one `facts[]`
-  entry per `clinical_result_study_results[]` row that carries a usable `result`.
-* `value` / `unit` / `statistics` / `timepoint` / `assessment` are copied **verbatim** from the
-  payload, `arm` is the payload's regimen label, and `quote` is the first source sentence in
-  `work/sources/ref_<n>.txt` that contains that value (`""` plus a note when there is none — then
-  copy the sentence from the original yourself).
-* One esid pulled several times collapses to one record, as in `prep_sources.py`.
-* **The candidate file is a checklist, not the ledger.** Every row still has to be verified against
-  the original, and `_notes` names the ones that need work (no quote, no endpoint name, `kind`
-  defaulted because the payload attributes nothing). Delete every row that is not a material,
-  cross-disclosure-comparable value, and write from the original text the material values the
-  payload never carried — a thin payload (endpoint labels that are only a time point, empty
-  `endpoint_attribute`, several placebo arms per dose) yields mostly unusable rows, and the notes
-  say so; do not pad the ledger to keep them.
-* It never reads `work/facts.json`, never writes `work/ledger.json` and never validates anything:
-  that stays the default mode's job. Exit `0` written · `3` `work/refs.json` missing/empty (run
-  `prep_sources.py` first) · `2` unreadable payload or unwritable `--out`.
+What remains is `id`, `ref`, `study`, `kind`, `endpoint`, `arm`, `value`, `unit`, `quote`. `arm` and
+`unit` stay present as keys and may be `""`; everything else is a clinical judgement no script can make
+(the `quote` is the provenance anchor — never let a script derive it). Settle the numeric format
+(decimal separator `.` vs `·`, unit and statistic wording) **before** the first row is written: a later
+`patch.py` pass over it cost 3–5 minutes in a measured run.
+
+With 3 or more refs, the rows are written **per ref by concurrent subagents** and merged; the recipe is
+in `references/input-contract.md` (*Delegating the fact rows*). Below 3 refs, write them in the main
+thread. The payload-checklist mode `build_ledger.py --scaffold` still exists and still writes
+`work/facts.candidates.json`, but **the workflow does not use it**: measured over three live runs its
+rows were almost entirely rewritten (0 of 33 ids reused, `value`+`endpoint` matched 0 of 51 final rows,
+and the last ref was missing altogether) while still costing a call and a full read of the file.
 
 ### 2b. default mode — the only validation gate
 
@@ -135,12 +125,12 @@ python3 scripts/build_ledger.py --scaffold --tool-results /workspace/tool_result
 * You author `facts.json` (the clinical judgment); the script does every mechanical check and
   writes the strict shape `render-facts.py` accepts: `{"records":[…],"facts":[…]}`. Each record
   = `ref` + `identity` + `conclusion` (optionally `trial`, `title`, `design`, `arms`, `coverage`);
-  each fact = the 15 fields `id, ref, study, version, endpoint, arm, population, timepoint,
-  assessment, kind, value, unit, statistics, source_file, quote` — absent
-  `version`/`population`/`timepoint`/`assessment` are filled with `未报告`, `statistics` with `""`.
+  each fact = the fields `id, ref, study, kind, endpoint, arm, value, unit, quote` —
+  `version` / `population` / `timepoint` / `assessment` / `statistics` / `source_file` **may be omitted entirely**
+  and are filled in for you (`未报告` / empty / resolved from `ref`); writing them out is pure token cost.
   `arm` 与 `unit` 必须作为键存在，但值可以为 `""`：设计类事实（随机与样本量、数据截止、检验界值、
   中位随访等）本身就没有 arm；p 界值、HR、NE/NR 等无量纲值本身就没有 unit。**不要编造分组名或单位
-  凑过校验**——`--scaffold` 自己就会给出空值，编译器必须接受自己的输出。空 `unit` 渲染为
+  凑过校验**——空值本身就是合法的，编译器必须接受它。空 `unit` 渲染为
   `0.0049{{ref_n}}`（不带尾随空格），空 `arm` 在单元格里整段省略、不留分隔符；若 `kind` 不是
   `试验设计` 而 `arm` 为空，编译通过但打一条 `WARN` 提醒补分组。
   `kind` ∈ `试验设计｜试验结论｜有效性｜安全性｜PK/PD｜PRO｜其他` (a `·家族` suffix is allowed).
@@ -150,7 +140,32 @@ python3 scripts/build_ledger.py --scaffold --tool-results /workspace/tool_result
   `study` per ref. A failing compile never leaves a half-written ledger.
 * Exit `0` written (or clean under `--check`) · `3` findings · `2` usage/IO.
 
-## 3. `render-facts.py` — body + appendix, in one write
+## 3. `merge_ref_facts.py` — per-ref shard files into one `facts.json`
+
+```
+python3 scripts/merge_ref_facts.py --shards work --refs work/refs.json --out work/facts.json
+python3 scripts/merge_ref_facts.py --check        # merge in memory, write nothing
+```
+
+Used when the fact rows were delegated (3+ refs, one subagent per ref — see
+`references/input-contract.md`, *Delegating the fact rows*). It concatenates `work/facts.ref_<n>.json`
+in ref order, accepts either the `facts.json` shape (`{"records":[…],"facts":[…]}`) or a bare list of
+facts, and is the only place the merged file is produced: **never re-type a shard's rows.**
+
+It does not validate clinical content — `build_ledger.py` (below) remains the only validation gate —
+but it checks the things that are about the **split**, so a bad shard is reported next to its own
+filename:
+
+* a fact or record whose `ref` is not in `work/refs.json`;
+* the same fact `id` or record `ref` delivered by two shards (ids must be unique across shards);
+* a shard file that is unreadable JSON, or carries neither `records` nor `facts`;
+* `WARN` for a ref no shard covered (writing no rows for a thin source is legal; silently dropping a
+  ref is not).
+
+Exit `0` merged (or clean under `--check`) · `3` findings / no shard files / unreadable `work/refs.json`
+(nothing written) · `2` unwritable `--out`.
+
+## 4. `render-facts.py` — body + appendix, in one write
 
 ```
 python3 scripts/render-facts.py --ledger work/ledger.json --draft /workspace/output/report.md \
@@ -165,7 +180,7 @@ failure (unknown token id, missing field) with nothing written.
 
 **Token 语法（直接照抄；不要用 `--help` 或构造临时 ledger 试错探索语法）：**
 
-`build_ledger.py --scaffold` 输出的 `work/facts.candidates.json` 骨架已有正确字段形状，填入 `endpoint` / `arm` / `kind` / `quote` 空项后通过 `build_ledger.py` 编译生成 `work/ledger.json`，再用以下 token 语法引用：
+`work/facts.json` 就是上面那个形状（`records` / `facts` 两个数组；按 ref 分片时由 `merge_ref_facts.py` 合出来），通过 `build_ledger.py` 编译生成 `work/ledger.json`，再用以下 token 语法引用：
 
 ```json
 {"id": "f1", "ref": "ref_1", "study": "HARMONi-6", "version": "",
@@ -188,7 +203,7 @@ failure (unknown token id, missing field) with nothing written.
 - `value`（`11.1`）必须逐字出现在 `quote` 里
 - `quote` 必须是对应 `work/sources/ref_1.txt` 的精确子串
 
-## 4. `patch.py` — asserted, atomic, whole-file find/replace
+## 5. `patch.py` — asserted, atomic, whole-file find/replace
 
 ```
 python3 scripts/patch.py <file> --find '<text>' --replace '<text>' [--count N]
@@ -208,7 +223,7 @@ python3 scripts/patch.py <file> --find '<anchor>' --replace $'\n<new paragraph>'
   is not the report body.
 * Exit `0` applied · `3` assertion failed (nothing written) · `2` usage/IO.
 
-## 5. `make_chart.py` — one chart product from a content-only spec
+## 6. `make_chart.py` — one chart product from a content-only spec
 
 ```
 python3 scripts/make_chart.py work/charts/endpoint-bar-1.json
@@ -234,7 +249,7 @@ python3 scripts/make_chart.py work/charts/endpoint-bar-1.json
   ids such as `NCT02729025` are exempt). Never pre-check these while writing the spec; `--strict`
   is the opt-in switch that turns them into failures.
 
-## 6. `make_citations.py` — the citation JSON
+## 7. `make_citations.py` — the citation JSON
 
 ```
 python3 scripts/make_citations.py --report /workspace/output/report.md
@@ -252,7 +267,7 @@ python3 scripts/make_citations.py --report … --full-text ref_2=https://pmc.ncb
 * `--full-text ref_n=URL` is the C1/C2 substitution for a record whose facts rest on a retrieved
   PMC full text (repeatable, `http(s)://` only). Exit `0` · `3` parity/format finding · `2` IO.
 
-## 7. `check_report.py` — the mechanical pre-delivery pass
+## 8. `check_report.py` — the mechanical pre-delivery pass
 
 ```
 python3 scripts/check_report.py -v            # then fix what FAILED and re-run
@@ -310,8 +325,8 @@ disclosures in one trial → `**试验名**<br>注册号 · N 条披露`; one di
 `**可读短标签**<br>ref_n`; a missing tag → `**ref_n**`. Do not transcribe the layout anywhere in
   the body.
 * **Which numbers go in the ledger?** Only material, cross-disclosure-comparable values (one row
-  per comparable reading, quoted from `work/sources/ref_<n>.txt`). `--stats` tells you the counts;
-  the `--scaffold` notes tell you which candidate rows still need work.
+  per comparable reading, quoted from `work/sources/ref_<n>.txt`). `--stats` tells you the counts and
+  which refs/kinds they came from — compare it against the sources you actually read.
 * **How do I cite?** `{{ref_n}}` in the body, one `citations.json` entry per ref
   (`make_citations.py` writes the shape). The same ref is cited once per table cell; the appendix
   row already carries its own ref, so the body does not need to repeat it there.

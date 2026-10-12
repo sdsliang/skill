@@ -389,13 +389,17 @@ title, URL, or release time — a missing value stays empty in the citation JSON
    - clinical content fields: `abstract_text`, `summary`, `study_results` (endpoint records),
      design/arms context.
 4. Build the internal worksheet exactly as described in `references/input-and-extraction.md`, using
-   these pulled fields as the per-record source.
+   these pulled fields as the per-record source; when 3 or more refs are selected, write the fact rows
+   **per ref through subagents** and merge them with `scripts/merge_ref_facts.py` (see *Delegating the
+   fact rows* below) instead of generating one long `facts.json` in the main thread.
 
 ## Large-batch delegation via subagents (OPTIONAL)
 
-> Status: **platform-supported, and enabled on our deployment — still opt-in.** The default path remains
-> "Agent pulls every selected esid directly" per the protocol above; delegation is a context-bounding
-> strategy for large selections, not a required step and not a speed-up.
+> Status: **platform-supported, enabled on our deployment, and measured.** Delegation stays opt-in for
+> *pulls* (the default path remains "Agent pulls every selected esid directly" per the protocol above),
+> but it is the **default for the fact rows once 3 or more refs are selected**, because that block was
+> measured to be both the largest generated text in a run and safely splittable per ref. Concurrency has
+> one hard boundary: **the subagents run in parallel, the sandbox does not.**
 
 When the deployment exposes the `task` tool (backend `SubAgentCapability` registered and
 `capabilities_config.subagents` enabled) and the number of selected esids is more than 5, the Agent
@@ -406,9 +410,8 @@ extracted value must carry its source esid / marker. The main Agent remains resp
 original-source checks, retrieval budget and depth labels when extraction is delegated.
 
 - **Chunking**: split the esid list by input order into **balanced chunks of at most 5 esids**
-  (6 esids → 3+3; 20 esids → 5+5+5+5). Use the fewest chunks that satisfy the cap — each chunk costs
-  one serial subagent turn — and avoid a one-esid remainder when the split can be balanced. Chunk boundaries must never
-  reorder markers.
+  (6 esids → 3+3; 20 esids → 5+5+5+5). Use the fewest chunks that satisfy the cap and avoid a one-esid
+  remainder when the split can be balanced. Chunk boundaries must never reorder markers.
 - **One `task` call per chunk**: `subagent_type: "general-purpose"`, with a fully self-contained
   `description` stating exactly which esids to pull (or the tool call parameters), the exact
   `selected_fields` to use, the exact per-trial fields to extract (same as the evidence worksheet in
@@ -424,9 +427,12 @@ original-source checks, retrieval budget and depth labels when extraction is del
 - **Constraints**: `task` accepts only two parameters, `subagent_type` and `description`, and every call
   is stateless (no follow-ups — put everything needed in the description); a subagent does **not**
   inherit this Skill's prompt or the project system prompt, so the description must repeat the
-  `selected_fields`, the fields to extract, and the output format in full; recursive depth is limited
-  (do not nest delegation deeper than one level); multiple `task` calls in one message execute
-  **serially**, so treat delegation as a context-saving device rather than a parallel speed-up.
+  `selected_fields`, the fields to extract, and the output format in full (or point the shard at this
+  Skill's own reference files, which it can read: it shares `/workspace`); recursive depth is limited
+  (do not nest delegation deeper than one level); several `task` calls sent in **one message run
+  concurrently**, while calls sent in separate messages run one after another; and the **sandbox is a
+  single channel shared by the main thread and every subagent**, so only generation-bound work gets
+  faster — see *Measured boundaries of the `task` tool* below before delegating anything.
 - **Small selections favor direct pulls — but “small” is a property of the source class, not of the
   esid count**: `1` PubMed and `37` conference `abstract_text` bodies are abstract-sized (measured
   medians 1.8 K / 2.8 K chars, max ~10 K), while the registration classes (`2`/`187`, and the unlisted
@@ -440,6 +446,49 @@ original-source checks, retrieval budget and depth labels when extraction is del
 - **Fallback**: if the `task` tool is not visible/available, ignore this section and pull every
   selected esid directly (default protocol). Never skip a source because delegation is unavailable.
 
+### Delegating the fact rows (per ref) — the default split for 3+ refs
+
+Authoring `work/facts.json` is the largest single block of generated text in a run, and each ref's rows
+are independent. When **3 or more** refs are selected and `task` is visible:
+
+1. **Fix the shared vocabulary first** (main thread, before any `task` call): the `study` label per ref
+   and the Chinese `arm` identity phrases. Arm strings are reused verbatim in the body and the appendix,
+   so shards that invent their own would silently split one arm into two.
+2. **Send every shard in one message** — one `task` per ref, `subagent_type: "general-purpose"`. Calls
+   sent in separate messages are serialised; the concurrency comes from putting them in a single
+   message. Each `description` must be self-contained: the skill path
+   `/workspace/skills/multi-clinical-result-comparison/references/input-and-extraction.md` (facts
+   contract) and `references/input-contract.md` (evidence boundary), the shard's own
+   `work/sources/ref_<n>.txt` plus `work/refs.json`, the fixed `study`/`arm` vocabulary for its ref, the
+   output path `work/facts.ref_<n>.json`, the rule that fact ids must be unique across shards (prefix
+   them with the ref), and **an explicit `timeout_seconds` on every command it runs** (a subagent's
+   `execute` defaults to 30 s, and the clock includes queue wait). Tell it to write the file and answer
+   with one line (row count + what it could not extract), not to paste the rows back.
+3. **Merge with the packaged script, never by hand**:
+   `python3 scripts/merge_ref_facts.py --shards work --refs work/refs.json --out work/facts.json`
+   concatenates the shards in ref order, rejects a duplicate id/record or an unknown `ref` next to the
+   failing filename, and warns about a ref no shard covered. Then run `build_ledger.py` on the merged
+   file as usual — it remains the only validation gate, and it also derives the `source_file` each row
+   left out.
+
+Below 3 refs, do the rows directly: the fan-out overhead (see below) is not worth it, and the main
+thread already holds the sources.
+
+### Measured boundaries of the `task` tool (2026-10-12, this deployment)
+
+Four probe runs, one thread each, no skill content involved (`docs/evidence/r56-subagent-parallelism-probe-2026-10-12.md`):
+
+| Behaviour | Measurement |
+|---|---|
+| Two `task` calls in one message | **concurrent** — one shard's command ran at `…888.0` while the other shard's later command ran at `…916.9`, overlap 28.9 s; union 76.6 s against 105.5 s if serial |
+| Four `task` calls in one message | all four started within **6.5 s** of each other (first command at +2.0 s, last at +8.5 s); the whole probe, including the main thread's own turns, took 25 s |
+| Subagent boot latency | 2–8.5 s for that fan-out; **one outlier of 142 s** was observed in a single-shard probe → give long-shard work an explicit timeout and do not build a chain of dependent shards |
+| `execute` lane | **single channel**: three subagents' 20 s sleeps ran strictly head-to-tail with **zero overlap**, handing over at a constant ~2.8 s; the main thread and subagents queue together |
+| Subagent `execute` timeout | **30 s by default** (main thread 120 s), counted from the moment the command starts, queue wait included → pass `timeout_seconds` explicitly in every shard command |
+| Session state | **none**: `cd /tmp` in one call leaves the next call in `/workspace`, and `export` does not survive either — each `execute` is a fresh process |
+| Background jobs | do **not** hold the lane (`… & echo x` returns at once) but their output never reaches the tool result → never start a background job expecting to read its output |
+| Turn usage | **aggregates the subagents' tokens** (in one two-shard probe the shards spent 31,684 of the turn's 35,406 output tokens) — a sharded run cannot be compared on `output_tokens`; compare **wall clock** |
+
 **Platform facts** (verified against the Tool Smith backend source, 2026-09-10):
 
 1. `capabilities_config.subagents` defaults to `False` (`schemas/capabilities.py`) and is switched on per
@@ -450,12 +499,15 @@ original-source checks, retrieval budget and depth labels when extraction is del
 3. A subagent does **not** inherit the project system prompt: the backend swaps in generic subagent
    instructions whenever `recursive_depth > 0`. It still sees the skill list and may call `load_skill`,
    but never depend on that — the `description` must carry the extraction spec itself.
-4. Several `task` calls in one message run **serially** (the backend never enables pydantic-ai
-   `allow_concurrent_tool_calls`), despite the tool description promising concurrency.
+4. Several `task` calls in **one message** run **concurrently** in practice; calls sent in separate
+   messages run one after another. The backend does not enable pydantic-ai
+   `allow_concurrent_tool_calls`, but a `task` call returns only once its own child is done, so sibling
+   calls progress in parallel meanwhile (measured — see the boundary table above).
 5. Platform recursion allows main → child → grandchild (`max_recursive_depth = 2`); this Skill stays
    stricter and uses a single level.
-6. Still unmeasured: the end-to-end token/latency benefit at 6–20 esids. Keep delegation opt-in until a
-   real large-batch run confirms it.
+6. The **pull-chunk** path (6–20 esids) is still unmeasured end to end, so it stays opt-in; the
+   **fact-row split** (3+ refs) is measured and is the default — the shard's benefit is parallel
+   *generation*, and anything the shard does through `execute` queues on the single sandbox lane.
 
 ## Citation rendering
 
