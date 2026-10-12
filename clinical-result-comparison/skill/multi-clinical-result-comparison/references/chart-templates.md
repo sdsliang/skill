@@ -9,7 +9,7 @@
 
 | 场景 | 图表 type | 图表 skill 模板 | 本 skill 临床起点 |
 | --- | --- | --- | --- |
-| **同试验**证据链时间轴（≥2 个证据状态） | `timeline`（圆点坐基线 · 大小=证据成熟度） | `templates/timeline.json` | `templates/charts/evidence-timeline.json` |
+| **同试验**证据链时间轴（≥2 个证据状态） | `timeline`（竖向列表：时间 + 卡片 · 节点等大等形、无图例，不编码成熟度/分类） | `templates/timeline.json` | `templates/charts/evidence-timeline.json` |
 | **同试验** OLE/长随访，同一队列多时点终点 | `line`（同队列时点连线，无对照即单臂曲线） | `templates/line.json` | `templates/charts/endpoint-line.json` |
 | **混合/不同试验**，终点无时间维（ORR 等单值） | `bar`（横向） | `templates/bar.json` | `templates/charts/endpoint-bar.json` |
 | **混合/不同试验**，终点有时间维（体重、PFS/OS 按时间点） | `line`；仅一个时间点→自动单点模式 | `templates/line.json` | `templates/charts/endpoint-line.json` |
@@ -45,8 +45,8 @@ python3 /workspace/skills/multi-clinical-result-comparison/scripts/make_chart.py
 ```
 
    脚本会从本 skill `templates/charts/` 取 `option` 骨架、从**运行期** chart skill 取 envelope（`id` / `iframe_template` / `option` 三键；`iframe_template` 每次发布都会变，本 skill 文档里没有、也不该有这个值）、写入 `/workspace/visualizations/<固定成品名>` 并跑上游 CLI 校验。`--sort auto|none|value-desc|value-asc|time-asc`（默认 bar `value-desc`、line `none`、timeline `time-asc`）由脚本负责排序，不必自己排。完整 CLI / 退出码见 `references/toolbox.md`。
-2. **只改内容字段**：`title`/`subTitle`/`dataSource`/`describe`/`axisXTitle`/`axisYTitle` 与 `data[]`（及 timeline 的 `legend`/`weightLegend`/`time`/`weight`/`content`）。JSON 无注释；不要加 HTML/注释/尾逗号（脚本会校验结构、`data` 非空与数值形态）。
-3. **`make_chart.py` 退出码 `0`（已写且校验通过）后才在正文引用**；`3` = 结构问题（缺 `label`/`description`、`data` 为空或非数值、timeline 缺 `time`、line 缺 `group`、`file` 与 `type` 不符）**且不写文件**，按提示修 spec 重跑；`4` = 成品已写但校验器不可用，**必须如实说明「未校验」，不得当已校验**。详见下方「自检」。
+2. **只改内容字段**：`title`/`subTitle`/`dataSource`/`describe`/`axisXTitle`/`axisYTitle` 与 `data[]`（及 timeline 的 `time`/`content`）。JSON 无注释；不要加 HTML/注释/尾逗号（脚本会校验结构、`data` 非空与数值形态）。**timeline 不要写 `weight`/`weightLegend`/`legend`**（见下条硬规则）。
+3. **`make_chart.py` 退出码 `0`（已写且校验通过）后才在正文引用**；`3` = 结构问题（缺 `label`/`description`、`data` 为空或非数值、timeline 缺 `time`、timeline 带 `weight`/`weightLegend`/`legend`、line 缺 `group`、`file` 与 `type` 不符）**且不写文件**，按提示修 spec 重跑；`4` = 成品已写但校验器不可用，**必须如实说明「未校验」，不得当已校验**。详见下方「自检」。
 4. 正文中用 `::visualization[标题]{path="/workspace/visualizations/endpoint-bar-1.json"}` **绝对路径**引用（workspace 文件 + 引用通道），独占一行；图前后保留解释文字与 `{{ref_n}}` 标记。
    - 交付：文件**先写入** `/workspace/visualizations/`，再引用；引用路径必须从 `/workspace/visualizations/` 开头。
    - 降级：接入方不支持渲染时，正文保留文字结论 + 精确数值表 + 下载链接。
@@ -61,14 +61,14 @@ python3 /workspace/skills/multi-clinical-result-comparison/scripts/make_chart.py
 
 ### 数据填充约束
 
-- timeline `data[]` 一条 = **一个证据状态**（同状态多篇披露合并为一节点），按来源支持的 数据截止→随访→分析里程碑→披露日期 排布（数组顺序即时间顺序，图表 skill 不重排）。
+- timeline `data[]` 一条 = **一个证据状态**（同状态多篇披露合并为一节点），按来源支持的 数据截止→随访→分析里程碑→披露日期 排布（数组顺序即时间顺序，渲染端自上而下逐条渲染、不重排）。
 - **图只画骨架，表是数值唯一出处（硬性）**：timeline 的 `label` ≤18 字、`content` ≤16 字定性短语、`description` 只写关系 + 成熟度方向 + `{{ref_n}}`；**图内除 `time` 的时间锚点（年月/日期）外不得出现任何数值**（样本量、pCR/ORR/HR/CI/p、发生率、随访时长一律留在时间线表格）。图内文本与任一表格单元格不得出现 ≥8 个连续相同字符（专有名词除外）——详见 `references/timeline-diagram.md` 的「图表职责分工」。
 - **一个数值只交付一次（硬性，bar/line 同样适用）**：图所在的小节内**不得再放复述该图数值的表格**（数值表放独立小节或附录）；速览段若已有图，只写散文不列表。**图的 `subTitle`/`describe`/`data[].description` 不得复述自己的绘图值**——只写口径、时点差异、方向、可比性判断与 `{{ref_n}}`（timeline 的相应要求见上一条）。剂量/间隔/时点/例数后缀里的数字（`225 mg`、`每 12 周`、`129 例`）是上下文不是复述；研究内对照值/边界值（安慰剂组、95%CI、p）仍可留在 `description`，它们不是绘图值。同一小节出现 ≥2 个该图绘图值即 FAIL，由 `scripts/check_report.py` 机械检查（附录与 timeline 图豁免）。**这不是取消图**：图必须保留，只是不再重复同一批数字。
 - **排序规则**：柱状图如需降序由生成方按 `value` 从高到低排好 `data[]`；折线图/时间轴按**时间顺序**（`label`/`time` 数组顺序即时间顺序）。
 - **图表每一行点名自己的试验（硬性）**：身份维度一共五个——试验·治疗臂·剂量·间隔·时点。**一张图里出现 ≥2 个试验时，每根柱子/每条线自己的 `label` 或 `description` 里必须写明它属于哪个试验**（有注册号写注册号，没有写试验短名）；**不得只靠标题、图例或颜色区分试验**——读者单看一根柱子也要知道它来自哪个试验。只画一个试验的图可以把试验写在标题里。
 - **同一观察一套写法（硬性）**：同一观察（试验·治疗臂·剂量·间隔·时点）只用**一套**身份短语，并在正文、精确值表与图表 `label`/`description` 中**逐字复用**；写法取原文本来的措辞（`monthly` → `每月一次`，`every 12 weeks` → `每 12 周`）——原文说 monthly 就写每月，不因 `Q4W` 更常见而改字。**不得一份报告里同物两名**（正文 `每月`、图表 `Q4W`/`QM`），**图表 label 不得引入正文没有的臂/剂量/间隔/时点写法**：label 就是正文该行身份短语的原样引用。确需缩写时只固定一种，正文同时给出全称，全篇统一用该缩写。
-- `value` 只填纯数字（**timeline 不用 `value`**）；line/bar 的 `description` 放可追溯的补充说明（95%CI、人群口径、`{{ref_n}}` 对应信息等），直接写说明内容，不加「数据说明：」或「数据说明」前缀；timeline 的 `description` 按上一条的骨架规则（无数值）。`group` 用于多系列（line 的队列/治疗组、bar 的系列、timeline 的图例 key）。
-- timeline 的 `group` 必须与 `legend[].key` 一致；`weight` 0–N 表示证据成熟度/强调度。
+- `value` 只填纯数字（**timeline 不用 `value`**）；line/bar 的 `description` 放可追溯的补充说明（95%CI、人群口径、`{{ref_n}}` 对应信息等），直接写说明内容，不加「数据说明：」或「数据说明」前缀；timeline 的 `description` 按上一条的骨架规则（无数值）。`group` 用于多系列（line 的队列/治疗组、bar 的系列）。
+- **timeline 不使用 `weight`/`weightLegend`/`legend`（硬性）**：现行时间轴渲染为**竖向列表**（每个节点 = 时间 + 卡片），所有节点**等大等形**、**不渲染图例**，且 `group`/`shape` 在画布上没有任何视觉效果 ⇒ `weight`（大小）、`weightLegend`（图例）、`legend`（分类图例/形状）写了只会制造“成熟度或分类已被编码”的错觉。证据成熟度写在正文与节点 `description` 的文字里，分类写在 `label`/`content` 的文字里（详见 `references/timeline-diagram.md` 构建规则第 8 条）。
 - 引用保留：`dataSource` 行写清数据来源，正文相应位置保留 `{{ref_n}}` 标记；**图表 JSON 内不写 `entity:` 文本**（v0.16 已移除该内联引用语法，任何地方都不再承载它）。
 
 ### 自检（硬步骤，必跑）
@@ -86,7 +86,7 @@ pnpm validate:chart -- /workspace/visualizations/endpoint-bar-1.json
 全部 **PASS（退出码 0）** 才算完成；**FAIL 时按输出的 JSON path 与提示修正后重跑校验，直到 PASS**，不要让非法 JSON 进入交付。
 校验覆盖：envelope 三键（`id` 为字面量；`iframe_template` 与运行期图表 skill `config.js` 的 `IFRAME_TEMPLATE` **全等**）、
 `type` 属于图表 skill 收录的类型、`data` 非空、字段名/类型符合 Zod schema、timeline 的
-`time`/`weight`/`legend` 关联、JSON 可解析等。产物是**纯 JSON**，不校验 HTML 片段（本 skill 不产出 HTML）。
+`time` 与 `data[]` 顺序、JSON 可解析等。产物是**纯 JSON**，不校验 HTML 片段（本 skill 不产出 HTML）。
 
 **权威只有部署端那一份（避坑）**：校验结果以工作区里实际安装的图表 skill（`/workspace/skills/chart-visualization-json/`）为准。离线核对可以拿**带版本号的上游副本**（如 v1.0.9）跑同一个 `validate-cli.js`，但**前提是该副本版本与部署端一致**，且副本里内嵌的 `iframe_template` 只是**留档时点的值**，永远不能当本次运行的取值。
 不要拿手头保存的旧副本或旧文档里的模板当基准——图表 skill 升级协议（例如新增 envelope 要求）后，旧副本会给出错误的「PASS」结论。

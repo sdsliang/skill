@@ -30,8 +30,11 @@ upstream validation, so no chart JSON is ever assembled by hand:
 
 Checks that fail the run (exit 3, nothing written): `type` not in {bar,line,timeline}, a `file`
 name outside the fixed product names, a `file`/`type` mismatch, an empty or non-numeric `data`
-row, a missing label/description, a timeline event without `time`.  Checks that only warn
-(length limits, a digit outside the `time` anchor in a timeline) print on stderr; `--strict`
+row, a missing label/description, a timeline event without `time`, a timeline spec that still
+carries `weight`/`weightLegend`/`legend` (the deployed timeline renders a plain vertical list —
+every node the same dot, no legend at all — so size/shape/legend cannot encode anything; the
+judgement belongs in the report text and the node description).  Checks that only
+warn (length limits, a digit outside the `time` anchor in a timeline) print on stderr; `--strict`
 turns them into failures.  After writing, the upstream CLI
 (`node <chart-skill>/scripts/validate-cli.js <product>`) must exit 0 — a bare `option` object or
 a stale local copy of the chart skill is not accepted (exit 4 = validator unavailable, product
@@ -207,6 +210,15 @@ def main(argv: list[str] | None = None) -> int:
             tricky = _digits_without_anchor(row)
             if tricky:
                 warnings.append(f"data[{index}] carries a number outside the time anchor: {tricky}")
+            if row.get("weight") is not None:
+                findings.append(
+                    f"data[{index}].weight is not supported: the deployed timeline renders every node the "
+                    "same, so weight encodes nothing — write the maturity judgement in the node description "
+                    "and the report text instead")
+            if row.get("shape") is not None:
+                findings.append(
+                    f"data[{index}].shape is not supported: timeline nodes are not shape-coded (the legend "
+                    "renderer is empty for this type) — state the category in the node label/content text")
         else:
             value = row.get("value")
             if not isinstance(value, (int, float)) or isinstance(value, bool):
@@ -216,6 +228,16 @@ def main(argv: list[str] | None = None) -> int:
             if kind == "line" and not str(row.get("group") or "").strip():
                 findings.append(f"data[{index}].group is empty (a line needs its cohort/treatment group)")
 
+    if kind == "timeline" and spec.get("weightLegend") is not None:
+        findings.append(
+            "spec.weightLegend is not supported: the deployed timeline renders no weight legend, so it "
+            "would only imply a size encoding that does not exist — drop it and state the maturity "
+            "judgement in text")
+    if kind == "timeline" and spec.get("legend") is not None:
+        findings.append(
+            "spec.legend is not supported: the deployed timeline renders no legend and every node looks "
+            "the same, so a legend would only imply a category/shape encoding that does not exist — drop "
+            "it and name each state's category in its label/content text")
     for field in ("title", "subTitle", "dataSource", "describe"):
         if not str(spec.get(field) or "").strip():
             warnings.append(f"spec.{field} is empty")

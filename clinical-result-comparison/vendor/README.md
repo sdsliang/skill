@@ -24,7 +24,41 @@ vendor/<上游 skill 名>/<版本>/
 
 ## 当前留档
 
-### `chart-visualization-json/1.0.12`（**部署端当前版本**，2026-09-14 由 `deps` 门禁发现）
+### `chart-visualization-json/1.0.12-20260921`（**部署端当前版本**，2026-10-12 实拉到）
+
+| 项 | 值 |
+| --- | --- |
+| 来源 | 只读拉取平台当前版本：`POST /api/skills/list {family_id, only_latest:true}` → `GET /api/skills/{id}/download`（脚本 `/home/xupeipeioo1/tmp/get_chart_skill.py`） |
+| 源包 SHA-256 | `423c50a5c857eeac4cfc2a1a342d47408694ebd9e2d6a71791e9e455bd83c104`（64,214 B） |
+| 拉取日期 | 2026-10-12 |
+| 包内文件数 | 48（比 `-20260914` **多 `docs/development.md`**，其余同集） |
+| 内嵌 `config.js` 的 `IFRAME_TEMPLATE` | `https://vcdn.pharmcube.com/ai-charts-html/test/20260921-085926/iframe-template.json` |
+| 与 Tool Smith 部署端是否一致 | **是**（平台 current 仍标 `1.0.12`，`updated = 2026-09-21T11:58:40`） |
+
+**为什么单开一个目录**：平台把它**原地更新**了（版本标签仍是 1.0.12，内容换成 20260921 构建）。`toolsmith-publish deps` **只比版本标签**，所以当次 `deps` 报 `unchanged` —— 是**用户投诉“圆点大小没有任何效果”**后才把包拉下来 diff 发现的（台账 **O50**）。因此同一版本号的两次构建各留一份，目录名缀构建 ID 日期。
+
+#### `1.0.12-20260914` → `1.0.12-20260921` 差异（2026-10-12 实测，7 个文件 + 1 个新目录）
+
+| 文件 | 变化 |
+| --- | --- |
+| `config.js` | `IFRAME_TEMPLATE` 指向新发布 `…/20260921-085926/…` |
+| `templates/{bar,line,timeline,visualization}.json` | envelope 的 `iframe_template` 同步；**并整块删除了 `width`/`height`**（尺寸不再由模板冻结） |
+| `references/chart-types.md` | 新增**标题/副标题规则**：`title` ≤ 24 字宽、`subTitle` ≤ 32 字宽（中文字 1、英文词约 2），不重复/精练/合适，禁 `图表`/`统计` 类空词与句号；另加 `dataSource`/`describe` 禁前缀、`drill` 形状说明 |
+| `scripts/validate.js` | 新增 `drillShapeWarnings()` / `collectDrillWarnings()` / `collectMetaLabelWarnings()`，以及 `TITLE_MAX_WIDTH=24` / `SUB_TITLE_MAX_WIDTH=32` / `LATIN_WORD_WIDTH=2` / `TITLE_NEST_RATIO=0.5` / `GENERIC_TITLE_PATTERN` / `MISPLACED_LABEL_PATTERN` 等常量 |
+| `scripts/validate.test.js` | 同步新增用例 |
+| `docs/development.md` | **新增文件**（上游自己的打包/发 CDN/测试命令说明） |
+| `references/schemas/*`、`scripts/validate-cli.js`、`SKILL.md` | **逐字节未变** —— 包括 `schemas/timeline.js` 仍保留 `weight`（`z.number().min(0).optional().default(0)`）与 `weightLegend` |
+
+**影响面（全部是 warning 级，不改我们据此判定的 exit code）**：
+
+- 上游新校验**只出 warning**（标题/副标题字宽、`drill` 形状、`dataSource`/`describe` 前缀）⇒ 退出码仍为 `0`，我们 `make_chart.py` 的「校验器 PASS」判定不受影响；但超限 warning 会进生产 run，因此**顺手把我方三个骨架的 `subTitle` 缩到 ≤32 字宽**（`endpoint-bar.json` = `不同试验主要终点并列 · 非头对头比较`、`endpoint-line.json` = `同队列时点连线，不跨队列外推`、`evidence-timeline.json` = `同一试验证据披露与结果演进`；改后零 warning）。
+- **时间轴的 `weight` / `weightLegend` 在上游被完全放行**（故意构造带这两键的 spec 跑新 `validate-cli.js` ⇒ `exit=0` 且无 warning）⇒ 上游不会拦住这个回归，**守卫只能在我们这边**（`make_chart.py` + `check_report.py`）。
+- **渲染器真相（部署端 bundle `static/index-9EvceNR0.js`，288,806 B）**：时间轴节点构造硬编码 `{ r: 3, shape: "circle" }`（`r: dm`、`dm = 3`、色 `#8993A4`），调用者只有 DOM 渲染器；节点 dot 的 CSS 是固定 `6px × 6px` 灰圆点，**不带 group / color / shape** ⇒ 大小与形状都不可能表达任何东西。且渲染派发表里 `timeline` 的 legend 渲染器是 `function Fm(){return []}`（**空数组**）⇒ 时间轴**根本不渲染图例**，`legend`（含 `legend[].shape`）对画布与图例都无效果。
+- 结论/适配：本 skill 的时间轴**不再使用 `weight`/`weightLegend`/`legend`**（骨架 + 两份 reference 文档已清空），并由 `make_chart.py`（`exit 3`、不写文件）与 `check_report.py`（findings、`exit 3`）双层拒收；报告正文也不得再解释“圆点大小/形状/图例”这类不存在的编码（`check_report.py` 的 `CHART_ENCODING_CLAIM_RE`）。上游 schema 保留这些字段是「允许」，不等于「渲染生效」。
+
+### `chart-visualization-json/1.0.12-20260914`（历史；2026-09-14 由 `deps` 门禁发现，曾为部署端当前版本）
+
+> 目录原名为 `1.0.12/`，2026-10-12 改为带构建 ID 的 `1.0.12-20260914/`（两个构建同为平台版本 1.0.12，同名会互相覆盖）。
 
 | 项 | 值 |
 | --- | --- |
@@ -33,7 +67,7 @@ vendor/<上游 skill 名>/<版本>/
 | 拉取日期 | 2026-09-14 |
 | 包内文件数 | 47（与 1.0.10 同集，无新增/删除文件） |
 | 内嵌 `config.js` 的 `IFRAME_TEMPLATE` | `https://vcdn.pharmcube.com/ai-charts-html/test/20260914-145519/iframe-template.json` |
-| 与 Tool Smith 部署端是否一致 | **是**（= 平台 current 版本，发布时间 `2026-09-14T14:56:46`） |
+| 与 Tool Smith 部署端是否一致 | **否（历史记录）** —— 2026-09-14 起为部署端 current；2026-09-21 上游把同一版本号原地更新为 `1.0.12-20260921` 构建 |
 
 #### 1.0.10 → 1.0.12 差异（2026-09-14 实测，共 6 个文件）
 
@@ -90,8 +124,11 @@ node scripts/validate-cli.js templates/bar.json          # 应输出「校验通
 
 若 `node_modules/` 缺失（例如别人 clone 后另装）：`npm install zod --no-save`（上游 `package.json` **未声明** `zod` 依赖，这是已知缺口）。
 
-## 上游协议要点（v1.0.9 起，2026-09-11）
+## 上游协议要点（v1.0.9 起，2026-09-11；v1.0.12-20260921 补记）
 
+- **时间轴是竖向列表，不是「带编码的图」**：每个节点 = 时间 + 卡片，节点**等大等形**（固定 6px 灰圆点）、`legend` 渲染器对 `type: timeline` 直接返回空数组 ⇒ **`weight`（节点大小）/ `weightLegend` / `legend`（含 `shape`）/ `group`（颜色与形状）都没有任何视觉效果**。上游 schema 仍允许这些字段（写进去不报错），但**允许 ≠ 渲染生效**；要表达成熟度或分类只能写进节点文字与报告正文。本仓库对此加了双层门禁（见 `references/timeline-diagram.md` 构建规则第 8 条）。
+- **标题/副标题字宽上限（v1.0.12-20260921 起 warning-only）**：`title` ≤ 24 字宽、`subTitle` ≤ 32 字宽（中文字 1、英文词约 2），超限只给 `⚠` 不拦；`dataSource`/`describe` 不要带「数据来源：」「说明：」前缀。
+- **模板不再冻结 `width`/`height`**（v1.0.12-20260921 起移除）：窄容器下固定 920px 会横向溢出，请保持响应式。
 - **负值（v1.0.10 起）**：`value` 允许负数。bar 恒以 0 为基准双向生长（正值向右/向上、负值向左/向下；**单系列负值柱用紫 `#814487`**，多系列仍走调色板）；line 数值轴含负刻度并补入 0，线色不随正负变化。**v1.0.9 的渲染器在此处静默失败**：bar 值域硬编码 `[0, maxValue]`，全负数据 → 柱长全卡 `3px`、横向刻度算出负像素飞出画布，而 schema 也没有 `.nonnegative()` 兜底（写进去不报错、画出来是废图）。
 
 - 产物顶层是 **envelope**：`{ "id": "chart-visualization-json", "iframe_template": "…", "option": { …图表配置… } }`；`option.type` 才是图表类型。只写 `option` 层的旧格式**已不兼容**（`未包 envelope：…；旧格式（option 层配置）已不再兼容。`）。
@@ -104,6 +141,6 @@ node scripts/validate-cli.js templates/bar.json          # 应输出「校验通
 
 1. 拿到新版 zip（注意：公司 Windows 落盘文件可能被 DLP 透明加密——WSL 下 `head -c 8` 看不到 `PK` 时，改用 Windows Python 读 `C:\...` 再写到 WSL）。
 2. 先跑 `unzip -l`（或 Python `zipfile.namelist()`）核对清单，再解压到 `vendor/<skill>/<版本>/`。
-3. 在本文件补一行留档（来源路径 + 源包 SHA-256 + 日期 + 内嵌 `iframe_template`）。
+3. 在本文件补一行留档（来源路径 + 源包 SHA-256 + 日期 + 内嵌 `iframe_template`）。**同版本号的第二次构建要另起目录** `vendor/<skill>/<版本>-<构建ID日期>/`（平台会原地更新同一版本号，`deps` 看不出来）。
 4. 跑一遍 `validate-cli.js templates/*.json` 与「我们自己的 `option` 内层 + 新 envelope」的组合用例，确认没被上游改坏。
 5. 与上一版 `diff -r`（排除 `node_modules`），把**影响我们文档的差异**同步进 `references/chart-templates.md` 与系统提示词的 Chart contract 段。

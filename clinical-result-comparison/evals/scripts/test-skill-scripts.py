@@ -445,6 +445,52 @@ class Sandbox(unittest.TestCase):
         proc = self.chart(spec, expect=3)
         self.assertIn("group is empty", proc.stderr)
 
+    def test_make_chart_rejects_a_timeline_weight_encoding(self):
+        spec = {"type": "timeline", "file": "evidence-timeline.json", "title": "t", "subTitle": "s",
+                "dataSource": "d", "describe": "x",
+                "data": [{"label": "首次披露", "content": "主要分析", "time": "2022-11",
+                          "description": "设计变更{{ref_1}}", "weight": 2}]}
+        proc = self.chart(spec, expect=3)
+        self.assertIn("weight is not supported", proc.stderr)
+        self.assertIn("renders every node the same", proc.stderr)
+        self.assertFalse((self.root / "visualizations" / "evidence-timeline.json").exists())
+
+    def test_make_chart_rejects_a_timeline_weight_legend(self):
+        spec = {"type": "timeline", "file": "evidence-timeline.json", "title": "t", "subTitle": "s",
+                "dataSource": "d", "describe": "x",
+                "weightLegend": {"show": True, "label": "证据成熟度"},
+                "data": [{"label": "首次披露", "content": "主要分析", "time": "2022-11",
+                          "description": "设计变更{{ref_1}}"}]}
+        proc = self.chart(spec, expect=3)
+        self.assertIn("weightLegend is not supported", proc.stderr)
+        self.assertFalse((self.root / "visualizations" / "evidence-timeline.json").exists())
+
+    def test_make_chart_rejects_a_timeline_legend_and_a_node_shape(self):
+        base = {"type": "timeline", "file": "evidence-timeline.json", "title": "t", "subTitle": "s",
+                "dataSource": "d", "describe": "x",
+                "data": [{"label": "首次披露", "content": "主要分析", "time": "2022-11",
+                          "description": "设计变更{{ref_1}}"}]}
+        legend = dict(base, legend=[{"key": "milestone", "label": "研究里程碑", "shape": "empty-circle"}])
+        proc = self.chart(legend, expect=3)
+        self.assertIn("spec.legend is not supported", proc.stderr)
+        shaped = {**base, "data": [{**base["data"][0], "shape": "empty-circle"}]}
+        proc = self.chart(shaped, expect=3)
+        self.assertIn("shape is not supported", proc.stderr)
+        self.assertFalse((self.root / "visualizations" / "evidence-timeline.json").exists())
+
+    def test_shipped_timeline_assets_stop_encoding_maturity_as_node_size(self):
+        skeleton_text = (SKILL / "templates" / "charts" / "evidence-timeline.json").read_text(encoding="utf-8")
+        skeleton = json.loads(skeleton_text)
+        for dead in ('"weight"', '"weightLegend"', '"legend"', '"group"', '"shape"', '"width"', '"height"'):
+            self.assertNotIn(dead, skeleton_text, f"the timeline skeleton still ships {dead}")
+        self.assertTrue(skeleton["data"], "the skeleton must keep real sample rows")
+        for rel in ("references/timeline-diagram.md", "references/chart-templates.md"):
+            text = (SKILL / rel).read_text(encoding="utf-8")
+            for stale in ("weight 驱动", '"weight": ', '"weightLegend": ', '"legend": ', "weight 0–N",
+                          "weight=0", "weight=证据成熟度", "大小=证据成熟度", "节点分类形状",
+                          "legend.shape 决定节点形状", "`legend[].key`"):
+                self.assertNotIn(stale, text, f"{rel} still advertises {stale!r}")
+
     # -- make_citations.py --------------------------------------------------------------
     def _citations(self, report_markers: str = '{{ref_1}}', *extra, expect: int | None = 0):
         report = self.root / "output" / "report.md"

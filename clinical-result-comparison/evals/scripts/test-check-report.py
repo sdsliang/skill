@@ -211,6 +211,60 @@ class CheckReportTests(unittest.TestCase):
         self.assertIn('"findings": []', proc.stdout)
         self.assertIn("refers to itself", proc.stdout)
 
+    def _timeline_body(self) -> str:
+        return self.base_body().replace("endpoint-bar-1.json", "evidence-timeline.json")
+
+    def _timeline_chart(self, **extra) -> None:
+        row = {"time": "2022-11", "label": "首次披露", "content": "主要分析",
+               "description": "设计变更，成熟度尚低{{ref_1}}"}
+        row.update(extra.pop("row", {}))
+        option = {"type": "timeline", "subTitle": "同一试验披露演进，不等同于头对头比较",
+                  "describe": "证据状态按时间顺序排列", "data": [row]}
+        option.update(extra)
+        self.chart(option, name="evidence-timeline.json")
+
+    def test_timeline_node_weight_fails(self):
+        self._timeline_chart(row={"weight": 2})
+        self.report_text(self._timeline_body())
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 3, proc.stdout + proc.stderr)
+        self.assertIn("`weight` is dead", proc.stdout)
+        self.assertIn("renders every node the same", proc.stdout)
+
+    def test_timeline_weight_legend_fails(self):
+        self._timeline_chart(weightLegend={"show": True, "label": "证据成熟度"})
+        self.report_text(self._timeline_body())
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 3, proc.stdout + proc.stderr)
+        self.assertIn("`weightLegend` is no longer rendered", proc.stdout)
+
+    def test_timeline_legend_and_node_shape_fail(self):
+        self._timeline_chart(legend=[{"key": "milestone", "label": "研究里程碑", "shape": "empty-circle"}])
+        self.report_text(self._timeline_body())
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 3, proc.stdout + proc.stderr)
+        self.assertIn("renders no legend", proc.stdout)
+        self._timeline_chart(row={"shape": "empty-circle"})
+        self.report_text(self._timeline_body())
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 3, proc.stdout + proc.stderr)
+        self.assertIn("node `shape` is dead", proc.stdout)
+
+    def test_report_text_must_not_explain_a_chart_cue_that_does_not_exist(self):
+        """Complaint: a reader cannot decode dots the renderer draws identically (R51)."""
+        self._timeline_chart()
+        self.report_text(self._timeline_body() + "\n节点大小对应证据成熟度。\n")
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 3, proc.stdout + proc.stderr)
+        self.assertIn("chart cue that does not exist", proc.stdout)
+
+    def test_timeline_without_a_weight_encoding_stays_clean(self):
+        self._timeline_chart()
+        self.report_text(self._timeline_body())
+        proc = self.run_check()
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn('"findings": []', proc.stdout)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

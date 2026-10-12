@@ -66,6 +66,11 @@ SELF_AUDIT_RE = re.compile(
     r"无未复核记录|无遗漏记录|无缺失项|无未取回记录|全部通过(?:自检|校验)|"
     r"未发现(?:不一致|问题|异常)|不存在未复核")
 INTERNAL_VOCAB_RE = re.compile(r"\bsrc\s*=\s*\d|\bpayload\b|\bJSONL\b|\bMCP\b|沙箱|工作区")
+# The deployed timeline renders a plain list: every node the same dot, no legend at all. Text that
+# tells the reader about node size / shape / an encoding legend is therefore describing a cue that
+# does not exist (R51).
+CHART_ENCODING_CLAIM_RE = re.compile(
+    r"节点大小|圆点大小|节点权重|权重图例|节点形状|形状编码|大小编码|空心圆|实心圆")
 SELF_REFERENCE_RE = re.compile(r"本报告|本文档|本工具|本流程|本管线|本交付物|本次(?!披露)")
 SHINGLE = 8
 CHART_NUMBER_RE = re.compile(r"[-+−]?\d+(?:\.\d+)?")
@@ -209,7 +214,8 @@ def _meta_narration_findings(report: str) -> tuple[list[str], list[str]]:
                         f"replace the label with the material difference it stands for")
     for label, pattern in (("method/class narration", METHOD_NARRATION_RE),
                            ("self-audit tail", SELF_AUDIT_RE),
-                           ("internal field or runtime vocabulary", INTERNAL_VOCAB_RE)):
+                           ("internal field or runtime vocabulary", INTERNAL_VOCAB_RE),
+                           ("chart cue that does not exist", CHART_ENCODING_CLAIM_RE)):
         seen: set[str] = set()
         for match in pattern.finditer(report):
             token = match.group()
@@ -433,6 +439,15 @@ def main(argv: list[str] | None = None) -> int:
                         findings.append(f"{path.name}.data[{index}]: missing time anchor")
                     if not str(row.get("description") or "").strip():
                         findings.append(f"{path.name}.data[{index}]: empty description")
+                    if row.get("weight") is not None:
+                        findings.append(
+                            f"{path.name}.data[{index}]: `weight` is dead — the deployed timeline renders "
+                            "every node the same, so state the maturity judgement in the node description and "
+                            "the report text instead")
+                    if row.get("shape") is not None:
+                        findings.append(
+                            f"{path.name}.data[{index}]: node `shape` is dead — the deployed timeline does "
+                            "not shape-code nodes; write the category in the label/content text")
                 else:
                     if not str(row.get("label") or "").strip():
                         findings.append(f"{path.name}.data[{index}]: empty label")
@@ -440,6 +455,15 @@ def main(argv: list[str] | None = None) -> int:
                         findings.append(f"{path.name}.data[{index}]: value is not numeric")
                     if not str(row.get("description") or "").strip():
                         findings.append(f"{path.name}.data[{index}]: empty description")
+            if chart_type == "timeline" and option.get("weightLegend") is not None:
+                findings.append(
+                    f"{path.name}: `weightLegend` is no longer rendered by the timeline chart — drop it and "
+                    "state the maturity judgement in text")
+            if chart_type == "timeline" and option.get("legend") is not None:
+                findings.append(
+                    f"{path.name}: the timeline chart renders no legend — `legend` would imply a "
+                    "category/shape encoding that does not exist; drop it and name each state's category in "
+                    "its label/content text")
             if ENTITY_RE.search(json.dumps(payload, ensure_ascii=False)):
                 findings.append(f"{path.name}: `entity:` syntax present in the chart JSON")
             if re.search(r"<html|<svg|<div", json.dumps(payload), re.IGNORECASE):
