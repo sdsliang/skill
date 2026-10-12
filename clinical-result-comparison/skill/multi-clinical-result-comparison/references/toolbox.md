@@ -27,6 +27,18 @@ Run them one after another in a **single `execute` call** where the steps are in
 (e.g. `mkdir -p`, then `prep_sources`, then `build_ledger` in one shell line) instead of one call
 per script.
 
+## Normal Route
+
+All commands below use the scripts mounted at `/workspace/skills/multi-clinical-result-comparison/scripts/`; examples abbreviate that prefix. Run known commands in batches, and use help or narrow diagnostics only after an actual error. Read the selected template once before composing. Clinical source review is mandatory even when all mechanical checks pass.
+
+1. Batch pull, then `prep_sources.py --esids …` and `build_ledger.py --scaffold`.
+2. Read sources and candidates; verify each candidate, add missing material values, and write `work/facts.review.json`.
+3. Batch `build_ledger.py --apply-review work/facts.review.json` and default `build_ledger.py --stats`.
+4. Write the complete fact-token-bound body once to the final report path. Reuse the reviewed identity and evidence-state phrases in content-only chart specs; run `make_chart.py` once per spec.
+5. Batch `render-facts.py --ledger work/ledger.json --draft /workspace/output/report.md --out /workspace/output/report.md --audit work/audit.json`, `make_citations.py --report /workspace/output/report.md`, and `check_report.py -v`; then deliver.
+
+For small corrections, use asserted `patch.py`, not full rewrites. Reassemble and validate ledger corrections before regenerating affected output. Do not patch the renderer-owned appendix. Every `write_file` includes `overwrite=True`; `edit_file` is restricted to report prose. A successful chart is not re-authored unless a clinical or validation finding requires it.
+
 ## 1. `prep_sources.py` — the pulled records into files you can read
 
 ```
@@ -64,8 +76,7 @@ python3 scripts/build_ledger.py                   # write work/ledger.json
 
 Mechanical transcription is the one part of the ledger you should never do by hand: it is where
 values get mistyped and where the largest output-token block goes. Run this **once, after
-`prep_sources.py`** (it needs `work/refs.json` and `work/sources/ref_<n>.txt`) and edit the file it
-writes instead of typing the numbers yourself.
+`prep_sources.py`** (it needs `work/refs.json` and `work/sources/ref_<n>.txt`), then review each candidate through the decision contract below instead of rewriting unchanged rows.
 
 ```
 python3 scripts/build_ledger.py --scaffold --tool-results /workspace/tool_results \
@@ -93,11 +104,39 @@ python3 scripts/build_ledger.py --scaffold --tool-results /workspace/tool_result
   that stays the default mode's job. Exit `0` written · `3` `work/refs.json` missing/empty (run
   `prep_sources.py` first) · `2` unreadable payload or unwritable `--out`.
 
-### 2b. default mode — the only validation gate
+### 2b. `--apply-review` — reviewed differences into complete facts
+
+```bash
+python3 scripts/build_ledger.py --apply-review work/facts.review.json \
+    --candidates work/facts.candidates.json
+python3 scripts/build_ledger.py --stats
+```
+
+The first command writes `work/facts.json` (override with `--out`), **not** a validated ledger. The second validates it and writes `work/ledger.json` under the existing source-quote/value gate.
+
+Review JSON has exactly three arrays:
+
+```json
+{
+  "records": [{"ref":"ref_1","trial":"TRIAL","identity":"TRIAL","conclusion":"Source-supported conclusion"}],
+  "decisions": [
+    {"id":"candidate-1","action":"keep"},
+    {"id":"candidate-2","action":"update","changes":{"endpoint":"OS","statistics":"Exact source statistics"}},
+    {"id":"candidate-3","action":"drop"}
+  ],
+  "additions": []
+}
+```
+
+This shape example assumes three candidate ids; use the actual ids and full reviewed records, never copy example identities. Include exactly one decision for **every** candidate, even a dropped row. `keep` means you verified the entire clinical tuple against its own original; a populated field is not evidence of correctness. `update` changes only listed fact fields (id is immutable); correct statistics, values or quote if they disagree with the original. `drop` excludes immaterial or incomparable candidate rows, never required evidence for speed. `additions` contains complete 15-field facts for material values missing from the scaffold. Additions use new ids, not an existing or dropped candidate id. Do not repeat unchanged fields in updates.
+
+Missing/duplicate/unknown decisions, malformed shapes, extra keys and colliding ids fail with exit 3 and leave the existing output untouched; IO errors exit 2. Assembly checks the review contract only: all clinical semantics require review and the ordinary compiler remains mandatory. If candidates are largely unusable, author complete `facts.json` from the original, document why in scratch, then compile normally. Do not attempt one-off scripts to reconstruct facts.
+
+### 2c. default mode — the evidence validation gate
 
 * Input `--facts` (default `work/facts.json`), output `--out` (default `work/ledger.json`),
   `--refs` for trial/`source_file` defaults.
-* You author `facts.json` (the clinical judgment); the script does every mechanical check and
+* You review the facts (the clinical judgment); review assembly produces their complete file. The default script does every mechanical check and
   writes the strict shape `render-facts.py` accepts: `{"records":[…],"facts":[…]}`. Each record
   = `ref` + `identity` + `conclusion` (optionally `trial`, `title`, `design`, `arms`, `coverage`);
   each fact = the 15 fields `id, ref, study, version, endpoint, arm, population, timepoint,

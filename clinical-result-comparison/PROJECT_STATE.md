@@ -1,5 +1,14 @@
 # Project State
 
+## R52：执行流程梳理（2026-10-12，本地完成，待授权的新版本发布执行）
+
+用户已明确授权「改了测试，TS 发一个新版本后真实测试」。本轮统一执行／修复契约，保留临床边界，不改 runner、冻结评分器或固定输入。prompt 的累积 Step discipline 改为五阶段执行契约；SKILL 区分执行路由与临床工作；file-delivery 取消生成文件必须整份重写的矛盾规则；时间轴残留 weight 指令清零。
+
+`build_ledger.py --apply-review` 新增差量审校：完整 records + 每候选一条 keep/update/drop 决策 + 新增完整 facts；组装 facts.json 后仍须默认编译器校验 quote/value；漏审、冲突 id、错误形状与覆盖输入失败关闭，既有输出不受损。不承诺候选临床正确。保留原文事实补充和 unusable scaffold 完整抽提回退。
+
+本地 244 项回归通过（原 231 + review 10 + workflow 3）；变异 a 44/44、b 12/12；零网络链 GATE PASS（118 histories，5 comparable）。上游 deps unchanged；发布前 status 显示预期本地未部署。计划新版本 prompt/skill，固定 4/18/14 + B 拒绝场景真实回归，期间冻结运行资产。Git 将分代码提交与发布证据提交；未涉及 Docker。
+
+
 ## 当前快照：2026-10-12（R51：时间轴不再编码「大小 / 形状 / 图例」——已原地发布 + 固定三组真跑 22/22 全绿；同日的 R49+R50 亦已发布）
 
 ### R51 — 用户投诉「`weight` 字段部署端不支持」（延申到 `legend`/`shape`/`group` 同根因清理）

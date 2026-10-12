@@ -1,5 +1,10 @@
 # AGENTS.md — 常驻 program.md（autoresearch 循环）
 
+## R52 交接（2026-10-12）
+
+本轮用户授权流程梳理 + TS **新版本** + TS 真测，不是原地更新。运行资产收敛为五阶段执行契约；候选 facts 改为显式差量审校（`--apply-review`），组装不替代原证据校验；prompt/file-delivery 整份重写矛盾与时间轴 weight 残留已清。冻结评分器、事实清单、输入和 runner 未动。新增 review 10 + workflow 3，本地合计 244 绿，变异 44/12 与链路 GATE PASS。发布与实跑结果待回填 PROJECT_STATE / 台账；跑动期间只改文档。
+
+
 本文件是这个仓库的**常驻程序说明**，任何新会话先读它，再读
 `PROJECT_STATE.md`（当前实现快照）、`docs/toolsmith-verification-log.md`（台账）、
 `docs/autoresearch-iteration-plan.md`（为什么这么做）。
