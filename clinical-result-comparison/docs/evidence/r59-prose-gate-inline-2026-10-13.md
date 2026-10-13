@@ -61,7 +61,7 @@
 - skill **v1.0.9 原地**：dist 160,567 B / 27 entries → **180,675 B / 29 entries / `099504055d79`**；`POST /api/skills/update_skill_file` → HTTP 200，`skill_id=16aeb0406e12425bad27a2444f17225e version=1.0.9 is_current=True`。
 - 回读 `status`：**`prompt deployed == local: True`、skill `29/29 identical`（0 differing / 0 missing）、`STATUS: in sync`**。
 
-### 5.1 发布窗口内撞到的平台侧状态漂移（未定，需用户定夺）
+### 5.1 项目挂载集 4 → 2：**用户主动取消**（不是平台缺陷）
 
 发布前后各跑了一次 `status`，项目的 `skills=` 一栏：
 
@@ -73,8 +73,9 @@
 - 直接读 API 确认不是显示问题：`GET /api/projects/<pid>/resources` 与 `GET /api/projects/<pid>` 都只回 2 个 family（`ee7d944445134cbba5771714f2188cb1` = chart、`9fe0035bdd324b998436c6cb9c2de212` = 我们），`/api/agent/info?project_id=…` 的 `skills` 同样只有 2 个 ⇒ **部署运行时确实只挂 2 个**。
 - 项目行：`updated_at=2026-10-13T10:12:03.359711`、`updated_by=徐佩佩`、`version=1`。两个 humanizer family 本身**健在**（`is_current=True`，`updated_at` 仍是 2026-10-10T10:35:5x）——丢的是项目挂载关系，不是技能。
 - **我们的 `publish` 写不到项目记录**：runner 只发两个文档化 POST（`/api/prompts/{family}/versions`，body 仅 `version/content/ifadd/is_current`；`/api/skills/update_skill_file`，body 仅 `skill_id/skill_name` + zip）；全仓 grep 无写项目接口（`GET /api/projects/{id}/resources` 只用于读）。
-- 因此：要么是 prompt 原地更新触发的平台侧副作用，要么是同分钟内的带外（Dashboard）改动——**平台无审计端点可查**（`/api/projects/{id}/{history,logs,audit,versions,snapshots}` 全 404），无法本地确证。记 **P-R59-2** 转平台；是否恢复两个挂载**待用户决定**（`toolsmith-publish` 没有写项目资源的能力）。
-- 对本轮实测的影响：**不构成阻断**。R59 的设计目标正是让 skill/提示词**不依赖**外部风格技能，本轮 run 也确认未调用、未加载 humanizer（见 §6 判据③）；作为对照，R58 三跑挂在 4 挂载下同样 0 次加载。挂载集不同只在「技能目录少两条」这一层，记录在案即可。
+- 曾经按「平台侧副作用 vs 带外改动」立过问题单 **P-R59-2**；**当日由用户澄清：这次取消是本人从项目配置里做的**——因为规则已内联进本包（本轮 A+B），外部 humanizer 引用不再需要挂载，所以主动从配置里取消引用。**P-R59-2 因此作废（不是缺陷，也不需要恢复）**。
+- 事后看，客户端的自我归因是对的：我们的 `publish` 只发两个文档化 POST，确实写不到项目记录。真正失效的是**归因线索不足**——平台无审计端点（`/api/projects/{id}/{history,logs,audit,versions,snapshots}` 全 404），`updated_by` 也区分不了「人改」与「服务端改」，所以在没有用户澄清时只能停在「无法本地确证」。这一条留作**平台可用性建议**（不指认为 bug、不开单）。
+- 对本轮实测的影响：**不构成阻断，也不需要任何「不可比」折扣**。R59 的设计目标正是让 skill/提示词**不依赖**外部风格技能；被移出的两条从来没被加载过（R58 三跑挂在 4 挂载下也是 0 次加载，全历史只有 7/115），对本轮 run 唯一的影响是「技能目录少两条」（少两条目录项、少 ≈0 token）。§6 的成本对比里那句话保留，但差异来源已知且无害。
 
 ## 6. 实测（n=2，live）
 
@@ -93,14 +94,14 @@
 1. **门禁真被调用 2/2 跑，且每跑 2 次**（一次在初稿成型后、一次在补丁改写后；模型自述「两处补丁只改措辞、未动数字与 marker，但为稳妥再扫一次」）。断言 #18 现场输出：`[PASS] prose gate ran and exited clean — 2 call(s), SCAN_EXIT=[0, 0] strong-free=True`。
 2. **强命中 0**：两跑 `SCAN_EXIT` 全 0 ⇒ 无条件改写**没有被动触发**，「必跑」拿到了 100%（旧口径 6.1% 的条件式引用），而「贵的那一步」仍然只按需发生。
 3. **弱命中被当线索而不是命令**：模型明确写 `tell-scan: 0 strong hits; 2 weak (bold count, mixed numeric notation). Weak only — acceptable`、`tell-scan exit 0 (only a weak bold-count clue — acceptable, not a reason to change)`——正是 `W-*` 的语义。
-4. **没有外部依赖回流**：两跑的 `report-humanizer` 字符串都出现在**我们自己的自包含节**里（`Do not load, wait for, or depend on any external style skill.`），`load_skill` 只调本 skill；humanizer 既未被加载也不可能被加载（已不在挂载列表）。
+4. **没有外部依赖回流**：两跑的 `report-humanizer` 字符串都出现在**我们自己的自包含节**里（`Do not load, wait for, or depend on any external style skill.`），`load_skill` 只调本 skill；humanizer 未被加载（用户已在配置里取消其挂载，见 §5.1）。
 5. **无分片回潮**：`task` / `subagent_type` 出现 **0** 次，`build_ledger.py --scaffold` **0** 次调用，`merge_ref_facts.py` **0** 次调用（transcript 里的字符串出现属阅读 SKILL.md/推理叙述，不是执行）。
 6. **质量未退**：每跑 21 PASS——`citations` 4 refs 键集齐 + 日期格式 + 标题非空、`{{ref_n}}` 双向齐、图表 envelope 与 `::visualization` 一致、`present_artifact` 收尾、无残留占位符/嵌套锚点。
 7. **FAIL 明细**：两跑共有 = `tool_results receipts archived`（平台侧 P-R53-1，历史每次命中）；`r59-gate-1` 多一条 = `no tool errors`，源自一次 `execute timeout_seconds=180`（平台上限 120）被拒后框架自动重发成功——见 §7 的 **R59-4 / P-R59-3**。
 
 ## 7. 判定与记账
 
-**结论：KEEP（A+B 成立）。** 门禁从「6.1% 靠模型记起」变成「100% 必跑」，成本是每跑 2 次本地 `execute`（0 token、输出约 200 B、1–3 s），而 n=2 的墙钟与 out **都低于** R58 中位（−18% / −20%，紧基线 R55 下 −10% / −12%）——差异**不可归因**（n=2、且挂载集不同），但足以说明**没有可测的变慢**。
+**结论：KEEP（A+B 成立）。** 门禁从「6.1% 靠模型记起」变成「100% 必跑」，成本是每跑 2 次本地 `execute`（0 token、输出约 200 B、1–3 s），而 n=2 的墙钟与 out **都低于** R58 中位（−18% / −20%，紧基线 R55 下 −10% / −12%）——差异**不可归因**（n=2；挂载集虽然不同，但被移出的两条从未被加载，见 §5.1），但足以说明**没有可测的变慢**。
 
 记账项：
 
@@ -111,7 +112,6 @@
 
 平台侧（转开发，全文见 Obsidian）：
 
-- **P-R59-2（新，需平台确认）**：项目 `clinical result_xp` 的 skills 挂载在 10:12 前后由 4 → 2，`updated_by=徐佩佩`、`version=1`；无审计端点；我方客户端不可能写项目记录（见 §5.1）。
 - **P-R59-3（新，轻）**：`execute.timeout_seconds` 的 `inputSchema` 没有 `maximum` 约束、描述只有一句 *Optional timeout override for this command.* ⇒ 只有越界执行时才收到 `timeout_seconds exceeds the maximum allowed (120s)`；建议在 schema 上加 `maximum: 120` 并把上限写进描述。
 - **P-R59-1**（承接）：`execute` 参数名不一致（期望 `shell_command`，模型常发 `command`），断言 #18 已两种键都读自保。
 - **P-R53-1**（仍在）：`tool_results receipts archived` 每跑必 FAIL，与本批改动无关。

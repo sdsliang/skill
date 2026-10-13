@@ -2580,7 +2580,7 @@ R56-b 里 **B 的第一条命令（888.021）跑在 A 的最后一条命令（91
 
 **发布（原地，用户授权「原地实测」）**：prompt v1.8 → **81,614 B / sha `aaf77e7c284b`**（`ifadd=false`，HTTP 200，read-back `current=v1.8 matches_local=True`）；skill v1.0.9 → dist **180,675 B / 29 entries / sha `099504055d79`**（`/api/skills/update_skill_file` HTTP 200，`skill_id=16aeb0406e12425bad27a2444f17225e`）。回读 `status`：`prompt deployed == local: True` / skill `29/29 identical` / **`STATUS: in sync`**。
 
-**发布窗口内撞到平台侧状态漂移（P-R59-2）**：项目 `clinical result_xp` 的挂载 skills 从 4 → 2（`report-humanizer-en` / `report-humanizer-zh` 被移出），`/api/projects/<pid>` 与 `/api/agent/info` 均确认；项目行 `updated_at=2026-10-13T10:12:03`、`updated_by=徐佩佩`、`version=1`。我方 `publish` 只发两个文档化 POST、不可能写项目记录（runner 源码已核），平台无审计端点（`history/logs/audit/versions/snapshots` 全 404）⇒ 无法本地确证，转平台 + 待用户定夺是否恢复。对本轮实测**不构成阻断**（R59 的设计目标正是零外部文体依赖，两跑也没加载 humanizer）。
+**项目挂载集 4 → 2 = 用户主动取消（不是平台缺陷）**：发布前后 `status` 打印的 `skills=` 从 4 变 2（`report-humanizer-en` / `report-humanizer-zh` 被移出），三处 API 一致（`/api/projects/<pid>`、`/resources`、`/api/agent/info`）；项目行 `updated_at=2026-10-13T10:12:03`、`updated_by=徐佩佩`、`version=1`。我一度按「平台侧副作用 vs 带外改动」立了 **P-R59-2**，**当日用户澄清：是他自己从项目配置里取消的**——规则已内联进本包，不再需要挂载外部 humanizer ⇒ **该条目作废，无需恢复**。（客户端自我归因没错：`publish` 只发两个文档化 POST、写不到项目记录；真正缺的是线索——无审计端点、`updated_by` 区分不了人改还是服务端改。留作可用性建议，不开单。）对本轮实测**不构成阻断也不需要「不可比」折扣**：被移出的两条从未被加载（R58 三跑在 4 挂载下同样 0 次），影响仅「技能目录少两条」。
 
 **真跑实测（n=2，`DeepSeek Flash`，web off，`/tmp/prompt-r53-4.txt` = 4 esids，10:14:19 并发，tag `r59-gate-{1,2}`）**：
 
@@ -2605,6 +2605,7 @@ R56-b 里 **B 的第一条命令（888.021）跑在 A 的最后一条命令（91
 ### 我方能改的
 
 - **R59-4（新）**：模型会给主线程 `execute` 传 `timeout_seconds: 180`（平台上限 120）→ 被拒后框架自动重发成功，但计入 `no tool errors` FAIL（`r59-gate-1`）。我们文本已写「main thread 120 s」（`references/input-contract.md`），属模型越界；候选动作 = 在 `toolbox.md` 的 `execute` 行把上限写得更显眼（内容改动，下一轮再议）。
+- **R59-6（记账，无需动作）**：`deps` 仍把 `report-humanizer-en/zh` 列为被扫描的依赖源（1.0.0）——因为**我们的正文点名了它们**（自包含节里那句「A deployment may also mount …」），与运行期是否挂载无关；`deps` 判 `unchanged`，无需 `--accept`。
 - **R59-5（新，低优先）**：原地更新 skill 后，线上版本的「版本更新说明」仍是旧的（`status` 回读 1.0.9 的 message 还是 R52 那段）——`/api/skills/update_skill_file` 我们只传 `skill_id/skill_name` + 全量 zip；若接口支持 `message`/`commit_message`，下次原地更新时应顺带更新说明（这次先记，不动线上）。
 - **R59-1（已用测试兜住）**：扫描器在仓库里有两份拷贝（本包 + `report-humanizer-zh` 仓库）。运行期依赖已消失，残留仅仓库级漂移，由 `test_bundled_copy_matches_the_upstream_repo`（sha256 比对，兄弟目录缺失时 skip 而非假绿）拦截；上游改规则的动作写死在 `prose-style-zh.md` 尾节与 `vendor/README.md`。
 - **R59-2（观察项）**：第 18 项断言把「跑过但未回显退出码」降为 WARN。若 live run 显示模型**从不**回显，需回头评估是否收紧（把 `; echo "SCAN_EXIT=$?"` 写成必须照抄的固定命令 → 收紧为 FAIL）。
@@ -2613,7 +2614,6 @@ R56-b 里 **B 的第一条命令（888.021）跑在 A 的最后一条命令（91
 ### 平台侧（转开发）
 
 - **P-R59-1（新，轻）**：`execute` 参数名不一致 —— 期望 `shell_command`，模型常发 `command`（`r58-mainthread-3` 出现一次 `['command'] Field required; ['shell_command'] Extra inputs are not permitted`，框架自动重发成功但被记入 "arguments refused"）。第 18 项断言已两种键都读以自保；建议把工具 description 与 schema 命名对齐（与 O51 / P-R58-2 同源）。
-- **P-R59-2（新，需平台确认）**：项目挂载 skills 在 10:12 前后 4 → 2（见上）；无审计端点，请平台侧确认是否为 prompt 原地更新的副作用、以及是否会误删其它挂载。
 - **P-R59-3（新，轻）**：`execute.timeout_seconds` 的 `inputSchema` 无 `maximum` 约束、描述仅 *Optional timeout override for this command.* ⇒ 越界执行时才报 `timeout_seconds exceeds the maximum allowed (120s)`；建议加 `maximum: 120` 并把上限写进描述。
 - **P-R58-1（承接，维持观察）**：本轮未复现 `idle` 无 `completed_at` 卡死。
 - **P-R53-1（已知，每次命中）**：`tool_results receipts archived`（`/workspace/tool_results/…/result.jsonl: unsafe or unsupported receipt path`）与本批改动无关。

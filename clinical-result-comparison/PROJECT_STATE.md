@@ -29,7 +29,7 @@
 - **FAIL**：两跑共有 `tool_results receipts archived`（P-R53-1）；`r59-gate-1` 另有一条 = `execute timeout_seconds=180` 超平台上限 120 被拒（框架自动重发成功）→ **R59-4**。
 - **成本**：墙钟中位 363.3 s（R58 443.9 / R55 405.4）、out 中位 61,429（76,848 / 70,187）均更低，但 n=2 且挂载集不同 ⇒ **不可归因**，只说明「没有可测的变慢」。**判定 KEEP。**
 
-**发布窗口内撞到平台侧状态漂移（P-R59-2）**：项目挂载 skills 在 10:12 前后 **4 → 2**（`report-humanizer-en` / `report-humanizer-zh` 被移出；项目行 `updated_at=2026-10-13T10:12:03`、`updated_by=徐佩佩`、`version=1`）。`/api/projects/<pid>`、`/api/projects/<pid>/resources`、`/api/agent/info` 三处一致 ⇒ 运行时确实只挂 2 个；两个 humanizer family 本身健在（`is_current=True`）。我方 `publish` 只发两个文档化 POST、写不到项目记录（源码已核），平台无审计端点（`history/logs/audit/versions/snapshots` 全 404）⇒ 转平台确认 + **待用户决定是否恢复挂载**。**对本轮实测不构成阻断**（R59 目标即零外部文体依赖，两跑也确认未加载 humanizer）。
+**项目挂载集 4 → 2 = 用户主动取消（不是平台缺陷）**：发布前后 `skills=` 从 4 变 2（`report-humanizer-en` / `report-humanizer-zh` 移出；项目行 `updated_at=2026-10-13T10:12:03`、`updated_by=徐佩佩`、`version=1`），三处 API 一致 ⇒ 运行时确实只挂 2 个。我一度立了 **P-R59-2**，**当日用户澄清是自己从配置里取消的**（规则已内联，不再需要挂载外部 humanizer）⇒ **条目作废、无需恢复**。**对本轮实测不构成阻断**，也无需「不可比」折扣：被移出的两条从未被加载（R58 三跑在 4 挂载下也是 0 次），影响仅「技能目录少两条」。
 
 ### 我方能改的
 
@@ -42,7 +42,6 @@
 ### 平台侧（转开发）
 
 - **P-R59-1（新，轻）**：`execute` 参数名不一致 —— 期望 `shell_command`，模型常发 `command`（`r58-mainthread-3` 出现一次 `['command'] Field required; ['shell_command'] Extra inputs are not permitted`，框架自动重发成功但被 runner 记入 "arguments refused"）。第 18 项断言已两种键都读以自保；建议把工具 description 与 schema 命名对齐（与 O51 / P-R58-2 同源）。
-- **P-R59-2（新，需平台确认）**：项目挂载 4 → 2（见上）；请确认是否为 prompt 原地更新的副作用、是否会误删其它挂载。
 - **P-R59-3（新，轻）**：`execute.timeout_seconds` 的 `inputSchema` 无 `maximum` 约束、描述仅 *Optional timeout override for this command.* ⇒ 越界执行时才报错；建议加 `maximum: 120` 并写进描述。
 - **P-R58-1（承接，维持观察）**：本轮未复现 `idle` 无 `completed_at` 卡死。
 - **P-R53-1（已知，每次命中）**：`tool_results receipts archived` 与本批改动无关。P-R56-1~4 仍在（沙箱 `execute` 单通道 / 子代理 `execute` 默认 30 s / `data-subagent-trace` 未文档化 / 平台无「工具串行、生成并行」提示）。

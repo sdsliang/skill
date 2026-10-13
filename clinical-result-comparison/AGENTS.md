@@ -6,7 +6,7 @@
 
 - 线上（原地）：prompt **v1.8 81,614 B / `aaf77e7c284b`**、skill **v1.0.9 dist 180,675 B / 29 entries / `099504055d79`**；回读 prompt 逐字节一致 + skill **29/29 identical** + **`status: in sync`**。
 - 实测（`DeepSeek Flash`，固定 4-esid 输入，web off）：`r59-gate-1/2` wall **332.1 / 394.5 s**、out **52,794 / 70,063**、facts 42 / 43、各 **21 PASS**；断言 #18 = `prose gate ran and exited clean — 2 call(s), SCAN_EXIT=[0, 0] strong-free=True`。未回潮：`task` 0、`--scaffold` 0、`merge_ref_facts` 0 次调用。
-- 记账：**R59-1** 双副本漂移（由 sha256 同一性测试兜住）、**R59-2** WARN 语义、**R59-3** 断言只在 artifacts 分支、**R59-4** 模型给 `execute` 传 `timeout_seconds=180`（上限 120）被拒后自动重发成功。平台侧：**P-R59-1** `execute` 参数名 `command` vs `shell_command`、**P-R59-2** 发布窗口内项目挂载 4 → 2（`report-humanizer-*` 被移出，`updated_by=徐佩佩`、无审计端点；恢复待用户定夺）、**P-R59-3** `execute.timeout_seconds` schema 无 `maximum`。详见 `docs/evidence/r59-prose-gate-inline-2026-10-13.md` 与 `docs/toolsmith-verification-log.md` R59。
+- 记账：**R59-1** 双副本漂移（由 sha256 同一性测试兜住）、**R59-2** WARN 语义、**R59-3** 断言只在 artifacts 分支、**R59-4** 模型给 `execute` 传 `timeout_seconds=180`（上限 120）被拒后自动重发成功。平台侧：**P-R59-1** `execute` 参数名 `command` vs `shell_command`、**P-R59-2（已作废）** 发布窗口内项目挂载 4 → 2 系**用户主动从配置取消**（规则已内联，不再需要挂载 humanizer；无需恢复）、**P-R59-3** `execute.timeout_seconds` schema 无 `maximum`。详见 `docs/evidence/r59-prose-gate-inline-2026-10-13.md` 与 `docs/toolsmith-verification-log.md` R59。
 - 计数口径见下方「离线测试计数（2026-10-13，R59 后实测）」（合计 **221**，含 numeric-integrity 249）。
 
 ## R52 回退完成（2026-10-12）
