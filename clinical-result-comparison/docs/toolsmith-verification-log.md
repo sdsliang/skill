@@ -2671,3 +2671,58 @@ $ toolsmith-publish deps --accept && toolsmith-publish deps
 
 - **P-R53-1（已知，每跑命中）**：`tool_results receipts archived` —— 两跑各一次 `[FAIL]`，与本批改动无关。
 - 其余（P-R59-1 / P-R59-3 / P-R56-1~4 / P-R58-1）维持原状态；**P-R59-2 保持作废**（挂载 4 → 2 系用户主动取消，本轮进一步去掉文本点名，与该决定一致）。
+
+---
+
+## R61 — 语义阶段耗时实测（**测量轮：未改任何运行期文件、未发布**）（2026-10-13，n=2 新跑 + R60 对照）
+
+**动机（用户提问原文）**：「不是让你看 agent 流的，我要看各语义阶段的时间，比如说写 ref 花了多久」—— R60 只有总墙钟（中位 430 s），没有成本归属。
+
+**做法（新工具，离线只读、零网络）**：`tools/semantic-timing.py` 读 `debug-history.json#raw_model_messages`，按
+`生成(i) = t(下一步首个工具返回) − t(本步开始生成) − 工具跨度(i)` 取每步生成时间，再用**该步参数的落点**（`write_file.file_path` /
+`execute` 的重定向目标与脚本名 / `read_file.path`；`&&`、`;`、`|`、heredoc 按子命令拆开，heredoc 载荷跟它的重定向目标走）
+按字节把生成时间摊到 11 个语义阶段。报告与全部边界（含「归因按目标不按关键字」「reasoning 记在承载步上」）见
+`docs/evidence/semantic-timing-2026-10-13.md`。
+
+**真跑（n=2 新跑，`DeepSeek Flash`，web off，`/tmp/prompt-r53-4.txt` = 4 esids 与 R60 **逐字节相同**；两次**串行**执行以保时间可比）**：
+
+| run | 目录 / thread | wall s | 步数 | out tok | reasoning | 工具 s | 工具调用 | 断言 |
+|---|---|---|---:|---:|---:|---:|---:|---|
+| `r61-sem-1` | `20261013-133535-r61-sem-1` / `21309312` | 354.5 | 29 | 58,363 | 41,627 | 6.7 | 32 | 22 PASS / 1 FAIL |
+| `r61-sem-2` | `20261013-134217-r61-sem-2` / `767e05b0` | 251.7 | 19 | 52,551 | 38,420 | 5.0 | 23 | 21 PASS / 2 FAIL |
+| 对照 `r60-prose-generic-2` | `20261013-132120-…` | 344.1 | 23 | 61,049 | 46,759 | 5.4 | 27 | 22 PASS / 1 FAIL |
+
+两跑 `outcome=succeeded`、`timing.completed_at` 有值（terminal state **completed**），产物齐全（`output/report.md` + `output/citations.json` +
+`visualizations/evidence-timeline.json`）；`args-refused` / `fetch-failed` 均 **0**（无 schema 拒收、无抓取失败）。
+
+**语义阶段（生成时间，三跑区间）**：报告正文 **55–70 s**、事实与账本 **44–75 s**、装载契约 **22–68 s**、源文阅读/取证 **19–47 s**、
+自产物回读/返工 8–32 s、图表 12–23 s、取数 3–11 s、门禁自检 5.3–5.6 s、**引用编撰 1.4–1.8 s**、交付 0–2 s、其他 30–38 s；
+**工具本身合计仅 5.0–6.7 s（1.5–2.0%）**。
+
+**全 run 分解（每跑自身回归标定：reasoning 4.33–5.57 ms/tok、落笔 1.73–2.77 ms/tok、每步 1.60–2.05 s，R² = 0.985–0.991）**：
+**思考 65–71% ＋ 落笔（真打字）10–12% ＋ 每步固定开销 11–16% ＋ 工具 1.5–2.0%**。
+
+**三条结论**：
+1. **「写引用」已不是成本**：1.4–1.8 s、手写 0 字节 —— `make_citations.py` 已把这一步完全脚本化（用户问的那一项）。
+2. **减步数比省 token 更省时间**：同输入下 `r61-sem-2` 19 步 / 251.7 s vs `r61-sem-1` 29 步 / 354.5 s ⇒ 每步固定开销 ≈2 s 是可控项；而沙箱单通道（P-R56-1）**不是**本任务瓶颈。
+3. **每跑恰有一次 58–64 s 的纯思考步**（`reasoning ≥ 80% out` 且 `≥ 40 s`；r60-2 为两步 ≈124 s = 36% wall）：名义动作是「读报告模板 / 探源文」，
+   thinking 原文（三次跑一致）显示它在做**取证归拢 + 账本设计 + 报告结构规划** ⇒ 主表「装载契约 18–20%」应读作「**规划/设计 ≈ 60 s（18–36%）**」。
+
+**判定：测量轮，无假设可判** —— 不改 `skill/` / `system-prompts/`，不发布；`status` 回读仍 `in sync`（PROMPT v1.8 `713f4333b74e` / SKILL v1.0.9 `0b8ba50448b6`，均未动）。
+
+### 我方能改的
+
+- **R61-3（新，已在真跑里坐实 = R60-3 的第一次真实踩坑）**：`prose gate ran and exited clean` 断言会把**`&&` 短路后别的命令的退出码**当成扫描器结论。
+  `r61-sem-2` 第 25 步链 = `patch.py --find 'PFS 达标后方检验 OS0.0094…' && patch.py --find '实际在 204 例{{ref_3}} 死亡时触发…' && … check_report.py … && tell-scan.py …; echo "SCAN_EXIT=$?"`，
+  **第一个 `patch.py` 断言失败**（`ASSERT FAILED: /workspace/output/report.md contains 0 occurrence(s) of the pattern, wanted 1`，`patch.py` 失败即 `exit 3`）
+  ⇒ `&&` 短路，`check_report.py` / `tell-scan.py` **均未执行**，`echo` 打出的 `SCAN_EXIT=3` 是 **`patch.py` 的退出码**；同跑收尾（第 34 步）**真跑过**扫描器：`强 0 / 弱 1（W-FMT-MIXED，弱命中）`、`SCAN_EXIT=0`
+  ⇒ **该 run 文体门禁实际干净，这条 FAIL 是假 FAIL**（不是内容回潮）。
+  修法（**下一轮的单一假设**，两处并用更稳）：① `skill/scripts/tell-scan.py` 在输出末尾自打 `[tell-scan] exit=N`，断言改读这一行（模型不必再 `echo SCAN_EXIT=$?`）；
+  ② runner 侧只在同一条 return 里同时出现扫描器 banner（`N 强 / M 弱` 或 `合计强命中`）时才采纳 `SCAN_EXIT` 值。改 runner 需先备份 `toolsmith-publish.v*.bak` + `py_compile` + 零网络闸门回归。
+
+### 平台侧（转开发）
+
+- **P-R53-1（已知，每跑命中）**：`tool_results receipts archived`（`/workspace/tool_results/…/result.jsonl: unsafe or unsupported receipt path`）—— 两跑各一次 `[FAIL]`，与本次测量无关。
+  另：`r61-sem-2` 的 2 条 FAIL 中**只有 1 条**是平台侧（本条），另一条即 R61-3 的我们自己的假 FAIL。
+- **P-R56-1 的范围收窄（本轮新证据）**：「沙箱 `execute` 单通道」**对本任务不是瓶颈** —— 全部工具调用合计 5.0–6.7 s / 跑（1.5–2.0%），优化它无可测收益；真正的大头是生成（91–93%）与步数。
+- 其余（P-R59-1 / P-R59-3 / P-R56-2~4 / P-R58-1）维持原状态。

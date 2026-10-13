@@ -1,5 +1,52 @@
 # Project State
 
+## R61 — 语义阶段耗时实测（**测量轮：未改任何 skill、未发布**）（2026-10-13，n=2 新跑 + R60 对照）
+
+**动机**：用户提问「别按 agent 工具流看，我要各**语义阶段**花了多久，比如写引用花了多久」。R60 只记了总墙钟（中位 430 s），没有成本归属。
+
+**做法**：新增离线只读分析器 **`tools/semantic-timing.py`** —— 读 `debug-history.json#raw_model_messages`，用
+`生成(i) = t(下一步首个工具返回) − t(本步开始生成) − 工具跨度(i)` 取每步生成时间，再按**该步参数写向哪个产出物**
+（`write_file.file_path` / `execute` 的重定向目标与脚本名 / `read_file.path`；`&&`、`;`、`|`、heredoc 按子命令拆开）
+按字节摊到语义阶段。口径、边界与复算命令见 **`docs/evidence/semantic-timing-2026-10-13.md`**。
+
+**实测（同输入 4 esid，DeepSeek Flash，web off；两次新跑串行以保时间可比）**：
+
+| run | wall s | 步数 | out tok | reasoning | 工具 s | 工具调用 | 断言 |
+|---|---:|---:|---:|---:|---:|---:|---|
+| `r61-sem-1` | 354.5 | 29 | 58,363 | 41,627 | 6.7 | 32 | 22 PASS / 1 FAIL |
+| `r61-sem-2` | 251.7 | 19 | 52,551 | 38,420 | 5.0 | 23 | 21 PASS / 2 FAIL |
+| 对照 `r60-prose-generic-2` | 344.1 | 23 | 61,049 | 46,759 | 5.4 | 27 | 22 PASS / 1 FAIL |
+
+**语义阶段（生成时间，三次跑区间）**：报告正文 55–70 s、事实与账本 44–75 s、装载契约 22–68 s（**几乎全是长思考步**）、
+源文取证 19–47 s、自产物回读/返工 8–32 s、图表 12–23 s、取数 3–11 s、门禁 5.3–5.6 s、**引用编撰 1.4–1.8 s**、
+交付 0–2 s、其他 30–38 s；**工具本身只占 5.0–6.7 s（1.5–2.0%）**。
+
+**三条结论**：
+1. **「写引用」已不是成本**（1.4–1.8 s、0 字节手写）—— `make_citations.py` 把它彻底脚本化了。
+2. **全 run 分解 = 思考 65–71% ＋ 落笔（真打字）10–12% ＋ 每步固定开销 11–16%**（每跑自身回归标定：reasoning 4.3–5.6 ms/tok、
+   落笔 1.7–2.8 ms/tok、每步 1.6–2.1 s，R² = 0.985–0.991）⇒ **减步数比省 token 更省时间**
+   （`r61-sem-2` 19 步 / 251.7 s vs `r61-sem-1` 29 步 / 354.5 s，同输入）。
+3. **每跑恰有一次 58–64 s 的纯思考步**（`reasoning ≥ 80% out` 且 `≥ 40 s`；r60-2 拆成两步 ≈ 124 s）：
+   名义动作是「读报告模板 / 探源文」，thinking 原文显示在做**取证归拢 + 账本设计 + 报告结构规划**（三次跑同一规律）
+   ⇒ 主表里「装载契约 18–20%」应读作「**规划/设计 ≈ 60 s（占 18–36%）**」，而不是"读契约文件慢"。
+
+**判定**：**测量轮，无假设可判**（不改运行期文本、不发布；`status` 回读仍 `in sync`，PROMPT v1.8 / SKILL v1.0.9 未动）。
+产出：`docs/evidence/semantic-timing-2026-10-13.md` + `tools/semantic-timing.py`（离线、只读、零网络）。
+
+### 我方能改的
+
+- **R61-3（新，已在真跑里坐实）**：`prose gate exited clean` 断言会把**`&&` 短路后别的命令的退出码**当成扫描器结论。
+  `r61-sem-2` 第 25 步链为 `patch.py --find … && patch.py --find … && … tell-scan.py report.md; echo "SCAN_EXIT=$?"`，
+  **第一个 `patch.py` 断言失败（`ASSERT FAILED … wanted 1`，`patch.py` 失败即 exit 3）** ⇒ `&&` 短路、扫描器根本没跑，
+  `SCAN_EXIT=3` 是 `patch.py` 的退出码；该跑收尾（第 34 步）扫描器真跑过 `强 0 / 弱 1（W-FMT-MIXED 弱）`、`SCAN_EXIT=0` ⇒ **门禁实际是干净的，这条 FAIL 是假的**。
+  修法（二选一或并用，**下一轮的单一假设**）：① `skill/scripts/tell-scan.py` 在自己输出末尾打印 `[tell-scan] exit=N`（模型不必再 `echo SCAN_EXIT=$?`），断言改读这一行；
+  ② runner 侧只在同一条 return 里同时出现扫描器 banner（`强 x / 弱 y`）时才采纳 `SCAN_EXIT` 值。属 R60-3 的第一次真实踩坑。
+
+### 平台侧（转开发）
+
+- **P-R53-1 依旧每跑命中**（`tool_results receipts archived` / `unsafe or unsupported receipt path`），与本次测量无关。
+- 其余（P-R59-1 / P-R59-3 / P-R56-1~4 / P-R58-1）维持原状态。**本轮新增证据：P-R56-1「沙箱 execute 单通道」不是本任务瓶颈**（全部工具调用合计仅 5.0–6.7 s / 跑）。
+
 ## R60 — 运行期文本不再点名外部文体技能（依赖面 3 → 1）（2026-10-13，**已原地发布** + n=2 实测，**KEEP**）
 
 **起因**：用户指出 R59 之后正文里仍写着 `report-humanizer-zh` / `report-humanizer-en` ——「这肯定要改啊……都没有这个 skill 了」。两个症状：① 运行期文本点名 → **依赖错觉**（读起来像这两个技能还在被使用）；② `toolsmith-publish deps` 的依赖面把它们一直列为**被扫描的上游源**（`skills: 3`），发布闸门里挂着两条与本项目无关的新鲜度。
@@ -501,6 +548,7 @@ Build the Tool Smith Agent for evidence-grounded synthesis of selected esids, us
 | B6 | ~~**仓库资产**：`eval_attribution` 的归因口径~~ **已完成（2026-09-18，用户授权 O19）** | ✅ 已解除 | 落地为「身份对豁免 + 数值对永不豁免」（`subject: true`），假阳性回归对照 `N25`/`N27`；`arm a 40/40`（第十四轮后同 arm 为 `41/41`）、`GATE: PASS`；R12 `37→39/40`、R15 `36→37/40`、R17 `39→40/40` ⇒ 台账 **F2**、`O19` 已修 |
 | B7 | ~~**仓库资产**：清单条目 `A-T1-title-names-both`~~ **已完成（2026-09-18，用户授权 O20）** | ✅ 已解除（证据从 1 份增至 4 份产物：R12/R15/R16/R17） | 改名 `A-T1-title-identifies-scope` + `op: title_scope`（主题式标题合法；**只点一个药名仍 FAIL**）；`M26`/`M06` 证明有牙、`N26` 证明不误伤 ⇒ 台账 **F2**、`O20` 已修 |
 | B3 | **runner（已落地）**：O1–O18 全已落地，只剩 O4/O5 待样本；**O42 已于 R46 按选项 B 窄口径结案** —— 新增 `TOOL_REFUSED_RX`（两形状 `^` 锚定）+ `REFUSAL_BUDGET = 3`，原恒 PASS 信息行改带预算判定（断言仍 22 条）；备份 `toolsmith-publish.v15.bak`，`py_compile` OK，`test-runner.py` 38 → 39，零网络闸门 `GATE: PASS`，离线重打分 98 份归档 0 error | ✅ 已完成（用户「谁好，你推荐谁」+「你自己看着办吧」授权） | 回滚 = 复原 `v15.bak` + 重跑 39 项；不动线上、无 TS 写动作 |
+| B9 | **仓库资产 + runner**：`tell-scan.py` 输出末尾自打 `[tell-scan] exit=N`，`run` 的 prose-gate 断言改读该行（不再采信模型 `echo SCAN_EXIT=$?`——`&&` 短路会污染成别的命令的退出码，`R61-3` 已坐实） | 证据齐（`r61-sem-2` 第 25/34 步原文） | 改 `skill/scripts/` + runner（先备份 `toolsmith-publish.v*.bak`、`py_compile`、零网络闸门回归）；需 1 次真跑复验 |
 | B8 | **仓库资产（已完成）**：R43/R44/R45（F1 + F2 + O27）与 **R47（O43 + O40/O41 报告侧习惯句）** 均已原地发布并四组真跑 | ✅ 已解除（R41 同授权续用） | **prompt v1.7 现值 `c1641a46810a` / 67,591 B；dist `025aec791b1c` / 105,347 B；`status` in sync**（R47 后） |
 | B4 | **仓库资产**：autoresearch harness 骨架 + 把 `tool_results/**` 纳入归档 → 跑 E0「receipts 命中率」回测（不动 `skill/`、0 新 run） | 用户点头 | 纯本地脚本 + 文档 |
 | B5 | **仓库资产**：把「冻结面 + 场景集 + TSV 列」写进 `AGENTS.md`/`PROJECT_STATE.md`，形成常驻 program.md（S4） | 用户点头 | 文档 |
