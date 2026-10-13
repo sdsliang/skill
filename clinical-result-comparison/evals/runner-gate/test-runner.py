@@ -478,7 +478,13 @@ class ContractTests(OfflineCase):
         self.a = SimpleNamespace(repo=str(self.root), sys=str(self.root / 'sys.md'),
                                  skill_name='demo', tool='query', expect=None, out=str(self.root))
         self.body = '<skill name="demo">\nSkill body\n</skill>\n- /workspace/skills/demo/support.txt (1.0 KB)'
+        # R59: the prose gate is part of the delivery contract, so every positive fixture
+        # carries the invocation the prompt prescribes — the one that echoes the exit code.
+        self.scan_cmd = ('python3 -B /workspace/skills/demo/scripts/tell-scan.py '
+                         '/workspace/output/report.md; echo "SCAN_EXIT=$?"')
         self.parts = [call('s', 'load_skill', {'name': 'demo'}), ret('s', 'load_skill', self.body),
+                      call('g', 'execute', {'command': self.scan_cmd}),
+                      ret('g', 'execute', '== /workspace/output/report.md  [zh]  强 0 / 弱 0\nSCAN_EXIT=0'),
                       call('p', 'present_artifact', {'path': '/workspace/output/report.md'}),
                       ret('p', 'present_artifact')]
         self.run = {'turn_id': 't', 'kind': 'completed', 'outcome': 'succeeded',
@@ -523,6 +529,34 @@ class ContractTests(OfflineCase):
         (cache / 'support.cpython-310.pyc').write_bytes(b'\x00\x01\x02')
         (self.root / 'skill/demo/stray.pyc').write_bytes(b'\x00')
         self.assertEqual(self.failures(), [])
+
+    def test_prose_gate_is_mandatory(self):
+        # the gate is the only assertion that can be satisfied by *not* working: a run that
+        # ships a report without ever running tell-scan.py on it must fail, not pass quietly.
+        parts = [p for p in self.parts if 'tell-scan' not in json.dumps(p)]
+        self.assertIn('prose gate ran (scripts/tell-scan.py on the finished report)',
+                      self.failures(history(parts)))
+
+    def test_prose_gate_dirty_exit_fails(self):
+        for marker in ('SCAN_EXIT=3', 'SCAN_EXIT=2'):
+            with self.subTest(marker=marker):
+                parts = list(self.parts)
+                parts[3] = ret('g', 'execute', f'L3 [强] S-PROC-01  «我们共检索»\n{marker}')
+                failures = self.failures(history(parts))
+                self.assertIn("prose gate exited clean (or its strong hits were --allow'ed)", failures)
+
+    def test_prose_gate_without_echoed_exit_is_a_warning_not_a_failure(self):
+        parts = list(self.parts)
+        parts[3] = ret('g', 'execute', '== /workspace/output/report.md  [zh]')
+        levels = {name: level for level, name, _ in self.checks(history(parts))}
+        self.assertEqual(self.failures(history(parts)), [])
+        self.assertEqual(levels.get('prose gate ran but its exit code was not echoed '
+                                      '(verdict unreadable)'), 'WARN')
+
+    def test_prose_gate_unreadable_exit_is_never_double_counted(self):
+        # a clean scan whose exit code we *can* read must not also raise the WARN variant
+        levels = [name for level, name, _ in self.checks() if 'prose gate' in name]
+        self.assertEqual(levels, ['prose gate ran and exited clean'])
 
     def test_unreturned_call_is_failure(self):
         self.parts.insert(2, call('lost', 'query'))

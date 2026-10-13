@@ -124,6 +124,22 @@ node scripts/validate-cli.js templates/bar.json          # 应输出「校验通
 
 若 `node_modules/` 缺失（例如别人 clone 后另装）：`npm install zod --no-save`（上游 `package.json` **未声明** `zod` 依赖，这是已知缺口）。
 
+## 内联留档：`report-humanizer-zh` 的 prosa 风格扫描器（2026-10-13，R59）
+
+例外于上面的「目录留档」约定：R59 把上游 `report-humanizer-zh` 的**确定性扫描器**逐字节内联进了我们自己的包（不再运行期依赖外部挂载）。路径与指纹：
+
+| 项 | 值 |
+| --- | --- |
+| 上游来源 | `report-humanizer-zh/skill/report-humanizer-zh/scripts/tell-scan.py`（仓库版本 **v0.1.1**；平台部署版号 1.0.0） |
+| 内联落点 | `skill/multi-clinical-result-comparison/scripts/tell-scan.py`（随 dist 发布） |
+| 字节同一性 | sha256 `1992a4c48f78dc8e3ec2d0c96a2752eb1b9a076fd05dda37720e94a4fe8873f4`（22,558 B） |
+| 日期 | 2026-10-13 |
+| 漂移拦截 | `evals/scripts/test-tell-scan.py::test_bundled_copy_matches_the_upstream_repo`（兄弟目录不在时 skip） |
+
+同时内联了上游 `references/patterns-zh.md` 中**报告文体相关**的条目，改写为我方 `references/prose-style-zh.md`（12226 B，非逐字节拷贝——上游原文含面向通用写作的条目与 examples，未纳入）。上游 SKILL.md 未内联。
+
+**为什么不放在 `vendor/`**：`vendor/` 的语义是「上游包的只读副本，不入 dist、不被 Skill 引用」，而这份扫描器**必须随包发布并在运行时执行**，所以它进包；本表只承担溯源职责。
+
 ## 上游协议要点（v1.0.9 起，2026-09-11；v1.0.12-20260921 补记）
 
 - **时间轴是竖向列表，不是「带编码的图」**：每个节点 = 时间 + 卡片，节点**等大等形**（固定 6px 灰圆点）、`legend` 渲染器对 `type: timeline` 直接返回空数组 ⇒ **`weight`（节点大小）/ `weightLegend` / `legend`（含 `shape`）/ `group`（颜色与形状）都没有任何视觉效果**。上游 schema 仍允许这些字段（写进去不报错），但**允许 ≠ 渲染生效**；要表达成熟度或分类只能写进节点文字与报告正文。本仓库对此加了双层门禁（见 `references/timeline-diagram.md` 构建规则第 8 条）。

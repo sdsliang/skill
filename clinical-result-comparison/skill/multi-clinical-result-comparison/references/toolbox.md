@@ -36,6 +36,7 @@ on the `FAIL`s. A `WARN` you never act on is a normal, finished run.
 | Chart product | `scripts/make_chart.py` | `/workspace/visualizations/<fixed name>.json` |
 | Citation JSON | `scripts/make_citations.py` | `/workspace/output/citations.json` |
 | Final mechanical check | `scripts/check_report.py` | nothing (exit code only) |
+| Prose gate (finished file) | `scripts/tell-scan.py` | nothing (exit code only) |
 
 Run them one after another in a **single `execute` call** where the steps are independent
 (e.g. `mkdir -p`, then `prep_sources`, then `build_ledger` in one shell line) instead of one call
@@ -313,6 +314,38 @@ never referenced by the report, and a table cell citing the same ref twice.
 Exit `0` — nothing fatal (warnings are printed and do **not** change the exit code) · `3` at least
 one FAIL, the product is broken · `2` usage/IO. Run it **before** `present_artifact`; the run is
 not finished while it reports a FAIL. Fix FAILs only.
+
+## 9. `tell-scan.py` — the prose gate (deterministic, no model)
+
+```bash
+python3 -B /workspace/skills/multi-clinical-result-comparison/scripts/tell-scan.py /workspace/output/report.md; echo "SCAN_EXIT=$?"
+```
+
+It mechanically scans the **finished** report for AI-flavoured prose and report-specific wording
+problems — process narration, self-explanation, hype, borrowed authority, section-filler, leftover
+draft/work talk, mixed numeric notation — and prints one line per hit with a rule id
+(`S-PROC-*` / `S-INFL-*` / `S-STRUCT-*` / `W-*`), the matched text and what the rule wants.
+
+| Exit | Meaning | What you do |
+| --- | --- | --- |
+| `0` | no strong hit | nothing — deliver (still run `check_report.py` if it has not run yet, and re-run it once if this pass changed wording) |
+| `3` | ≥1 **strong** hit | handle each one: rewrite it, or pass `--allow <ID,…>` for the ids you judged inapplicable |
+| `2` | usage / missing file | fix the command, not the report |
+
+Flags: `--lang {auto,zh,en}` (default auto, by CJK ratio — a Chinese report needs no flag),
+`--json` (per-hit detail, for reading a long hit list), `--weak` (weak hits also count as 3 — not
+the default), `--allow ID,ID,…`.
+
+* Strong vs weak is the whole point: a **strong** hit is enough to fix; a **weak** hit (`W-*`, e.g.
+  one AI-flavoured word, one decorative dash, 11 bold spans) is a clue to re-read the sentence, not
+  an order. Never rewrite to zero out weak hits.
+* It is an assister, **not a judge**: a clean scan proves nothing about the writing, and a hit may be
+  legitimate (a quoted original, a formal term with a real technical meaning).
+* When a hit needs judgement — which rule, how to rewrite — read `references/prose-style-zh.md`
+  (the full checklist with 改写前/改写后 examples). Do not read the script's source.
+* **It never changes a number** and never authorises dropping a 局限 / 缺口 / 未报告 statement or a
+  comparability caveat. Rewriting whole sentences is expected; swapping only the flagged words is
+  not a fix. Re-run this gate after a rewrite.
 
 ## Questions this file answers so you never read the scripts
 

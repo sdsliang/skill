@@ -1,8 +1,17 @@
 # AGENTS.md — 常驻 program.md（autoresearch 循环）
 
+## R59 完成（2026-10-13，**已原地发布** + n=2 实测，KEEP）
+
+文体门禁**内联**：把上游确定性扫描器**逐字节复制**进本包（`skill/.../scripts/tell-scan.py`，22,558 B）＋新增自包含 `references/prose-style-zh.md`（13,071 B / 200 行），`SKILL.md` / `toolbox.md` / 系统提示词六处明写 **不加载、不等待、不依赖任何外部文体 skill**。口径：**门禁必跑（定稿后 1 次本地 `execute`，0 token）≠ 改写必做（只由强命中触发，弱命中仅线索）**；历史触发率 6.1 %（`load_skill` 7/115）→ 现在 2/2 跑、每跑 2 次必跑，两跑 `SCAN_EXIT=[0, 0]`（强命中 0）。runner 加**第 18 项断言**（缺调用 FAIL / 脏退出 FAIL / 无回显 WARN），`test-runner.py` **41 → 45**。
+
+- 线上（原地）：prompt **v1.8 81,614 B / `aaf77e7c284b`**、skill **v1.0.9 dist 180,675 B / 29 entries / `099504055d79`**；回读 prompt 逐字节一致 + skill **29/29 identical** + **`status: in sync`**。
+- 实测（`DeepSeek Flash`，固定 4-esid 输入，web off）：`r59-gate-1/2` wall **332.1 / 394.5 s**、out **52,794 / 70,063**、facts 42 / 43、各 **21 PASS**；断言 #18 = `prose gate ran and exited clean — 2 call(s), SCAN_EXIT=[0, 0] strong-free=True`。未回潮：`task` 0、`--scaffold` 0、`merge_ref_facts` 0 次调用。
+- 记账：**R59-1** 双副本漂移（由 sha256 同一性测试兜住）、**R59-2** WARN 语义、**R59-3** 断言只在 artifacts 分支、**R59-4** 模型给 `execute` 传 `timeout_seconds=180`（上限 120）被拒后自动重发成功。平台侧：**P-R59-1** `execute` 参数名 `command` vs `shell_command`、**P-R59-2** 发布窗口内项目挂载 4 → 2（`report-humanizer-*` 被移出，`updated_by=徐佩佩`、无审计端点；恢复待用户定夺）、**P-R59-3** `execute.timeout_seconds` schema 无 `maximum`。详见 `docs/evidence/r59-prose-gate-inline-2026-10-13.md` 与 `docs/toolsmith-verification-log.md` R59。
+- 计数口径见下方「离线测试计数（2026-10-13，R59 后实测）」（合计 **221**，含 numeric-integrity 249）。
+
 ## R52 回退完成（2026-10-12）
 
-用户已授权回退。运行资产与 dist 恢复到 R51 commit `3adb77c`，R52 新增两份接口测试随实现撤销，失败证据保留在 docs/evidence 与 Git 历史。TS 采用原地恢复内容：当前标签仍 prompt 1.8 / skill 1.0.9（skill_id `16aeb0406e12425bad27a2444f17225e`），实际内容 == R51 的 prompt 1.7 / skill 1.0.8。prompt SHA `bf7b45dbf5d0`，dist SHA `081cd850befc` / 152,558 B；回读 26/26 identical、status in sync、项目绑定正确。此前“尚未回退”段落为历史实验状态，本段覆盖它。
+用户已授权回退。运行资产与 dist 恢复到 R51 commit `3adb77c`（**其后 R58 / R59 又依次原地更新过，见上方 R59 节**），R52 新增两份接口测试随实现撤销，失败证据保留在 docs/evidence 与 Git 历史。TS 采用原地恢复内容：当前标签仍 prompt 1.8 / skill 1.0.9（skill_id `16aeb0406e12425bad27a2444f17225e`），实际内容 == R51 的 prompt 1.7 / skill 1.0.8。prompt SHA `bf7b45dbf5d0`，dist SHA `081cd850befc` / 152,558 B；回读 26/26 identical、status in sync、项目绑定正确。此前“尚未回退”段落为历史实验状态，本段覆盖它。
 
 
 ## R52 交接（2026-10-12）
@@ -102,6 +111,8 @@
 6. **R41 四组（2/4/18/14 esid）**：22 / 21 / 22 / 22 PASS；唯一 FAIL = 模型 `write_file` 重写 `/workspace/scripts/build_ledger.py` 被平台拒（平台行为正确，见 F1）。
 7. **R42 = Phase A（18/14 esid 的 humanizer 臂）**：21 PASS（同 F1）/ 22 PASS；18 esid 粗体 47→26（−45%）、12-gram 重复率 0.0911→0.0643（−29%）；14 esid 方向相反；**两臂 strong 命中均 0、`{{ref_n}}` 逐条相等（18/18、14/14）**；代价 = 工具尝试 +45~51%、墙钟 +13~17%。**每臂 n=1 → 不宣称可测收益**，默认仍不强制调用 humanizer。
 8. **两条待办（已给证据、未落盘，等用户点头）**：**F1** prompt 第 6 条文件写入纪律只覆盖报告正文 → 扩到「本工作区任何文件」（正文/辅助脚本/图表 JSON）；**F2** 同一观察身份词报告内混用（`每月` 3 次 vs `Q4W` 9 次，源文只有 `monthly`）→ 图表 label 取 `Q4W` 使 `A-S9`/`A-S9b`/`A-S10` FAIL；改法 = ①prompt/SKILL 加「一套写法 + 图表 label 复用正文身份短语」②`scenario-a.facts.json` 该观察 `identity_patterns` 放宽到 `每月|每月一次|QM|Q4W`。
+
+**离线测试计数（2026-10-13，R59 后实测）**：runner **45**、scorer（`test_regressions.py`）**35**、tools **19**（`test_pack_dist.py` 5 + `test_replay_run.py` 14）、Node **16**、`evals/scripts/test-skill-scripts.py` **62**、`evals/scripts/test-check-report.py` **25**、`evals/scripts/test-build-ledger-scaffold.py` **9**、**新增长条 `evals/scripts/test-tell-scan.py` 10**；另有 `evals/numeric-integrity/test-render-facts.py` **28** 与 `evals/scripts/test-merge-ref-facts.py` **16** 单列（历来不计入合计口径）。**R59 合计 = 45 + 35 + 19 + 16 + 62 + 25 + 9 + 10 = 221（含 numeric-integrity 为 249）**；R51 口径为 203 / 231（runner 41、skill-scripts 58）。
 
 **离线测试计数（2026-10-12，R51 后实测）**：runner **41**、scorer（`test_regressions.py`）**35**、tools **19**（`test_pack_dist.py` 5 + `test_replay_run.py` 14）、Node **16**、`evals/scripts/test-skill-scripts.py` **58**、`evals/scripts/test-check-report.py` **25**、`evals/scripts/test-build-ledger-scaffold.py` **9**；另有 `evals/numeric-integrity/test-render-facts.py` **28** 单列。**R51 合计 = 41 + 35 + 19 + 16 + 58 + 25 + 9 = 203（含 numeric-integrity 为 231）**；R49/R50 口径为 194 / 222。旧口径（R48）：：runner **40**、scorer（`test_regressions.py`）**35**、tools **19**（`test_pack_dist.py` 5 + `test_replay_run.py` 14）、Node **16**、`tools/test_pack_dist.py` **5/5**；另有 **`evals/numeric-integrity/test-render-facts.py` 28** 与 **`evals/scripts/test-skill-scripts.py` 54**，两者本来就不计入上面那 105/117 的合计口径（README 旧行的 105 = runner 38 + scorer 32 + tools 19 + Node 16，不含 numeric-integrity；R43 把 scorer 提到 35、R46 把 runner 提到 39、**R48 把 runner 提到 40**）。**R48 合计口径 = 40 + 35 + 19 + 16 + 54 = 164**。
 
@@ -264,12 +275,14 @@ tools/replay-run.py --tsv --score \
 ```bash
 python3 evals/fact-check/check.py --run <run-dir> --scenario a|b [-v]     # 离线判分（exit 0/3/4）
 python3 evals/numeric-integrity/test-render-facts.py                      # 附录渲染/账本门禁回归（文件名含连字符，**不能**用 unittest discover，直接脚本跑）
-python3 evals/scripts/test-skill-scripts.py                              # R48 随包六脚本回归（58 项；同样**不能**用 unittest discover，直接脚本跑；跑的是 subprocess，无 __pycache__ 污染）
+python3 evals/scripts/test-skill-scripts.py                              # R48 随包脚本回归（62 项；**不能**用 unittest discover，直接脚本跑；跑的是 subprocess，无 __pycache__ 污染）
+python3 evals/scripts/test-tell-scan.py                                  # R59 文体门禁回归（10 项：退出码 0/3/2、强 vs 弱、`--allow`、`--json`、**只读**、与上游 tell-scan.py sha256 一致（缺兄弟目录则 skip）；**不能**用 unittest discover）
 python3 evals/fact-check/mutations.py                                     # 负向对照闸门（64 项变异/合法对照；`MUT_SEED_A=0` 关掉 A-P10 基线种子）
 python3 evals/fact-check/test_regressions.py                              # 门禁回归（35 项，含 A-P10 的 NoRunLogisticsTests 5 项）
 python3 evals/scripts/test-check-report.py                                 # 交付层机械检查回归（25 项，含 R49 附录/图表去重、R50 第四语域与 R51 时间轴退役编码；**不能**用 unittest discover）
 python3 evals/scripts/test-build-ledger-scaffold.py                       # `build_ledger.py --scaffold` 回归（9 项；**不能**用 unittest discover）
-python3 evals/runner-gate/test-runner.py                                   # runner 单测（40 项，含 R48 的 CJK 收据分隔符回归；**不能**用 unittest discover）
+python3 evals/runner-gate/test-runner.py                                   # runner 单测（45 项，含 R48 的 CJK 收据分隔符回归与 R59 的文体门禁 4 例；**不能**用 unittest discover）
+python3 skill/multi-clinical-result-comparison/scripts/tell-scan.py <report.md>   # R59 文体门禁本体（exit 0 干净 / 3 强命中 / 2 用法；`--json` / `--allow` / `--weak`）
 python3 evals/runner-gate/verify-run-chain.py                             # runner 零网络回归
 tools/replay-run.py --tsv --score <run>…                                  # 成本 + 质量一行一 run
 tools/replay-run.py --details <run>                                       # 全字段（含 model_turns / 前缀版本）

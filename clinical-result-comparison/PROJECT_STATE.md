@@ -1,5 +1,54 @@
 # Project State
 
+## R59 — 文体门禁内联（A+B）：条件式引用 → 确定性检查（2026-10-13，**已原地发布** + n=2 实测，**KEEP**）
+
+**起因**：用户问「引用外部 human skill 是否增加耗时」。用全历史真实调用回答（扫 `~/.local/state/toolsmith-runs/*/messages.json`）：`load_skill` 计数 `multi-clinical-result-comparison` **115x** / `report-humanizer-zh` **7x** / `chart-visualization-json` **2x** ⇒ 文体 skill 触发率 **6.1 %**（R58 三跑 **0/3**）。**引用本身几乎免费**：返回 5,933 字符 ≈1.5 K input token、一次后走 cache；唯一载入它的 `r57b-shard-3` 墙钟 445.9 s 正是三 shard 中位（未载入的 shard-1 反而最慢 465.5 s）⇒ 边际成本落在噪声内。**贵的是「应用」**：载入后改报告 + 重跑门禁，估 **+30–60 s / +10–20 K out**（`r44-a` step 43 载入后 write + 复查：511 s / 94,797 out）。**现状的失效模式与 R57 facts 分片同一类**：条件式许可（“may also mount… *when it does*: apply at most one”，只要 6 % 命中）打不过成本 ⇒ 付了提示词字节，风格产出仍不一致。另有一处更硬的漂移：平台部署的 `report-humanizer-zh` 是 **v1.0.0**，本地仓库已到 **v0.1.1** —— 两条路径本来就不同源。
+
+**决策（用户拍板 A+B）**：① **A** = 把上游 `tell-scan.py`（确定性扫描器）**逐字节复制进我们自己的包**，运行期不再依赖任何外部挂载；② **B** = 精选报告文体规则**内联**进 `SKILL.md` / 系统提示词。**关键口径：「门禁必跑 ≠ 改写必做」** —— 门禁 = 定稿后 1 次本地 `execute` 跑 `tell-scan.py`（1–3 s、**0 token**、输出 ≈200 B，落在噪声里）；**改写只由强命中触发**（弱命中仅线索）。样本报告实测 **强 0 / 弱 1** ⇒ 重写基本不触发，期望成本**低于**现状（现状是 100 % 的 run 付那 6 % 换 6 % 生效）。
+
+**改动**（净加法，但**零运行期外部依赖**）：新增 `skill/.../scripts/tell-scan.py`（22,558 B，sha256 `1992a4c48f78dc8e…`，与上游逐字节一致）；新增 `skill/.../references/prose-style-zh.md`（13,071 B / 200 行，只内联报告文体相关条目 A1–A10 / B1–B10 / C1–C8 / D1–D3 + 扫描器编号映射 + 「强命中必须处理」）；`SKILL.md`（脚本清单、工作流 §5 必跑门禁、`## Report prose style` 整节改为**自包含**并明写「不加载 / 不等待 / 不依赖任何外部文体 skill」、参考清单第 11 项）；`references/toolbox.md`（门禁表行 + 新 `## 9.` 节）；系统提示词 **6 处**（工作流步 8、脚本清单、`## Report prose style` 自包含版、交付前两条检查、机械脚本清单）；`tools/pack-dist.py` **`EXPECTED 27 → 29`**；新增 `evals/scripts/test-tell-scan.py` **10 例**；`vendor/README.md` 溯源表。**② 为何消失**：运行期不再看 `report-humanizer-zh` 是否被挂载/是否被记起/线上是哪个构建；残留只是**仓库级两份拷贝**的漂移，用一条 **sha256 同一性回归**兜住（兄弟目录不在时 skip 而非假绿）。
+
+**runner 第 18 项断言**（本地 runner 改动：`~/.local/bin/toolsmith-publish`，备份 `toolsmith-publish.v10.bak`，改前 sha256 前缀 `b7652eaf9d5cb9d8`）：`execute` 调用中必须出现 `tell-scan.py`（缺 → **FAIL**）；能读到 `SCAN_EXIT` 时必须为 `0`（脏 → FAIL）；调用过但未回显退出码 → **WARN**（证据在、只是数字读不到，判 FAIL 是罚宿主不是罚 run）；退出码提取同时接受 `command` / `shell_command`（P-R59-1）。`fails` 只收 `FAIL` ⇒ WARN 仍以绿出货；`--expect refusal` 分支在第 1408 行提前 return，不受影响。`evals/runner-gate/test-runner.py` **41 → 45**（正向夹具补门禁调用 + `SCAN_EXIT=0`；新增 4 例：缺门禁 / 脏退出 / 无回显仅 WARN / 干净扫描不得重复计数）。**修复中撞到假绿**：第一版写 `add(True, …, warn=True)`，而 `lvl = "PASS" if ok else ("WARN" if warn else "FAIL")` ⇒ 被吐成 PASS；改 `add(False, …, warn=True)` 才是 WARN。
+
+**本地门禁（全绿）**：`test-tell-scan` **10**（新）/ `test-skill-scripts` 62 / `test-check-report` 25 / `test-build-ledger-scaffold` 9 / `test-merge-ref-facts` 16 / `test-render-facts` 28 / `test_regressions` 35 / `test-runner` **45** / `test_pack_dist` 5 / `test_replay_run` 14 / node **8+8** / `mutations.py` arm a **44/44** + arm b **12/12** + `never flipped []` + `GATE: PASS` / `verify-run-chain.py` `GATE: PASS`（145 histories / 5 comparable / 140 skipped）。`deps` = `unchanged since the recorded baseline`（**无需 `--accept`**：humanizer 是**项目挂载**事实，不是文本扫描出的依赖）。
+
+**发布（原地，用户授权「原地实测」）**：prompt **v1.8** 78,155 B `6d507fb8fff7` → **81,614 B / `aaf77e7c284b`**（+3,459 B = 内联规则 + 门禁，`ifadd=false` HTTP 200，read-back `matches_local=True`）；skill **v1.0.9** dist 160,567 B / 27 entries → **180,675 B / 29 entries / sha `099504055d79`**（`/api/skills/update_skill_file` HTTP 200）；回读 `status` = `prompt deployed == local: True` / skill `29/29 identical` / **`in sync`**。skill_id `16aeb0406e12425bad27a2444f17225e`；PROJECT `a7cdda6508e0423c8b7afaaf3a68e50d`。
+
+**真跑实测（n=2，`DeepSeek Flash`，web off，`/tmp/prompt-r53-4.txt` = 4 refs，tag `r59-gate-{1,2}`）**：
+
+| run | wall s | out tok | reasoning | steps | `tell-scan` 调用 | `SCAN_EXIT` | facts | 断言 |
+|---|---:|---:|---:|---:|---:|---|---:|---|
+| r59-gate-1 | 332.1 | 52,794 | 37,399 | 30 | 2 | `[0, 0]` | 42 | 21 PASS / 2 FAIL |
+| r59-gate-2 | 394.5 | 70,063 | 56,677 | 25 | 2 | `[0, 0]` | 43 | 21 PASS / 1 FAIL |
+| **中位** | **363.3** | **61,429** | — | 27.5 | **2** | 全 0 | 42.5 | — |
+| R58 中位 | 443.9 | 76,848 | — | 26 | 0 | — | 47.5 | — |
+| R55 紧基线 | 405.4 | 70,187 | — | — | 0 | — | — | — |
+
+- **第 18 项断言现场 `[PASS] prose gate ran and exited clean — 2 call(s), SCAN_EXIT=[0, 0] strong-free=True`**（两跑同此）⇒ 门禁 **2/2 跑、每跑 2 次必跑**（旧口径 6.1%），且**强命中 0** ⇒ 无条件改写未被触发；弱命中（bold count / mixed numeric）被模型明确当线索（`Weak only — acceptable`）。
+- **无分片回潮**：`task` / `subagent_type` 0 次、`--scaffold` 0 次调用、`merge_ref_facts.py` 0 次调用。**质量未退**：每跑 21 PASS（citations 4 refs 键集/日期/标题齐、`{{ref_n}}` 双向、图表 envelope 一致、`present_artifact` 收尾）。
+- **FAIL**：两跑共有 `tool_results receipts archived`（P-R53-1）；`r59-gate-1` 另有一条 = `execute timeout_seconds=180` 超平台上限 120 被拒（框架自动重发成功）→ **R59-4**。
+- **成本**：墙钟中位 363.3 s（R58 443.9 / R55 405.4）、out 中位 61,429（76,848 / 70,187）均更低，但 n=2 且挂载集不同 ⇒ **不可归因**，只说明「没有可测的变慢」。**判定 KEEP。**
+
+**发布窗口内撞到平台侧状态漂移（P-R59-2）**：项目挂载 skills 在 10:12 前后 **4 → 2**（`report-humanizer-en` / `report-humanizer-zh` 被移出；项目行 `updated_at=2026-10-13T10:12:03`、`updated_by=徐佩佩`、`version=1`）。`/api/projects/<pid>`、`/api/projects/<pid>/resources`、`/api/agent/info` 三处一致 ⇒ 运行时确实只挂 2 个；两个 humanizer family 本身健在（`is_current=True`）。我方 `publish` 只发两个文档化 POST、写不到项目记录（源码已核），平台无审计端点（`history/logs/audit/versions/snapshots` 全 404）⇒ 转平台确认 + **待用户决定是否恢复挂载**。**对本轮实测不构成阻断**（R59 目标即零外部文体依赖，两跑也确认未加载 humanizer）。
+
+### 我方能改的
+
+- **R59-1（已用测试兜住）**：扫描器在仓库里有两份拷贝（本包 + `report-humanizer-zh` 仓库）。运行期依赖已消失，残留仅仓库级漂移，由 `test_bundled_copy_matches_the_upstream_repo`（sha256 比对，兄弟目录缺失时 skip）拦截；上游改规则的动作写死在 `prose-style-zh.md` 尾节与 `vendor/README.md`。
+- **R59-2（观察项）**：若 live run 显示模型**从不**回显退出码，需评估把 `; echo "SCAN_EXIT=$?"` 收紧为必须照抄的固定命令（WARN → FAIL）。
+- **R59-3（记账）**：第 18 项断言**只作用于 artifacts 分支**；拒绝场景（`--expect refusal`）本就不产出报告、也不该跑文体门禁。
+- **R59-5（新，低优先）**：原地更新后线上 skill 1.0.9 的「版本更新说明」仍是 R52 那段（`update_skill_file` 我们只传 `skill_id/skill_name` + zip）；若接口支持 message，下次原地更新顺带更新。
+- **R59-4（新）**：模型给主线程 `execute` 传 `timeout_seconds: 180`（平台上限 120）→ 被拒后自动重发成功但计入 `no tool errors` FAIL（`r59-gate-1`）。我们的文本已写「main thread 120 s」，属模型越界；候选动作 = 把 `toolbox.md` 的 `execute` 上限写得更显眼（内容改动，下一轮再议）。
+
+### 平台侧（转开发）
+
+- **P-R59-1（新，轻）**：`execute` 参数名不一致 —— 期望 `shell_command`，模型常发 `command`（`r58-mainthread-3` 出现一次 `['command'] Field required; ['shell_command'] Extra inputs are not permitted`，框架自动重发成功但被 runner 记入 "arguments refused"）。第 18 项断言已两种键都读以自保；建议把工具 description 与 schema 命名对齐（与 O51 / P-R58-2 同源）。
+- **P-R59-2（新，需平台确认）**：项目挂载 4 → 2（见上）；请确认是否为 prompt 原地更新的副作用、是否会误删其它挂载。
+- **P-R59-3（新，轻）**：`execute.timeout_seconds` 的 `inputSchema` 无 `maximum` 约束、描述仅 *Optional timeout override for this command.* ⇒ 越界执行时才报错；建议加 `maximum: 120` 并写进描述。
+- **P-R58-1（承接，维持观察）**：本轮未复现 `idle` 无 `completed_at` 卡死。
+- **P-R53-1（已知，每次命中）**：`tool_results receipts archived` 与本批改动无关。P-R56-1~4 仍在（沙箱 `execute` 单通道 / 子代理 `execute` 默认 30 s / `data-subagent-trace` 未文档化 / 平台无「工具串行、生成并行」提示）。
+
+---
+
 ## R58 — 删除 facts 行分片配方（2026-10-13，**已原地发布** + n=3 实测，**KEEP：目标行为达成，指标不可测**）
 
 **起因**：R57 判 FAIL，但它的证据指向一个更干净的收尾 —— 分片**指令**在 4 refs 上 **0/3 被执行**，唯一权衡过的一次（`r57b-shard-1`，16 段推理 / 7,746 字符）是被**我们自己文档里的竞争条款**劝退的（新加的是**许可**，同段旧成本句仍写 "never mandatory" / "Prefer straight-through scripting…decide in one line and move on"，*one lane* 那条被当**代价**读）。**R58 假设**：既然这条配方在被写成"默认"时也只有 ≤1/3 的运行会去看它、看它本身就要烧 reasoning，而它的目标行为在 2–8 refs 档位本来就不划算（facts 只占一轮 out token 的 10–13%，75% 是分不掉的 reasoning）—— **整条删掉，行为不变，而"权衡它的那块推理"消失**。预登记判据：① `task` 全 0；② delegation 关键词的 reasoning part 从 1/3 降到 **0/3**；③ 墙钟/out 无方向性劣化；④ 质量不回退。

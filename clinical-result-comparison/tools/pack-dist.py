@@ -39,7 +39,7 @@ VERSION = "v0.16"
 OUT = os.path.join(REPO, "dist", f"multi-clinical-result-comparison-{VERSION}.zip")
 PREFIX = "multi-clinical-result-comparison/"
 STAMP = (2026, 9, 10, 0, 0, 0)
-EXPECTED = 27
+EXPECTED = 29
 COMPRESS_LEVEL = 6
 
 
