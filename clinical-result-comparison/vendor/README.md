@@ -138,6 +138,8 @@ node scripts/validate-cli.js templates/bar.json          # 应输出「校验通
 
 同时内联了上游 `references/patterns-zh.md` 中**报告文体相关**的条目，改写为我方 `references/prose-style-zh.md`（12226 B，非逐字节拷贝——上游原文含面向通用写作的条目与 examples，未纳入）。上游 SKILL.md 未内联。
 
+> **2026-10-13 追加**：用户已从项目配置里取消 `report-humanizer-*` 的挂载（规则内联后不再需要），本 Skill 的运行期文本也不再点名任何外部文体技能（`SKILL.md` / 系统提示词 / `references/prose-style-zh.md` 一律用「external style skill」泛指）⇒ `toolsmith-publish deps` 的依赖面收窄到只剩图表技能。上表仍保留溯源，供维护时对上基线。
+
 **为什么不放在 `vendor/`**：`vendor/` 的语义是「上游包的只读副本，不入 dist、不被 Skill 引用」，而这份扫描器**必须随包发布并在运行时执行**，所以它进包；本表只承担溯源职责。
 
 ## 上游协议要点（v1.0.9 起，2026-09-11；v1.0.12-20260921 补记）

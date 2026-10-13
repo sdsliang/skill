@@ -1,5 +1,16 @@
 # AGENTS.md — 常驻 program.md（autoresearch 循环）
 
+## R60 完成（2026-10-13，**已原地发布** + n=2 实测，KEEP）
+
+**运行期文本不再点名已取消挂载的外部文体技能**（用户：「这肯定要改啊……都没有这个 skill 了」）：`SKILL.md:185` 与系统提示词 152 行的「A deployment may also mount `report-humanizer-zh` / `report-humanizer-en`」→ 泛指句「If a deployment happens to mount another style skill, do not apply it here…」（**禁止加载/等待/依赖任何外部文体技能**这条硬指令保留、覆盖面更宽）；`references/prose-style-zh.md` 维护节 3 行去点名（`源自上游 report-humanizer-zh 仓库` → `随本 Skill 发布的自包含副本（基线 v0.1.1）`、`与上游逐字节一致` → `与基线副本逐字节一致`）；仓库级 `vendor/README.md`（**不进包**）留完整溯源 + sha256；顺带修 `tools/pack-dist.py` docstring `27 → 29 entries`。净减：prompt **−38 B**、dist **−23 B**，条目数不变 29。**规则与扫描器契约一字未动**。
+
+- **依赖面现场**：`deps` → `UPSTREAM CHANGED … GONE skills report-humanizer-en / -zh`（exit 3，闸门按预期挡下）→ `deps --accept` → 复跑 **`skills: 1`（chart-visualization-json）/ MCP 1 / built-in 16 / unchanged**。**并更正 R59 的归因**：`deps` 量的是**文本引用面**（`collect_deps` 只扫 `skill/`、`system-prompts/` 文本做整词匹配），**与项目挂载无关**；R59 那次 `unchanged` 是巧合。
+- 线下门禁全绿：62 / **10** / 25 / 9 / 16 / 28 / 35 / 45 / 5 / 14 + node **8+8** + mutations a **44/44** b **12/12** + `verify-run-chain` `147 histories / 5 comparable / 142 skipped` + `GATE: PASS` + `pack-dist --check` `IDENTICAL (180652 B / 0b8ba50448b6)`。
+- 线上（原地，用户「原地实测」授权）：prompt **v1.8 81,576 B / `713f4333b74e`**、skill **v1.0.9 dist 180,652 B / 29 entries / `0b8ba50448b6`**；回读 `deployed == local: True` + `29/29 identical` + **`in sync`**。
+- 实测 n=2（固定 4-esid 输入，`DeepSeek Flash`，web off）：wall **502.7 / 357.2 s**（中位 430.0）、out **89,145 / 61,049**（中位 75,097）、各 **22 PASS / 1 FAIL**（FAIL = 平台 `tool_results receipts archived`，P-R53-1）；断言 #18 两跑 PASS（`1 call(s), SCAN_EXIT=[0] strong-free=True`）；`messages.json` / `transcript.md` / `report.md` 中 **`humanizer` 0 次**，`load_skill` 各 1 次且均指本 skill；`task` / `--scaffold` / `merge_ref_facts` 仍 0 次。
+- 记账：**R60-1** 门禁调用数 **2 次/跑 → 1 次/跑**（并进同一条 `execute` 链，断言只要求 ≥1 且 `SCAN_EXIT=0`）、**R60-2** 更正 R59 的 `deps` 归因、**R60-3** `SCAN_EXIT` 回显观察（低优先）。平台侧无新增（P-R53-1 每跑命中；**P-R59-2 保持作废**）。详见 `docs/evidence/r60-runtime-text-drops-external-style-skill-names-2026-10-13.md` 与 `docs/toolsmith-verification-log.md` R60。
+- 计数口径未变：见下方「离线测试计数（2026-10-13，R59 后实测）」（合计 **221**，含 numeric-integrity 249）——本轮不加测试，只改文本。
+
 ## R59 完成（2026-10-13，**已原地发布** + n=2 实测，KEEP）
 
 文体门禁**内联**：把上游确定性扫描器**逐字节复制**进本包（`skill/.../scripts/tell-scan.py`，22,558 B）＋新增自包含 `references/prose-style-zh.md`（13,071 B / 200 行），`SKILL.md` / `toolbox.md` / 系统提示词六处明写 **不加载、不等待、不依赖任何外部文体 skill**。口径：**门禁必跑（定稿后 1 次本地 `execute`，0 token）≠ 改写必做（只由强命中触发，弱命中仅线索）**；历史触发率 6.1 %（`load_skill` 7/115）→ 现在 2/2 跑、每跑 2 次必跑，两跑 `SCAN_EXIT=[0, 0]`（强命中 0）。runner 加**第 18 项断言**（缺调用 FAIL / 脏退出 FAIL / 无回显 WARN），`test-runner.py` **41 → 45**。
@@ -11,7 +22,7 @@
 
 ## R52 回退完成（2026-10-12）
 
-用户已授权回退。运行资产与 dist 恢复到 R51 commit `3adb77c`（**其后 R58 / R59 又依次原地更新过，见上方 R59 节**），R52 新增两份接口测试随实现撤销，失败证据保留在 docs/evidence 与 Git 历史。TS 采用原地恢复内容：当前标签仍 prompt 1.8 / skill 1.0.9（skill_id `16aeb0406e12425bad27a2444f17225e`），实际内容 == R51 的 prompt 1.7 / skill 1.0.8。prompt SHA `bf7b45dbf5d0`，dist SHA `081cd850befc` / 152,558 B；回读 26/26 identical、status in sync、项目绑定正确。此前“尚未回退”段落为历史实验状态，本段覆盖它。
+用户已授权回退。运行资产与 dist 恢复到 R51 commit `3adb77c`（**其后 R58 / R59 / R60 又依次原地更新过，见顶部 R60 节**），R52 新增两份接口测试随实现撤销，失败证据保留在 docs/evidence 与 Git 历史。TS 采用原地恢复内容：当前标签仍 prompt 1.8 / skill 1.0.9（skill_id `16aeb0406e12425bad27a2444f17225e`），实际内容 == R51 的 prompt 1.7 / skill 1.0.8。prompt SHA `bf7b45dbf5d0`，dist SHA `081cd850befc` / 152,558 B；回读 26/26 identical、status in sync、项目绑定正确。此前“尚未回退”段落为历史实验状态，本段覆盖它。
 
 
 ## R52 交接（2026-10-12）

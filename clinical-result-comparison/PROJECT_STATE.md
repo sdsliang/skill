@@ -1,5 +1,35 @@
 # Project State
 
+## R60 — 运行期文本不再点名外部文体技能（依赖面 3 → 1）（2026-10-13，**已原地发布** + n=2 实测，**KEEP**）
+
+**起因**：用户指出 R59 之后正文里仍写着 `report-humanizer-zh` / `report-humanizer-en` ——「这肯定要改啊……都没有这个 skill 了」。两个症状：① 运行期文本点名 → **依赖错觉**（读起来像这两个技能还在被使用）；② `toolsmith-publish deps` 的依赖面把它们一直列为**被扫描的上游源**（`skills: 3`），发布闸门里挂着两条与本项目无关的新鲜度。
+
+**R60 假设（一轮 = 一个假设）**：删掉运行期文本里的字面点名 ⇒ `deps` 依赖面收窄到「运行期真会加载的东西」（只剩图表技能），而**行为不变**（R59 已内联全部文体规则，运行期从不依赖挂载）。
+
+**改动**（3 个运行期文件，纯措辞收窄，净减）：`SKILL.md:185` 与系统提示词 152 行的 `A deployment may also mount \`report-humanizer-zh\` / \`report-humanizer-en\`` → `If a deployment happens to mount another style skill, do not apply it here: applying both pays twice …`（**禁止加载 / 等待 / 依赖任何外部文体技能**这条硬指令保留且更明确：点名 → 泛指，覆盖任何外部挂载）；`references/prose-style-zh.md` 维护节 3 行去点名（`源自上游 report-humanizer-zh 仓库` → `随本 Skill 发布的自包含副本（基线 v0.1.1）`、`与上游逐字节一致` → `与基线副本逐字节一致`、「上游改规则」→「基线改规则」）；仓库级 `vendor/README.md`（**不进交付包**）保留完整溯源 + sha256，追加「用户已取消挂载 / 运行期文本不再点名」一行；顺带把 `tools/pack-dist.py` docstring 的 `27 entries` 修成 `29 entries`。体积：prompt `81,614 → 81,576 B`（−38 B）、dist `180,675 → 180,652 B`（−23 B）、条目数不变 29。**实质规则与扫描器契约一字未动**（exit `0`/`3`/`2`、弱命中只作线索、永不改数字、永不授权删 局限/缺口/未报告 语句与可比性 caveat）。
+
+**依赖面现场（本轮的正事）**：`deps` 报 `UPSTREAM CHANGED … GONE skills report-humanizer-en` / `-zh`（exit 3，闸门按预期挡下）→ `deps --accept` 记新基线 → 复跑得到 **`skills: 1`（chart-visualization-json v1.0.12）/ MCP 1 / built-in 16 / DEPS: unchanged**。**同时更正 R59 的一条归因**：`deps` 量的是**文本引用面**（`collect_deps` 只扫 `skill/`、`system-prompts/` 的 `.md/.json/.py`，对平台技能名做整词匹配），**与项目挂载无关**；R59 那次 `unchanged` 是巧合（正文当时仍点名）。两条 `GONE` 只可能来自点名消失，反过来证明本轮改动是唯一因。
+
+**本地门禁（发布前全绿）**：`test-skill-scripts` 62 / `test-tell-scan` 10 / `test-check-report` 25 / `test-build-ledger-scaffold` 9 / `test-merge-ref-facts` 16 / `test-render-facts` 28 / `test_regressions` 35 / `test-runner` 45 / `test_pack_dist` 5 / `test_replay_run` 14 / node **8+8 pass** / `mutations.py` arm a **44/44** + arm b **12/12** + `never flipped []` + `GATE: PASS` / `verify-run-chain.py` `147 histories / 5 comparable / 142 skipped` + `GATE: PASS` / `pack-dist.py --check` → `IDENTICAL (180652 B / sha 0b8ba50448b6)`。合计 **221**（含 numeric-integrity 28 + merge-ref-facts 16 为 **249**）。
+
+**已原地发布（用户授权「原地实测」）**：prompt **v1.8 81,576 B / `713f4333b74e`**（HTTP 200，read-back `deployed == local: True`、`CURRENT`）；skill **v1.0.9 dist 180,652 B / 29 entries / `0b8ba50448b6`**（`POST /api/skills/update_skill_file` HTTP 200，`skill_id=16aeb0406e12425bad27a2444f17225e`）；回读 `status` = **`29/29 identical` + `STATUS: in sync`**；项目行 `prompt=475039ccebfe46a3a39002febe28b1f4`、`skills=[chart-visualization-json, multi-clinical-result-comparison]`。
+
+**实测 n=2**（`DeepSeek Flash`，固定 4-esid 输入，web off，tag `r60-prose-generic{-2}`）：
+
+| run | wall s | out tok | reasoning | tool calls | `tell-scan` | `SCAN_EXIT` | facts | report | 断言 |
+|---|---|---|---|---|---|---|---|---|---|
+| r60-prose-generic | 502.7 | 89,145 | 73,317 | 33 | 1 | `[0]` | 63 | 19,022 B | 22 PASS / 1 FAIL |
+| r60-prose-generic-2 | 357.2 | 61,049 | 46,759 | 27 | 1 | `[0]` | 53 | 20,355 B | 22 PASS / 1 FAIL |
+| **中位** | **430.0** | **75,097** | — | 30 | 1 | 全 0 | 58 | 19,689 B | — |
+| R59（n=2） | 363.3 | 61,429 | — | 27.5 | 2 | 全 0 | 42.5 | — | 21 PASS |
+
+- 断言 #18 两跑 PASS（`prose gate ran and exited clean — 1 call(s), SCAN_EXIT=[0] strong-free=True`），弱命中仍只作线索（`W-FMT-MIXED` / `W-AIWORD 闭环`，合计强命中 **0**）。
+- **文本干净**：两跑 `messages.json` / `transcript.md` / `report.md` 中 `humanizer` **0** 次；`load_skill` 各 1 次且参数均为本 skill（没有去加载任何外部文体技能）。
+- 契约未动：唯一 FAIL 均为平台侧 `tool_results receipts archived`（P-R53-1）；`task` / `--scaffold` / `merge_ref_facts` 仍 **0** 次。
+- **成本不可归因**：中位 wall 430.0 s（vs R59 363.3 / R58 443.9 / 紧基线 R55 405.4），单跑跨度 357–503 s；改的是措辞、门禁仍 1 次 0 token。`r60-1` 的 out 89,145（reasoning 73,317）是历史最高值，同批 `r60-2` 仅 61,049 ⇒ 记方差。
+
+**判定：KEEP**。记账：**R60-1** 门禁调用数 2 次/跑 → 1 次/跑（并进同一条 `execute` 链，断言只要求 ≥1 且 `SCAN_EXIT=0`）、**R60-2** 更正 R59 的 `deps` 归因、**R60-3** `SCAN_EXIT` 回显观察（低优先）。平台侧无新增（P-R53-1 每跑命中；P-R59-2 保持作废）。详见 `docs/evidence/r60-runtime-text-drops-external-style-skill-names-2026-10-13.md` 与 `docs/toolsmith-verification-log.md` R60。
+
 ## R59 — 文体门禁内联（A+B）：条件式引用 → 确定性检查（2026-10-13，**已原地发布** + n=2 实测，**KEEP**）
 
 **起因**：用户问「引用外部 human skill 是否增加耗时」。用全历史真实调用回答（扫 `~/.local/state/toolsmith-runs/*/messages.json`）：`load_skill` 计数 `multi-clinical-result-comparison` **115x** / `report-humanizer-zh` **7x** / `chart-visualization-json` **2x** ⇒ 文体 skill 触发率 **6.1 %**（R58 三跑 **0/3**）。**引用本身几乎免费**：返回 5,933 字符 ≈1.5 K input token、一次后走 cache；唯一载入它的 `r57b-shard-3` 墙钟 445.9 s 正是三 shard 中位（未载入的 shard-1 反而最慢 465.5 s）⇒ 边际成本落在噪声内。**贵的是「应用」**：载入后改报告 + 重跑门禁，估 **+30–60 s / +10–20 K out**（`r44-a` step 43 载入后 write + 复查：511 s / 94,797 out）。**现状的失效模式与 R57 facts 分片同一类**：条件式许可（“may also mount… *when it does*: apply at most one”，只要 6 % 命中）打不过成本 ⇒ 付了提示词字节，风格产出仍不一致。另有一处更硬的漂移：平台部署的 `report-humanizer-zh` 是 **v1.0.0**，本地仓库已到 **v0.1.1** —— 两条路径本来就不同源。
@@ -10,7 +40,7 @@
 
 **runner 第 18 项断言**（本地 runner 改动：`~/.local/bin/toolsmith-publish`，备份 `toolsmith-publish.v10.bak`，改前 sha256 前缀 `b7652eaf9d5cb9d8`）：`execute` 调用中必须出现 `tell-scan.py`（缺 → **FAIL**）；能读到 `SCAN_EXIT` 时必须为 `0`（脏 → FAIL）；调用过但未回显退出码 → **WARN**（证据在、只是数字读不到，判 FAIL 是罚宿主不是罚 run）；退出码提取同时接受 `command` / `shell_command`（P-R59-1）。`fails` 只收 `FAIL` ⇒ WARN 仍以绿出货；`--expect refusal` 分支在第 1408 行提前 return，不受影响。`evals/runner-gate/test-runner.py` **41 → 45**（正向夹具补门禁调用 + `SCAN_EXIT=0`；新增 4 例：缺门禁 / 脏退出 / 无回显仅 WARN / 干净扫描不得重复计数）。**修复中撞到假绿**：第一版写 `add(True, …, warn=True)`，而 `lvl = "PASS" if ok else ("WARN" if warn else "FAIL")` ⇒ 被吐成 PASS；改 `add(False, …, warn=True)` 才是 WARN。
 
-**本地门禁（全绿）**：`test-tell-scan` **10**（新）/ `test-skill-scripts` 62 / `test-check-report` 25 / `test-build-ledger-scaffold` 9 / `test-merge-ref-facts` 16 / `test-render-facts` 28 / `test_regressions` 35 / `test-runner` **45** / `test_pack_dist` 5 / `test_replay_run` 14 / node **8+8** / `mutations.py` arm a **44/44** + arm b **12/12** + `never flipped []` + `GATE: PASS` / `verify-run-chain.py` `GATE: PASS`（145 histories / 5 comparable / 140 skipped）。`deps` = `unchanged since the recorded baseline`（**无需 `--accept`**：humanizer 是**项目挂载**事实，不是文本扫描出的依赖）。
+**本地门禁（全绿）**：`test-tell-scan` **10**（新）/ `test-skill-scripts` 62 / `test-check-report` 25 / `test-build-ledger-scaffold` 9 / `test-merge-ref-facts` 16 / `test-render-facts` 28 / `test_regressions` 35 / `test-runner` **45** / `test_pack_dist` 5 / `test_replay_run` 14 / node **8+8** / `mutations.py` arm a **44/44** + arm b **12/12** + `never flipped []` + `GATE: PASS` / `verify-run-chain.py` `GATE: PASS`（145 histories / 5 comparable / 140 skipped）。`deps` = `unchanged since the recorded baseline`（当时按「humanizer 是**项目挂载**事实、不是文本依赖」解释 —— **【R60 更正】该归因错**：`deps` 量的是文本引用面，挂载与它无关；R59 那次 `unchanged` 是巧合，见 R60 节）。
 
 **发布（原地，用户授权「原地实测」）**：prompt **v1.8** 78,155 B `6d507fb8fff7` → **81,614 B / `aaf77e7c284b`**（+3,459 B = 内联规则 + 门禁，`ifadd=false` HTTP 200，read-back `matches_local=True`）；skill **v1.0.9** dist 160,567 B / 27 entries → **180,675 B / 29 entries / sha `099504055d79`**（`/api/skills/update_skill_file` HTTP 200）；回读 `status` = `prompt deployed == local: True` / skill `29/29 identical` / **`in sync`**。skill_id `16aeb0406e12425bad27a2444f17225e`；PROJECT `a7cdda6508e0423c8b7afaaf3a68e50d`。
 

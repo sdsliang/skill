@@ -195,6 +195,6 @@ python3 -B /workspace/skills/multi-clinical-result-comparison/scripts/tell-scan.
 
 ## 来源与同步（维护者看这一节）
 
-- 清单与扫描器源自上游 `report-humanizer-zh` 仓库：`skill/report-humanizer-zh/{references/patterns-zh.md, scripts/tell-scan.py}`（仓库版本 v0.1.1）。本 Skill 只内联了**报告文体相关**的条目与扫描器本体，不依赖外部挂载。
-- `scripts/tell-scan.py` 与上游逐字节一致：sha256 `1992a4c48f78dc8e3ec2d0c96a2752eb1b9a076fd05dda37720e94a4fe8873f4`（22,558 B，2026-10-13）。漂移由回归 `evals/scripts/test-tell-scan.py::test_bundled_copy_matches_the_upstream_repo` 拦截（兄弟仓库不在时跳过）。
-- 上游改规则时：重拷扫描器 → 跑该回归 → 若清单需要跟进，改本文件并在台账记一条。**不要只改其中一份。**（留档与溯源记在仓库的 `vendor/README.md`，不在交付包里。）
+- 清单与扫描器是随本 Skill 发布的**自包含副本**（基线：内部中文文体资产 v0.1.1）：只内联了**报告文体相关**的条目与扫描器本体，运行期不加载、不等待、不依赖任何外部技能或挂载。
+- `scripts/tell-scan.py` 与基线副本逐字节一致：sha256 `1992a4c48f78dc8e3ec2d0c96a2752eb1b9a076fd05dda37720e94a4fe8873f4`（22,558 B，2026-10-13）。漂移由回归 `evals/scripts/test-tell-scan.py::test_bundled_copy_matches_the_upstream_repo` 拦截（兄弟仓库不在时跳过）。
+- 基线改规则时：重拷扫描器 → 跑该回归 → 若清单需要跟进，改本文件并在台账记一条。**不要只改其中一份。**（来源、版本与 sha256 留档记在仓库根 `vendor/README.md`，不在交付包里。）

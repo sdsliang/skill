@@ -7,8 +7,9 @@ scratch space).
 
 Contract (byte-stable for an unchanged worktree — `toolsmith-publish status` compares the
 deployed zip against this output by member and by bytes):
-  - 27 entries: SKILL.md + references/*.md + templates/*.md + templates/charts/*.json + scripts/*.py
-    (R48: scripts grew from 1 to 7 and `references/toolbox.md` was added; R57: + `merge_ref_facts.py`)
+  - 29 entries: SKILL.md + references/*.md + templates/*.md + templates/charts/*.json + scripts/*.py
+    (R48: scripts grew from 1 to 7 and `references/toolbox.md` was added; R57: + `merge_ref_facts.py`;
+     R59: + `scripts/tell-scan.py` and `references/prose-style-zh.md`)
   - arcname prefix `multi-clinical-result-comparison/`
   - fixed date_time stamp, Unix creator, 0644 external_attr, deflate level 6
   - hard checks (also under python -O): exact entry count, no cache/metadata leakage

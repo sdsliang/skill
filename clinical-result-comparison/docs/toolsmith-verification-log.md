@@ -2576,7 +2576,7 @@ R56-b 里 **B 的第一条命令（888.021）跑在 A 的最后一条命令（91
 
 **runner 第 18 项断言（本地 runner 改动，备份 `toolsmith-publish.v10.bak`，改前 sha256 前缀 `b7652eaf9d5cb9d8`）**：`execute` 调用中必须出现 `tell-scan.py`（缺 → **FAIL**，门禁是契约不是选项）；能读到 `SCAN_EXIT` 时必须为 `0`（脏 → FAIL）；调用过但未回显退出码 → **WARN**（工具调用证据在、只是数字读不到，判 FAIL 是罚宿主不是罚 run）；`SCAN_EXIT` 键名同时接受 `command` / `shell_command`（见 P-R59-1）。`fails` 只收 `FAIL`，故 WARN 仍以绿出货。`evals/runner-gate/test-runner.py` **41 → 45**：正向夹具补上门禁调用与 `SCAN_EXIT=0`；新增 4 例（缺门禁 / 脏退出 `SCAN_EXIT=3` 与 `2` / 无回显仅 WARN / 干净扫描不得重复计数）。**修复中撞到假绿**：第一版写 `add(True, …, warn=True)`，而 `lvl = "PASS" if ok else ("WARN" if warn else "FAIL")` ⇒ 被吞成 PASS；改 `add(False, …, warn=True)` 才是 WARN。
 
-**本地门禁（全绿）**：`test-tell-scan` 10 / `test-skill-scripts` 62 / `test-check-report` 25 / `test-build-ledger-scaffold` 9 / `test-merge-ref-facts` 16 / `test-render-facts` 28 / `test_regressions` 35 / `test-runner` **45** / `test_pack_dist` 5 / `test_replay_run` 14 / node **8+8** / `mutations.py` arm a **44/44** + arm b **12/12** + `never flipped []` + `GATE: PASS` / `verify-run-chain.py` `GATE: PASS`（145 histories / 5 comparable）。`deps` = `unchanged since the recorded baseline`（**无需 `--accept`**：humanizer 是**项目挂载**事实，不是文本扫描出的依赖）。
+**本地门禁（全绿）**：`test-tell-scan` 10 / `test-skill-scripts` 62 / `test-check-report` 25 / `test-build-ledger-scaffold` 9 / `test-merge-ref-facts` 16 / `test-render-facts` 28 / `test_regressions` 35 / `test-runner` **45** / `test_pack_dist` 5 / `test_replay_run` 14 / node **8+8** / `mutations.py` arm a **44/44** + arm b **12/12** + `never flipped []` + `GATE: PASS` / `verify-run-chain.py` `GATE: PASS`（145 histories / 5 comparable）。`deps` = `unchanged since the recorded baseline`（当时按「humanizer 是**项目挂载**事实而非文本依赖」解释 —— **【R60 更正】该归因错了**：`collect_deps` 只扫 `skill/` 与 `system-prompts/` 的文本，挂载与它无关；R59 那次 `unchanged` 是巧合，因为正文当时仍点名。见 R60 §2）。
 
 **发布（原地，用户授权「原地实测」）**：prompt v1.8 → **81,614 B / sha `aaf77e7c284b`**（`ifadd=false`，HTTP 200，read-back `current=v1.8 matches_local=True`）；skill v1.0.9 → dist **180,675 B / 29 entries / sha `099504055d79`**（`/api/skills/update_skill_file` HTTP 200，`skill_id=16aeb0406e12425bad27a2444f17225e`）。回读 `status`：`prompt deployed == local: True` / skill `29/29 identical` / **`STATUS: in sync`**。
 
@@ -2618,3 +2618,56 @@ R56-b 里 **B 的第一条命令（888.021）跑在 A 的最后一条命令（91
 - **P-R58-1（承接，维持观察）**：本轮未复现 `idle` 无 `completed_at` 卡死。
 - **P-R53-1（已知，每次命中）**：`tool_results receipts archived`（`/workspace/tool_results/…/result.jsonl: unsafe or unsupported receipt path`）与本批改动无关。
 - **P-R56-1~4 仍在**：沙箱 `execute` 单通道 / 子代理 `execute` 默认 30 s / `data-subagent-trace` part 未文档化 / 平台无「工具串行、生成并行」提示。
+
+---
+
+## R60 — 运行期文本不再点名外部文体技能（依赖面 3 → 1）（2026-10-13，原地发布 + n=2 实测）
+
+**动机**：用户指出 R59 之后正文里仍写着 `report-humanizer-zh` / `report-humanizer-en` ——「这肯定要改啊……都没有这个 skill 了」。症状有二：① 文本点名 → 依赖错觉；② `deps` 的依赖面把两个已取消挂载的技能一直列为**被扫描的上游源**（`skills: 3`），发布闸门挂着两条与本项目无关的新鲜度。
+
+**R60 假设（一轮 = 一个假设）**：删掉运行期文本里的字面点名 ⇒ `deps` 依赖面收窄到「运行期真会加载的东西」（只剩图表技能），**行为不变**（R59 已内联全部文体规则，运行期从不依赖挂载）。
+
+**改动**（3 个运行期文件，纯措辞收窄，净减）：`SKILL.md:185` 与系统提示词 152 行的 `A deployment may also mount \`report-humanizer-zh\` / \`report-humanizer-en\`` → `If a deployment happens to mount another style skill, do not apply it here: …`（**禁止加载/等待/依赖任何外部文体技能**这条硬指令保留且更明确）；`references/prose-style-zh.md` 维护节 3 行去点名（`源自上游 report-humanizer-zh 仓库` → `随本 Skill 发布的自包含副本（基线 v0.1.1）`、`与上游逐字节一致` → `与基线副本逐字节一致`、更新动作里的「上游」→「基线」）；仓库级 `vendor/README.md`（**不进交付包**）保留完整溯源 + sha256 并追加「用户已取消挂载 / 运行期文本不再点名」一行；顺带把 `tools/pack-dist.py` 的 docstring `27 entries` 修成 `29 entries`。体积：prompt `81,614 → 81,576 B`（−38 B）、dist `180,675 → 180,652 B`（−23 B）、条目数不变 29。
+
+**依赖面现场（本轮的正事）**：
+```
+$ toolsmith-publish deps      # 改后、未接受新基线
+  UPSTREAM CHANGED since the recorded baseline:
+     - GONE skills report-humanizer-en
+     - GONE skills report-humanizer-zh        exit=3（闸门按预期挡下）
+$ toolsmith-publish deps --accept && toolsmith-publish deps
+  skills: 1 → chart-visualization-json v1.0.12    |  MCP tools: 1  |  built-in tools: 16
+  DEPS: unchanged since the recorded baseline
+```
+**并更正 R59 的归因**：`deps` 量的是**文本引用面**（`collect_deps` 扫 `skill/`、`system-prompts/` 的 `.md/.json/.py`，对平台技能名做整词匹配），与项目挂载无关；两条 `GONE` 只可能来自点名消失，也反过来证明本轮改动是唯一因。
+
+**本地门禁（全绿）**：`test-skill-scripts` 62 / `test-tell-scan` 10 / `test-check-report` 25 / `test-build-ledger-scaffold` 9 / `test-merge-ref-facts` 16 / `test-render-facts` 28 / `test_regressions` 35 / `test-runner` 45 / `test_pack_dist` 5 / `test_replay_run` 14 / node **8+8** / `mutations.py` arm a **44/44** + arm b **12/12** + `never flipped []` + `GATE: PASS` / `verify-run-chain.py` `147 histories / 5 comparable / 142 skipped` + `GATE: PASS` / `pack-dist.py --check` → `IDENTICAL (180652 B / sha 0b8ba50448b6)`。合计 **221**（含 numeric-integrity 28 + merge-ref-facts 16 为 **249**）。
+
+**发布（原地，用户授权「原地实测」）**：prompt v1.8 → **81,576 B / sha `713f4333b74e`**（HTTP 200，read-back `deployed == local: True`、`CURRENT`）；skill v1.0.9 → dist **180,652 B / 29 entries / sha `0b8ba50448b6`**（`POST /api/skills/update_skill_file` HTTP 200，`skill_id=16aeb0406e12425bad27a2444f17225e`）；回读 `status` = `29/29 identical` + **`STATUS: in sync`**；项目行 `prompt=475039ccebfe46a3a39002febe28b1f4`、`skills=[chart-visualization-json, multi-clinical-result-comparison]`。
+
+**真跑实测（n=2，`DeepSeek Flash`，web off，`/tmp/prompt-r53-4.txt` = 4 esids，tag `r60-prose-generic{-2}`）**：
+
+| run | wall s | out tok | reasoning | tool calls | `tell-scan` | `SCAN_EXIT` | facts | report | 断言 |
+|---|---|---|---|---|---|---|---|---|---|
+| `r60-prose-generic` | 502.7 | 89,145 | 73,317 | 33 | 1 | `[0]` | 63 | 19,022 B | 22 PASS / 1 FAIL |
+| `r60-prose-generic-2` | 357.2 | 61,049 | 46,759 | 27 | 1 | `[0]` | 53 | 20,355 B | 22 PASS / 1 FAIL |
+| **中位** | **430.0** | **75,097** | — | 30 | 1 | 全 0 | 58 | 19,689 B | — |
+| R59（n=2） | 363.3 | 61,429 | — | 27.5 | 2 | 全 0 | 42.5 | — | 21 PASS |
+
+- **断言 #18 两跑 PASS**：`prose gate ran and exited clean — 1 call(s), SCAN_EXIT=[0] strong-free=True`；弱命中仍只作线索（`W-FMT-MIXED` / `W-AIWORD 闭环`，`合计强命中 0 条`）。
+- **文本干净**：两跑 `messages.json` / `transcript.md` / `report.md` 中 `humanizer` = **0** 次；`load_skill` 各 1 次且参数均为本 skill（没有去加载任何外部文体技能）。
+- **契约未动**：两跑各 22 PASS，唯一 FAIL 均为平台侧 `tool_results receipts archived`（P-R53-1）；`task` / `--scaffold` / `merge_ref_facts` 仍 **0** 次。
+- **成本不可归因**：中位 wall 430.0 s（vs R59 363.3 / R58 443.9 / R55 405.4），单跑跨度 357–503 s；改的是措辞、门禁仍 1 次 0 token。`r60-1` 的 out 89,145（reasoning 73,317）是历史最高值，同批 `r60-2` 仅 61,049 ⇒ 记方差。
+
+**判定：KEEP**（目标达成且现场可证：运行期文本零点名、依赖面 3 → 1；契约全绿、无回潮；成本落在已知方差带内）。详见 `docs/evidence/r60-runtime-text-drops-external-style-skill-names-2026-10-13.md`。
+
+### 我方能改的
+
+- **R60-1（记账，无需动作）**：门禁调用数由 R59 的 2 次/跑降为 **1 次/跑** —— 模型把 `tell-scan.py` 并进同一条 `execute` 链（`make_citations … ; check_report … ; tell-scan … ; echo SCAN_EXIT=$?`）。断言只要求 ≥1 次且 `SCAN_EXIT=0`，两跑均在链尾拿到干净的 `0`。
+- **R60-2（更正）**：R59 把 `deps` 的 humanizer 归因为「项目挂载事实」有误 ⇒ 正确表述是**文本引用面**（已回填 R59 节）。
+- **R60-3（观察，低优先）**：`SCAN_EXIT` 依赖模型自己回显；若后续出现「跑过但无回显」的 WARN，再评估让扫描器自带固定回显命令（当前 n=2 都自带）。
+
+### 平台侧（转开发）
+
+- **P-R53-1（已知，每跑命中）**：`tool_results receipts archived` —— 两跑各一次 `[FAIL]`，与本批改动无关。
+- 其余（P-R59-1 / P-R59-3 / P-R56-1~4 / P-R58-1）维持原状态；**P-R59-2 保持作废**（挂载 4 → 2 系用户主动取消，本轮进一步去掉文本点名，与该决定一致）。

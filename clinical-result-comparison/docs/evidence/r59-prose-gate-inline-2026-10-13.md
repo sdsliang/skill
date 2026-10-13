@@ -38,7 +38,7 @@
 | runner（`~/.local/bin/toolsmith-publish`，备份 `toolsmith-publish.v10.bak`） | 新增**第 18 项断言**：`execute` 调用里必须出现过 `tell-scan.py`（缺 → FAIL）；能读到 `SCAN_EXIT` 时必须为 0（脏 → FAIL）；调用过但没回显退出码 → WARN。拒绝分支（`--expect refusal`）不受影响 |
 | `vendor/README.md` | 溯源表：上游来源、内联落点、sha256、漂移拦截测试；说明为什么它**不放** vendor（必须随包发布并在运行期执行） |
 
-**保留（避免以后误删）**：`scripts/merge_ref_facts.py` 与 `build_ledger.py --scaffold` 的逃生口语义不变；`check_report.py` 的 `report voice` 组不动（扫描器与它是两层：机械契约 vs 文体候选）；`deps` 基线**未变**（`report-humanizer-zh/-en` 是**项目挂载**的事实，来自平台装配，不是我们文本扫描出来的依赖 ⇒ 删掉引用不会动基线）。
+**保留（避免以后误删）**：`scripts/merge_ref_facts.py` 与 `build_ledger.py --scaffold` 的逃生口语义不变；`check_report.py` 的 `report voice` 组不动（扫描器与它是两层：机械契约 vs 文体候选）；`deps` 基线**未变**（**【R60 更正】此处当时的解释错了**：`report-humanizer-zh/-en` 之所以出现在扫描面，正是因为**我们的正文点名了它们**（自包含节那句 `A deployment may also mount …`），与平台挂载无关；删掉点名后它们立刻 `GONE`，见 `docs/evidence/r60-runtime-text-drops-external-style-skill-names-2026-10-13.md` §2。同文件 R59-6 当时写对了）。
 
 ## 3. ② 为什么消失了
 
