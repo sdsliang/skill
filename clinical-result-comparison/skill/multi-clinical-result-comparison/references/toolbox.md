@@ -29,7 +29,7 @@ on the `FAIL`s. A `WARN` you never act on is a normal, finished run.
 | Step | Script | Writes |
 | --- | --- | --- |
 | Pull → readable sources + ref inventory | `scripts/prep_sources.py` | `work/sources/ref_<n>.txt`, `work/refs.json` |
-| Per-ref shard files → the merged facts file | `scripts/merge_ref_facts.py` | `work/facts.json` |
+| Per-ref shard files → one facts file (**only** if you split the rows) | `scripts/merge_ref_facts.py` | `work/facts.json` |
 | Facts → strict ledger (+ the only validation) | `scripts/build_ledger.py` | `work/ledger.json` |
 | Body + appendix + `{{ref_n}}` | `scripts/render-facts.py` | `/workspace/output/report.md` (in place) |
 | Any small edit to an existing file | `scripts/patch.py` | the file, in place |
@@ -86,10 +86,9 @@ versus 7.1 months (6.3–8.6) in the pembrolizumab plus chemotherapy group (HR 0
 
 `work/sources/ref_1.txt` 是 `render-facts.py` 验证 `quote` 的来源文件，不是你读数字的入口。
 
-## 2. `build_ledger.py` — validate the fact ledger (and merge the shards first)
+## 2. `build_ledger.py` — validate the fact ledger
 
 ```
-python3 scripts/merge_ref_facts.py            # per-ref shard files → work/facts.json (only when you delegated)
 python3 scripts/build_ledger.py --stats        # fact counts by ref and kind
 python3 scripts/build_ledger.py --check        # validate only, write nothing
 python3 scripts/build_ledger.py                # write work/ledger.json
@@ -97,8 +96,9 @@ python3 scripts/build_ledger.py                # write work/ledger.json
 
 ### 2a. authoring the rows — write only what a script cannot derive
 
-The rows are the clinical judgement and the largest generated block in a run. Two rules keep that
-block small without touching a single fact:
+The rows are the clinical judgement, and at these selections they are a **small** generated block —
+measured at 10–13 % of a turn's output tokens, next to ~75 % in reasoning. Two rules keep them small
+without touching a single fact:
 
 * **Omit `source_file`.** The compiler resolves it from `ref` through `work/refs.json`.
 * **Omit `version` / `population` / `timepoint` / `assessment` / `statistics`** when the source reports
@@ -111,9 +111,10 @@ What remains is `id`, `ref`, `study`, `kind`, `endpoint`, `arm`, `value`, `unit`
 (decimal separator `.` vs `·`, unit and statistic wording) **before** the first row is written: a later
 `patch.py` pass over it cost 3–5 minutes in a measured run.
 
-With 3 or more refs, the rows are written **per ref by concurrent subagents** and merged; the recipe is
-in `references/input-contract.md` (*Delegating the fact rows*). Below 3 refs, write them in the main
-thread. The payload-checklist mode `build_ledger.py --scaffold` still exists and still writes
+**Write the rows in the main thread.** A measured round made the per-ref split the default for 3+ refs
+and a model declined it in 3/3 runs, on the arithmetic — the rows are small next to the reasoning, and
+reasoning does not split. If you do split them, `merge_ref_facts.py` (§3) merges the shards. The
+payload-checklist mode `build_ledger.py --scaffold` still exists and still writes
 `work/facts.candidates.json`, but **the workflow does not use it**: measured over three live runs its
 rows were almost entirely rewritten (0 of 33 ids reused, `value`+`endpoint` matched 0 of 51 final rows,
 and the last ref was missing altogether) while still costing a call and a full read of the file.
@@ -140,15 +141,16 @@ and the last ref was missing altogether) while still costing a call and a full r
   `study` per ref. A failing compile never leaves a half-written ledger.
 * Exit `0` written (or clean under `--check`) · `3` findings · `2` usage/IO.
 
-## 3. `merge_ref_facts.py` — per-ref shard files into one `facts.json`
+## 3. `merge_ref_facts.py` — merge per-ref shard files (optional escape hatch)
 
 ```
 python3 scripts/merge_ref_facts.py --shards work --refs work/refs.json --out work/facts.json
 python3 scripts/merge_ref_facts.py --check        # merge in memory, write nothing
 ```
 
-Used when the fact rows were delegated (3+ refs, one subagent per ref — see
-`references/input-contract.md`, *Delegating the fact rows*). It concatenates `work/facts.ref_<n>.json`
+Exists for a run that split the fact rows across subagents, one shard file per ref — the workflow does
+not ask for that (the rows are normally written in the main thread; see §2a and
+`references/input-contract.md`, *Fact rows*), so in the default pipeline nothing produces shard files. It concatenates `work/facts.ref_<n>.json`
 in ref order, accepts either the `facts.json` shape (`{"records":[…],"facts":[…]}`) or a bare list of
 facts, and is the only place the merged file is produced: **never re-type a shard's rows.**
 
@@ -180,7 +182,7 @@ failure (unknown token id, missing field) with nothing written.
 
 **Token 语法（直接照抄；不要用 `--help` 或构造临时 ledger 试错探索语法）：**
 
-`work/facts.json` 就是上面那个形状（`records` / `facts` 两个数组；按 ref 分片时由 `merge_ref_facts.py` 合出来），通过 `build_ledger.py` 编译生成 `work/ledger.json`，再用以下 token 语法引用：
+`work/facts.json` 就是上面那个形状（`records` / `facts` 两个数组），通过 `build_ledger.py` 编译生成 `work/ledger.json`，再用以下 token 语法引用：
 
 ```json
 {"id": "f1", "ref": "ref_1", "study": "HARMONi-6", "version": "",

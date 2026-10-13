@@ -389,17 +389,16 @@ title, URL, or release time — a missing value stays empty in the citation JSON
    - clinical content fields: `abstract_text`, `summary`, `study_results` (endpoint records),
      design/arms context.
 4. Build the internal worksheet exactly as described in `references/input-and-extraction.md`, using
-   these pulled fields as the per-record source; when 3 or more refs are selected, write the fact rows
-   **per ref through subagents** and merge them with `scripts/merge_ref_facts.py` (see *Delegating the
-   fact rows* below) instead of generating one long `facts.json` in the main thread.
+   these pulled fields as the per-record source.
 
 ## Large-batch delegation via subagents (OPTIONAL)
 
-> Status: **platform-supported, enabled on our deployment, and measured.** Delegation stays opt-in for
-> *pulls* (the default path remains "Agent pulls every selected esid directly" per the protocol above),
-> but it is the **default for the fact rows once 3 or more refs are selected**, because that block was
-> measured to be both the largest generated text in a run and safely splittable per ref. Concurrency has
-> one hard boundary: **the subagents run in parallel, the sandbox does not.**
+> Status: **platform-supported, enabled on our deployment, and measured.** Delegation stays opt-in and
+> applies to *pulls* only (the default path remains "Agent pulls every selected esid directly" per the
+> protocol above). The **fact rows are authored in the main thread**: a live round tested the per-ref
+> split as the default for 3+ refs and the model declined it in 3/3 runs, correctly — at these
+> selections the rows are a small block next to the reasoning. Concurrency has one hard boundary:
+> **the subagents run in parallel, the sandbox does not.**
 
 When the deployment exposes the `task` tool (backend `SubAgentCapability` registered and
 `capabilities_config.subagents` enabled) and the number of selected esids is more than 5, the Agent
@@ -427,8 +426,9 @@ original-source checks, retrieval budget and depth labels when extraction is del
 - **Constraints**: `task` accepts only two parameters, `subagent_type` and `description`, and every call
   is stateless (no follow-ups — put everything needed in the description); a subagent does **not**
   inherit this Skill's prompt or the project system prompt, so the description must repeat the
-  `selected_fields`, the fields to extract, and the output format in full (or point the shard at this
-  Skill's own reference files, which it can read: it shares `/workspace`); recursive depth is limited
+  `selected_fields`, the fields to extract, and the output format in full (or point the subagent at
+  this Skill's own reference files, which it can read: it shares `/workspace`); recursive depth is
+  limited
   (do not nest delegation deeper than one level); several `task` calls sent in **one message run
   concurrently**, while calls sent in separate messages run one after another; and the **sandbox is a
   single channel shared by the main thread and every subagent**, so only generation-bound work gets
@@ -446,33 +446,14 @@ original-source checks, retrieval budget and depth labels when extraction is del
 - **Fallback**: if the `task` tool is not visible/available, ignore this section and pull every
   selected esid directly (default protocol). Never skip a source because delegation is unavailable.
 
-### Delegating the fact rows (per ref) — the default split for 3+ refs
+### Fact rows
 
-Authoring `work/facts.json` is the largest single block of generated text in a run, and each ref's rows
-are independent. When **3 or more** refs are selected and `task` is visible:
-
-1. **Fix the shared vocabulary first** (main thread, before any `task` call): the `study` label per ref
-   and the Chinese `arm` identity phrases. Arm strings are reused verbatim in the body and the appendix,
-   so shards that invent their own would silently split one arm into two.
-2. **Send every shard in one message** — one `task` per ref, `subagent_type: "general-purpose"`. Calls
-   sent in separate messages are serialised; the concurrency comes from putting them in a single
-   message. Each `description` must be self-contained: the skill path
-   `/workspace/skills/multi-clinical-result-comparison/references/input-and-extraction.md` (facts
-   contract) and `references/input-contract.md` (evidence boundary), the shard's own
-   `work/sources/ref_<n>.txt` plus `work/refs.json`, the fixed `study`/`arm` vocabulary for its ref, the
-   output path `work/facts.ref_<n>.json`, the rule that fact ids must be unique across shards (prefix
-   them with the ref), and **an explicit `timeout_seconds` on every command it runs** (a subagent's
-   `execute` defaults to 30 s, and the clock includes queue wait). Tell it to write the file and answer
-   with one line (row count + what it could not extract), not to paste the rows back.
-3. **Merge with the packaged script, never by hand**:
-   `python3 scripts/merge_ref_facts.py --shards work --refs work/refs.json --out work/facts.json`
-   concatenates the shards in ref order, rejects a duplicate id/record or an unknown `ref` next to the
-   failing filename, and warns about a ref no shard covered. Then run `build_ledger.py` on the merged
-   file as usual — it remains the only validation gate, and it also derives the `source_file` each row
-   left out.
-
-Below 3 refs, do the rows directly: the fan-out overhead (see below) is not worth it, and the main
-thread already holds the sources.
+The rows are written in the main thread. They were measured to be a small block next to the reasoning
+at the selections this Skill sees (2–8 refs), and a round that made the per-ref split the default for
+3+ refs saw the model decline it in 3/3 runs. `scripts/merge_ref_facts.py` still exists for a run that
+does split them across subagents (it concatenates in ref order, rejects a duplicate id/record or an
+unknown `ref` next to the failing filename, and warns about a ref no shard covered), but no part of
+this workflow depends on it.
 
 ### Measured boundaries of the `task` tool (2026-10-12, this deployment)
 
@@ -505,9 +486,10 @@ Four probe runs, one thread each, no skill content involved (`docs/evidence/r56-
    calls progress in parallel meanwhile (measured — see the boundary table above).
 5. Platform recursion allows main → child → grandchild (`max_recursive_depth = 2`); this Skill stays
    stricter and uses a single level.
-6. The **pull-chunk** path (6–20 esids) is still unmeasured end to end, so it stays opt-in; the
-   **fact-row split** (3+ refs) is measured and is the default — the shard's benefit is parallel
-   *generation*, and anything the shard does through `execute` queues on the single sandbox lane.
+6. The **pull-chunk** path (6–20 esids) is still unmeasured end to end, so it stays opt-in. The
+   **fact-row split** was tested live as a default and was not used (0/3 runs), so it is not part of the
+   workflow; if a run does split the rows by hand, the benefit is parallel *generation* — anything a
+   shard does through `execute` queues on the single sandbox lane.
 
 ## Citation rendering
 

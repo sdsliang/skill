@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Merge per-ref subagent shards into one `work/facts.json`.
+"""Merge per-ref subagent shards into one `work/facts.json` (optional).
 
-Delegation splits the ledger across one subagent per ref; each shard writes
-`work/facts.ref_<n>.json` in the `facts.json` shape (`{"records":[…],"facts":[…]}` or a bare list of
-facts).  The main thread must **not** re-type those rows: this script concatenates the shard files in
-ref order and is the only place the merged file is produced.
+Only needed by a run that split the ledger across one subagent per ref; the default pipeline writes
+`work/facts.json` in the main thread and never produces shard files.  When the rows *were* split, each
+shard writes `work/facts.ref_<n>.json` in the `facts.json` shape (`{"records":[…],"facts":[…]}` or a
+bare list of facts) and the main thread must **not** re-type those rows: this script concatenates the
+shard files in ref order and is the only place the merged file is produced.
 
 It is deliberately dumb about clinical content — `build_ledger.py` stays the validation gate — but it
 does the checks that are about the *split* itself, so a bad shard is caught next to its filename
