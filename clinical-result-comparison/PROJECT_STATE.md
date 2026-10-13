@@ -1,5 +1,49 @@
 # Project State
 
+## R58 — 删除 facts 行分片配方（2026-10-13，**已原地发布** + n=3 实测，**KEEP：目标行为达成，指标不可测**）
+
+**起因**：R57 判 FAIL，但它的证据指向一个更干净的收尾 —— 分片**指令**在 4 refs 上 **0/3 被执行**，唯一权衡过的一次（`r57b-shard-1`，16 段推理 / 7,746 字符）是被**我们自己文档里的竞争条款**劝退的（新加的是**许可**，同段旧成本句仍写 "never mandatory" / "Prefer straight-through scripting…decide in one line and move on"，*one lane* 那条被当**代价**读）。**R58 假设**：既然这条配方在被写成"默认"时也只有 ≤1/3 的运行会去看它、看它本身就要烧 reasoning，而它的目标行为在 2–8 refs 档位本来就不划算（facts 只占一轮 out token 的 10–13%，75% 是分不掉的 reasoning）—— **整条删掉，行为不变，而"权衡它的那块推理"消失**。预登记判据：① `task` 全 0；② delegation 关键词的 reasoning part 从 1/3 降到 **0/3**；③ 墙钟/out 无方向性劣化；④ 质量不回退。
+
+**改动**（commit `3518370`，**净减法、不新增脚本**）：删 7 处 —— `SKILL.md:41` facts 分片整段 + `:33` 脚本清单注；`references/input-contract.md` 工作流步 4 从句、`## Large-batch delegation` 的 status 块（*default for the fact rows once 3 or more refs are selected*）、`### Delegating the fact rows (per ref) — the default split for 3+ refs` 整节、平台事实 6；`references/input-and-extraction.md` 的大段；`references/toolbox.md` §2 标题 / pipeline merge 行 / §2a 分片句 / §3 标题与 "Used when…" / token 语法节括注；系统提示词工作流步 1 从句 + *Trigger* 的 fact-row 句 + **`Fact rows, one subagent per ref` 整条 bullet** + 委派段开头的 fact-rows 分支；`scripts/merge_ref_facts.py` docstring 首句改 "optional"。
+
+**保留（防误删）**：`merge_ref_facts.py` + `evals/scripts/test-merge-ref-facts.py` **16 例**（降级为逃生口，同 `build_ledger.py --scaffold`）；`input-contract.md` 的 **`### Measured boundaries of the task tool`** 实测表（并发 28.9 s 重叠 / 四路 6.5 s / 单通道交接 2.8 s / 子代理 `execute` 默认 30 s / 无会话状态 / turn usage 聚合子代理）；**pull 委派（>5 esids）完全不动**；"Try straight-through scripting" 那条（删掉 fact-rows 分支后只对 pull 生效，不再互斥）。`tools/pack-dist.py EXPECTED` 仍 **27**。本地门禁全绿：62 / 25 / 9 / 16 / 28 / 35 / 41 / 5 / 14 + node 8+8 + mutations a 44/44 b 12/12。
+
+**已发布（原地，用户已授权）**：`deps` = `unchanged since the recorded baseline`；prompt **v1.8（原地）79,218 B `f293fb45f39e` → 78,155 B / `6d507fb8fff7`（−1,063 B）**；skill **v1.0.9** dist **161,148 → 160,567 B / 27 entries / `16f3bfce7130`**，回读 prompt 逐字节一致 + skill **27/27 identical**，`status` = **in sync**。skill_id `16aeb0406e12425bad27a2444f17225e`；PROJECT `a7cdda6508e0423c8b7afaaf3a68e50d`。
+
+**实测 n=3**（同固定输入 `/tmp/prompt-r53-4.txt` = 4 refs；`DeepSeek Flash` / web off；tag `r58-mainthread-{1,2,3}`）：
+
+| run | wall s | out tokens | reasoning | steps | `task` | facts 行 | 断言 |
+|---|---:|---:|---:|---:|---:|---:|---|
+| 基线 n=8（R53/R54/R55，同 prompt） | 413.8 | 70,983 | 50,851 | 17–22 | 0 | — | — |
+| 紧基线 `r55-sub-{1,2,3}` | 405.4 | 70,187 | 51,147 | 20–22 | 0 | 36/51/55 | 21/1 |
+| R57 参照 `r57b-shard-{1,2,3}` | 445.9 | 78,248 | 62,868 | 20–24 | **0/0/0** | 56/55/48 | 21/1 |
+| 实测 `20261013-093256-r58-mainthread-1` | 465.6 | 78,846 | 58,638 | 36 | **0** | 55 | 21/1 |
+| 实测 `20261013-093256-r58-mainthread-2` | 404.9 | 68,126 | 56,381 | 25 | **0** | 48 | 21/1 |
+| 实测 `20261013-093258-r58-mainthread-3` | 443.9 | 76,848 | 47,186 | 40 | **0** | 40 | 21/1 |
+| **R58 中位** | **443.9** | **76,848** | 56,381 | 36 | 0 | 48 | — |
+
+- **② 判据达成（本轮唯一正面结论）**：含 `subagent|delegat|task tool` 的 reasoning part —— R57 **1/3 跑**（shard-1：2 段 / 7,746 字符 / 占该跑推理 4.1%），R58 **0/3 跑**。权衡块消失，与删除目标一致。
+- **③ 无方向性劣化，但也测不出收益**：wall 中位 413.8 → **443.9 = +7.3%**（紧基线 +9.5%）；out 中位 70,983 → **76,848 = +8.3%**（护栏阈值 78,081，**未越线**）。与 R57 直接对比：wall **−0.4%**、out **−1.8%**。n=3 中位数检不出 <20% 的效应，而本次改动量级（−1,063 B 提示词）本就在噪声里。
+- **① 与 R57 相同**：`tool-task` **0/0/0**，删除没有反向触发分片。**④ 质量无退步**：三跑各 **21 PASS / 1 FAIL**（唯一 FAIL 仍是平台侧 `tool_results receipts archived`）；`records[]` 4 条、附录/时间轴/图齐全、报告 20,631/18,637/21,181 B、facts 55/48/40 行、**`source_file` 省略 143/143 行**（R57 的②减法未回退）、`--scaffold` **0/0/0**、`merge_ref_facts` **0/0/0**。
+
+**判定：KEEP —— 删除生效，代价不可测。** 对「按 ref 分片」的最终结论：**不再重试**（4-refs 档位下模型正确地不需要它；要做必须在 ≥6 refs + registration-class 重载荷另开一轮，且**先删**任何竞争的成本句）。证据全文 `docs/evidence/r58-fact-row-recipe-deletion-2026-10-13.md`；台账 R58 节。
+
+**A 方案对 subagent 的最终口径**（用户问）：`task` 在本 skill 里**只剩一个用途** —— pull 超过 5 个 esid 时按 ≤5 分批拉取，纯上下文限界、**不提速**、永远可选、永不缩小来源集；**facts 行回到主线程写**；`merge_ref_facts.py` 仅作为「万一真分片了」的逃生口随包保留，**工作流没有任何一处依赖它**；`task` 的实测边界表保留为事实基线。
+
+### 我方能改的
+
+- **R58-1（已改，已成事实）**：上表 7 处文本删除；`pack-dist.py EXPECTED` 仍 27（脚本保留）。
+- **R58-2（记账，观察项）**：本轮 `steps` 离散度变大（36 / 25 / **40**）。`r58-mainthread-3` 出现一次 **`execute` 参数名拒绝**（`['command'] Field required; ['shell_command'] Extra inputs are not permitted`，框架自动重发后成功）—— 与 O51 同源，非本轮引入。
+- **R58-3（待议）**：`read_file` 8–16 次里含 `ls`/`grep` 与多次探查（`toolbox.md` offset 100 limit 230 一次、`chart-templates.md` / `conclusion-language.md` 各一次）。若还要找杠杆，应量**主线程探查次数**而非再动 facts/rules —— 但需先有 tool start/end instrumentation，当前不可测。
+
+### 平台侧（转开发）
+
+- **P-R58-1（承接 P-R57-1，本轮未复现）**：三跑同期启动、全部 `succeeded`，未出现 `idle` 无 `completed_at` 的卡死。旧单仍有效，维持观察。
+- **P-R58-2（新，轻）**：`execute` 参数名拒绝 live 可复现（`command` vs `shell_command`），框架自动重发后成功但被 runner 记入 "arguments refused" 清单。属工具 description 与 schema 命名不一致（与 O51 同源），建议对齐。
+- **P-R53-1（已知，每次命中）**：`tool_results receipts archived` 三跑均 `[FAIL]`，与改动无关、不影响产物。P-R56-1~4 仍在（沙箱单通道 / 子代理 `execute` 默认 30 s / `data-subagent-trace` 未文档化 / 平台无「工具串行、生成并行」提示）。
+
+---
+
 ## R57 — ① 按 ref 分片 facts + ② facts 撰写面减法（2026-10-12，**已原地发布** + n=3 实测，**指标 FAIL；① 未被触发**）
 
 **起因**：找上轮遗留「模型读了但没做」的指令 —— `SKILL.md:33` 让模型跑一次 `build_ledger.py --scaffold` 再改它给的行，实测三跑**都照做却全部重写**（id 复用 0/33、`value`+`endpoint` 命中 0/51、候选只到 ref_3），每轮照付 1 次 `execute` + 读 33 行（≈13 K 字符）。本轮两个假设：**① facts 行按 ref 分片给子代理**（R56 已证子代理**生成**真并发；facts 行是单轮最大的一段生成）；**② facts 撰写面减法**（`source_file` 13% + 4 个默认字段 11% 编译器本就能派生，删掉是纯减法，且顺带删掉 scaffold 那条指令）。
