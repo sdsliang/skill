@@ -1,0 +1,67 @@
+--- a/toolsmith-publish
++++ b/toolsmith-publish
+@@ -1510,6 +1510,17 @@
+     # A missing invocation is a FAIL — the gate is part of the contract, not an option. A run that
+     # did invoke it but never echoed the code is a WARN: the tool-call evidence is there, only the
+     # number is unreadable, and turning that into a FAIL would punish the harness, not the run.
++    #
++    # O51 / R61-3:B9 — a command that merely *mentions* tell-scan.py can still end with somebody
++    # else's status. Measured in `20261013-134217-r61-sem-2`: a chain `patch.py … && … ; echo
++    # "SCAN_EXIT=$?"` short-circuited on a patch.py assertion failure (its exit is 3 as well) with
++    # no scanner output anywhere, and the old flat join-then-regex harvested that 3 as the gate's
++    # verdict → false FAIL in a green run. So the verdict is harvested PER tool-return and only
++    # from a return that carries the scanner's own banner (`强 N / 弱 M` header or the
++    # `合计强命中 N 条` total); the marker is then read from the text *after* that banner, which is
++    # where the `; echo` of the same pipeline lands (the R63 general form echoes
++    # `EXIT=${PIPESTATUS[0]}` instead of `SCAN_EXIT=$?`, so both names are accepted, and a
++    # canonical marker wins over a bare `EXIT=` from another command in the same chain).
+     def _cmd_text(inp):
+         if not isinstance(inp, dict):
+             return ""
+@@ -1517,25 +1528,39 @@
+ 
+     scan_cids = [cid for cid, nm, inp in st["calls"]
+                  if nm == "execute" and "tell-scan.py" in _cmd_text(inp)]
+-    scan_out = "\n".join(str(st["outputs"].get(cid) or "") for cid in scan_cids)
+-    scan_exits = [int(x) for x in re.findall(r"SCAN_EXIT=(\d+)", scan_out)]
++    banner_re = re.compile(r"合计强命中\s*(\d+)\s*条|强\s*(\d+)\s*/\s*弱\s*\d+")
++    marker_re = re.compile(r"(?<![A-Za-z_])(SCAN_EXIT|\[tell-scan\]\s*exit|EXIT)=(\d+)")
++    receipts = []
++    for cid in scan_cids:
++        text = str(st["outputs"].get(cid) or "")
++        banner = banner_re.search(text)
++        if not banner:
++            continue
++        marks = marker_re.findall(text[banner.end():])
++        canon = [int(v) for k, v in marks if k != "EXIT"]
++        exits = canon or ([int(marks[0][1])] if marks else [])
++        receipts.append((text, int(banner.group(1) or banner.group(2)), exits))
++    scan_out = "\n".join(text for text, _, _ in receipts) \
++        or "\n".join(str(st["outputs"].get(cid) or "") for cid in scan_cids)
++    scan_exits = [x for _, _, exits in receipts for x in exits]
+     scan_dirty = [x for x in scan_exits if x]
+-    scan_clean_text = re.search(r"强命中\s*0\s*条|强\s*0\s*/", scan_out) is not None
++    scan_clean_text = any(strong == 0 for _, strong, _ in receipts)
+     if not scan_cids:
+         add(False, "prose gate ran (scripts/tell-scan.py on the finished report)",
+             "no execute call referenced tell-scan.py")
+     elif scan_dirty:
+         add(False, "prose gate exited clean (or its strong hits were --allow'ed)",
+-            f"SCAN_EXIT={scan_exits}: " + scan_out[-240:].replace("\n", " "))
++            f"SCAN_EXIT={scan_exits} over {len(receipts)} scanner receipt(s): "
++            + scan_out[-240:].replace("\n", " "))
+     elif scan_exits or scan_clean_text:
+         add(True, "prose gate ran and exited clean",
+-            f"{len(scan_cids)} call(s), SCAN_EXIT={scan_exits or '(implicit 0)'}"
+-            f" strong-free={scan_clean_text}")
++            f"{len(scan_cids)} call(s), {len(receipts)} scanner receipt(s), "
++            f"SCAN_EXIT={scan_exits or '(implicit 0)'} strong-free={scan_clean_text}")
+     else:
+         # ok=False + warn=True → WARN: not a pass (we could not read the verdict) and not a
+         # failure (the gate demonstrably ran). `fails` only collects FAIL, so this ships green.
+         add(False, "prose gate ran but its exit code was not echoed (verdict unreadable)",
+-            f"{len(scan_cids)} call(s); no SCAN_EXIT marker in its output", warn=True)
++            f"{len(scan_cids)} call(s); no exit marker in a scanner receipt", warn=True)
+     add(not st["errors"], "no tool errors",
+         "; ".join(err_text(e) for e in st["errors"])[:300])
+     chk.append(receipt_check(run, h, getattr(a, "out", None)))

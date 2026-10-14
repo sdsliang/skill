@@ -1,0 +1,14 @@
+{
+  "round": "R64 / O51",
+  "date": "2026-10-14",
+  "title": "prose-gate verdict is harvested per scanner receipt, not from any command that mentions tell-scan.py",
+  "baseline_backup": "toolsmith-publish.o51-before-20261014.bak",
+  "baseline_backup_alias": "toolsmith-publish.v12.bak",
+  "baseline_sha256": "ce84f2673f64e13039d74a1403de1388fdfea8380e62b288d262b94fc343f3bc",
+  "baseline_md5": "f3a25b7487293c1acdb134f3ef5a685a",
+  "runner_sha256": "e1cef07198ed3ba3fc667eb0143857cced32b46fd0b8c25f21b2a7da225b7431",
+  "patch_sha256": "2672042654653b621f8492d7a983acdd7e643c8206522787b90c8887980511ad",
+  "apply": "patch toolsmith-publish < o51-prose-gate-receipt.patch",
+  "validation": "applying this patch to the baseline byte-reproduced the installed runner (both sha256 e1cef07198ed3ba3fc667eb0143857cced32b46fd0b8c25f21b2a7da225b7431); python3 -B -m py_compile OK; test-runner.py 45 -> 48 with the 3 new cases failing on the baseline runner and passing on the patched one; archived-run A/B on 20261013-134217-r61-sem-2: baseline FAIL prose gate SCAN_EXIT=[0, 3, 0] -> patched PASS 3 call(s), 2 scanner receipt(s), SCAN_EXIT=[0, 0]; full local gate GATES_FAILED=0; no runtime text, no publish, no live run",
+  "evidence": "clinical-result-comparison/docs/evidence/r64-prose-gate-receipt-2026-10-14.md"
+}

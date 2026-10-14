@@ -1,5 +1,16 @@
 # AGENTS.md — 常驻 program.md（autoresearch 循环）
 
+## R64 完成（2026-10-14，**runner 层修 O51；无发布、无真跑**）
+
+**文体门禁假 FAIL**：`r61-sem-2` 那条「我们自己的」FAIL 是假 FAIL —— `patch.py … && … tell-scan.py …; echo "SCAN_EXIT=$?"` 串成一条链，**第一个 `patch.py` 断言失败**（失败码同为 **3**）⇒ `&&` 短路，扫描器**从未执行**；runner 旧逻辑把「提到 `tell-scan.py` 的所有 return」拼成一整块再全局 `SCAN_EXIT=(\d+)`，于是采到那个 3（`run.json.fails` 逐字留证）。同跑第 34 步真跑过扫描器（`强 0 / 弱 1`、`SCAN_EXIT=0`）。危害：每轮验收**只有这一个信号**，假 FAIL 与真 FAIL 不可区分。
+
+- **改了什么（只在 `~/.local/bin/toolsmith-publish`）**：① **逐 return + banner 门槛** —— 只有自带扫描器 banner（`强 N / 弱 M` 表头 或 `合计强命中 N 条`）的 return 才算「扫描器回执」，退出码只从 **banner 之后**文本读（管道后的 `echo` 正落在那儿）；② 同时接受 `SCAN_EXIT=` 与 R63 统一形态的 `EXIT=${PIPESTATUS[0]}`，**`SCAN_EXIT` 优先**；③ **预先接受** `[tell-scan] exit=N` 形态（原修法①本轮不做：banner 本身就是回执）；④ `test-runner.py` **45 → 48**（脏样本改成真实打印形态 + 新增 3 例：B9 形状不得 FAIL、`EXIT=` 形态必须可读、同链后续命令的 `EXIT=3` 不得污染）。
+- **验收（三层，不需要真跑）**：**单元 A/B** —— 新例在旧 runner FAIL / 新 runner PASS，48/48 OK；**存档 run A/B**（`/tmp/r64/ab.py` 直调 `check_run`，同 `r61-sem-2`）—— 旧 `FAIL prose gate … SCAN_EXIT=[0, 3, 0]`（与 `run.json.fails` 逐字相同）/ 新 `PASS … 3 call(s), 2 scanner receipt(s), SCAN_EXIT=[0, 0]`；**全量本地闸门** `GATES_FAILED=0`（test-runner 48 / 其余全绿 / `verify-run-chain GATE: PASS` / `pack-dist --check` IDENTICAL 181,638 B `39640fd6e679`）。
+- **不变**：运行期文本一字未动 ⇒ **无发布**（`status` 仍 in sync：prompt v1.8 `91febc286412479a8b6d569fa3b8025e`、skill v1.0.9 `16aeb0406e12425bad27a2444f17225e`）；**未耗真跑**（runner 不在交付包内）。备份 `toolsmith-publish.v12.bak` + `toolsmith-publish.o51-before-20261014.bak`（md5 `f3a25b7487293c1acdb134f3ef5a685a`）。
+- **顺带查出 R63 自己埋的雷**：R63 统一教 `… | tail -30; echo "EXIT=${PIPESTATUS[0]}"`，与 tell-scan 专属 `; echo "SCAN_EXIT=$?"`（四处仍在教）**并存**；三跑模型都照了专属写法、banner 也未被 `tail` 截掉（合计行打最后），**未造成损失**；但旧 runner 在只有 `EXIT=` 时只剩 banner 兜底 ⇒ 干净跑 PASS、**脏跑降级成 WARN（照样绿）** = 信号漏洞。runner 侧已补（②）；**文本里的双写法冲突留到 R65** 一起收紧。
+- **排队**：**R65 候选 A**（token 契约唯一化 + 提交前可自查，打输出 token 量）> R61-4（`same-trial-evolution.md` 0 真读）> **R66 候选 B**（惰性段条件化，降级；按 R63-0 只影响每步固定开销）。
+- **计数**：`test-runner.py` 45 → **48** ⇒ 合计口径 **221 → 224**；含 numeric-integrity 为 **253**。
+
 ## R63 完成（2026-10-14，**已原地发布** + 固定三组实测，**KEEP**）
 
 **失败可见性**：把 R62-1 的根因（fail-closed 脚本静默 + 调用方拿到假退出码）收掉——**只改「失败如何被看见」，规则文本一条未删**。
@@ -15,7 +26,7 @@
   - **R63-2（新观察，R64 候选 A）**：`r63-14` 出现 4 次 `render-facts` 调用，其中 2 次是**自造探针草稿**（`work/probe.md` 最小样张试渲染）⇒ 禁令只改试错外形、未除动机；下一轮应**让契约可静态自查**，而非再加禁令。
 - **R62-1 事实更正（git 复核）**：原写「我们自己的文档教了吞掉退出码的写法（`toolbox.md` `… 2>&1 | tail -40` + `CHECK_EXIT=$?`）」**为假**——R62 版 `1a2bc04` 中 prompt / `SKILL.md` 的 `| tail` 出现 **0 次**，那两句是模型自创；真实缺口 = 8 个脚本的调用形态在文档里**没有唯一推荐写法**，R63 补的就是这一条。
 - 平台侧无新增：**P-R53-1** 每跑命中；`r63-18` 再命中 1 次 **P-R59-1**。详见 `docs/evidence/r63-failure-legibility-2026-10-14.md`。
-- **计数**：合计口径不变 **221**；`test-render-facts` 28 → **29** ⇒ 含 numeric-integrity 为 **250**。
+- **计数**：合计口径不变 **221**；`test-render-facts` 28 → **29** ⇒ 含 numeric-integrity 为 **250**（**R64 后**：`test-runner` 45 → 48 ⇒ 合计 **224** / 含 numeric-integrity **253**）。
 
 ## R60 完成（2026-10-13，**已原地发布** + n=2 实测，KEEP）
 
@@ -139,6 +150,8 @@
 6. **R41 四组（2/4/18/14 esid）**：22 / 21 / 22 / 22 PASS；唯一 FAIL = 模型 `write_file` 重写 `/workspace/scripts/build_ledger.py` 被平台拒（平台行为正确，见 F1）。
 7. **R42 = Phase A（18/14 esid 的 humanizer 臂）**：21 PASS（同 F1）/ 22 PASS；18 esid 粗体 47→26（−45%）、12-gram 重复率 0.0911→0.0643（−29%）；14 esid 方向相反；**两臂 strong 命中均 0、`{{ref_n}}` 逐条相等（18/18、14/14）**；代价 = 工具尝试 +45~51%、墙钟 +13~17%。**每臂 n=1 → 不宣称可测收益**，默认仍不强制调用 humanizer。
 8. **两条待办（已给证据、未落盘，等用户点头）**：**F1** prompt 第 6 条文件写入纪律只覆盖报告正文 → 扩到「本工作区任何文件」（正文/辅助脚本/图表 JSON）；**F2** 同一观察身份词报告内混用（`每月` 3 次 vs `Q4W` 9 次，源文只有 `monthly`）→ 图表 label 取 `Q4W` 使 `A-S9`/`A-S9b`/`A-S10` FAIL；改法 = ①prompt/SKILL 加「一套写法 + 图表 label 复用正文身份短语」②`scenario-a.facts.json` 该观察 `identity_patterns` 放宽到 `每月|每月一次|QM|Q4W`。
+
+**离线测试计数（2026-10-14，R64 后实测）**：合计口径与 R59 相同、仅 runner 换新 = runner **48**（R64：45 → 48，O51 文体门禁回执三项新例）+ scorer **35** + tools **19** + Node **16** + `test-skill-scripts.py` **62** + `test-check-report.py` **25** + `test-build-ledger-scaffold.py` **9** + `test-tell-scan.py` **10** = **224**；单列项 `evals/numeric-integrity/test-render-facts.py` **29**（R63）、`test-merge-ref-facts.py` **16** ⇒ 含 numeric-integrity 为 **253**。
 
 **离线测试计数（2026-10-14，R63 后实测）**：合计口径与 R59 相同 = runner **45** + scorer **35** + tools **19** + Node **16** + `test-skill-scripts.py` **62** + `test-check-report.py` **25** + `test-build-ledger-scaffold.py` **9** + `test-tell-scan.py` **10** = **221**；单列项 `evals/numeric-integrity/test-render-facts.py` **28 → 29**（R63 新增失败通道断言）、`test-merge-ref-facts.py` **16** ⇒ 含 numeric-integrity 为 **250**。
 

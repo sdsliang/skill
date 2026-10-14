@@ -1,5 +1,29 @@
 # Project State
 
+## R64 — 文体门禁假 FAIL（runner 层 O51）：跑绿却留一条 `prose gate exited clean` FAIL（**2026-10-14 改，无发布、无真跑**）
+
+**动机（R61-3 / B9 已坐实、拖到本轮修）**：`r61-sem-2` 三跑里唯一那条「我们自己的」FAIL 不是内容回潮 —— 第 25 步把 4 条命令串成 `patch.py … && … check_report.py … && tell-scan.py …; echo "SCAN_EXIT=$?"`，**第一个 `patch.py` 断言失败**（`ASSERT FAILED … wanted 1`；patch.py 的失败码同为 **3**）⇒ `&&` 短路，`check_report.py` / `tell-scan.py` **从未执行**；runner 把「命令文本提到 `tell-scan.py` 的所有 return」**拼成一整块**再 `re.findall(r"SCAN_EXIT=(\d+)")`，于是采到那个 3。同跑第 34 步**真的跑过**扫描器（`强 0 / 弱 1`、`SCAN_EXIT=0`）。`run.json.fails` 逐字留证。危害：**每轮验收只有这一个信号**，假 FAIL 与真 FAIL 不可区分。
+
+**顺带查出 R63 自己埋的雷（本轮同时消掉一半）**：R63 统一教 `… 2>&1 | tail -30; echo "EXIT=${PIPESTATUS[0]}"`，与 tell-scan 专属的 `; echo "SCAN_EXIT=$?"`（prompt L166 / SKILL L141·L206 / toolbox L340 四处仍在教）**并存**。三跑实测模型都照了专属写法（banner 未被 `tail` 截掉 —— tell-scan 的合计行打在最后），**没造成损失**；但若模型照通用写法用 `EXIT=`，旧 runner 读不到 `SCAN_EXIT` 时就只剩 banner 兜底 ⇒ 干净跑仍 PASS、**脏跑（强命中未处理）降级成 WARN（照样绿）**= 信号漏洞。
+
+**改动（只用 runner 层 `~/.local/bin/toolsmith-publish`，交付包与运行期文本一字未动）**：
+
+| 层 | 改前 | 改后 | 内容 |
+|---|---|---|---|
+| runner | 拼全部 return → 全局 `SCAN_EXIT=(\d+)` | **逐 return + banner 门槛** | 只有自带扫描器 banner（`强 N / 弱 M` 表头 或 `合计强命中 N 条`）的 return 才算「扫描器回执」；退出码只从 **banner 之后**的文本读（管道后的 `echo` 正落在那儿）；同时接受 `SCAN_EXIT=` 与 `EXIT=${PIPESTATUS[0]}`，**同名冲突时 `SCAN_EXIT` 优先**（防同链后续命令的 `EXIT=3` 污染） |
+| runner | 只认 `SCAN_EXIT` | 预先接受 `[tell-scan] exit=N` | 原修法①（`tell-scan.py` 自打标记）本轮**不做**（banner 本身就是回执），但 runner 先兼容，日后加**无需再改 runner** |
+| `evals/runner-gate/test-runner.py` | 45 测试 | **48 测试** | 脏样本改成 tell-scan 真实打印形态（带 banner）；新增 3 例：B9 形状必须不 FAIL、R63 的 `EXIT=` 形态必须可读、同链后续命令的 `EXIT=3` 不得污染 |
+
+**验收（三层证据，不需要真跑）**：
+
+1. **旧新 runner A/B（单元）**：新例在旧 runner FAIL（`prose gate exited clean`）/ 新 runner **PASS**；`test-runner.py` 48/48 OK。
+2. **存档 run A/B 复现**（`/tmp/r64/ab.py` 直调 `check_run`，同 `r61-sem-2` 存档）：旧 runner → `FAIL prose gate … SCAN_EXIT=[0, 3, 0]`（与 `run.json.fails` 逐字相同）；新 runner → `PASS prose gate ran and exited clean — 3 call(s), 2 scanner receipt(s), SCAN_EXIT=[0, 0] strong-free=True`。⇒ 真跑的假 FAIL 已消除。
+3. **全量本地闸门**：`python3 -B -m py_compile` OK；`GATES_FAILED=0`（test-render-facts 29 / test-skill-scripts 62 / test-tell-scan 10 / test-check-report 25 / test-build-ledger-scaffold 9 / test-merge-ref-facts 16 / test_regressions 35 / mutations 44+12 / **test-runner 48** / `verify-run-chain GATE: PASS`（5 可比）/ test_pack_dist 5 / test_replay_run 14 / node 16 / `pack-dist --check` IDENTICAL 181,638 B `39640fd6e679`）。
+
+**不改什么**：不动运行期文本（prompt / `SKILL.md` / `toolbox.md`）⇒ **本轮无发布**（`status` 仍 in sync：prompt v1.8 `91febc286412479a8b6d569fa3b8025e`、skill v1.0.9 `16aeb0406e12425bad27a2444f17225e`）；**未耗真跑**（runner 不在交付包内，F↔A 两账都不受影响）。备份：`~/.local/state/toolsmith-publish/toolsmith-publish.v12.bak` + `toolsmith-publish.o51-before-20261014.bak`（md5 `f3a25b7487293c1acdb134f3ef5a685a`）。
+
+**留给下一轮**：**R65 候选 A**（token 契约唯一化 + 提交前可自查）**顺带把双退出码写法冲突在文本里一次说清**；**R66 候选 B**（惰性段条件化，降级）；**R61-4**（`same-trial-evolution.md` 0 真读）待排。
+
 ## R63 — 失败可见性：fail-closed 脚本必须说出原因、调用方必须拿到真退出码（**2026-10-14 改 / 原地发布 / 固定三组验收**）
 
 **动机**：R62-1 实测「一次校验失败 → 18 次调用 / 28% 步数」，根因指向 fail-closed 脚本静默 + 调用方拿到假退出码。用户指示「测试吧，可以原地发布实测」。**本轮只改「失败如何被看见」，规则文本一条未删。**

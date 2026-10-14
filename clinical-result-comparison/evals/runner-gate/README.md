@@ -114,6 +114,31 @@ receipt evidence remains unchanged. This is not an overall run or quality PASS. 
 historical files remain unchanged. No live run, publish, network, Git write, prompt, skill,
 scorer, state or ledger change was performed; no Docker action applies.
 
+## O51 / R64 — the prose-gate verdict is a per-receipt read (2026-10-14)
+
+The prose gate's exit code used to be harvested from the *join of every return whose command
+mentioned* `tell-scan.py`. A chain like `patch.py … && … tell-scan.py …; echo "SCAN_EXIT=$?"`
+short-circuits on the first `patch.py` assertion failure (whose exit is 3 as well), so the
+scanner never ran and its slot carried somebody else's status → false FAIL in a green run
+(`20261013-134217-r61-sem-2`, kept verbatim in that run's `run.json.fails`). The patched runner
+only accepts a **scanner receipt** — a return carrying `强 N / 弱 M` or `合计强命中 N 条` — and
+reads the marker from the text *after* that banner, preferring `SCAN_EXIT=` over the bare
+`EXIT=${PIPESTATUS[0]}` of the R63 general invocation form (currently accepted but not taught
+for this tool). `[tell-scan] exit=N` is accepted in advance, so adding that self-echo later needs
+no runner change.
+
+```bash
+patch toolsmith-publish < runner-patches/o51-prose-gate-receipt.patch   # baseline: o51-before-20261014.bak
+```
+
+Validation: applying the patch to that baseline reproduced the installed runner byte for byte
+(sha256 `e1cef07198ed3ba3fc667eb0143857cced32b46fd0b8c25f21b2a7da225b7431`);
+`evals/runner-gate/test-runner.py` went 45 → 48 with the three new cases failing against the
+baseline runner and passing against the patched one; the archived-run A/B on `r61-sem-2` turned
+`FAIL prose gate … SCAN_EXIT=[0, 3, 0]` into `PASS … 3 call(s), 2 scanner receipt(s),
+SCAN_EXIT=[0, 0]`. No runtime text, prompt, skill, scorer, dist, publish, network or live run was
+touched by this round.
+
 ## Not covered by the chain comparison: the receipt layer
 
 `tool_results/**` (params JSONL, fetched page bodies) is deleted at persist and filtered from the

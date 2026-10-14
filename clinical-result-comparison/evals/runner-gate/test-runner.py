@@ -538,12 +538,57 @@ class ContractTests(OfflineCase):
                       self.failures(history(parts)))
 
     def test_prose_gate_dirty_exit_fails(self):
+        # the receipt is what tell-scan.py actually prints: the `[zh] 强 N / 弱 M` header and the
+        # `合计强命中 N 条` total bracket every run, so a dirty verdict arrives with its banner.
         for marker in ('SCAN_EXIT=3', 'SCAN_EXIT=2'):
             with self.subTest(marker=marker):
                 parts = list(self.parts)
-                parts[3] = ret('g', 'execute', f'L3 [强] S-PROC-01  «我们共检索»\n{marker}')
+                parts[3] = ret('g', 'execute',
+                               '== /workspace/output/report.md  [zh]  强 3 / 弱 1\n'
+                               'L3 [强] S-PROC-01  «我们共检索»\n'
+                               '合计强命中 3 条 / total strong hits 3.\n' + marker)
                 failures = self.failures(history(parts))
                 self.assertIn("prose gate exited clean (or its strong hits were --allow'ed)", failures)
+
+    def test_scanner_exit_code_from_a_non_scanner_command_is_ignored(self):
+        # O51 / R61-3:B9. `20261013-134217-r61-sem-2` shipped green yet the old flat
+        # join-then-regex read `SCAN_EXIT=3` out of a chain that short-circuited on a patch.py
+        # assertion failure — the scanner never got to run in that command. A return without the
+        # scanner banner is not a scanner receipt and must not decide the gate.
+        bad_cmd = ('cd /workspace && python3 .../patch.py /workspace/output/report.md --find x '
+                   '--replace y && echo "=== SCAN ===" && python3 -B .../tell-scan.py '
+                   '/workspace/output/report.md; echo "SCAN_EXIT=$?"')
+        bad_out = ('[stderr] ASSERT FAILED: /workspace/output/report.md contains 0 occurrence(s) '
+                   'of the pattern, wanted 1\n[stderr]   nothing written\nSCAN_EXIT=3\n'
+                   '[Command succeeded with exit code 0]')
+        parts = list(self.parts)
+        parts[4:4] = [call('x', 'execute', {'command': bad_cmd}), ret('x', 'execute', bad_out)]
+        levels = {name: level for level, name, _ in self.checks(history(parts))}
+        self.assertEqual(self.failures(history(parts)), [])
+        self.assertEqual(levels.get('prose gate ran and exited clean'), 'PASS')
+
+    def test_prose_gate_reads_the_general_exit_form(self):
+        # R63 teaches the packaged scripts the `… 2>&1 | tail -30; echo "EXIT=${PIPESTATUS[0]}"`
+        # shape, so a scanner receipt may echo EXIT= instead of SCAN_EXIT=. Both are readable.
+        parts = list(self.parts)
+        parts[3] = ret('g', 'execute',
+                       '== /workspace/output/report.md  [zh]  强 0 / 弱 1\n   无命中\n'
+                       '合计强命中 0 条 / total strong hits 0.\nEXIT=0')
+        levels = {name: level for level, name, _ in self.checks(history(parts))}
+        self.assertEqual(self.failures(history(parts)), [])
+        self.assertEqual(levels.get('prose gate ran and exited clean'), 'PASS')
+
+    def test_prose_gate_ignores_a_later_exit_of_the_same_chain(self):
+        # a clean scan followed by a failing sibling command in the same shell line stays green:
+        # the canonical marker of the scanner wins over the bare EXIT= of the later command.
+        parts = list(self.parts)
+        parts[3] = ret('g', 'execute',
+                       '== /workspace/output/report.md  [zh]  强 0 / 弱 0\n'
+                       '合计强命中 0 条 / total strong hits 0.\nSCAN_EXIT=0\n'
+                       '=== citations ===\n[stderr] boom\nEXIT=3')
+        levels = {name: level for level, name, _ in self.checks(history(parts))}
+        self.assertEqual(self.failures(history(parts)), [])
+        self.assertEqual(levels.get('prose gate ran and exited clean'), 'PASS')
 
     def test_prose_gate_without_echoed_exit_is_a_warning_not_a_failure(self):
         parts = list(self.parts)
