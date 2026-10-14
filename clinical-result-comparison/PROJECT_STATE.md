@@ -1,5 +1,40 @@
 # Project State
 
+## R62 — 减重第一轮：冷区散文收紧 + 编号缺陷修复（2026-10-13，**本地已改；未发布、无新 run**）
+
+**起因**：用户「减法减法」——「这个 skill 太重了、速度很慢」。先做**只读体检**，再改。
+
+**体检结论（三次真跑口径，数字与命令见 `docs/evidence/r62-weight-cut-2026-10-13.md`）**：
+1. **两本账要分开**：我们的 skill 只占上下文 **16%**（20,347 tok；平台工具 schema 85,995 tok = 69%，cache 命中 97.4%），而墙钟 **91–93% 是生成**、其中 **65–71% 是思考** ⇒ **减字节 ≠ 提速**；**减步数才省时间**（同输入 19 步 / 251.7 s vs 29 步 / 354.5 s）。
+2. **真正的缺陷是「权重↔热度错位」**：prompt 把 21% 的字节花在 `## Subagent delegation`（7,838 字符）与 `## Step discipline`（9,050 字符），而这两处**思考命中率 0.00–0.01/千字**（被遵守、不被推敲）。
+3. **因此不能「哪里长就删哪里」**：这两节不是措辞冗余而是**防错契约**，而 `check_report.py` / `tell-scan.py` 都是 **fail-closed**——删散文 = 把「预防」换成「下游发现 + 返工」，**反而更慢**。
+
+**改动（逐项字节账；脚本 `/tmp/r62/splice.py`，按 `## ` 标题整节替换、断言标题唯一命中）**：
+
+| 位置 | 改前 | 改后 | Δ | 性质 |
+|---|---:|---:|---:|---|
+| prompt `## Step discipline` | 9,121 | 7,967 | **−1,154** | **8 条规则一条未删**，只删论证性从句；顺带修方位词 `above` → `below`（原文该处指错方向） |
+| prompt `## Subagent delegation` | 8,116 | 5,067 | **−3,049** | 其中 **2,476 B 是迁出**（`原文核对：` 这条与子代理无关的规则原本埋在该节末尾），余 −573 B 措辞收紧 |
+| prompt `## The original-source check line (原文核对：)` | — | 2,476 | +2,476（迁入） | 独立成节，位置移到 `## Trial-level synthesis rules` 之前 |
+| SKILL.md `## Purpose` | 5,269 | 4,434 | **−835** | 修编号缺陷：旧清单**两个 "9."**、**11 排在 10 前**（模型按错号读）→ 改「必读 1–5 / 条件读 6–12」 |
+| **prompt 合计** | 81,576 | **79,886** | −1,690（−2.1%） | sha `713f4333b74e` → `c17ee2f1c18a` |
+| **SKILL.md 合计** | 45,615 | **44,780** | −835（−1.8%） | sha `74781a56c6cd` → `949ae00902c9` |
+| **dist** | 180,652 | **180,410** | −242 | sha `0b8ba50448b6` → `f5e32baa1c33`（29 entries，`pack-dist --check` IDENTICAL） |
+
+**为什么只减 2%**：prompt 的字节几乎全是规则本身。第一版压缩到 5,027 B，复查发现**丢了 5 条实质条款**，遂回退到「一条不丢」口径重压 ⇒ 上限就是 −2~3%。
+
+**本地闸门（改动后全绿）**：`test-render-facts` 28 / `test-skill-scripts` 62 / `test-tell-scan` 10 / `test-check-report` 25 / `test-build-ledger-scaffold` 9 / `test_regressions` 35 / `test-runner` 45 / `node --test` 16 / `mutations` arm a **44/44** + arm b **12/12** + `never flipped []` + `GATE: PASS` / `verify-run-chain` **GATE: PASS**（151 histories, 5 可比）/ `test_pack_dist` 5 / `test_replay_run` 14。**但本地闸门证明不了运行期文本的语义没丢——需 1 次真跑。**
+
+**判定**：**准备轮（未发布、无 run）**，不判 KEEP/DISCARD。发布需用户授权（TS 写动作）。
+
+> ⚠️ **发布前禁止真跑**：`run` 的断言之一是「线上 prompt 逐字节 == 本地 sys」，本地已改而线上未发 ⇒ 任何 `run` 都会**必然 FAIL** 这条断言（不是被测行为退化）。要么先 `publish`（需授权）再跑，要么先把本地改动 revert 回 `713f4333b74e` / `74781a56c6cd` 再跑。
+
+### R63（下一轮单一假设）：**惰性段条件化**，而不是删规则
+
+- 唯一「大块且可减」的是**条件成立才有意义**的内容：prompt `## Subagent delegation` 细则（5,067 B，仅当 `task` 可见且 >5 esids；三次跑均未触发委托）→ 留 6 行摘要 + 「首次 `task` 前先读 `references/subagent-delegation.md`」；`## Mixed or different-trial inputs`（1,035 B，仅跨试验）同理。**预期 −4.3 KB**。
+- **判据（先写下，避免踩同一坑）**：条件引用会被跳过（`same-trial-evolution.md` 三轮 0 读是活证），所以**只条件化「跳过代价 = 行为退化但不静默出错」的程序性内容**，**不条件化「跳过代价 = 交付错」的结论性规则**。
+- **明确不做**：① 把 `## Final verification` 的机械项（~3.5 K）改成「跑 `check_report.py`」——fail-closed 下这是把预防换成返工；② 折叠 prompt 与 SKILL.md 的 `## Report prose style`（~5 K）——清单是查表、散文是预防；③ 折叠 SKILL.md `## Workflow`（23,661）与 prompt `## Numeric Integrity`（9,121）——实测**精确重复仅 1 段（~1.3 K）**，其余是同一契约的两种措辞、两层视图。
+
 ## R61 — 语义阶段耗时实测（**测量轮：未改任何 skill、未发布**）（2026-10-13，n=2 新跑 + R60 对照）
 
 **动机**：用户提问「别按 agent 工具流看，我要各**语义阶段**花了多久，比如写引用花了多久」。R60 只记了总墙钟（中位 430 s），没有成本归属。
@@ -63,6 +98,10 @@ R56 探针里唯一真并行的是**纯生成**（R56-b：两个各写 1.5 万�
 
 ### 我方能改的
 
+- **R61-4（新，用户断言已坐实，与 R62 同源）**：`references/same-trial-evolution.md` 在**三次跑里 0 次真读**，而三次的输入都是**同一试验的 4 条披露**（`24_37_875c2a49d64fbeb5dc34da77ea7cd308_1` / `24_37_6c25b1fc8a9f3d159294937d2cc995b1_1` / `24_1_42218899_1` / `24_1_41125109`，ivonescimab+chemo vs tislelizumab+chemo，HARMONi-6）⇒ **触发条件成立、文件确实没读**。
+  证据取法：用 `tools/semantic-timing.py#steps_of` 解析 `read_file` **真实入参**（不要数字符串出现次数——那份中文清单本身就在 `SKILL.md` 里被引用，出现 12–16 次但一次也没读）；同一口径顺手修正 R62 体检里「`toolbox.md` 分片读 4–5 次」的错误估计为**真读 1–3 次**。
+  附带发现：`r61-sem-2` 有 `read_file report.md x2`（模型回读自己刚写的正文），正是 Step discipline 第 7 条禁的动作。
+  状态：**待修**——R62 已把 `## Purpose` 改成「必读 1–5 / 条件读 6–12」并修好编号（错号会让模型读错条目），但「条件读被跳过」这个根因未解决；R63 的条件化方案**须避开结论性规则**（见 R62 的 R63 判据）。
 - **R61-3（新，已在真跑里坐实）**：`prose gate exited clean` 断言会把**`&&` 短路后别的命令的退出码**当成扫描器结论。
   `r61-sem-2` 第 25 步链为 `patch.py --find … && patch.py --find … && … tell-scan.py report.md; echo "SCAN_EXIT=$?"`，
   **第一个 `patch.py` 断言失败（`ASSERT FAILED … wanted 1`，`patch.py` 失败即 exit 3）** ⇒ `&&` 短路、扫描器根本没跑，
