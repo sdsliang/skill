@@ -1,5 +1,30 @@
 # Project State
 
+## R69 — 清扫 `templates/` 里被门禁拒收的词汇 + 静态扫描扩到整棵打包树（**2026-10-14 已原地发布 + web-off 三组；KEEP，但预登记主判据只完成一半**）
+
+**动机**：R68 §5 预登记 —— R68 只修了 `references/` 的**列名层**，**词层**仍埋在 `templates/`：`templates/mixed-comparison-report.md:70` 示例单元格 `直接对齐/部分对齐/仅背景相关/未对齐`、`:30` 的 `处理模式` 列（`r68-18` 为此烧 41 次合法性推理）。R68 的扫描范围漏了 `templates/`。
+
+**改动**：`templates/mixed-comparison-report.md`（`处理模式` → **`组内证据关系`** + 表下说明「这一列写材料之间的关系本身，不要写成对本次分析做法的归类」、示例单元格 → `评估时点与人群定义不同，只作方向性并列`、边界句改口径、修两处表格行列数不符）；`templates/cross-trial-report.md`（示例 → `同一终点与人群下可直接比较的数据等`、修分隔行）；`evals/scripts/test-check-report.py` **27 → 31**（扫描范围 `references/` → **整棵打包树**；断言用 `importlib` **直接取 `check_report.py` 的正则对象**；新增 `TEMPLATE_COLUMN_BAN`；**禁令豁免从 ±N 窗口改为段落作用域**）。SKILL.md 描述加**反向边界**（单条记录 / 收录判定 / 单篇改写翻译 / 写库发布 / 无选中集的临床提问**不触发**）并把 9 个超长段落按句子边界折成 ≤780 字符（**空白级等价**，逐字符验证 `re.sub(r"\s+","")` 前后相同）。prompt **未动**、脚本逻辑未动、`deps` unchanged。
+
+**改前红证据**（新测试对 HEAD 文本）：语域 **5** 处 / 全词表 **5** 处 / 列名 **1** 处（`处理模式`）⇒ 真回归测试。
+
+**发布**：in-place，prompt v1.8 `999ffe38547a` 未变；skill **v1.0.9 原地更新**（`skill_id 16aeb0406e12425bad27a2444f17225e`），回读 29/29 `differing=0`；`status` **in sync**；平台 `deployed-current.zip` 与本地 dist **逐字节 29/29 相同**；dist 184,391 B `af36ade72593` → **184,637 B `64151671d952`**；`GATES_FAILED=0`（31 / 63 / 10 / 16 / 9 / 32 / 35 / 48 / `GATE: PASS` / 5 / 14 / node 16 / mutations a 44/44 b 12/12）。
+
+**真跑**（固定 4/18/14，输入逐字节复用 `/tmp/r63/p{4,18,14}.txt`，串行，web off）：
+
+| run | wall s | 步 | out tok | `自产物回读/返工` s | 断言 | `template-vocab` |
+|---|---:|---:|---:|---:|---|---:|
+| r69-4 | 414.4 | 31 | 73,911 | 0.6 | 22P/1F | **0** |
+| r69-18 | 461.8 | 29 | 85,532 | 8.8 | 22P/1F | **4** |
+| r69-14 | 514.6 | 30 | 90,419 | 7.9 | 22P/1F | **1** |
+| **均值** | **463.6** | 30.0 | 83,287 | 5.8 | | **1.7** |
+
+对照（同口径重算）：R68 = 473.7 / 29.7 / 86,384 / 5.1 / `template-vocab` **12.3**；R67 = 434.7 / 27.0 / 82,669 / 9.4 / **10.0**。
+
+**判定：KEEP（改的是真错 + 被测试永久钉住），预登记主判据只完成一半。** ✅ `template-vocab` 均值 **12.3 → 1.7（−86%）**、`r68-18` 的 23 → `r69-18` 的 4，三跑**再无「模板 ↔ 门禁」仲裁**，残留 5 处（4+1）逐条取证**全是复述 host prompt 禁令清单**的合法自检；三跑断言仍恒 **22P/1F**（唯一 FAIL = 平台 `P-R53-1`），`outcome=succeeded`；产物内 `处理模式`/`对齐等级`/`部分对齐` 命中 **0**，本地 `check_report.py` 回放语域**全绿**；离线判分 `r69-4` 22/44 vs `r68-4` 23/44（无劣化信号，**不称改善**）。❌ 预登记写「三组全 0、`r69-18` ≤ 2」，实测 **0 / 4 / 1** ⇒ 硬指标未达。**不称减负/提速**（wall −2% / out tok −3.6% / 步 +1%，全在 ±30% 噪声内）。**同类缺陷换到第三处**：`templates/cross-trial-report.md` 的 `判断强度（高/中/低可比性）` 列（`check_report.py` 不拒，但语义像被判词，`r69-18` 为此仲裁后**放弃该列**）⇒ R70 首选。
+
+**台账**：[R69](docs/toolsmith-verification-log.md) ｜ **完整证据**：[r69-templates-vs-gate-vocabulary-2026-10-14.md](docs/evidence/r69-templates-vs-gate-vocabulary-2026-10-14.md)。
+
 ## R68 — 清掉「我们自己的参考文件教出来的 FAIL 词汇」（**2026-10-14 已原地发布 + web-off 三组；KEEP，但只说对了一半**）
 
 **动机**：R67 证据 §6 ① 指名 —— `r67-14` 花 2.5k 字仲裁我们自己造成的矛盾：`references/cross-trial-comparison.md` Step 4 要求 "a dedicated last column for alignment level"，而 host prompt 与 `check_report.py`（`META_COLUMN_RE` / `META_LABEL_RE` / `METHOD_NARRATION_RE`，三条皆 **FAIL**）禁止 `对齐等级` 列与 `部分对齐` 这类词。

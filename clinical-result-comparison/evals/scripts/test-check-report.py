@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import re
 import shutil
@@ -12,9 +13,74 @@ import tempfile
 import unittest
 from pathlib import Path
 
+sys.dont_write_bytecode = True
+
 HERE = Path(__file__).resolve()
 REPO = HERE.parents[2]
-CHECKER = REPO / "skill" / "multi-clinical-result-comparison" / "scripts" / "check_report.py"
+SKILL_DIR = REPO / "skill" / "multi-clinical-result-comparison"
+CHECKER = SKILL_DIR / "scripts" / "check_report.py"
+
+
+def _gate_module():
+    """The gate's own regexes, so these tests cannot drift from `check_report.py`."""
+    spec = importlib.util.spec_from_file_location("_gate_under_test", CHECKER)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+GATE = _gate_module()
+
+# Vocabulary the gate fails in a delivered report.  It may be *named* by a prohibition (that is how
+# the contract is written down) but never *prescribed* as something to write.
+REPORT_VOICE_REGEXES = ("META_LABEL_RE", "META_COLUMN_RE", "METHOD_NARRATION_RE", "SELF_AUDIT_RE")
+# `templates/**` is the deliverable skeleton: text there can be copied into the report verbatim, so
+# the full gate vocabulary applies, including internal field names and chart-encoding claims.
+FULL_GATE_REGEXES = REPORT_VOICE_REGEXES + ("INTERNAL_VOCAB_RE", "CHART_ENCODING_CLAIM_RE", "SELF_REFERENCE_RE")
+PROHIBITION_MARKERS = re.compile(
+    r"check_report|FAIL|不要|不得|禁止|不写|不做|不作|不算|不能写|不该|拒|never|not printed|内部|internal"
+    r"|\bNo\b|must not|should not|do not|does not|is not|are not|reject|forbid")
+# Authoring-layer column labels that must never appear in a shipped template table (R50/R68/R69).
+TEMPLATE_COLUMN_BAN = ("对齐等级", "分析模式", "分析口径", "选择依据", "可比性结论", "不绘图原因",
+                      "有限并列原因", "处理模式", "处理流程")
+
+
+def packaged_texts(skill: Path = SKILL_DIR, templates_only: bool = False) -> dict[str, str]:
+    """Every text file in the packaging tree, not just `references/` (R68 lesson)."""
+    out: dict[str, str] = {}
+    for pattern in ("SKILL.md", "references/*.md", "templates/*.md", "templates/charts/*.json"):
+        for path in sorted(skill.glob(pattern)):
+            if templates_only and not str(path).startswith(str(skill / "templates")):
+                continue
+            out[str(path.relative_to(skill))] = path.read_text(encoding="utf-8")
+    return out
+
+
+def _paragraph_span(text: str, index: int) -> tuple[int, int]:
+    """The blank-line-delimited block around `index`.
+
+    A ±N-character window is too coarse: in this corpus a neighbouring paragraph's `不得` leaked
+    onto the table row that prescribed `直接对齐/部分对齐/未对齐`, which is exactly the r68-18 defect.
+    """
+    start = text.rfind("\n\n", 0, index) + 2
+    end = text.find("\n\n", index)
+    return start, end if end >= 0 else len(text)
+
+
+def vocabulary_violations(texts: dict[str, str], regex_names: tuple[str, ...]) -> list[str]:
+    """Hits whose own paragraph does not forbid the wording it just used."""
+    violations: list[str] = []
+    for name, text in sorted(texts.items()):
+        for regex_name in regex_names:
+            regex = getattr(GATE, regex_name)
+            for hit in regex.finditer(text):
+                start, end = _paragraph_span(text, hit.start())
+                if PROHIBITION_MARKERS.search(text[start:end]):
+                    continue
+                line = text.count("\n", 0, hit.start()) + 1
+                snippet = text[text.rfind("\n", 0, hit.start()) + 1: text.find("\n", hit.end())].strip()
+                violations.append(f"{name}:{line} {regex_name} {hit.group()!r} outside a prohibition: {snippet[:110]!r}")
+    return violations
 
 
 class CheckReportTests(unittest.TestCase):
@@ -279,10 +345,8 @@ class ReferenceSetVsGateTests(unittest.TestCase):
     SKILL = REPO / "skill" / "multi-clinical-result-comparison"
 
     def texts(self) -> dict[str, str]:
-        out: dict[str, str] = {}
-        for path in sorted((self.SKILL / "references").glob("*.md")):
-            out[str(path.relative_to(self.SKILL))] = path.read_text(encoding="utf-8")
-        for name in ("SKILL.md", "scripts/check_report.py"):
+        out = packaged_texts(self.SKILL)
+        for name in ("scripts/check_report.py",):
             out[name] = (self.SKILL / name).read_text(encoding="utf-8")
         return out
 
@@ -310,6 +374,45 @@ class ReferenceSetVsGateTests(unittest.TestCase):
         self.assertIn("解读边界", text)
         self.assertIn("never printed", text)
         self.assertRegex(text, r"check_report\.py` rejects it")
+
+
+class PackagedTreeVsGateVocabularyTests(unittest.TestCase):
+    """R69: the scan covers the whole packaging tree, not just `references/`.
+
+    r68-18 burned 41 legality steps (108,848 output tokens, rework ratio 14.3) arbitrating a
+    template that shipped ``直接对齐/部分对齐/仅背景相关/未对齐`` as an example cell, while the gate
+    fails exactly those words and the prompt forbids the class.  R68's own static test only walked
+    `references/*.md`, so nothing caught it.  The rule is mechanical: in this tree the gate's
+    vocabulary may appear **inside a prohibition** and nowhere else.
+    """
+
+    def test_report_voice_lexicon_appears_only_inside_prohibitions(self):
+        violations = vocabulary_violations(packaged_texts(), REPORT_VOICE_REGEXES)
+        self.assertEqual([], violations, "gate-rejected report wording is being prescribed")
+
+    def test_templates_name_the_full_gate_lexicon_only_inside_prohibitions(self):
+        violations = vocabulary_violations(packaged_texts(templates_only=True), FULL_GATE_REGEXES)
+        self.assertEqual([], violations, "a delivered skeleton can be copied into the report verbatim")
+
+    def test_templates_have_no_self_classification_column_or_cell(self):
+        for name, text in sorted(packaged_texts(templates_only=True).items()):
+            for label in TEMPLATE_COLUMN_BAN:
+                for hit in re.finditer(re.escape(label), text):
+                    start, end = _paragraph_span(text, hit.start())
+                    if PROHIBITION_MARKERS.search(text[start:end]):
+                        continue
+                    line = text.count("\n", 0, hit.start()) + 1
+                    self.fail(f"{name}:{line} ships the authoring label {label!r} in a template")
+
+    def test_the_scanners_themselves_fail_on_the_r68_template_text(self):
+        """Guard against a scanner that passes because it looks at nothing."""
+        r68 = {"templates/mixed-comparison-report.md":
+               "| 结果标签 | 归属组 | 处理模式 | 归组依据与不确定性 |\n"
+               "| 结果 A | | | | | | | 直接对齐/部分对齐/仅背景相关/未对齐 | |\n"}
+        self.assertTrue(vocabulary_violations(r68, REPORT_VOICE_REGEXES))
+        self.assertTrue(vocabulary_violations(r68, FULL_GATE_REGEXES))
+        self.assertTrue(any(text for text in [r68["templates/mixed-comparison-report.md"]]
+                            if any(label in text for label in TEMPLATE_COLUMN_BAN)))
 
 
 if __name__ == "__main__":

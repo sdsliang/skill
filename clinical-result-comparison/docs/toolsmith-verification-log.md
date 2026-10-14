@@ -2957,3 +2957,39 @@ $ toolsmith-publish deps --accept && toolsmith-publish deps
 - **P-R53-1**：六跑（R67 ×3 + R68 ×3）形态一致，唯一 FAIL，与本次改动无关。
 
 **完整证据**：[r68-template-vs-gate-vocabulary-2026-10-14.md](evidence/r68-template-vs-gate-vocabulary-2026-10-14.md)。
+
+---
+
+## R69 — 清扫 `templates/` 里被门禁拒收的词汇 + 静态扫描扩到整棵打包树（2026-10-14 改 / 原地发布 / 验收同批）
+
+**目标（R68 §5 预登记，真跑前写下）**：R68 只修了 `references/` 的列名层，词层仍埋在 `templates/`——`templates/mixed-comparison-report.md:70` 的示例单元格 `直接对齐/部分对齐/仅背景相关/未对齐`、`:30` 的 `处理模式` 列。R68 的 `r68-18` 为此烧掉 41 次合法性推理。**预登记主判据**：`template-vocab`（`处理模式|直接对齐|部分对齐|仅背景|未对齐|对齐等级`）三组全 0、`r69-18` ≤ 2（对照 `r68-18` = 23）。
+
+**改动**：`templates/mixed-comparison-report.md`（`处理模式` → `组内证据关系` + 表下加「这一列写材料差异、不要写成对本次分析做法的归类」、示例单元格换成 `评估时点与人群定义不同，只作方向性并列`、边界句改口径、修两处行列数不符）；`templates/cross-trial-report.md`（示例 `直接对齐数据等` → `同一终点与人群下可直接比较的数据等`、修分隔行）；`evals/scripts/test-check-report.py` **27 → 31**（扫描范围 `references/` → **整棵打包树** `SKILL.md` + `references/*.md` + `templates/*.md` + `templates/charts/*.json`；断言**直接 `importlib` 取 `check_report.py` 的正则对象**，不再与门禁漂移；新增 `TEMPLATE_COLUMN_BAN`；禁令豁免判定从 ±N 字符窗口改为**段落作用域** —— 窗口法会把第 73 行的 `不得` 漏给第 70 行的表格行，那正是 R68 的漏网形态）。prompt 未动、`deps` unchanged。
+
+**改前红证据（新测试对 HEAD 文本）**：语域 **5** 处 / 全词表 **5** 处 / 列名 **1** 处（`处理模式`）⇒ 真回归测试，不是橡皮章。
+
+| run | 目录 | server wall s | 步 | out tok | `自产物回读/返工` s | 断言 | `template-vocab` | `gate-check` |
+|---|---|---:|---:|---:|---:|---|---:|---:|
+| `r69-4` | `20261014-154955` | 414.4 | 31 | 73,911 | 0.6 | 22P/1F | 0 | 13 |
+| `r69-18` | `20261014-155716` | 461.8 | 29 | 85,532 | 8.8 | 22P/1F | 4 | 13 |
+| `r69-14` | `20261014-160520` | 514.6 | 30 | 90,419 | 7.9 | 22P/1F | 1 | 20 |
+| **均值** | | **463.6** | 30.0 | 83,287 | 5.8 | | **1.7** | 15.3 |
+
+（输入逐字节复用 `/tmp/r63/p{4,18,14}.txt`，串行，web off。对照同口径重算：R68 = 473.7 / 29.7 / 86,384 / 5.1 / **12.3**；R67 = 434.7 / 27.0 / 82,669 / 9.4 / **10.0**。）
+
+**发布**：prompt v1.8 未变；skill **v1.0.9 原地更新**（`skill_id 16aeb0406e12425bad27a2444f17225e`），回读 **29/29 identical=0 differing**、`status` **in sync**；平台 `deployed-current.zip` 与本地 dist **逐字节 29/29 相同**；dist 184,391 B `af36ade72593` → **184,637 B `64151671d952`**；本地闸门 `GATES_FAILED=0`（31 / 63 / 10 / 16 / 9 / 32 / 35 / 48 / GATE PASS / 5 / 14 / node 16 / mutations a 44/44 b 12/12 / `pack-dist --check` IDENTICAL）。
+
+**判定：KEEP（改的是真错 + 被测试永久钉住），但预登记主判据只完成一半。** ✅ `template-vocab` 均值 **12.3 → 1.7（−86%）**、`r68-18` 的 23 → `r69-18` 的 4，且**三跑再无「模板教我怎么做 ↔ 门禁拒收」的仲裁**——残留 5 处（4+1）逐条取证**全是复述 host prompt 禁令清单**（*"Banned: 分析模式/选择依据/可比性结论/对齐等级/…"*）的合法自检。❌ 预登记写的是「三组全 0、`r69-18` ≤ 2」，实测 **0 / 4 / 1** ⇒ 硬指标未达，按口径不得算达标。**不称减负**（wall −2% / out tok −3.6% / 步 +1%，全在 ±30% 噪声内）。
+
+### 我方能改的
+
+- **R70-1（首选，同类第三处）**：`templates/cross-trial-report.md` 的 `判断强度（高/中/低可比性）` 列 —— `r69-18` 逐字 *"Hmm — 判断强度（高/中/低可比性）is a template column; is that a banned self-label (可比性结论/对齐等级)? … Conflict."*，`r69-14` 也自问一次。`check_report.py` **不拒**该列名（不在 `META_COLUMN_RE`），是**语义像**被判词：模型白烧推理，`r69-18` 最终**放弃该列**（产物 `判断强度` = 0，仅 `r69-14` 用 1 次）。改法照 R68 修 `解读边界` 的同一手法：给设定（该列名合法、取值是定性标签高/中/低、不得写成被禁分类词），不给判词。
+- **R70-2**：`gate-check` 复述量（R67 24.0 / R68 14.0 / R69 15.3）能否压低 —— 把 SKILL.md 的「禁令清单」与「怎么自检」合成一条更短指令，减少逐条背禁令的必要。**先取证再改**。
+- **R70-3（P2 遗留）**：description 反向边界**已在本轮加入**；`references/input-contract.md`（523 行）与 `toolbox.md`（433 行）补 `## Contents`；`make_chart.py:149 --no-validate` 标 debug-only；`references/toolbox.md:226` 示例引文 `95% CI 9.6–9.6` 的 CI typo。
+- **R69-交付层**：本地 `check_report.py` 回放三份产物 = 语域**全绿**、唯一 FAIL 是本地回放的 `::visualization` 前缀差异（R50 起已知）；产物内 `处理模式`/`对齐等级`/`部分对齐` 命中 **0**；离线判分 `r69-4` 22/44 vs `r68-4` 23/44（无劣化信号，也不称改善）。
+
+### 平台侧（转开发）
+
+- **P-R53-1**：九跑（R67 ×3 + R68 ×3 + R69 ×3）形态一致（`fails=['tool_results receipts archived']`，`/workspace/tool_results/…/result.jsonl: unsafe or unsupported receipt path`），唯一 FAIL，与各轮改动无关。
+
+**完整证据**：[r69-templates-vs-gate-vocabulary-2026-10-14.md](evidence/r69-templates-vs-gate-vocabulary-2026-10-14.md)。

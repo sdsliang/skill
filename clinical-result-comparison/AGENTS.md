@@ -1,5 +1,14 @@
 # AGENTS.md — 常驻 program.md（autoresearch 循环）
 
+## R69 完成（2026-10-14，**已原地发布 + web-off 真跑三组；KEEP，但预登记主判据只完成一半**）
+
+- **改了**：`templates/mixed-comparison-report.md` 的 `处理模式` 列 → **`组内证据关系`**（+ 表下说明「写材料差异、不写对本次分析做法的归类」）、示例单元格 `直接对齐/部分对齐/未对齐` → `评估时点与人群定义不同，只作方向性并列`；`templates/cross-trial-report.md` 示例同理；`test-check-report.py` **27 → 31**（扫描范围扩到**整棵打包树**、正则**直接取自 `check_report.py`**、禁令豁免改**段落作用域**）；SKILL.md 描述加反向边界 + 9 个超长段落按句子折行（**空白级等价**）。prompt 未动，`deps` unchanged。
+- **真跑**（固定 4/18/14，串行，web off，输入复用 R68）：wall **414.4 / 461.8 / 514.6（均值 463.6**，R68 473.7）、步 31/29/30、out tok 73,911 / 85,532 / 90,419；`自产物回读/返工` 0.6 / 8.8 / 7.9；九跑断言恒 **22P/1F**（唯一 FAIL = 平台 `P-R53-1`）。
+- **判据（真跑前预登记）**：`template-vocab`（`处理模式|直接对齐|部分对齐|仅背景|未对齐|对齐等级`）三组全 0、`r69-18` ≤ 2 → 实测 **0 / 4 / 1** ⇒ **均值 12.3 → 1.7（−86%）、但硬指标未达**；残留 5 处经取证**全是复述 host prompt 禁令清单**（合法自检），三跑**再无「模板 ↔ 门禁」仲裁**。
+- **发布**：in-place，prompt v1.8 未变；skill v1.0.9 29/29（平台 `deployed-current.zip` 与本地 dist **逐字节相同**）；`status` **in sync**；dist **184,637 B sha `64151671d952`**；`GATES_FAILED=0`。
+- **裁定**：✅ 真错修掉且被测试钉住（改前命中 5/5/1）；❌ **硬指标未达**；**不称减负/提速**（三项指标全在 ±30% 噪声内）。**同类缺陷第三处**：`templates/cross-trial-report.md` 的 `判断强度（高/中/低可比性）` 列（门禁不拒、但语义像被判词，`r69-18` 仲裁后放弃该列）。
+- **R70**：① 给 `判断强度` 列加「该列名合法、取值是定性标签」的设定（照 R68 修 `解读边界` 的手法）；② 压 `gate-check` 复述量（先取证）；③ P2 遗留（两个大 reference 补 `## Contents`、`--no-validate` 标 debug、`toolbox.md:226` CI typo）。
+
 ## R68 完成（2026-10-14，**已原地发布 + web-off 真跑三组；KEEP，但只说对了一半**）
 
 - **改了**：`references/cross-trial-comparison.md` 末列一律 `解读边界`（`对齐等级` 列名 = 交付失败）、alignment 分级标注 **never printed**、去掉 "no-chart reason"；`toolbox.md` §4 加「文字数字 `Fifty-one` 照抄即合法」；`test-check-report.py` 新增 `ReferenceSetVsGateTests`（25 → **27**，对改前文本命中 4 处）。prompt 未动，`deps` unchanged。
