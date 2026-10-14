@@ -1,5 +1,13 @@
 # AGENTS.md — 常驻 program.md（autoresearch 循环）
 
+## R68 完成（2026-10-14，**已原地发布 + web-off 真跑三组；KEEP，但只说对了一半**）
+
+- **改了**：`references/cross-trial-comparison.md` 末列一律 `解读边界`（`对齐等级` 列名 = 交付失败）、alignment 分级标注 **never printed**、去掉 "no-chart reason"；`toolbox.md` §4 加「文字数字 `Fifty-one` 照抄即合法」；`test-check-report.py` 新增 `ReferenceSetVsGateTests`（25 → **27**，对改前文本命中 4 处）。prompt 未动，`deps` unchanged。
+- **真跑**（固定 4/18/14，串行，web off）：wall **306.3 / 609.4 / 505.5 s（均值 473.7**，R67 434.7）、步 20/41/28、out tok 53,438 / 108,848 / 96,866；`自产物回读/返工` **0 / 14.3 / 0.9**（保持 R67 低位）；九跑断言恒 **22P/1F**（唯一 FAIL = 平台 `P-R53-1`）。
+- **发布**：in-place，prompt v1.8 未变；skill v1.0.9 29/29；`status` **in sync**；dist **184,391 B sha `af36ade72593`**；`GATES_FAILED=0`。
+- **裁定**：✅ 目标矛盾消失（`对齐等级` 仲裁 0 次）；❌ **同类缺陷仍在**——`templates/mixed-comparison-report.md` 第 70 行示例单元格仍在教 `直接对齐/部分对齐/仅背景对齐`、第 30 行有 `处理模式` 列，`r68-18` 为此烧了 41 次合法性推理 / 24.9k 字符。**R68 扫描范围只写 `references/`、漏 `templates/`**。**不得声称减负**（三项指标方向偏坏，均在噪声内）。
+- **R69（未改）**：① 清扫 `templates/*.md` 被门禁拒的词汇；② 静态测试扩到整棵打包树。
+
 ## R67 完成（2026-10-14，**已原地发布 + web-off 真跑三组；KEEP —— 迭代史上首次目标指标真移动**）
 
 - **一句话**：把 `render-facts.py` 的**幂等**语义从代码里做掉（`APPENDIX_TITLE` 是草稿最后一节时先剥掉再渲染），并写明空 `unit` 不留空格 ⇒ 模型不再需要靠实验去测「重渲染会不会多一个附录」。

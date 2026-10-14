@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 import sys
@@ -264,6 +265,51 @@ class CheckReportTests(unittest.TestCase):
         proc = self.run_check()
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
         self.assertIn('"findings": []', proc.stdout)
+
+
+class ReferenceSetVsGateTests(unittest.TestCase):
+    """The packaged references must not prescribe anything this gate rejects (R68).
+
+    r67-14 spent 2.5k chars arbitrating a contradiction we shipped ourselves:
+    ``references/cross-trial-comparison.md`` asked for "a dedicated last column for
+    alignment level", while the host prompt - and META_COLUMN_RE above - fail a
+    ``对齐等级`` column.  These tests pin both sides to the same vocabulary.
+    """
+
+    SKILL = REPO / "skill" / "multi-clinical-result-comparison"
+
+    def texts(self) -> dict[str, str]:
+        out: dict[str, str] = {}
+        for path in sorted((self.SKILL / "references").glob("*.md")):
+            out[str(path.relative_to(self.SKILL))] = path.read_text(encoding="utf-8")
+        for name in ("SKILL.md", "scripts/check_report.py"):
+            out[name] = (self.SKILL / name).read_text(encoding="utf-8")
+        return out
+
+    def test_no_reference_prescribes_a_gate_rejected_column_or_label(self):
+        banned = {
+            "alignment-level column": (r"column for alignment level",
+                                       r"^\s*[-*]\s*alignment level\s*;",
+                                       r"^\s*[-*]\s*interpretation boundary\."),
+            "chart-decidability label": (r"no-chart reason",),
+        }
+        for name, text in self.texts().items():
+            for what, patterns in banned.items():
+                for pattern in patterns:
+                    hit = re.search(pattern, text, re.MULTILINE)
+                    if not hit:
+                        continue
+                    # The prohibition lists name the labels on purpose (they sit right next to
+                    # `check_report.py`); an instruction to *build* one is the defect.
+                    para = text[: hit.start()].rsplit("\n\n", 1)[-1] + hit.group()
+                    if "check_report" not in para:
+                        self.fail(f"{name} prescribes a {what}: {hit.group()!r}")
+
+    def test_cross_trial_template_names_the_printable_boundary_column(self):
+        text = (self.SKILL / "references" / "cross-trial-comparison.md").read_text(encoding="utf-8")
+        self.assertIn("解读边界", text)
+        self.assertIn("never printed", text)
+        self.assertRegex(text, r"check_report\.py` rejects it")
 
 
 if __name__ == "__main__":

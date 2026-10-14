@@ -55,7 +55,7 @@ Keep this compact. Do not build a full evidence-chain narrative here; the domain
 
 ## Step 4: Domain alignment tables
 
-For every domain, create one table with one row per **outcome/metric** and one column per **trial (experimental arm)**. Each cell holds the trial's reported value plus its marker. Use a dedicated last column for alignment level and a comparability note per row.
+For every domain, create one table with one row per **outcome/metric** and one column per **trial (experimental arm)**. Each cell holds the trial's reported value plus its marker. The last column is the **reading boundary** (`解读边界`): write the material difference that limits the comparison directly in it — timepoint, population, endpoint definition, assessment, direction — **not** the alignment level we assigned to the row. A column named `对齐等级` is a delivery failure (`check_report.py` rejects it: the report would be classifying its own work).
 
 Use these distinct columns or equivalent:
 
@@ -63,12 +63,13 @@ Use these distinct columns or equivalent:
 - experimental regimen;
 - reported value for each trial;
 - time point/follow-up;
-- alignment level;
-- interpretation boundary.
+- reading boundary (`解读边界`) — the material difference per row, never an alignment-level label.
 
 Do not collapse the experimental-arm observed value with the within-study control effect. If the experimental-arm observed value is not given, write `未报告（仅报告研究内比较效应）`. Keep each study's control visible in the trial-context block or a control column, but never treat controls from different studies as a common comparator.
 
 ### Classify endpoint/metric alignment
+
+**This classification is internal, and it is never printed.** It exists only to decide whether a bounded comparative direction is allowed (two rules below). It is not a column, not a bullet label, and not the words themselves: `部分对齐` / `仅背景对齐` / `未对齐` and a `对齐等级` column are all `check_report.py` failures. What the reader gets is the material difference in `解读边界`.
 
 Assign one level for each attempted comparison:
 
@@ -93,6 +94,8 @@ Assess the comparison of a row (or of the domain as a whole) using observable pr
 - safety exposure and reporting completeness.
 
 Use one label:
+
+**Internal too — state it as a finding, not as a label.** `可比性结论` as a column header or bullet label fails `check_report.py`; the reader gets the comparability as a sentence in the domain's plain-language interpretation (what is compatible, what is not, and what that costs).
 
 - **High comparability**: rare outside a head-to-head or closely matched design; supports a strong comparative statement.
 - **Moderate comparability**: supports a cautious directional comparison.
@@ -137,7 +140,7 @@ The report must contain, in comparison-first order:
 
 1. a one-sentence overall verdict (who is favored on what, with strength and boundary);
 2. the scope and clinical-question clusters;
-3. a core-endpoint snapshot table per cluster (with a chart JSON from `templates/charts/` only when the chart contract below passes, otherwise a concise no-chart reason);
+3. a core-endpoint snapshot table per cluster (with a chart JSON from `templates/charts/` only when the chart contract below passes, otherwise a short finding that names the unmet requirement — never a `不绘图原因` / `无法绘图` label: state what the data cannot support as part of the prose);
 4. a compact trial-context table (one row per trial);
 5. outcome-domain alignment tables (efficacy, safety, PK/PD, PRO — one per reported domain, with explicit information gaps);
 6. dimension-specific judgments (who is favored on each dimension, with strength);

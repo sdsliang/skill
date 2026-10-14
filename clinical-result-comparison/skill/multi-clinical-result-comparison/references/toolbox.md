@@ -246,6 +246,7 @@ finding is printed on stderr** (the same list is in `--audit`'s `errors[]`).
 | `11.1` | ✅ | 子串允许只截取其中一段 |
 | `11.1 vs 9.8` | ❌ | 把 `·` 改写成 `vs`，就不再是子串 |
 | `-5.3`（源文只印 `5.3`） | ❌ | **派生值不属于 `value`**：两臂差值、算出来的变化量写进正文，`value` 只放原文数字 |
+| `Fifty-one`（源文印的是文字数字） | ✅ | `value` 是**源文印出来的那串字符**，不要求是阿拉伯数字：文字数字照抄文字，不要为了凑数字去换一条 quote（`unit` 照样可以写 `例`） |
 
 **提交前自检就是编译本身**，不需要渲染、也不需要临时 ledger 试错：
 `python3 scripts/build_ledger.py --facts work/facts.json --check` 只校验不写文件，逐条报出上面两类问题（exit 3）；默认编译模式跑的是同一套检查。

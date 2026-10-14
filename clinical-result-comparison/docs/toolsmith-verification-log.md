@@ -2926,3 +2926,34 @@ $ toolsmith-publish deps --accept && toolsmith-publish deps
 - 本轮无新平台缺陷。
 
 **完整证据**：[r67-render-idempotency-2026-10-14.md](evidence/r67-render-idempotency-2026-10-14.md)。
+
+---
+
+## R68 — 清掉「我们自己的参考文件教出来的 FAIL 词汇」：改名层修好、词层仍漏（2026-10-14 改 / 原地发布 / 验收同批）
+
+**目标（R67 证据 §6 ①，真跑前写下）**：`references/cross-trial-comparison.md` Step 4 要求 "a dedicated last column for alignment level"，而 host prompt 与 `check_report.py`（`META_COLUMN_RE`/`META_LABEL_RE`/`METHOD_NARRATION_RE`，皆 FAIL）禁 `对齐等级` 列与 `部分对齐` 词 —— `r67-14` 为此仲裁 2.5k 字。
+
+**改动**：`cross-trial-comparison.md` 12,067 → 13,831 B（末列一律 `解读边界`；alignment 分级 = 内部判定 `never printed`；去掉 "no-chart reason"）；`toolbox.md` 30,007 → 30,219 B（文字数字 `Fifty-one` 照抄即合法）；`test-check-report.py` **25 → 27**（`ReferenceSetVsGateTests`，对改前文本命中 4 处）。prompt 未动。
+
+| run | 目录 | wall s | 步 | out tok | `自产物回读/返工` | 断言 |
+|---|---|---:|---:|---:|---:|---|
+| `r68-4` | `20261014-144841` | 306.3 | 20 | 53,438 | 0 | 22P/1F |
+| `r68-18` | `20261014-145353` | 609.4 | 41 | 108,848 | 14.3 | 22P/1F |
+| `r68-14` | `20261014-150409` | 505.5 | 28 | 96,866 | 0.9 | 22P/1F |
+| **均值** | | **473.7** | 29.7 | 86,384 | **5.1** | |
+
+**发布**：prompt v1.8 未变；skill v1.0.9 29/29；`status` **in sync**；dist 184,391 B sha `af36ade72593`；`GATES_FAILED=0`。
+
+**判定：KEEP（改的是真错 + 被测试钉住），但只说对了一半。** ✅ `对齐等级` 仲裁归零（同 14 组 `r67-14` 有、`r68-14` 无）。❌ 同类缺陷换成「单元格里的词」继续存在：`r68-18` 逐字 *"The mixed template's section 4.3 column header 「解读边界」 with values 直接对齐/部分对齐/仅背景相关/未对齐 — those clash with the host prompt's ban on 「部分对齐」"*、*"`处理模式` … that's a self-classification. Risky!"* —— 真凶 = `templates/mixed-comparison-report.md` 第 70 行示例单元格、第 30 行 `处理模式` 列。**不得声称减负**（wall / out tok / 步数三项方向偏坏，均在噪声内）。
+
+### 我方能改的
+
+- **R68-1**：`templates/mixed-comparison-report.md` 第 70 行（`直接对齐/部分对齐/仅背景对齐…` 示例单元格）、第 30 行（`处理模式` 列）—— 换成材料差异示例。R69 首选。
+- **R68-2（纪律）**：静态测试与人工扫描的范围要覆盖**整棵打包树**（`skill/**`），不能只扫 `references/`；R68 就是漏了 `templates/`。
+- **R68-3（判据设计）**：新增「词汇合法性推理量」度量（thinking 里 `banned|FAIL list|check_report.py|self-label|class label|对齐等级|部分对齐|仅背景对齐` 命中次数与字符量）：R67 32.3 次 / 19.7k、R68 23.3 次 / 14.1k，最重的 `r68-18`（41 次 / 24.9k 字符）恰是踩到 templates 那一跑 —— 该量与「参考文件与门禁不一致」直接挂钩，可作 R69 判据。
+
+### 平台侧（转开发）
+
+- **P-R53-1**：六跑（R67 ×3 + R68 ×3）形态一致，唯一 FAIL，与本次改动无关。
+
+**完整证据**：[r68-template-vs-gate-vocabulary-2026-10-14.md](evidence/r68-template-vs-gate-vocabulary-2026-10-14.md)。

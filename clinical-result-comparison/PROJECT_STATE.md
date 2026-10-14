@@ -1,5 +1,28 @@
 # Project State
 
+## R68 — 清掉「我们自己的参考文件教出来的 FAIL 词汇」（**2026-10-14 已原地发布 + web-off 三组；KEEP，但只说对了一半**）
+
+**动机**：R67 证据 §6 ① 指名 —— `r67-14` 花 2.5k 字仲裁我们自己造成的矛盾：`references/cross-trial-comparison.md` Step 4 要求 "a dedicated last column for alignment level"，而 host prompt 与 `check_report.py`（`META_COLUMN_RE` / `META_LABEL_RE` / `METHOD_NARRATION_RE`，三条皆 **FAIL**）禁止 `对齐等级` 列与 `部分对齐` 这类词。
+
+**改动**：`cross-trial-comparison.md`（12,067 → 13,831 B）末列一律 `解读边界`（写材料差异本身：时点/人群/定义/评估/方向），列名 `对齐等级` 明写为交付失败；alignment 分级与 comparability label 标注为**内部判定、never printed**；Required output 第 3 条去掉 "no-chart reason"。`toolbox.md` §4（30,007 → 30,219 B）加「文字数字（`Fifty-one`）照抄即合法」一行。`evals/scripts/test-check-report.py` 新增 `ReferenceSetVsGateTests`（25 → **27** 测，对改前文本命中 4 处 ⇒ 真回归测试）。prompt **未动**、脚本逻辑未动、`deps` unchanged。
+
+**发布**：in-place，prompt v1.8 `999ffe38547a` 未变；skill v1.0.9 内容替换 29/29；`status` → **in sync**；dist **184,391 B sha `af36ade72593`**；`GATES_FAILED=0`（首轮 dist 过期 rc=3 → 重建）。
+
+**真跑**（固定 4/18/14，串行，web off）：
+
+| run | wall s | 步 | out tok | `自产物回读/返工` | 断言 |
+|---|---:|---:|---:|---:|---|
+| r68-4 | **306.3** | 20 | 53,438 | 0 | 22P/1F |
+| r68-18 | **609.4** | 41 | 108,848 | 14.3 | 22P/1F |
+| r68-14 | **505.5** | 28 | 96,866 | 0.9 | 22P/1F |
+| **均值** | 473.7（R67 434.7） | 29.7 | 86,384 | **5.1**（R67 9.4） | 22P/1F × 3 |
+
+**判定 KEEP，但只说对了一半**：✅ 目标矛盾消失（同一个 14 组 `对齐等级` 0 次、无仲裁；`r68-18` 的 3 次只是复述 host prompt 禁令）；✅ 九跑断言恒 22P/1F（唯一 FAIL = 平台 `P-R53-1`）；✅ `自产物回读/返工` 保持 R67 低位。❌ **同一类缺陷仍在，换了位置**：真凶是 **`templates/mixed-comparison-report.md`**（第 70 行示例单元格写着 `直接对齐/部分对齐/仅背景对齐…`，第 30 行有 `处理模式` 列）—— `r68-18` 为 `解读边界` 单元格里能不能写 `部分对齐` 花了 41 次合法性推理 / 24.9k 字符；`r68-14` 也把 `中（部分对齐）` 删掉。**R68 的扫描范围只写了 `references/`，漏了 `templates/`**（纪律教训）。**不得声称 R68 减负**：墙钟 434.7 → 473.7、out tok → 86,384、步数 → 29.7，全在噪声内且方向偏坏。
+
+**R69（未改，首选）**：① 清扫 `templates/*.md` 被门禁拒的词汇（等级词 → 材料差异示例；`处理模式` 列按同一原则处理）；② 静态测试扩到**整棵打包树**（`skill/**/*.md`/`*.json`，对每个模板跑 `check_report.py` 的正则族）。
+
+**证据**：`docs/evidence/r68-template-vs-gate-vocabulary-2026-10-14.md`。
+
 ## R67 — `render-facts.py` 幂等 + 空 `unit` 拼写写进契约（**2026-10-14 已原地发布 + web-off 真跑三组；KEEP，且是首个真移动目标指标的一轮**）
 
 **动机**：R65 三跑把探针从「`·` 怎么写进 `value`」换成渲染器自身语义（`r65n-4` 逐字：*"if it already exists, does it replace it?"* → *"Confirmed: render appends a second appendix (not idempotent)."*）。模型靠实验测出这条**未文档化**语义，并用「把正文抄成 `work/body.md`」绕行，代价记在语义阶段 `自产物回读/返工`：R62 0.8 s → R65n **79.3 s / 14,392 out tok**。
