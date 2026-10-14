@@ -1,6 +1,6 @@
 # AGENTS.md — 常驻 program.md（autoresearch 循环）
 
-## R65 本地就绪（2026-10-14，**改运行期文本 + 脚本 docstring；本地闸门全绿，等发布授权**）
+## R65 完成（2026-10-14，**已原地发布 + web-off 真跑三组；KEEP，提速假设未证实**）
 
 **token 契约唯一化 + 提交前可自查**（目标变量 = 输出 token 量，仍是 R63-0 认定的唯一主导项）。
 
@@ -8,7 +8,11 @@
 - **改了什么（规则一条未删）**：`toolbox.md` §4 27,540 → **28,845**（两条强制条件改成可静态判定 + **实测判定表** ✅`11.1 · 9.8` / ✅`11.1` / ❌`11.1 vs 9.8` / ❌派生 `-5.3` + 点名 `--check` 即自检，明令不写探针草稿）；`build_ledger.py` docstring 29,515 → **30,198**（范例修成自洽 + 派生数字不得进 `value`）；prompt 80,960 → **81,413**；`SKILL.md` 45,485 → **45,909**；`test-skill-scripts.py` 新增 `test_value_must_be_a_verbatim_substring_of_its_quote`（四例成断言）⇒ 62 → **63**。
 - **顺手收掉 R64 留下的文本冲突**：toolbox 调用段新增 **One marker, one meaning** —— 通用 `EXIT=${PIPESTATUS[0]}`，tell-scan 的 `SCAN_EXIT=$?` 同样可读（runner 两者都认），**禁止混写 / 禁止裸 `… | tail -40; echo "EXIT=$?"`**；四处专属写法故意不改。
 - **验收**：本地闸门 `GATES_FAILED=0`（29 / **63** / 10 / 25 / 9 / 16 / 35 / mutations b 12/12 / test-runner 48 / `verify-run-chain GATE: PASS` / 5 / 14 / node 16），`pack-dist --check` **IDENTICAL 182,666 B `fc438d58f02b`**。预登记与不劣化判据见 `docs/evidence/r65-token-contract-2026-10-14.md` §1。
-- **未做**：**未发布**（TS 写动作，等用户一句授权）、**未真跑**。
+- **已发布并真跑**：`publish` in-place → prompt v1.8 `f2d2422e367c` / skill v1.0.9（`16aeb0406e12425bad27a2444f17225e`）29/29，`status` **in sync**。
+- **真跑（web off，与 R63 同条件；带 `--web` 的第一次三跑已作废，重跑为 `r65n-*`）**：wall 均值 546.9 → **459.7 s**、out tok 98,963 → **82,015**、reasoning 71,984 → **54,812**，但**符号逐组翻转**（4 组 −22%、**18 组 +39%**、14 组 −45%）⇒ 与 R63 自身离散（425–689 s）同量级，**不称提速**；步数反升 24.7 → 30.0。断言九跑恒 **22P/1F**（唯一 FAIL = 平台 `P-R53-1`）。
+- **预登记判据结果**：「探针渲染 = 0」**证伪**（2 → 3，集中在 4 组）；`·`/value 契约触发词 **0** 命中（该洞未再触发）；`build_ledger.py --check` 被采用 **2/0/1**（R63 **0/0/0**）。
+- **新事实（下一轮变量）**：`r65n-4` msg55/59 逐字 —— *“if it already exists, does it replace it?” / “Confirmed: render appends a second appendix (not idempotent).”* ⇒ 探针动机从「`·` 怎么写进 value」换成**未文档化的渲染器幂等/空单位语义**；副作用：对真产物反复 render（4/3/1 vs R63 1/1/4），步数 +21% 由此解释。
+- **裁定 KEEP**（与提速无关）：docstring 自相矛盾的范例本身是交付缺陷（原样喂脚本 EXIT=3），修它对错分明；四条判定已被单测钉住；安全面零新增。**提速假设记为未证实**。
 - **计数**：test-skill-scripts 62 → **63** ⇒ 合计口径 **224 → 225**；含 numeric-integrity 为 **253 → 254**。
 
 ## R64 完成（2026-10-14，**runner 层修 O51；无发布、无真跑**）

@@ -1,6 +1,6 @@
 # Project State
 
-## R65 — token 契约唯一化 + 提交前可自查（**2026-10-14 改，本地就绪；等发布授权，未发布、未真跑**）
+## R65 — token 契约唯一化 + 提交前可自查（**2026-10-14 已原地发布并真跑；裁定 KEEP，提速假设未证实**）
 
 **动机（R63-2 观察 + 本轮只读实证）**：R63-2 记下「`r63-14` 有 2 次自造探针草稿渲染 ⇒ 禁令只改试错外形、未除动机」。本轮把动机坐实到**文本层**：
 
@@ -22,7 +22,20 @@
 
 **本地闸门（改后）**：`py_compile` 0 · test-render-facts **29** · test-skill-scripts **63** · test-tell-scan 10 · test-check-report 25 · test-build-ledger-scaffold 9 · test-merge-ref-facts 16 · test_regressions 35 · mutations b 12/12 · test-runner **48** · `verify-run-chain GATE: PASS`（5 可比）· test_pack_dist 5 · test_replay_run 14 · node 16 · `pack-dist --check` **IDENTICAL 182,666 B `fc438d58f02b`** ⇒ `GATES_FAILED=0`（dist 181,638 → 182,666）。
 
-**状态**：改动**只在本地**；发布是 TS 写动作，**已停下等授权**（预登记与判据见 `docs/evidence/r65-token-contract-2026-10-14.md` §1：探针草稿渲染 0 次 / `render-facts: FAILED` 0 次 / `P-R53-1` 仍是唯一 FAIL；对照带 = R63 三跑 526.5 / 425.5 / 688.6 s）。
+**状态**：已原地发布（prompt v1.8 `f2d2422e367c` / skill v1.0.9 29/29，`status` in sync）、已真跑 web-off 三组。
+
+**实测结果（web off，与 R63 同条件；第一次带 `--web` 的组已作废，重跑为 `r65n-*`）**：
+
+| | server s 均值 | 步 | 调用 | out tok | reasoning | 探针渲染 | `--check` |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| R63（4/18/14） | 546.9 | 24.7 | 31.7 | 98,963 | 71,984 | 2 | 0 |
+| **R65n**（4/18/14） | **459.7** | 30.0 | 35.3 | **82,015** | **54,812** | 3 | 3 |
+
+- **逐项**：预登记「探针渲染 = 0」**证伪**（2 → 3；R63 集中在 14 组，R65 集中在 4 组）；`·`/value 契约的触发词三跑 **0** 命中（该洞未再触发）；`build_ledger.py --check` 采用 **2/0/1**（R63 **0/0/0**）；out tok −17% / reasoning −24% / wall −16%，**但符号逐组翻转**（4 组 −22%、**18 组 +39%**、14 组 −45%）—— 与 R63 自身组间离散（425–689 s）同量级，**不称提速**。步数反而 +21%（与 R63-0「盯 token 不盯步数」一致）。九跑断言恒为 **22P/1F**（唯一 FAIL = 平台 `P-R53-1` receipts），零新增形态缺陷。
+- **探针换了洞（最有价值的新事实）**：`r65n-4` msg55/59 逐字 —— *“if it already exists, does it replace it?” / “Confirmed: render appends a second appendix (not idempotent).”* ⇒ 新触发点是**未文档化的渲染器幂等/空单位语义**（非 `·` 契约）。R63-2 的教训复现：**堵一个洞 → 试下一个洞**；新副作用：对真产物反复 render（4/3/1 vs 1/1/4）、额外 `build_ledger`（4/4/2 vs 2/2/3），这解释了步数 +21%。
+- **裁定 KEEP**（与提速无关）：docstring 那个**自相矛盾的范例本身是交付缺陷**（原样喂脚本 EXIT=3），修它对错分明；`--check` 被两跑真采用；四条判定已被单测钉住；安全面零新增。**提速假设记为未证实**，不得写进「已变快」。
+- 证据全文：`docs/evidence/r65-token-contract-2026-10-14.md`（§1 预登记 / §2 三条改前证据 / §6 实测与裁定）。
+- **下一步移位（R67）**：把 `render-facts.py` 的**幂等性与空单位/附录重建语义**写进契约（本次探针的真实动机）—— 这才是 R65 三跑指向的变量。
 
 ## R64 — 文体门禁假 FAIL（runner 层 O51）：跑绿却留一条 `prose gate exited clean` FAIL（**2026-10-14 改，无发布、无真跑**）
 
