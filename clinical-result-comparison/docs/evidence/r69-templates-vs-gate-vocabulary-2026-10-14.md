@@ -9,7 +9,7 @@
 ## 0 预登记（真跑之前写下，2026-10-14）
 
 **主判据（继承 R68-3 的度量，口径本轮固定）**：`r69-18`（R68 里最重的一跑）的**模板词汇合法性推理**必须显著低于 `r68-18`。
-度量口径（脚本 `/tmp/r69/metric.py`，对三类 run 目录的 `messages.json` 中 `type=reasoning` 的 part 做：
+度量口径（脚本 `docs/evidence/r69-metric.py`，对三代 run 目录的 `messages.json` 中 `type=reasoning` 的 part 做：
 `template-vocab = 处理模式|直接对齐|部分对齐|仅背景|未对齐|对齐等级`，`gate-check = check_report.py|FAIL list|banned|self-label|class label`；
 「次」= 命中总数，「字符」= 含命中的整块思考字符数）。**基线按同一口径重算**（R68 文档里的 `24.9k 字符` 用的是更窄的字符口径，不可比，故本轮一律用本口径）：
 
