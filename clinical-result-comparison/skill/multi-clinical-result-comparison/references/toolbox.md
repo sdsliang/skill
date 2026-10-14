@@ -223,7 +223,7 @@ finding is printed on stderr** (the same list is in `--audit`'s `errors[]`).
  "timepoint": "中位", "assessment": "", "kind": "有效性",
  "value": "11.1", "unit": "月", "statistics": "HR 0.44, p<0.0001",
  "source_file": "work/sources/ref_1.txt",
- "quote": "median PFS was 11.1 months (95% CI 9.6\u20139.6) in the ivonescimab plus chemotherapy group"}
+ "quote": "median PFS was 11.1 months (95% CI 9.6\u201312.7) in the ivonescimab plus chemotherapy group"}
 ```
 
 在报告草稿正文里（`[[fact:id]]` 与 `[[result:id]]` 等价）：
@@ -422,6 +422,16 @@ disclosures in one trial → `**试验名**<br>注册号 · N 条披露`; one di
   material properties and the resulting limits — not our method, our categories or our bookkeeping.
   Write the difference itself (timepoint, population, definition, direction) in the reading-boundary
   column, not the class we assigned to it (`部分对齐`, `可绘图`). `check_report.py` fails those.
+* **The template's own column names look like the banned ones — are they safe?** Yes, and you do not
+  need to re-litigate them per run. The test is **meaning, not spelling**: a word that names a
+  *material property* is always legal — `成熟度`, `证据强度`, `判断强度`, `解读边界`, `组内证据关系`,
+  `归属组`, `归组依据`, `可比性` as a limit. Only one thing is banned: phrasing that presents **our own
+  analysis, grading or process** as a deliverable (`分析模式` / `选择依据` / `可比性结论` / `对齐等级` /
+  `不绘图原因` and the class words like `部分对齐`). The banned list in the skill is a set of common
+  shapes, **not a checklist to memorize**; settle uncertainty by running `check_report.py` once, not
+  by re-deriving each word in your head.
+* **Is my aligned-detail column header allowed to end with `（高/中/低可比性）`?** Yes — it states how
+  firm the material comparison is. It is not `可比性结论`; do not rewrite it as a class label.
 * **Did my body survive?** One `check_report.py -v` pass, and the assertions inside `patch.py`. A
   confirmation re-read of your own `output/report.md` is a fallback, not the default; if you need
   it, read one narrow range once.

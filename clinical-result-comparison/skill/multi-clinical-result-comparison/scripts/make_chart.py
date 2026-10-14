@@ -146,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--skeleton-dir", type=Path, default=here.parent / "templates" / "charts")
     parser.add_argument("--sort", choices=("auto", "none", "value-desc", "value-asc", "time-asc"), default="auto")
     parser.add_argument("--strict", action="store_true", help="treat warnings as failures")
-    parser.add_argument("--no-validate", action="store_true", help="skip the upstream validate-cli run")
+    parser.add_argument("--no-validate", action="store_true", help="DEBUG ONLY — skips the upstream validate-cli run; charts produced this way can still be rejected downstream by the report gate")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--json", action="store_true", help="machine-readable summary only")
     args = parser.parse_args(argv)

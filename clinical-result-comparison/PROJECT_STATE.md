@@ -1,5 +1,19 @@
 # Project State
 
+## R70 — 把门禁词汇禁令从「背词表」改成「判语义 + 正向允许清单 + 交脚本判定」（**2026-10-14 本地完成、闸门全绿；等平台写授权后发布 + 真跑**）
+
+**动机（取证，不是拍脑袋）**：先做墙钟归因（21 跑，R62–R69）：`wall ≈ 5.3 ms × out_tok`，**r = 0.925**，残差 ±10%，同输入同代码 out_tok 可差 2 倍 ⇒ 单跑墙钟不可比，纪律已写进 `AGENTS.md` **§8 墙钟口径**。再把「思考里的合法性仲裁」量化（`docs/evidence/r70-metric.py`，按句判「模板词 × 疑问标记」）：9 跑基线 **78 句 / 5,093 字符**（R67 23 / R68 33 / **R69 22**），按词聚合首位是 **`成熟度` 24、`可比性` 24、`不绘图原因` 20、`可比性结论` 16、`判断强度` 8** —— 前几名恰恰是**模板自带、门禁根本不拒**的合法词，其余是**禁令词表的复述**。根因：禁令以「常见形态清单」出现，模型只能逐词推演且不知道清单是否穷尽。
+
+**改动（一个变量：禁令的表述方式）**：`SKILL.md` 硬规则段后新增「**判据是语义，不是词表（据此自检，不要背诵）**」+ **永远合法**的材料属性词清单 + 「拿不准跑一次 `check_report.py`，FAIL 才改、WARN 不是失败」；`references/toolbox.md` 新增 2 条 FAQ（「模板列名看起来像被禁词安全吗」「`（高/中/低可比性）` 列头呢」）；`templates/cross-trial-report.md` 给 `判断强度（高/中/低可比性）`、`templates/mixed-comparison-report.md` 给 `证据成熟度与限制` 各加一句**列名合法性**说明。**卫生项（不参与判据）**：`toolbox.md` 示例 `95% CI 9.6–9.6` → `9.6–12.7`（原笔误会被照抄成无意义 CI）；`make_chart.py --no-validate` 标 **DEBUG ONLY**。被拒词一条不少、`check_report.py` 与断言集**一行未动**。
+
+**双向对照证据**（`importlib` 载入门禁自己的正则）：被禁词在 `- X：…` 与 `| … | X | … |` 形态下**全部**命中 `META_LABEL_RE`/`META_COLUMN_RE`；允许词在**同样形态**下命中 **0**。
+
+**闸门**：`py_compile` OK；`test_regressions` 35；`test-render-facts` OK；`test-check-report` **31**；`test_pack_dist` 5；`test_replay_run` 14；`verify-run-chain` `GATE: PASS`；`mutations` **a 44/44 / b 12/12 / never flipped []**；`node --test` **16/16**；`GATES_FAILED=0`。dist 重打为 **185,734 B / sha `75dbc461f2c6`**（`pack-dist --check` = IDENTICAL）。
+
+**预登记判据**（改前已定，见 `AGENTS.md` R70 预登记）：主判据 ≤ **16 句**；辅判据 `gate-check` ≤ 15.3、`template-vocab` ≤ 1.7；断言维持 **22P/1F**；**不宣称提速**（按 §8 同列 `out_tok`）；回退判据 = 断言集变化 / 新 FAIL 类 / 离线分 < `r69-4` **22/44**。
+
+**待办**：①取得平台写授权 → `pack-dist` → `publish`（原地）→ 回读 29/29 逐字节 + `status` in sync；②固定三组 4/18/14 真跑（串行、web off、输入逐字节复用 `/tmp/r63/p*.txt`）→ 用 `r70-metric.py` 复算主判据、`r69-metric.py` 复算辅判据；③填 `docs/evidence/r70-litigation-vs-gate-vocabulary-2026-10-14.md` §4–§6；④台账 `R70` + TSV 一行；⑤commit & push。
+
 ## R69 — 清扫 `templates/` 里被门禁拒收的词汇 + 静态扫描扩到整棵打包树（**2026-10-14 已原地发布 + web-off 三组；KEEP，但预登记主判据只完成一半**）
 
 **动机**：R68 §5 预登记 —— R68 只修了 `references/` 的**列名层**，**词层**仍埋在 `templates/`：`templates/mixed-comparison-report.md:70` 示例单元格 `直接对齐/部分对齐/仅背景相关/未对齐`、`:30` 的 `处理模式` 列（`r68-18` 为此烧 41 次合法性推理）。R68 的扫描范围漏了 `templates/`。
