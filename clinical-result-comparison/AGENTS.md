@@ -1,5 +1,22 @@
 # AGENTS.md — 常驻 program.md（autoresearch 循环）
 
+## R63 完成（2026-10-14，**已原地发布** + 固定三组实测，**KEEP**）
+
+**失败可见性**：把 R62-1 的根因（fail-closed 脚本静默 + 调用方拿到假退出码）收掉——**只改「失败如何被看见」，规则文本一条未删**。
+
+- **改了什么**：① `scripts/render-facts.py` 36,634 → **37,696 B**：新增 `_report_failure(audit, audit_path)`，失败时把 `render-facts: FAILED — nothing written` + `audit["errors"]` 逐条打到 **stderr**；退出码 `1 → 3`（与其余 7 个打包脚本统一）；② `references/toolbox.md` 26,272 → **27,540 B**、prompt 79,886 → **80,960 B**、`SKILL.md` 44,780 → **45,485 B**：全脚本统一调用形态 `… 2>&1 | tail -30; echo "EXIT=${PIPESTATUS[0]}"`（点名 `$?` 吞码陷阱）+ 新增规则 **「自我对话不算正文」**（禁止把修复旁白/自省片段写进交付文件）；③ `test-render-facts.py` 28 → **29**：新增 `…_announces_itself_on_stderr_and_exits_3`（returncode 3 / stdout 空 / stderr 含 `FAILED`+`unknown fact token` / 输出文件未改写）；④ dist 180,410 → **181,638 B / 29 entries / `39640fd6e679`**。
+- 本地闸门全绿：py_compile 0 / **29** / 62 / 10 / 25 / 9 / 16 / 35 / 45 / 5 / 14 + node 16 + mutations a 44/44 b 12/12 + `verify-run-chain` GATE PASS + `pack-dist --check` **IDENTICAL**。本地真探针：`[[fact:NOPE]]` → **EXIT=3**、stdout 0 B、stderr 223 B。
+- 线上（原地，用户「可以原地发布实测」授权）：prompt **v1.8 `91febc286412479a8b6d569fa3b8025e` / 80,960 B / `e7e84cdbf450`**、skill **v1.0.9 `16aeb0406e12425bad27a2444f17225e` / 181,638 B / 29/29**；`publish` HTTP 200 → 回读 **in sync**（改前 `status` OUT OF SYNC 恰好是这 3 个技能文件，反向证明改动进了包）。
+- 实测（固定三组 4/18/14，输入复用 R48/R50 逐字节、**串行**；`DeepSeek Flash`，web off）：wall **526.5 / 425.5 / 688.6 s**、调用 **35 / 29 / 31**、步 **25 / 26 / 23**、out **97,495 / 75,899 / 123,494**、各 **22 PASS / 1 FAIL**（FAIL = `P-R53-1`）；三跑 `outcome=succeeded`、产物齐全、`args-refused=0`、`fetch-failed=0`。
+- **形态判据全达成**：对照 `r62-14`（`head -n` 7 / `runpy` 4 / `--help` 1）⇒ 三跑 **0/0/0**；`PIPESTATUS` 写法 R62 三跑 0 次 → R63 三跑**每次管道调用都带**（连模型自己的探针调用也带，并正确读到 `EXIT=2`）；**14 组调用 65 → 31**；18 组四项同时破历史下界。
+- **记账（三条，必须与新结论一起读）**：
+  - **R63-0（撤回旧结论）**：同口径 n=39 相关性 ⇒ `r(wall, out tok) = +0.924` > `reasoning +0.862` > `工具调用 +0.735` > `步 +0.702` > `落笔 +0.628` ⇒ **墙钟由输出 token 量驱动，步数只是弱代理**。R62 的「减步数是最大可控项」与 R63 自己的「省 150–200 s」预期**一并撤回**（反证：`r63-14` 调用砍半、690.3 → **688.6 s** 未动）；R62 的证据文档与台账已标注更正。
+  - **R63-1（诚实记账）**：新 stderr 通道三跑**一次都没被触发**（`render-facts: FAILED` 0 次、校验失败字符串 0 次）⇒ 形态改进由三跑实证，**失败通道本身只由单测 + 本地探针证明「装好了」**，不证明真跑省了时间。
+  - **R63-2（新观察，R64 候选 A）**：`r63-14` 出现 4 次 `render-facts` 调用，其中 2 次是**自造探针草稿**（`work/probe.md` 最小样张试渲染）⇒ 禁令只改试错外形、未除动机；下一轮应**让契约可静态自查**，而非再加禁令。
+- **R62-1 事实更正（git 复核）**：原写「我们自己的文档教了吞掉退出码的写法（`toolbox.md` `… 2>&1 | tail -40` + `CHECK_EXIT=$?`）」**为假**——R62 版 `1a2bc04` 中 prompt / `SKILL.md` 的 `| tail` 出现 **0 次**，那两句是模型自创；真实缺口 = 8 个脚本的调用形态在文档里**没有唯一推荐写法**，R63 补的就是这一条。
+- 平台侧无新增：**P-R53-1** 每跑命中；`r63-18` 再命中 1 次 **P-R59-1**。详见 `docs/evidence/r63-failure-legibility-2026-10-14.md`。
+- **计数**：合计口径不变 **221**；`test-render-facts` 28 → **29** ⇒ 含 numeric-integrity 为 **250**。
+
 ## R60 完成（2026-10-13，**已原地发布** + n=2 实测，KEEP）
 
 **运行期文本不再点名已取消挂载的外部文体技能**（用户：「这肯定要改啊……都没有这个 skill 了」）：`SKILL.md:185` 与系统提示词 152 行的「A deployment may also mount `report-humanizer-zh` / `report-humanizer-en`」→ 泛指句「If a deployment happens to mount another style skill, do not apply it here…」（**禁止加载/等待/依赖任何外部文体技能**这条硬指令保留、覆盖面更宽）；`references/prose-style-zh.md` 维护节 3 行去点名（`源自上游 report-humanizer-zh 仓库` → `随本 Skill 发布的自包含副本（基线 v0.1.1）`、`与上游逐字节一致` → `与基线副本逐字节一致`）；仓库级 `vendor/README.md`（**不进包**）留完整溯源 + sha256；顺带修 `tools/pack-dist.py` docstring `27 → 29 entries`。净减：prompt **−38 B**、dist **−23 B**，条目数不变 29。**规则与扫描器契约一字未动**。
@@ -122,6 +139,8 @@
 6. **R41 四组（2/4/18/14 esid）**：22 / 21 / 22 / 22 PASS；唯一 FAIL = 模型 `write_file` 重写 `/workspace/scripts/build_ledger.py` 被平台拒（平台行为正确，见 F1）。
 7. **R42 = Phase A（18/14 esid 的 humanizer 臂）**：21 PASS（同 F1）/ 22 PASS；18 esid 粗体 47→26（−45%）、12-gram 重复率 0.0911→0.0643（−29%）；14 esid 方向相反；**两臂 strong 命中均 0、`{{ref_n}}` 逐条相等（18/18、14/14）**；代价 = 工具尝试 +45~51%、墙钟 +13~17%。**每臂 n=1 → 不宣称可测收益**，默认仍不强制调用 humanizer。
 8. **两条待办（已给证据、未落盘，等用户点头）**：**F1** prompt 第 6 条文件写入纪律只覆盖报告正文 → 扩到「本工作区任何文件」（正文/辅助脚本/图表 JSON）；**F2** 同一观察身份词报告内混用（`每月` 3 次 vs `Q4W` 9 次，源文只有 `monthly`）→ 图表 label 取 `Q4W` 使 `A-S9`/`A-S9b`/`A-S10` FAIL；改法 = ①prompt/SKILL 加「一套写法 + 图表 label 复用正文身份短语」②`scenario-a.facts.json` 该观察 `identity_patterns` 放宽到 `每月|每月一次|QM|Q4W`。
+
+**离线测试计数（2026-10-14，R63 后实测）**：合计口径与 R59 相同 = runner **45** + scorer **35** + tools **19** + Node **16** + `test-skill-scripts.py` **62** + `test-check-report.py` **25** + `test-build-ledger-scaffold.py` **9** + `test-tell-scan.py` **10** = **221**；单列项 `evals/numeric-integrity/test-render-facts.py` **28 → 29**（R63 新增失败通道断言）、`test-merge-ref-facts.py` **16** ⇒ 含 numeric-integrity 为 **250**。
 
 **离线测试计数（2026-10-13，R59 后实测）**：runner **45**、scorer（`test_regressions.py`）**35**、tools **19**（`test_pack_dist.py` 5 + `test_replay_run.py` 14）、Node **16**、`evals/scripts/test-skill-scripts.py` **62**、`evals/scripts/test-check-report.py` **25**、`evals/scripts/test-build-ledger-scaffold.py` **9**、**新增长条 `evals/scripts/test-tell-scan.py` 10**；另有 `evals/numeric-integrity/test-render-facts.py` **28** 与 `evals/scripts/test-merge-ref-facts.py` **16** 单列（历来不计入合计口径）。**R59 合计 = 45 + 35 + 19 + 16 + 62 + 25 + 9 + 10 = 221（含 numeric-integrity 为 249）**；R51 口径为 203 / 231（runner 41、skill-scripts 58）。
 

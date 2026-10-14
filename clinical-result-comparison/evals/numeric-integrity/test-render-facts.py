@@ -161,6 +161,35 @@ class RenderFactsTests(unittest.TestCase):
         self.assertFalse(self.audit_data()["success"])
         self.assertIn("unknown fact token", self.audit_data()["errors"][0])
 
+    def test_cli_failure_announces_itself_on_stderr_and_exits_3(self):
+        # R63: the gate must name its finding. r62-14 spent ~18 tool calls bisecting report.md
+        # with `head -n` because a failing run exited non-zero with empty stdout *and* stderr.
+        self.out.write_text("old report", encoding="utf-8")
+        self.draft.write_text("Unknown [[fact:F999]].", encoding="utf-8")
+        result = subprocess.run(
+            [
+                sys.executable,
+                str(RENDERER_PATH),
+                "--ledger",
+                str(self.ledger),
+                "--draft",
+                str(self.draft),
+                "--out",
+                str(self.out),
+                "--audit",
+                str(self.audit),
+            ],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 3, result.stderr)
+        self.assertEqual(result.stdout, "")
+        self.assertIn("FAILED", result.stderr)
+        self.assertIn("unknown fact token", result.stderr)
+        self.assertEqual(self.out.read_text(encoding="utf-8"), "old report")
+        self.assertFalse(self.audit_data()["success"])
+        self.assertIn("unknown fact token", self.audit_data()["errors"][0])
+
     def test_unknown_draft_citation_blocks(self):
         self.assertFalse(self.run_render("Citation {{ref_99}}."))
         self.assertIn("unknown citation", self.audit_data()["errors"][0])

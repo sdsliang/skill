@@ -26,6 +26,23 @@ before the script has run — costs more output tokens than this whole mechanica
 cannot come out right: the scripts own those rules. Write the artifact, run the script once, act
 on the `FAIL`s. A `WARN` you never act on is a normal, finished run.
 
+**Invoke them so a failure is readable.** Every script prints the reason for a non-zero exit on
+**stderr** (and writes the same findings into its JSON where it writes one). Run them as:
+
+```
+python3 -B /workspace/skills/multi-clinical-result-comparison/scripts/<name>.py … 2>&1 | tail -30; echo "EXIT=${PIPESTATUS[0]}"
+```
+
+* A pipeline reports the **last** command's status, so `… | tail -40; echo "EXIT=$?"` prints
+  `tail`'s `0` even when the script failed — never write that form: it hides the failure behind a
+  green exit code.
+* On a non-zero exit, read the printed message and fix **the input it names** — for
+  `render-facts.py` that is a token id the ledger does not define, or a ledger field (`errors[]`
+  in `--audit` carries the same list). Do **not** bisect the file with `head -n`, do **not**
+  re-derive a traceback with `runpy`, do **not** go fishing with `--help`: the reason is already
+  on stderr and each probe costs a full round-trip. Measured: one end-to-end silent failure cost
+  **18 tool calls — 28% of that run's steps** (R62-1).
+
 | Step | Script | Writes |
 | --- | --- | --- |
 | Pull → readable sources + ref inventory | `scripts/prep_sources.py` | `work/sources/ref_<n>.txt`, `work/refs.json` |
@@ -179,7 +196,9 @@ python3 scripts/render-facts.py --ledger work/ledger.json --draft /workspace/out
 `[[fact:id]]` / `[[result:id]]` token, appends the evidence-alignment appendix and replaces the
 file atomically. So the body is written **once**, in the canonical form, and rendered in place —
 there is no separate `work/draft.md` stage and no second copy. Exit `3` on a schema/validation
-failure (unknown token id, missing field) with nothing written.
+failure (unknown token id, missing field, a `value` absent from its `quote`, a `{{ref_n}}` that
+resolves to nothing) with nothing written: the file is left exactly as it was, and **every
+finding is printed on stderr** (the same list is in `--audit`'s `errors[]`).
 
 **Token 语法（直接照抄；不要用 `--help` 或构造临时 ledger 试错探索语法）：**
 

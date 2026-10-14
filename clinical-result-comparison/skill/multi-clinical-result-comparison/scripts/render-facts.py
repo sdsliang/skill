@@ -817,8 +817,28 @@ def render(ledger_path: Path, draft_path: Path, out_path: Path, audit_path: Path
         _atomic_write(audit_path, json.dumps(audit, ensure_ascii=False, indent=2) + "\n")
     except OSError as exc:
         print(f"cannot write audit {audit_path}: {exc}", file=sys.stderr)
+        _report_failure(audit, audit_path)
         return False
+    if not audit["success"]:
+        _report_failure(audit, audit_path)
     return bool(audit["success"])
+
+
+def _report_failure(audit: dict[str, Any], audit_path: Path) -> None:
+    """A fail-closed gate must say why: put every finding on stderr before exiting non-zero.
+
+    R63: exiting non-zero with empty stdout *and* stderr made one unknown token id cost 18 tool
+    calls, because the only copy of the reason was inside the audit JSON.
+    """
+    findings = [str(item) for item in (audit.get("errors") or ["unknown failure"])]
+    print("render-facts: FAILED — nothing written", file=sys.stderr)
+    for finding in findings:
+        print(f"render-facts:   {finding}", file=sys.stderr)
+    print(
+        f"render-facts: {len(findings)} finding(s) — fix the named input and re-run; "
+        f"full detail in {audit_path}",
+        file=sys.stderr,
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -832,7 +852,9 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    return 0 if render(args.ledger, args.draft, args.out, args.audit) else 1
+    # Exit 3 = FAIL / nothing written, the same contract every other packaged script follows
+    # (see references/toolbox.md). It used to return 1, which was a third, undocumented code.
+    return 0 if render(args.ledger, args.draft, args.out, args.audit) else 3
 
 
 if __name__ == "__main__":

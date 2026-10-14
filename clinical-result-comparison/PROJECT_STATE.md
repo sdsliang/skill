@@ -1,11 +1,71 @@
 # Project State
 
+## R63 — 失败可见性：fail-closed 脚本必须说出原因、调用方必须拿到真退出码（**2026-10-14 改 / 原地发布 / 固定三组验收**）
+
+**动机**：R62-1 实测「一次校验失败 → 18 次调用 / 28% 步数」，根因指向 fail-closed 脚本静默 + 调用方拿到假退出码。用户指示「测试吧，可以原地发布实测」。**本轮只改「失败如何被看见」，规则文本一条未删。**
+
+**改动（字节账）**：
+
+| 文件 | 改前 | 改后 | Δ | 内容 |
+|---|---:|---:|---:|---|
+| `scripts/render-facts.py` | 36,634 | **37,696** | +1,062 | 新增 `_report_failure(audit, audit_path)`：失败时把 `render-facts: FAILED — nothing written` + `audit["errors"]` 逐条打到 **stderr**；`main` 退出码 **1 → 3**（与其余 7 个打包脚本统一） |
+| `references/toolbox.md` | 26,272 | **27,540** | +1,268 | 新增「Invoke them so a failure is readable」：`… 2>&1 \| tail -30; echo "EXIT=${PIPESTATUS[0]}"`、`$?` 吞码陷阱、非 0 先读脚本自称的输入、写明实测代价 18 次调用 / 28% 步数 |
+| prompt（v1.8） | 79,886 | **80,960** | +1,074 | 全脚本统一调用形态；render-facts「fails closed（exit 3）+ 每条 finding 到 stderr」；**新规则「自我对话不算正文」** |
+| `SKILL.md` | 44,780 | **45,485** | +705 | 同调用形态 + 同一自我对话禁令 |
+| `evals/…/test-render-facts.py` | 28 测试 | **29 测试** | +1 | `…_announces_itself_on_stderr_and_exits_3`：returncode 3 / stdout 空 / stderr 含 `FAILED`+`unknown fact token` / 输出文件未改写 |
+| `dist/…-v0.16.zip` | 180,410 / `f5e32baa1c33` | **181,638 / `39640fd6e679`** | +1,228 | 29 entries，重打后 `--check` IDENTICAL |
+
+**本地闸门全绿**：`py_compile` rc=0；`test-render-facts` **29** / `test-skill-scripts` 62 / `test-tell-scan` 10 / `test-check-report` 25 / `test-build-ledger-scaffold` 9 / `test-merge-ref-facts` 16 / `test_regressions` 35 / mutations arm a **44/44** + arm b **12/12** / `test-runner` 45 / `verify-run-chain` GATE PASS / `test_pack_dist` 5 / `test_replay_run` 14 / `node --test` 16。**本地真探针**：`[[fact:NOPE]]` → `EXIT=3`、stdout 0 B、stderr 223 B（含 `facts[0].source_file does not exist`）。
+
+**发布**：改前 `status` OUT OF SYNC（正好这 3 个技能文件）→ `publish` HTTP 200 → `status` 回读 **in sync**（prompt **v1.8** `91febc286412479a8b6d569fa3b8025e` / 80,960 B / sha **`e7e84cdbf450`**；skill **v1.0.9** `16aeb0406e12425bad27a2444f17225e` / 181,638 B / 29/29 一致；project `a7cdda6508e0423c8b7afaaf3a68e50d`）。
+
+**真跑（固定三组，输入复用 R48/R50 逐字节、串行；`DeepSeek Flash`，web off）**：
+
+| run | 目录 / thread | refs | wall s | 步 | 调用 | out tok | reasoning | PIPESTATUS | 形态探测 | 断言 |
+|---|---|---|---:|---:|---:|---:|---:|---:|---|---|
+| `r63-4` | `20261014-110640-r63-4` / `d2ac2bbc-19ef-46f3-90b4-7e849c05d35d` | 4 | 526.5 | 25 | 35 | 97,495 | 78,312 | 6 | 0/0/0 | 22 PASS / 1 FAIL |
+| `r63-18` | `20261014-111536-r63-18` / `aba2e0c2-2d2b-4e34-850e-6fce519094b7` | 18 | 425.5 | 26 | 29 | 75,899 | 47,709 | 7 | 0/0/0 | 22 PASS / 1 FAIL |
+| `r63-14` | `20261014-112254-r63-14` / `9ada5cde-3295-4750-9623-32dd8dc572f1` | 14 | 688.6 | 23 | 31 | 123,494 | 89,932 | 8 | 0/0/0 | 22 PASS / 1 FAIL |
+
+三跑 `outcome=succeeded`、产物齐全、`args-refused=0`、`fetch-failed=0`、无 `tool-output-error`；**唯一 FAIL 三跑同一个 = 已知平台项 `P-R53-1`**（`r63-18` 另出现一次 `P-R59-1` 形态重试）。
+
+**判据达成（形态类）**：对照 `r62-14`（`head -n` 7 / `runpy` 4 / `--help` 1）⇒ R63 三跑**全 0**；`PIPESTATUS` 写法 R62 三跑 0 次 → R63 三跑**每次管道调用都带**（连模型自己的探针调用也带，并正确读到 `EXIT=2`）。⇒「拿到假退出码」的机制已关闭。
+
+**同输入历史带（R48 起，n=39，同一口径复算）与落点**：
+
+| 量 | 4 组（n=25） | 18 组（n=4） | 14 组（n=4） | R63 实测 |
+|---|---|---|---|---|
+| 工具调用 | 23–69 中位 32 | 36–59 中位 46 | 28–66 中位 34 | 35 / **29（破下界）** / **31（≈中位）** |
+| 步 | 19–64 中位 26 | 32–50 中位 40 | 23–63 中位 31 | 25 / **26** / **23** |
+| out tok | 52.6k–112.6k 中位 70.2k | 85.7k–118.9k 中位 104.7k | 69.3k–113.4k 中位 87.6k | 97.5k / **75.9k（破下界）** / **123.5k（破上界）** |
+| wall s | 252–683 中位 405 | 465–617 中位 536 | 310–708 中位 506 | 526.5 / **425.5** / 688.6（全部带内） |
+
+⇒ 14 组调用 **65 → 31**（R62-1 形态未复现），18 组四项同时破历史下界；**但墙钟三组均在带内，本轮无可声明的提速**。
+
+**判定：KEEP（不劣化）** —— 形态判据全达成且可归因；三组断言/产物/参数/抓取零退化；调用与步数均在历史带内；规则文本一条未删。
+
+### R63-0（**本轮最重要的账目更正**）：撤回「减步数是最大可控项」
+
+同口径 n=39 相关系数：`r(wall, out tok) = +0.924` > `r(wall, reasoning) = +0.862` > `r(wall, 工具调用) = +0.735` > `r(wall, 步) = +0.702` > `r(wall, 落笔 tok) = +0.628` ⇒ **墙钟由输出 token 量驱动，步数只是弱代理**（每步固定开销 1.6–3.2 s 真实但量级小）。反证：`r63-14` 调用砍半、墙钟 690.3 → **688.6 s** 未动（同跑 out 94.5k → 123.5k）。R62 的「减步数是最大可控项」与 R63 自己的「省 150–200 s」**一并撤回**；`docs/evidence/r62-weight-cut-2026-10-13.md` 与台账 R62 节已标注更正。
+
+### R63-1（诚实记账）：新 stderr 通道三跑**一次都没触发**
+
+`render-facts: FAILED` 出现 0 次；`unknown fact token` / `unresolved fact` / `not an exact source substring` 等校验失败字符串 0 次（对照 `r62-14` = 1）。⇒ 本轮证据结构：**形态改进由三跑实证；失败通道本身只由新增单测 + 本地真探针证明「装好了」，不证明「在真跑里省了时间」**（预防生效与通道未触发在 n=1 上不可区分）。
+
+### R63-2（新观察，R64 候选 A）：模型仍在试错，只是换了壳
+
+`r63-14` 出现 **4 次** `render-facts.py` 调用（其余五跑各 1 次）：其中 2 次为**自造探针草稿**（写 `work/probe.md` 最小样张 → `--out work/probe_out.md` 试渲染；首次漏带 `--audit`，正确收到 `EXIT=2`），另有 1 次去读 `make_chart.py` 源码。⇒ prompt 禁的是「临时 ledger 试错」，模型改为「临时 **draft** 试错」——**禁令只改外形，没消除动机**。修法方向 = **让契约可静态自查**，而不是继续加禁令。
+
+### R62-1 事实更正（git 复核）
+
+原写「我们自己的文档教了吞掉退出码的写法（`toolbox.md` 第 276 行 `check_report.py -v 2>&1 | tail -40` + `echo "CHECK_EXIT=$?"`）」**为假**：R62 发布版 `1a2bc04` 中 prompt / `SKILL.md` 的 `| tail` 出现 **0 次**，`toolbox.md` 唯一相关样板是**正确**的无管道写法 `tell-scan.py …; echo "SCAN_EXIT=$?"`。⇒ `… | tail -40; echo "EXIT=$?"` 与 `CHECK_EXIT` **均为模型自创**。真实缺口 = **打包脚本的调用形态在文档里没有唯一推荐写法**（8 个脚本各写各的），模型只能自行发明且无对照物——这正是 R63 补的。
+
 ## R62 — 减重第一轮：冷区散文收紧 + 编号缺陷修复（2026-10-13 改 / **2026-10-14 原地发布 + 固定三组验收**）
 
 **起因**：用户「减法减法」——「这个 skill 太重了、速度很慢」。先做**只读体检**，再改。
 
 **体检结论（三次真跑口径，数字与命令见 `docs/evidence/r62-weight-cut-2026-10-13.md`）**：
-1. **两本账要分开**：我们的 skill 只占上下文 **16%**（20,347 tok；平台工具 schema 85,995 tok = 69%，cache 命中 97.4%），而墙钟 **91–93% 是生成**、其中 **65–71% 是思考** ⇒ **减字节 ≠ 提速**；**减步数才省时间**（同输入 19 步 / 251.7 s vs 29 步 / 354.5 s）。
+1. **两本账要分开**：我们的 skill 只占上下文 **16%**（20,347 tok；平台工具 schema 85,995 tok = 69%，cache 命中 97.4%），而墙钟 **91–93% 是生成**、其中 **65–71% 是思考** ⇒ **减字节 ≠ 提速**；同输入 19 步 / 251.7 s vs 29 步 / 354.5 s 说明步数有影响（**惟该因果已于 R63 更正为「弱代理」，见 R63-0**）。
 2. **真正的缺陷是「权重↔热度错位」**：prompt 把 21% 的字节花在 `## Subagent delegation`（7,838 字符）与 `## Step discipline`（9,050 字符），而这两处**思考命中率 0.00–0.01/千字**（被遵守、不被推敲）。
 3. **因此不能「哪里长就删哪里」**：这两节不是措辞冗余而是**防错契约**，而 `check_report.py` / `tell-scan.py` 都是 **fail-closed**——删散文 = 把「预防」换成「下游发现 + 返工」，**反而更慢**。
 
@@ -43,24 +103,30 @@
 
 > **新增量化证据**（此前只在 4 esid 上估过每步 ≈2 s）：**每步固定开销 1.61 / 2.58 / 3.16 s，占墙钟 11% / 21% / 30%** ⇒ 步数是时间的乘数；14 组 65 步里约 **18 步（28%）是一次故障排查**，这也是「很慢」的尾巴来源。
 
+> **2026-10-14（R63-0）更正**：原文此处续写「减步数是最大可控项」，**已撤回**——同口径 n=39 相关性显示墙钟由**输出 token 量**驱动（`r=+0.924`），步数仅 `+0.702`。见上方 R63-0。
+
 ### R62-1（**我方能改，本轮最大单点浪费**）：`render-facts.py` fail-closed 但**静默**，把一次校验失败放大成 18 次调用
 
 **现象（`r62-14`，全 65 次调用中的第 33–50 号）**：模型把一段自我修复旁白写进了交付正文（`output/report.md` 第 95–97 行：`Hmm, I wrote "[[fact:j5]] 剂量组中出现 5 起轻度注射部位事件，见于 [[fact:j8p]]" — that's wrong: j5 is Cmax 667 ng/mL, and j8p doesn't exist. Let me fix that row…`），其中 `[[fact:j8p]]` 是**不存在的 fact id** ⇒ `render-facts.py` 校验失败（exit 1）。随后模型：`render-facts.py` 只在第 29/32 步拿到 `RENDER_EXIT=1`、**看不到任何原因**，于是改用 `head -n N` **二分报告**（7 次）、`--help`（1 次）、`runpy`+`traceback`（2 次）逐段试渲染，最后靠「n≤94 通过 / n≥96 失败」定位到那几行，`patch.py` 删掉 1 行即恢复（第 53 步 `RENDER_EXIT=0`）。**共 ~18 次调用 / 28% 步数**。
 
 **根因（已复现，两个缺陷叠加）**：
 1. **脚本静默**：`render-facts.py` 把失败原因只写进 `audit["errors"]`（第 812/814 行），`main` 直接 `return 1`（第 835 行）⇒ **stdout 0 字节 / stderr 0 字节**。复现：`--draft` 含 `[[fact:NOPE]]` → `EXIT=1`、两流皆空。**8 个打包脚本里只有它这样**（stderr 输出数：`make_chart` 16 / `make_citations` 15 / `build_ledger` 13 / `patch` 10 / `prep_sources` 7 / `check_report` 2 / `tell-scan` 1）——最 fail-closed 的那个恰好唯一不报错。
-2. **我们自己的文档教了吞掉退出码的写法**：prompt / SKILL.md / toolbox.md 中 `2>&1` 出现 **0 次**；`references/toolbox.md` 第 276 行给的样板是 `check_report.py -v 2>&1 | tail -40` 后接 `echo "CHECK_EXIT=$?"` ⇒ `$?` 取到的是 **`tail` 的 0**（实测该跑 `CHECK_EXIT=0`，而同一份输出里明明有两行 `FAIL:`，其中一行直指 `unresolved fact/result token(s)`）。模型**当时已经拿到诊断**，只是被假退出码掩盖。
+2. **（2026-10-14 更正）文档缺的不是「正确样板」，而是「没有任何被推荐的调用形态」**：原写「我们自己的文档教了吞掉退出码的写法：`references/toolbox.md` 第 276 行给的样板是 `check_report.py -v 2>&1 | tail -40` 后接 `echo "CHECK_EXIT=$?"`」**为假**（详见上方「R62-1 事实更正」）：R62 发布版中 `| tail` 出现 **0 次**，`toolbox.md` 唯一相关样板是**正确**的 `tell-scan.py …; echo "SCAN_EXIT=$?"`。⇒ **`| tail -40; echo "EXIT=$?"` 是模型自创的**。实测该跑 `CHECK_EXIT=0`，而同一份输出里明明有两行 `FAIL:`（一行直指 `unresolved fact/result token(s)`）⇒ **模型当时已经拿到诊断，只是被自己写出的假退出码掩盖**。
 
 **改法（并入 R63，均在我方层）**：① `render-facts.py` 返回 1 前把 `audit["errors"]` 逐行打到 **stderr**；`test-render-facts.py` 加断言「未知 token → exit 1 且 stderr 非空」；② toolbox 样板改成 `2>&1 | tail -20; echo "EXIT=${PIPESTATUS[0]}"`（不吞真退出码），并在 prompt/SKILL 写明「打包脚本非 0 退出：先读 stderr / `work/audit.json` 的 `errors[]`，**禁止**用 `head -n` 二分输入、`--help` 钓鱼、`runpy` 取 traceback」；③ 交付物禁自我旁白（触发源）。**预期：18 次调用 → 1–2 次，按本轮 3.16 s/步计省 150–200 s（≈该跑 22–30%）**。
 
-### R63（下一轮单一假设）：**修 `render-facts.py` 静默失败 + 打包脚本调用的报错通道**（本轮实测最大单点浪费）
+### R63（**已执行，见文首 R63 节**）：修 `render-facts.py` 静默失败 + 打包脚本调用的报错通道
 
-以 R62-1 为主：单一假设 =「fail-closed 脚本必须把原因打到 stderr；调用方必须拿到真退出码」⇒ 断言 = 固定三组里**不再出现**二分/`runpy` 形态，且该组步数回落。这是**我们自己的脚本缺陷**（不是平台），有单测、可复现、不动任何规则文本。
+单一假设 =「fail-closed 脚本必须把原因打到 stderr；调用方必须拿到真退出码」⇒ 断言 = 固定三组里**不再出现**二分/`runpy` 形态，且该组步数回落。**结果：形态判据全达成（三跑 0/0/0，PIPESTATUS 全面采用）；14 组调用 65 → 31 但墙钟未动；「省 150–200 s」预期撤回（时间由 token 量驱动，R63-0）。**
 
-### R64 候选（**暂缓**，本轮不排）：惰性段条件化，而不是删规则
+### R64 候选 A（**首选**）：让提交前的契约可静态自查（而非继续加禁令）
+
+R63-2 的观察显示：模型禁了「临时 ledger 试错」就改成「临时 **draft** 试错」——**禁令只改外形**。同时 R63-0 说明要提速必须打 **token 量**（尤其推理量 89,932 tok 占 `r63-14` 的 73%）。因此 R64 首选方向 = **唯一化 + 可自查的 token 契约**：现在「什么样的正文会被 `render-facts` 接受」散落在 prompt / `SKILL.md` / `toolbox.md` 三处，模型因此不确定才去试渲染。目标：消掉那 2 次探针草稿与偏高的推理量。判据必须先写（可能只是降 token 而步数不动）。
+
+### R64 候选 B（**次选，已降级**）：惰性段条件化，而不是删规则
 
 - 唯一「大块且可减」的是**条件成立才有意义**的内容：prompt `## Subagent delegation` 细则（5,067 B，仅当 `task` 可见且 >5 esids；三次跑均未触发委托——**18 esid 组实测也没委托**，直接一次拉取）→ 留 6 行摘要 + 「首次 `task` 前先读 `references/subagent-delegation.md`」；`## Mixed or different-trial inputs`（1,035 B，仅跨试验）同理。**预期 −4.3 KB**。
-- **判据（先写下，避免踩同一坑）**：条件引用会被跳过（`same-trial-evolution.md` 三轮 0 读是活证），所以**只条件化「跳过代价 = 行为退化但不静默出错」的程序性内容**，**不条件化「跳过代价 = 交付错」的结论性规则**。
+- **判据（先写下，避免踩同一坑）**：条件引用会被跳过（`same-trial-evolution.md` 三轮 0 读是活证），所以**只条件化「跳过代价 = 行为退化但不静默出错」的程序性内容**，**不条件化「跳过代价 = 交付错」的结论性规则**。**（2026-10-14 按 R63-0 降级为备选：它只作用于「每步固定开销」这一小项，预期收益下调。）**
 - **明确不做**：① 把 `## Final verification` 的机械项（~3.5 K）改成「跑 `check_report.py`」——fail-closed 下这是把预防换成返工；② 折叠 prompt 与 SKILL.md 的 `## Report prose style`（~5 K）——清单是查表、散文是预防；③ 折叠 SKILL.md `## Workflow`（23,661）与 prompt `## Numeric Integrity`（9,121）——实测**精确重复仅 1 段（~1.3 K）**，其余是同一契约的两种措辞、两层视图。
 
 ## R61 — 语义阶段耗时实测（**测量轮：未改任何 skill、未发布**）（2026-10-13，n=2 新跑 + R60 对照）
