@@ -4,6 +4,12 @@
 The renderer deliberately treats the ledger as a provenance contract: it checks
 that every value is present in its cited source quote, but it does not infer or
 validate clinical meaning.
+
+Rendering is **idempotent**: the appendix it appends is the trailing section of
+its own output, so feeding a rendered file back in (`--draft out.md --out out.md`)
+replaces that appendix instead of appending a second one. Re-rendering in place is
+therefore safe, and there is no reason to copy the body aside to re-render it.
+An empty `unit` renders as nothing after the value (`5.3`, never `5.3 `).
 """
 
 from __future__ import annotations
@@ -743,6 +749,27 @@ def _atomic_write(path: Path, content: str) -> None:
         raise
 
 
+def _strip_rendered_appendix(draft: str) -> tuple[str, bool]:
+    """Drop the appendix a previous render appended, so re-rendering is idempotent.
+
+    R67: the appendix is the trailing `## ` section of this renderer's own output; appending it
+    again produced two appendices when a rendered report was re-rendered in place. A live run
+    discovered this empirically ("does it append ANOTHER appendix? Hmm! Danger" -> "Confirmed:
+    render appends a second appendix (not idempotent)"), then defended against it by copying the
+    body aside — 79 s of its own read-back. A draft whose appendix title is *not* the trailing
+    section is left untouched: that is body content, not our output.
+    """
+    lines = draft.splitlines()
+    hits = [index for index, line in enumerate(lines) if line.rstrip() == APPENDIX_TITLE]
+    if not hits:
+        return draft, False
+    index = hits[-1]
+    if any(line.startswith("## ") for line in lines[index + 1 :]):
+        return draft, False
+    body = "\n".join(lines[:index]).rstrip()
+    return (body + "\n" if body else ""), True
+
+
 def render(ledger_path: Path, draft_path: Path, out_path: Path, audit_path: Path) -> bool:
     audit: dict[str, Any] = {
         "success": False,
@@ -763,6 +790,7 @@ def render(ledger_path: Path, draft_path: Path, out_path: Path, audit_path: Path
             draft = draft_path.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError) as exc:
             raise ValidationError(f"cannot read UTF-8 draft {draft_path}: {exc}") from exc
+        draft, appendix_stripped = _strip_rendered_appendix(draft)
 
         refs = {record["ref"] for record in records}
         facts_by_id = {fact["id"]: fact for fact in facts}
@@ -801,6 +829,7 @@ def render(ledger_path: Path, draft_path: Path, out_path: Path, audit_path: Path
                     if cell.strip() not in ("", EMPTY_CELL)
                 ),
                 "fact_tokens_rendered": len(FACT_TOKEN_RE.findall(draft)),
+                "idempotent_rerender": appendix_stripped,
                 "handwritten_number_literals_for_review": len(NUMBER_RE.findall(draft)),
                 "semantic_safety_claim": "none",
             }

@@ -204,6 +204,15 @@ failure (unknown token id, missing field, a `value` absent from its `quote`, a `
 resolves to nothing) with nothing written: the file is left exactly as it was, and **every
 finding is printed on stderr** (the same list is in `--audit`'s `errors[]`).
 
+**渲染是幂等的：就地重渲染安全，同一个输入恒得同一个输出、只保留一个附录。**
+附录是这个渲染器自己输出在文末的那一节，重渲染会**替换**它而不是再追加一份（audit 里
+`idempotent_rerender: true` 就是这条路径）。因此**不需要**为了重渲染把正文抄到
+`work/body.md` / 别的副本、**不需要**读回已渲染的产物去核对附录有没有多一份 ——
+要对齐格式改完 `work/facts.json` 后直接重跑上面那条命令即可。两条已实测的格式事实：
+
+- `unit` 为空时值后面**不留空格、不留占位符**：`"5.3" + ""` 渲染成 `5.3`，不要自己补 `—` 或不换行空格
+- 附录列/行的排列完全由 ledger 推导（`appendix_layout`、`appendix_columns`、`appendix_rows`、`appendix_cells_filled` 都在 `--audit` 里），不要手工编辑附录
+
 **Token 语法（直接照抄；不要用 `--help` 或构造临时 ledger 试错探索语法）：**
 
 `work/facts.json` 就是上面那个形状（`records` / `facts` 两个数组），通过 `build_ledger.py` 编译生成 `work/ledger.json`，再用以下 token 语法引用：

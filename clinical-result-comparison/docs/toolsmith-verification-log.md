@@ -2888,3 +2888,41 @@ $ toolsmith-publish deps --accept && toolsmith-publish deps
 - 本轮无新平台缺陷。
 
 **完整证据**：[r65-token-contract-2026-10-14.md](evidence/r65-token-contract-2026-10-14.md)。
+
+---
+
+## R67 — `render-facts.py` 幂等 + 空 `unit` 拼写写进契约：**原地发布** + web-off 固定三组验收（2026-10-14 改 / 发布 / 验收同批）
+
+**目标（R65 台账 R65-1 指名）**：干掉「重渲染会不会多追加一个附录」这条未文档化语义 —— `r65n-4` 逐字 *"if it already exists, does it replace it?"* → *"Confirmed: render appends a second appendix (not idempotent)."*，代价 = 语义阶段 `自产物回读/返工` **79.3 s / 14,392 out tok**（R62 同组 0.8 s）。
+
+**改动**：`render-facts.py` 新增 `_strip_rendered_appendix()`（`APPENDIX_TITLE` 是草稿最后一节时先剥掉再渲染 ⇒ 就地重渲染幂等）+ `--audit.idempotent_rerender` + docstring 幂等/空 `unit` 事实；`toolbox.md` §4 幂等段（不需要写 `work/body.md`、不需要读回产物查附录）；prompt 规则 6 一句；`SKILL.md` 半句；`test-render-facts.py` +3 测（**29 → 32**）。
+
+| run | 目录 | esid | wall s | 步 | render 调用 | build_ledger | out tok | `自产物回读/返工` | 断言 |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---|
+| `r63-4` | `20261014-110640` | 4 | 525.7 | 25 | 1 | 2 | 97,495 | 0.8 | 22P/1F |
+| `r63-18` | `20261014-111536` | 18 | 410.3 | 26 | 1 | 2 | 75,899 | — | 22P/1F |
+| `r63-14` | `20261014-112254` | 14 | 679.8 | 23 | 4 | 3 | 123,494 | — | 22P/1F |
+| `r65n-4` | `20261014-133853` | 4 | 409.7 | 34 | 4 | 4 | 65,077 | **79.3** | 22P/1F |
+| `r65n-18` | `20261014-134600` | 18 | 593.2 | 36 | 3 | 4 | 112,538 | — | 22P/1F |
+| `r65n-14` | `20261014-135656` | 14 | 376.1 | 20 | 1 | 2 | 68,430 | — | 22P/1F |
+| **`r67-4`** | `20261014-141210` | 4 | **331.7** | 22 | **1** | 2 | 63,120 | **0** | 22P/1F |
+| **`r67-18`** | `20261014-141754` | 18 | **392.2** | 27 | **1** | 2 | 77,884 | **19.4** | 22P/1F |
+| **`r67-14`** | `20261014-142437` | 14 | **580.2** | 32 | **1** | 2 | 107,002 | **8.8** | 22P/1F |
+| **R67 均值** | | | **434.7** | 27.0 | **1** | **2** | 82,669 | **9.4** | |
+
+**发布**：in-place，prompt v1.8 `999ffe38547a`（81,687 B）/ skill v1.0.9 `16aeb0406e12425bad27a2444f17225e`（29/29 `differing=0`）；`deps` unchanged；`status` → **in sync**；dist 183,824 B sha `c98916b3cc26`；`GATES_FAILED=0`。
+
+**判定：KEEP —— 迭代史上第一次目标指标真移动。** 预登记三条判据（真跑前写在 R65 台账 R65-1 与证据 §6.3）全部成立：`自产物回读/返工` 79.3 → 9.4 s（**−88%**）；`second/another appendix` 3 → **0**；`body.md` 绕行 4 → **0**；render 调用 4/3/1 → **1/1/1**。不劣化：断言九跑恒 22P/1F（唯一 FAIL = 平台 `P-R53-1`）、产物齐全、`build_ledger` 回基线。墙钟均值三代最低（434.7 vs 459.7 / 546.9），但**不据此声称提速**（R63-0：单组噪声 ±30%）。
+
+### 我方能改的
+
+- **R67-1（R68 首选，包内自相矛盾）**：`references/cross-trial-comparison.md` 的模板带 `对齐等级` 列（Step 4 要求），而 host prompt 与 `check_report.py` **禁止**该列名。`r67-14` 为此花 **2.5k 字**推理：*"the cross-trial template has a column '对齐等级' in the reference … but the host prompt says: no self-labelling … check_report.py fails on `对齐等级` as a table column. So the template's `对齐等级` column must be replaced by the `解读边界` column"*。⇒ **我们自己的参考模板教了一个会被自己门禁判 FAIL 的列**（与 R65 docstring 自相矛盾同类），下一轮修模板。
+- **R67-2**：`value` 允许是**印出来的文字数字**（`Fifty-one`），包内从未写明。`r67-14` 逐字：*"value 'Fifty-one' unit '例'? Ugly. Better: change quote to one with digits."* ⇒ `toolbox.md` §4 判定表补一行。
+- **R67-3（判据设计，正向）**：本轮判据用**语义阶段 + 思考词频**（而非文件名），完全被触发（R65-3 的教训生效）。
+
+### 平台侧（转开发）
+
+- **P-R53-1（已知，九跑形态一致）**：`tool_results receipts archived`（`/workspace/tool_results/…/result.jsonl: unsafe or unsupported receipt path`）—— R67 三跑各 1 条 `[FAIL]`，与本次改动无关。
+- 本轮无新平台缺陷。
+
+**完整证据**：[r67-render-idempotency-2026-10-14.md](evidence/r67-render-idempotency-2026-10-14.md)。

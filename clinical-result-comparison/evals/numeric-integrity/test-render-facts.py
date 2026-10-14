@@ -692,6 +692,43 @@ class RenderFactsTests(unittest.TestCase):
         self.assertFalse(self.run_render())
         self.assertIn("quote is not an exact source substring", self.audit_data()["errors"][0])
 
+    def test_rerendering_its_own_output_replaces_the_appendix(self):
+        """R67: a rendered file fed back in must not collect a second appendix.
+
+        A live run discovered the non-idempotent append empirically and spent 79 s of its own
+        read-back working around it; the fix has to be behavioural, not just documented.
+        """
+        self.assertTrue(self.run_render("Results: [[fact:F001]] and [[result:F002]]."))
+        first = self.out.read_text(encoding="utf-8")
+        self.assertEqual(first.count(render_facts.APPENDIX_TITLE), 1)
+
+        second_out = self.root / "report-again.md"
+        self.assertTrue(render_facts.render(self.ledger, self.out, second_out, self.audit))
+        second = second_out.read_text(encoding="utf-8")
+
+        self.assertEqual(second, first)
+        self.assertEqual(second.count(render_facts.APPENDIX_TITLE), 1)
+        self.assertTrue(self.audit_data()["idempotent_rerender"])
+
+    def test_appendix_title_inside_the_body_is_left_alone(self):
+        """Only our own trailing appendix is stripped; a title mid-body is the author's text."""
+        draft = "Body\n\n" + render_facts.APPENDIX_TITLE + "\n\n## 五、结论\n\nStill body."
+        self.assertTrue(self.run_render(draft + " [[fact:F001]]."))
+        output = self.out.read_text(encoding="utf-8")
+        self.assertIn("Still body.", output)
+        self.assertEqual(output.count(render_facts.APPENDIX_TITLE), 2)  # author's line + ours
+        self.assertFalse(self.audit_data()["idempotent_rerender"])
+
+    def test_empty_unit_renders_without_a_trailing_space(self):
+        """R67: documented format fact — an empty `unit` adds nothing after the value."""
+        ledger = json.loads(self.ledger.read_text(encoding="utf-8"))
+        ledger["facts"][0]["unit"] = ""
+        self.write_ledger(ledger)
+        self.assertTrue(self.run_render("Randomised [[fact:F001]]."))
+        output = self.out.read_text(encoding="utf-8")
+        self.assertIn("Randomised 8.34{{ref_1}}", output)
+        self.assertNotIn("8.34 {{ref_1}}", output)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

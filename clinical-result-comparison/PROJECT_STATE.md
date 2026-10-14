@@ -1,5 +1,33 @@
 # Project State
 
+## R67 — `render-facts.py` 幂等 + 空 `unit` 拼写写进契约（**2026-10-14 已原地发布 + web-off 真跑三组；KEEP，且是首个真移动目标指标的一轮**）
+
+**动机**：R65 三跑把探针从「`·` 怎么写进 `value`」换成渲染器自身语义（`r65n-4` 逐字：*"if it already exists, does it replace it?"* → *"Confirmed: render appends a second appendix (not idempotent)."*）。模型靠实验测出这条**未文档化**语义，并用「把正文抄成 `work/body.md`」绕行，代价记在语义阶段 `自产物回读/返工`：R62 0.8 s → R65n **79.3 s / 14,392 out tok**。
+
+**改动（行为侧，非文字侧）**：
+- `scripts/render-facts.py`：新增 `_strip_rendered_appendix()` —— `APPENDIX_TITLE` 是草稿**最后一节**时先剥掉再渲染 ⇒ 就地重渲染**幂等**；`--audit` 加 `idempotent_rerender`；docstring 写明幂等 + 空 `unit` 事实（37,696 → 39,266 B）。
+- `references/toolbox.md` §4（28,845 → 30,007 B）：幂等段 + 「**不需要**抄 `work/body.md`、**不需要**读回产物查附录」+ 空 `unit` 不留空格/占位符。
+- `system-prompts/…-v0.16.md` 规则 6（81,413 → **81,687 B**）：一句幂等 + 两条禁止。
+- `SKILL.md`（45,909 → 46,017 B）：渲染门禁同口径半句。
+- `evals/numeric-integrity/test-render-facts.py`：+3 测（自身输出回喂 ⇒ 逐字节相同且只 1 个附录；中段同名标题不动；空 `unit` 无尾随空格）29 → **32**。
+
+**发布**：in-place；prompt v1.8 `999ffe38547a`（81,687 B）/ skill v1.0.9 29/29；`deps` unchanged；`status` → **in sync**；dist **183,824 B / sha `c98916b3cc26`**。
+
+**真跑（固定三组 4/18/14，输入逐字节复用 R63，串行，web off）**：
+
+| run | wall s | 步 | render 调用 | build_ledger | out tok | `自产物回读/返工` | 断言 |
+|---|---:|---:|---:|---:|---:|---:|---|
+| r67-4 | **331.7** | 22 | 1 | 2 | 63,120 | **0** | 22P/1F |
+| r67-18 | **392.2** | 27 | 1 | 2 | 77,884 | **19.4** | 22P/1F |
+| r67-14 | **580.2** | 32 | 1 | 2 | 107,002 | **8.8** | 22P/1F |
+| **均值** | **434.7**（R65n 459.7 / R63 546.9） | 27.0 | 1 | 2 | 82,669（持平） | **9.4**（R65n 79.3） | 22P/1F × 3 |
+
+**预登记判据（真跑前写在 R65 台账 R65-1 + 证据 §6.3）全部成立**：`自产物回读/返工` 79.3 → 9.4 s（**−88%**）；`second/another appendix` 3 → **0**；`body.md` 绕行 4 → **0**；render 调用 4/3/1 → **1/1/1**。断言九跑恒 22P/1F（唯一 FAIL = 平台 `P-R53-1`）。**裁定 KEEP** —— 迭代史上第一次目标指标真移动（R63 / R65 都只改形状、未移动任何测量值）。墙钟均值三代最低，但**不据此声称提速**。
+
+**R68 候选（三跑暴露，均未改）**：① **包内自相矛盾（优先）**：`references/cross-trial-comparison.md` 模板带 `对齐等级` 列，而 host prompt 与 `check_report.py` **禁止**该列名 —— `r67-14` 花 2.5k 字仲裁（*"check_report.py fails on 对齐等级 as a table column … must be replaced by 解读边界"*）；② 源文用**文字数字**（`Fifty-one patients`）时 `value` 照抄文字是合法的、但包内没说过，模型宁可换 quote；③ 14 组 2 步长思考 239.2 s（41% 墙钟）已全是内容分析，不再含契约不确定性。
+
+**证据**：`docs/evidence/r67-render-idempotency-2026-10-14.md`。
+
 ## R65 — token 契约唯一化 + 提交前可自查（**2026-10-14 已原地发布并真跑；裁定 KEEP，提速假设未证实**）
 
 **动机（R63-2 观察 + 本轮只读实证）**：R63-2 记下「`r63-14` 有 2 次自造探针草稿渲染 ⇒ 禁令只改试错外形、未除动机」。本轮把动机坐实到**文本层**：
