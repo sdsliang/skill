@@ -1,6 +1,6 @@
 # Project State
 
-## R62 — 减重第一轮：冷区散文收紧 + 编号缺陷修复（2026-10-13，**本地已改；未发布、无新 run**）
+## R62 — 减重第一轮：冷区散文收紧 + 编号缺陷修复（2026-10-13 改 / **2026-10-14 原地发布 + 固定三组验收**）
 
 **起因**：用户「减法减法」——「这个 skill 太重了、速度很慢」。先做**只读体检**，再改。
 
@@ -25,13 +25,41 @@
 
 **本地闸门（改动后全绿）**：`test-render-facts` 28 / `test-skill-scripts` 62 / `test-tell-scan` 10 / `test-check-report` 25 / `test-build-ledger-scaffold` 9 / `test_regressions` 35 / `test-runner` 45 / `node --test` 16 / `mutations` arm a **44/44** + arm b **12/12** + `never flipped []` + `GATE: PASS` / `verify-run-chain` **GATE: PASS**（151 histories, 5 可比）/ `test_pack_dist` 5 / `test_replay_run` 14。**但本地闸门证明不了运行期文本的语义没丢——需 1 次真跑。**
 
-**判定**：**准备轮（未发布、无 run）**，不判 KEEP/DISCARD。发布需用户授权（TS 写动作）。
+**发布（2026-10-14，用户授权「A 原地」）**：**原地更新**（版本号不变、内容替换）——prompt **v1.8** 81,576 → **79,886 B**（sha `713f4333b74e` → `4c306fa7aec9`）、skill **v1.0.9**（`skill_id 16aeb0406e12425bad27a2444f17225e`，2026-10-14T09:52:48，29/29 支持文件一致）。发布前 `deps` **未变**（1 技能 + 1 MCP + **16 个内置工具，含 `task`**）；发布后 `status` → **in sync**。
 
-> ⚠️ **发布前禁止真跑**：`run` 的断言之一是「线上 prompt 逐字节 == 本地 sys」，本地已改而线上未发 ⇒ 任何 `run` 都会**必然 FAIL** 这条断言（不是被测行为退化）。要么先 `publish`（需授权）再跑，要么先把本地改动 revert 回 `713f4333b74e` / `74781a56c6cd` 再跑。
+**真跑验收（固定三组 4 / 18 / 14 esid，输入复用 R48/R50，**串行**执行保时间可比；`DeepSeek Flash`，web off）**：
 
-### R63（下一轮单一假设）：**惰性段条件化**，而不是删规则
+| run | esid | thread | wall s | 步数 | 每步固定开销 | out tok | reasoning | 断言 |
+|---|---:|---|---:|---:|---|---:|---:|---|
+| `r62-4` | 4 | `b5d197fc-3a45-407d-a7b5-be945349956a` | 309.7 | 26 | 1.61 s（35.5 s = 11%） | 53,616 | 39,826 | **22 PASS / 1 FAIL** |
+| `r62-18` | 18 | `bbd2f0e8-27a0-4766-99da-145c75ef8880` | 475.8 | 44 | 2.58 s（100.5 s = 21%） | 80,844 | 53,719 | **22 PASS / 1 FAIL** |
+| `r62-14` | 14 | `665c3f92-285f-4214-8f96-e291c037bf32` | 677.8 | 65 | 3.16 s（202.3 s = 30%） | 94,457 | 64,162 | **22 PASS / 1 FAIL** |
 
-- 唯一「大块且可减」的是**条件成立才有意义**的内容：prompt `## Subagent delegation` 细则（5,067 B，仅当 `task` 可见且 >5 esids；三次跑均未触发委托）→ 留 6 行摘要 + 「首次 `task` 前先读 `references/subagent-delegation.md`」；`## Mixed or different-trial inputs`（1,035 B，仅跨试验）同理。**预期 −4.3 KB**。
+三跑均 `completed` / `outcome=succeeded`，产物齐全（`output/report.md` + `output/citations.json` + 1 张图：4 组 `evidence-timeline.json`、18/14 组 `endpoint-bar-1.json`）；`args-refused=0`、`fetch-failed=0`、**无 `tool-output-error`**；唯一 FAIL 三跑同一个 = 已知平台项 **P-R53-1**（`tool_results receipts archived`）。
+
+**与同输入历史对照（步数）**：4 组 26 vs 25（R50）/ 28（R48）；18 组 44 vs 46（R50）/ 59（R48）；14 组 65 vs 31（R50）/ 28（R48）⇒ 4 / 18 组**在带内且偏好**，14 组**超出带**——但超出部分有独立成因（见 R62-1），**不是 R62 文本删减导致**（对照：r62-4 / r62-18 及 R60/R61 各跑均未出现该形态）。
+
+**判定：KEEP（不劣化）** —— 断言零退化、无参数拒收、无抓取失败、产物齐全；4/18 组步数未升。
+
+> **新增量化证据**（此前只在 4 esid 上估过每步 ≈2 s）：**每步固定开销 1.61 / 2.58 / 3.16 s，占墙钟 11% / 21% / 30%** ⇒ 步数是时间的乘数；14 组 65 步里约 **18 步（28%）是一次故障排查**，这也是「很慢」的尾巴来源。
+
+### R62-1（**我方能改，本轮最大单点浪费**）：`render-facts.py` fail-closed 但**静默**，把一次校验失败放大成 18 次调用
+
+**现象（`r62-14`，全 65 次调用中的第 33–50 号）**：模型把一段自我修复旁白写进了交付正文（`output/report.md` 第 95–97 行：`Hmm, I wrote "[[fact:j5]] 剂量组中出现 5 起轻度注射部位事件，见于 [[fact:j8p]]" — that's wrong: j5 is Cmax 667 ng/mL, and j8p doesn't exist. Let me fix that row…`），其中 `[[fact:j8p]]` 是**不存在的 fact id** ⇒ `render-facts.py` 校验失败（exit 1）。随后模型：`render-facts.py` 只在第 29/32 步拿到 `RENDER_EXIT=1`、**看不到任何原因**，于是改用 `head -n N` **二分报告**（7 次）、`--help`（1 次）、`runpy`+`traceback`（2 次）逐段试渲染，最后靠「n≤94 通过 / n≥96 失败」定位到那几行，`patch.py` 删掉 1 行即恢复（第 53 步 `RENDER_EXIT=0`）。**共 ~18 次调用 / 28% 步数**。
+
+**根因（已复现，两个缺陷叠加）**：
+1. **脚本静默**：`render-facts.py` 把失败原因只写进 `audit["errors"]`（第 812/814 行），`main` 直接 `return 1`（第 835 行）⇒ **stdout 0 字节 / stderr 0 字节**。复现：`--draft` 含 `[[fact:NOPE]]` → `EXIT=1`、两流皆空。**8 个打包脚本里只有它这样**（stderr 输出数：`make_chart` 16 / `make_citations` 15 / `build_ledger` 13 / `patch` 10 / `prep_sources` 7 / `check_report` 2 / `tell-scan` 1）——最 fail-closed 的那个恰好唯一不报错。
+2. **我们自己的文档教了吞掉退出码的写法**：prompt / SKILL.md / toolbox.md 中 `2>&1` 出现 **0 次**；`references/toolbox.md` 第 276 行给的样板是 `check_report.py -v 2>&1 | tail -40` 后接 `echo "CHECK_EXIT=$?"` ⇒ `$?` 取到的是 **`tail` 的 0**（实测该跑 `CHECK_EXIT=0`，而同一份输出里明明有两行 `FAIL:`，其中一行直指 `unresolved fact/result token(s)`）。模型**当时已经拿到诊断**，只是被假退出码掩盖。
+
+**改法（并入 R63，均在我方层）**：① `render-facts.py` 返回 1 前把 `audit["errors"]` 逐行打到 **stderr**；`test-render-facts.py` 加断言「未知 token → exit 1 且 stderr 非空」；② toolbox 样板改成 `2>&1 | tail -20; echo "EXIT=${PIPESTATUS[0]}"`（不吞真退出码），并在 prompt/SKILL 写明「打包脚本非 0 退出：先读 stderr / `work/audit.json` 的 `errors[]`，**禁止**用 `head -n` 二分输入、`--help` 钓鱼、`runpy` 取 traceback」；③ 交付物禁自我旁白（触发源）。**预期：18 次调用 → 1–2 次，按本轮 3.16 s/步计省 150–200 s（≈该跑 22–30%）**。
+
+### R63（下一轮单一假设）：**修 `render-facts.py` 静默失败 + 打包脚本调用的报错通道**（本轮实测最大单点浪费）
+
+以 R62-1 为主：单一假设 =「fail-closed 脚本必须把原因打到 stderr；调用方必须拿到真退出码」⇒ 断言 = 固定三组里**不再出现**二分/`runpy` 形态，且该组步数回落。这是**我们自己的脚本缺陷**（不是平台），有单测、可复现、不动任何规则文本。
+
+### R64 候选（**暂缓**，本轮不排）：惰性段条件化，而不是删规则
+
+- 唯一「大块且可减」的是**条件成立才有意义**的内容：prompt `## Subagent delegation` 细则（5,067 B，仅当 `task` 可见且 >5 esids；三次跑均未触发委托——**18 esid 组实测也没委托**，直接一次拉取）→ 留 6 行摘要 + 「首次 `task` 前先读 `references/subagent-delegation.md`」；`## Mixed or different-trial inputs`（1,035 B，仅跨试验）同理。**预期 −4.3 KB**。
 - **判据（先写下，避免踩同一坑）**：条件引用会被跳过（`same-trial-evolution.md` 三轮 0 读是活证），所以**只条件化「跳过代价 = 行为退化但不静默出错」的程序性内容**，**不条件化「跳过代价 = 交付错」的结论性规则**。
 - **明确不做**：① 把 `## Final verification` 的机械项（~3.5 K）改成「跑 `check_report.py`」——fail-closed 下这是把预防换成返工；② 折叠 prompt 与 SKILL.md 的 `## Report prose style`（~5 K）——清单是查表、散文是预防；③ 折叠 SKILL.md `## Workflow`（23,661）与 prompt `## Numeric Integrity`（9,121）——实测**精确重复仅 1 段（~1.3 K）**，其余是同一契约的两种措辞、两层视图。
 

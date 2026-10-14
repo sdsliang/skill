@@ -2740,3 +2740,47 @@ $ toolsmith-publish deps --accept && toolsmith-publish deps
   另：`r61-sem-2` 的 2 条 FAIL 中**只有 1 条**是平台侧（本条），另一条即 R61-3 的我们自己的假 FAIL。
 - **P-R56-1 的范围收窄（本轮新证据）**：「沙箱 `execute` 单通道」**对本任务不是瓶颈** —— 全部工具调用合计 5.0–6.7 s / 跑（1.5–2.0%），优化它无可测收益；真正的大头是生成（91–93%）与步数。
 - 其余（P-R59-1 / P-R59-3 / P-R56-2~4 / P-R58-1）维持原状态。
+
+## R62 — 减重第一轮（冷区散文收紧 + `Purpose` 编号修复）：**原地发布** + 固定三组验收（2026-10-13 改 / 2026-10-14 发布与验收）
+
+**动机（用户原话）**：「减法减法」——「这个 skill 太重了、速度很慢」。用户选定方案 **A 原地**：先原地发版，再跑固定回归三组验「不劣化」。
+
+**发布（原地更新，版本号不变、内容替换）**：
+
+| 资源 | 版本 | 改前 | 改后 | sha |
+|---|---|---|---|---|
+| prompt | **v1.8**（`91febc286412479a8b6d569fa3b8025e`） | 81,576 B | **79,886 B**（−2.1%） | `713f4333b74e` → `4c306fa7aec9` |
+| skill | **v1.0.9**（`skill_id 16aeb0406e12425bad27a2444f17225e`，2026-10-14T09:52:48） | 180,652 B | **180,410 B** | 29/29 支持文件与本地一致 |
+
+发布前 `deps` **未变**（技能 `chart-visualization-json` v1.0.12 + MCP `pharmcube-query-clinical-result-with-params` + **16 个内置工具，含 `task`**）；发布后 `status` → **in sync**。改动明细（逐节字节账、`## Step discipline` 8 条规则一条未删）见 `PROJECT_STATE.md` R62 与 `docs/evidence/r62-weight-cut-2026-10-13.md`。
+
+**真跑（固定三组 4 / 18 / 14 esid，输入复用 R48/R50，**串行**执行保时间可比；`DeepSeek Flash`，web off）**：
+
+| run | 目录 / thread | esid | wall s | 步数 | 每步固定开销 | out tok | reasoning | 断言 |
+|---|---|---|---:|---:|---:|---|---:|---:|---|
+| `r62-4` | `20261014-095255-r62-4` / `b5d197fc-3a45-407d-a7b5-be945349956a` | 4 | 309.7 | 26 | 1.61 s（11%） | 53,616 | 39,826 | 22 PASS / 1 FAIL |
+| `r62-18` | `20261014-095939-r62-18` / `bbd2f0e8-27a0-4766-99da-145c75ef8880` | 18 | 475.8 | 44 | 2.58 s（21%） | 80,844 | 53,719 | 22 PASS / 1 FAIL |
+| `r62-14` | `20261014-101355-r62-14` / `665c3f92-285f-4214-8f96-e291c037bf32` | 14 | 677.8 | 65 | 3.16 s（30%） | 94,457 | 64,162 | 22 PASS / 1 FAIL |
+
+三跑 `outcome=succeeded`（`timing.completed_at` 有值）、产物齐全（`output/report.md` + `output/citations.json` + 图 1 张：4 组 `evidence-timeline.json`、18/14 组 `endpoint-bar-1.json`）；`args-refused=0`、`fetch-failed=0`、无 `tool-output-error`；**唯一 FAIL 三跑同一个 = 已知平台项 `P-R53-1`**。三跑均确认 `deployed system prompt == local`、`deployed skill body == local SKILL.md`、支持文件清单 28 项逐个一致 ⇒ 发布生效。
+
+**与同输入历史对照**：步数 26 vs 25（R50）/ 28（R48）；44 vs 46（R50）/ 59（R48）；65 vs 31（R50）/ 28（R48）。⇒ 4 / 18 组在带内且偏好；**14 组超出带，但成因独立且可复现（见 R62-1），不是 R62 文本删减导致**（r62-4 / r62-18 / R60 / R61 各跑均无该形态）。
+
+**判定：KEEP（不劣化）。** 断言零退化、无参数拒收、无抓取失败、产物齐全；4/18 组步数未升。
+
+**新量化证据**：**每步固定开销 1.61 / 2.58 / 3.16 s = 墙钟 11% / 21% / 30%**（此前只在 4 esid 上估过 ≈2 s）⇒ 步数是时间的乘数，减步数是最大可控项。
+
+### 我方能改的
+
+- **R62-1（新，本轮最大单点浪费，实测 18 次调用 / 28% 步数）**：`render-facts.py` **fail-closed 但静默**。
+  `r62-14` 里模型把一段自我修复旁白写进了交付正文（`output/report.md` 第 95–97 行，含**不存在的 fact id** `[[fact:j8p]]`）⇒ 渲染校验失败。`render-facts.py` 的失败原因**只写进 `audit["errors"]`**（第 812/814 行），`main` 直接 `return 1`（第 835 行）⇒ **stdout 0 字节 / stderr 0 字节**（复现：`--draft` 含 `[[fact:NOPE]]` → `EXIT=1`，两流皆空）。模型只看到 `RENDER_EXIT=1`，改用 `head -n` **二分报告**（7 次）、`--help`、`runpy`+`traceback`（2 次）逐段试渲染（n≤94 过 / n≥96 挂），最后 `patch.py` 删 1 行才恢复。
+  **8 个打包脚本里只有它静默**（stderr 输出数：`make_chart` 16 / `make_citations` 15 / `build_ledger` 13 / `patch` 10 / `prep_sources` 7 / `check_report` 2 / `tell-scan` 1）。
+  加成条件：**我们自己的文档教了吞掉退出码的写法**——prompt / SKILL.md / toolbox.md 中 `2>&1` 出现 **0 次**，而 `references/toolbox.md` 第 276 行样板 `check_report.py -v 2>&1 | tail -40` 后接 `echo "CHECK_EXIT=$?"` 取到的是 **`tail` 的 0**（实测该跑 `CHECK_EXIT=0`，同一份输出里却有两行 `FAIL:`，其中一行直指 `unresolved fact/result token(s)`）⇒ 模型**当时已拿到诊断**，被假退出码掩盖。
+  修法（即 R63 单一假设）：① 脚本返回 1 前把 `audit["errors"]` 打到 stderr，`test-render-facts.py` 加断言「未知 token → exit 1 且 stderr 非空」；② 样板改 `2>&1 | tail -20; echo "EXIT=${PIPESTATUS[0]}"`，并写明「非 0 退出先读 stderr / `audit.json#errors[]`，**禁止**二分输入 / `--help` 钓鱼 / `runpy` 取 traceback」；③ 交付物禁自我旁白。**预期 18 次调用 → 1–2 次，省 150–200 s。**
+- **R61-3**（`SCAN_EXIT` 被 `&&` 短路误读为扫描器结论）：状态不变，修法见 R61 节（自打 `[tell-scan] exit=N` + 仅在扫描器 banner 同现时采纳 `SCAN_EXIT`）。
+- **R61-4**（`same-trial-evolution.md` 三轮 0 真读，触发条件已满足）：状态不变；R62 只修了 `Purpose` 编号，未动条件读机制。
+
+### 平台侧（转开发）
+
+- **P-R53-1（已知，三跑全命中）**：`tool_results receipts archived`（`/workspace/tool_results/…/result.jsonl: unsafe or unsupported receipt path`）—— 三组各 1 条 `[FAIL]`，与本次改动无关；三跑 1 FAIL / 22 PASS 全部由它构成。
+- 其余（`P-R59-1` / `P-R59-3` / `P-R56-1~4` / `P-R58-1`）维持原状态；本轮**无新平台缺陷**（18 esid 组未使用 `task` 委托，直接一次拉取，故 P-R56-2 的沙箱单通道问题本轮未被触发）。
