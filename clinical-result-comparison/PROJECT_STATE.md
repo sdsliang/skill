@@ -1,5 +1,29 @@
 # Project State
 
+## R65 — token 契约唯一化 + 提交前可自查（**2026-10-14 改，本地就绪；等发布授权，未发布、未真跑**）
+
+**动机（R63-2 观察 + 本轮只读实证）**：R63-2 记下「`r63-14` 有 2 次自造探针草稿渲染 ⇒ 禁令只改试错外形、未除动机」。本轮把动机坐实到**文本层**：
+
+1. **触发原文**（`r63-4` msg[23] thinking 逐字）：*“The toy example shows `"value": "11.1"` with quote containing "11.1" — no guidance on ·. … I'll try "." values; where the quote uses ·, the validation will fail and I'll then switch that fact's quote/value …”* ⇒ 模型**明确采用「先瞎猜、等校验失败再改」**。
+2. **契约在源码里是精确的**：`render-facts.py` l.253–258 与 `build_ledger.py` l.609–615 跑**同一套检查**（`quote ⊂ 源文`、`value ⊂ quote`，只归一空白与减号）；而且 `build_ledger.py --check` **早就能在起草前自查、不写文件** —— 这条现成能力**此前从未在任何运行期文本里被点名**。
+3. **交付包里有一份自相矛盾的范例**：`build_ledger.py` docstring 的 `"value": "-5.3"` + `"quote": "安慰剂组 MDS TBR 下降 5.3%"` 原样喂脚本 **EXIT=3**（`value '-5.3' is absent from quote`）—— 模型能读到的唯一一份完整范例，本身就是校验器拒绝的形状。
+
+**改动（四文件 + 一条测试，规则一条未删）**：
+
+| 文件 | 字节 | 内容 |
+|---|---|---|
+| `references/toolbox.md` §4 | 27,540 → **28,845** | 两条强制条件改成可静态判定（只归一空白/减号；`value` 只能是印出来的字符）＋ **实测判定表**（`11.1 · 9.8` ✅ / `11.1` ✅ / `11.1 vs 9.8` ❌ / 派生 `-5.3` ❌）＋ **点名 `build_ledger.py --facts work/facts.json --check` 即提交前自检**，明令不写探针草稿试语法 |
+| `scripts/build_ledger.py` docstring | 29,515 → **30,198** | 范例 `value` `-5.3` → `5.3`（arm 改「安慰剂组」，与 quote 自洽）；新增：两条检查在本脚本内、只归一空白与减号、**派生数字不得进 `value`**、`--check` 即自检 |
+| `system-prompts/…-v0.16.md` | 80,960 → **81,413** | ledger 段一句收紧 + 具名自检命令 |
+| `SKILL.md` | 45,485 → **45,909** | 同口径收紧 + 指向 toolbox §4 |
+| `evals/scripts/test-skill-scripts.py` | 44,979 → **46,023** | 新增 `test_value_must_be_a_verbatim_substring_of_its_quote`（✅✅❌❌ 四例成断言）⇒ 62 → **63** |
+
+**顺手收掉 R64 留下的文本冲突**：`toolbox.md` 调用段新增 **One marker, one meaning** —— `EXIT=${PIPESTATUS[0]}` 为通用形态，tell-scan 的 `SCAN_EXIT=$?` 同样可读（runner 两者都认），**但禁止混写 / 禁止裸 `… | tail -40; echo "EXIT=$?"`**（四处专属写法故意不改：改它们只白烧字节，冲突由这一句一次说清）。
+
+**本地闸门（改后）**：`py_compile` 0 · test-render-facts **29** · test-skill-scripts **63** · test-tell-scan 10 · test-check-report 25 · test-build-ledger-scaffold 9 · test-merge-ref-facts 16 · test_regressions 35 · mutations b 12/12 · test-runner **48** · `verify-run-chain GATE: PASS`（5 可比）· test_pack_dist 5 · test_replay_run 14 · node 16 · `pack-dist --check` **IDENTICAL 182,666 B `fc438d58f02b`** ⇒ `GATES_FAILED=0`（dist 181,638 → 182,666）。
+
+**状态**：改动**只在本地**；发布是 TS 写动作，**已停下等授权**（预登记与判据见 `docs/evidence/r65-token-contract-2026-10-14.md` §1：探针草稿渲染 0 次 / `render-facts: FAILED` 0 次 / `P-R53-1` 仍是唯一 FAIL；对照带 = R63 三跑 526.5 / 425.5 / 688.6 s）。
+
 ## R64 — 文体门禁假 FAIL（runner 层 O51）：跑绿却留一条 `prose gate exited clean` FAIL（**2026-10-14 改，无发布、无真跑**）
 
 **动机（R61-3 / B9 已坐实、拖到本轮修）**：`r61-sem-2` 三跑里唯一那条「我们自己的」FAIL 不是内容回潮 —— 第 25 步把 4 条命令串成 `patch.py … && … check_report.py … && tell-scan.py …; echo "SCAN_EXIT=$?"`，**第一个 `patch.py` 断言失败**（`ASSERT FAILED … wanted 1`；patch.py 的失败码同为 **3**）⇒ `&&` 短路，`check_report.py` / `tell-scan.py` **从未执行**；runner 把「命令文本提到 `tell-scan.py` 的所有 return」**拼成一整块**再 `re.findall(r"SCAN_EXIT=(\d+)")`，于是采到那个 3。同跑第 34 步**真的跑过**扫描器（`强 0 / 弱 1`、`SCAN_EXIT=0`）。`run.json.fails` 逐字留证。危害：**每轮验收只有这一个信号**，假 FAIL 与真 FAIL 不可区分。

@@ -374,6 +374,23 @@ class Sandbox(unittest.TestCase):
         self.assertIn("OK (check only)", proc.stdout)
         self.assertFalse(self.ledger.exists())
 
+    def test_value_must_be_a_verbatim_substring_of_its_quote(self):
+        # R65 / toolbox.md §4: `value` is the characters the source prints. The documented cases.
+        self.prep()
+        printed = "中位 PFS 为 11.1 · 9.8 个月"
+        (self.sources / "ref_1.txt").write_text(printed + "。\n", encoding="utf-8")
+
+        def verdict(value: str) -> int:
+            payload = self.facts_payload()
+            payload["facts"] = [dict(payload["facts"][0], value=value, quote=printed, unit="月")]
+            return self.build_ledger(payload, "--check", expect=None).returncode
+
+        self.assertEqual(verdict("11.1 · 9.8"), 0, "the printed form, separator included, is a substring")
+        self.assertEqual(verdict("11.1"), 0, "any substring of the quote is allowed")
+        self.assertEqual(verdict("11.1 vs 9.8"), 3, "a rewritten separator is not a substring")
+        self.assertEqual(verdict("-5.3"), 3, "a derived figure never goes into `value`")
+        self.assertFalse(self.ledger.exists(), "--check writes nothing")
+
     # -- patch.py -----------------------------------------------------------------------
     def _draft(self, text: str = "依洛尤单抗 420 mg 每月一次\n安慰剂 每月一次\n") -> Path:
         path = self.root / "work" / "draft.md"

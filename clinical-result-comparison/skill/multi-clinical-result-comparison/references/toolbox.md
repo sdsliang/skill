@@ -36,6 +36,10 @@ python3 -B /workspace/skills/multi-clinical-result-comparison/scripts/<name>.py 
 * A pipeline reports the **last** command's status, so `… | tail -40; echo "EXIT=$?"` prints
   `tail`'s `0` even when the script failed — never write that form: it hides the failure behind a
   green exit code.
+* **One marker, one meaning.** `EXIT=${PIPESTATUS[0]}` is the form for every script.
+  `tell-scan.py`'s own idiom `… ; echo "SCAN_EXIT=$?"` (§9) is equally readable — both markers are
+  recognised — but never write the bare `… | tail -40; echo "EXIT=$?"` form above, and never mix
+  the two in one command chain.
 * On a non-zero exit, read the printed message and fix **the input it names** — for
   `render-facts.py` that is a token id the ledger does not define, or a ledger field (`errors[]`
   in `--audit` carries the same list). Do **not** bisect the file with `head -n`, do **not**
@@ -221,9 +225,21 @@ finding is printed on stderr** (the same list is in `--audit`'s `errors[]`).
 
 渲染器把 token 替换为带 `{{ref_n}}` 标记的文本，并在文末追加完整附录。**正文里凡是来自 ledger 的数值，一律写 token，不要硬编码同一数值两次** — token 绑定后格式由渲染器统一，消灭事后 `patch.py` 修正数值格式不一致的循环（这个循环在已测 run 里耗时 3–5 分钟）。
 
-两个强制条件（任一不满足，渲染拒绝写出，文件不变）：
-- `value`（`11.1`）必须逐字出现在 `quote` 里
-- `quote` 必须是对应 `work/sources/ref_1.txt` 的精确子串
+两个强制条件（任一不满足，编译与渲染都拒绝写出，文件不变）：
+- `value` 必须**逐字**是 `quote` 的子串（只归一两种东西：连续空白压成一个空格、各种减号统一为 `-`）
+- `quote` 必须是对应 `work/sources/ref_1.txt` 的、同样归一后的精确子串
+
+**照抄原文印出来的那串字符**：不要重排、不要改写分隔符、不要把算出来的数写进 `value`。实测判定（源文印 `中位 PFS 为 11.1 · 9.8 个月`）：
+
+| `value` 写法 | 判定 | 原因 |
+| --- | --- | --- |
+| `11.1 · 9.8` | ✅ | 连分隔符一起照抄，就是子串 |
+| `11.1` | ✅ | 子串允许只截取其中一段 |
+| `11.1 vs 9.8` | ❌ | 把 `·` 改写成 `vs`，就不再是子串 |
+| `-5.3`（源文只印 `5.3`） | ❌ | **派生值不属于 `value`**：两臂差值、算出来的变化量写进正文，`value` 只放原文数字 |
+
+**提交前自检就是编译本身**，不需要渲染、也不需要临时 ledger 试错：
+`python3 scripts/build_ledger.py --facts work/facts.json --check` 只校验不写文件，逐条报出上面两类问题（exit 3）；默认编译模式跑的是同一套检查。
 
 ## 5. `patch.py` — asserted, atomic, whole-file find/replace
 

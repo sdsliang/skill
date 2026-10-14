@@ -18,8 +18,8 @@ Write `work/facts.json` like this (only the listed keys are read; the rest is yo
       ],
       "facts": [
         {"id": "ocean-mds-tbr-diff", "ref": "ref_1", "study": "NCT02729025",
-         "kind": "有效性", "endpoint": "MDS TBR 较基线变化", "arm": "依洛尤单抗 420 mg 每月一次",
-         "value": "-5.3", "unit": "%", "timepoint": "第 16 周",
+         "kind": "有效性", "endpoint": "MDS TBR 较基线变化", "arm": "安慰剂组",
+         "value": "5.3", "unit": "%", "timepoint": "第 16 周",
          "quote": "安慰剂组 MDS TBR 下降 5.3%"}
       ]
     }
@@ -28,6 +28,15 @@ Required per record: `ref`, `identity`, `conclusion` (`trial` strongly recommend
 appendix merge key).  Required per fact: `id`, `ref`, `study`, `kind`, `endpoint`, `arm`,
 `value`, `unit`, `quote`.  Optional per fact (defaulted): `version`, `population`, `timepoint`,
 `assessment`, `statistics`, `source_file`.
+
+The two hard conditions run in *this* script, before any drafting: `value` must be a verbatim
+substring of `quote`, and `quote` a verbatim substring of the ref's source file.  Only whitespace
+runs and minus glyphs are normalised, so `value` is the **characters the source prints**: never
+rewrite a separator (`11.1 · 9.8` is not `11.1 vs 9.8`) and never put a figure the source does not
+print into `value` — an inter-arm difference or a computed change belongs in the prose, with the
+printed numbers it was computed from staying in `value`/`quote`.  `--check` runs exactly these
+checks and writes nothing, so it is the pre-draft self-test: do not write a probe draft and render
+it to discover the rule.
 
 `--scaffold` is a separate mode.  It reads the pulled params payload and `refs.json`, then writes
 a candidate `work/facts.candidates.json`; it never reads `work/facts.json` or writes a ledger.

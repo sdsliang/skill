@@ -1,5 +1,16 @@
 # AGENTS.md — 常驻 program.md（autoresearch 循环）
 
+## R65 本地就绪（2026-10-14，**改运行期文本 + 脚本 docstring；本地闸门全绿，等发布授权**）
+
+**token 契约唯一化 + 提交前可自查**（目标变量 = 输出 token 量，仍是 R63-0 认定的唯一主导项）。
+
+- **动机坐实到文本层**：① `r63-4` msg[23] thinking **逐字**写下“no guidance on · … I'll try "." values; where the quote uses ·, the validation will fail and I'll then switch that fact's quote/value” = **故意先瞎猜、等校验失败再改**；② 契约源码本就精确（`render-facts.py` l.253–258 = `build_ledger.py` l.609–615，只归一空白与减号），且 `build_ledger.py --check` **早就能起草前自查且不写文件**，却**从未在任何运行期文本里被点名**；③ **交付包内有一份自相矛盾的范例** —— `build_ledger.py` docstring 的 `"value": "-5.3"` + `quote: "…下降 5.3%"` 原样喂脚本 **EXIT=3**。
+- **改了什么（规则一条未删）**：`toolbox.md` §4 27,540 → **28,845**（两条强制条件改成可静态判定 + **实测判定表** ✅`11.1 · 9.8` / ✅`11.1` / ❌`11.1 vs 9.8` / ❌派生 `-5.3` + 点名 `--check` 即自检，明令不写探针草稿）；`build_ledger.py` docstring 29,515 → **30,198**（范例修成自洽 + 派生数字不得进 `value`）；prompt 80,960 → **81,413**；`SKILL.md` 45,485 → **45,909**；`test-skill-scripts.py` 新增 `test_value_must_be_a_verbatim_substring_of_its_quote`（四例成断言）⇒ 62 → **63**。
+- **顺手收掉 R64 留下的文本冲突**：toolbox 调用段新增 **One marker, one meaning** —— 通用 `EXIT=${PIPESTATUS[0]}`，tell-scan 的 `SCAN_EXIT=$?` 同样可读（runner 两者都认），**禁止混写 / 禁止裸 `… | tail -40; echo "EXIT=$?"`**；四处专属写法故意不改。
+- **验收**：本地闸门 `GATES_FAILED=0`（29 / **63** / 10 / 25 / 9 / 16 / 35 / mutations b 12/12 / test-runner 48 / `verify-run-chain GATE: PASS` / 5 / 14 / node 16），`pack-dist --check` **IDENTICAL 182,666 B `fc438d58f02b`**。预登记与不劣化判据见 `docs/evidence/r65-token-contract-2026-10-14.md` §1。
+- **未做**：**未发布**（TS 写动作，等用户一句授权）、**未真跑**。
+- **计数**：test-skill-scripts 62 → **63** ⇒ 合计口径 **224 → 225**；含 numeric-integrity 为 **253 → 254**。
+
 ## R64 完成（2026-10-14，**runner 层修 O51；无发布、无真跑**）
 
 **文体门禁假 FAIL**：`r61-sem-2` 那条「我们自己的」FAIL 是假 FAIL —— `patch.py … && … tell-scan.py …; echo "SCAN_EXIT=$?"` 串成一条链，**第一个 `patch.py` 断言失败**（失败码同为 **3**）⇒ `&&` 短路，扫描器**从未执行**；runner 旧逻辑把「提到 `tell-scan.py` 的所有 return」拼成一整块再全局 `SCAN_EXIT=(\d+)`，于是采到那个 3（`run.json.fails` 逐字留证）。同跑第 34 步真跑过扫描器（`强 0 / 弱 1`、`SCAN_EXIT=0`）。危害：每轮验收**只有这一个信号**，假 FAIL 与真 FAIL 不可区分。
