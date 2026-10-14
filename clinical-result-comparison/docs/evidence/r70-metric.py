@@ -1,4 +1,4 @@
-import json, pathlib, re, collections
+import json, pathlib, re, collections, sys
 BAIT = ["判断强度","解读边界","组内证据关系","归属组","归组依据","可比性","成熟度","对齐等级",
         "分析模式","分析口径","选择依据","可比性结论","不绘图原因","有限并列原因","纳入标准",
         "检索策略","报告结构","处理模式","部分对齐","仅背景对齐","直接对齐","未对齐","可绘图",
@@ -13,7 +13,8 @@ for d in sorted(base.iterdir()):
     rj = d/"run.json"
     if not rj.exists(): continue
     tag = json.loads(rj.read_text()).get("tag","")
-    if not re.match(r"^r(67|68|69)-(4|18|14)$", tag): continue
+    pat = sys.argv[1] if len(sys.argv) > 1 else r"^r(67|68|69|70)-(4|18|14)$"
+    if not re.match(pat, tag): continue
     md = d/"messages.json"
     if not md.exists(): continue
     hits = collections.Counter(); n = 0; chars = 0

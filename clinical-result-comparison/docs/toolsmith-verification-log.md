@@ -2993,3 +2993,42 @@ $ toolsmith-publish deps --accept && toolsmith-publish deps
 - **P-R53-1**：九跑（R67 ×3 + R68 ×3 + R69 ×3）形态一致（`fails=['tool_results receipts archived']`，`/workspace/tool_results/…/result.jsonl: unsafe or unsupported receipt path`），唯一 FAIL，与各轮改动无关。
 
 **完整证据**：[r69-templates-vs-gate-vocabulary-2026-10-14.md](evidence/r69-templates-vs-gate-vocabulary-2026-10-14.md)。
+
+---
+
+## R70 — 把门禁词汇禁令从「背词表」改成「判语义 + 正向允许清单 + 交脚本判定」（2026-10-14 改 / 原地发布 / 验收同批）
+
+**目标（真跑前预登记在 `AGENTS.md`）**：R69 的残留全都指向同一件事——模型在思考里**逐词推演我们的禁令清单是否命中**，而清单是以「常见形态」举例出现的，模型无法知道它是否穷尽。**预登记主判据**：思考里「模板词 × 疑问标记」的句数合计 **≤ 16 句**（对照 R69 = 22 句）；辅判据 `gate-check` ≤ 15.3、`template-vocab` ≤ 1.7；断言维持 **22P/1F**；回退判据 = 断言集变化 / 新 FAIL 类 / 离线分 < `r69-4` 的 **22/44**。
+
+**改前取证**（新度量 `docs/evidence/r70-metric.py`，按句判「模板列名/短语」同时命中「疑问标记」`banned|is that|conflict|合法|算不算|门禁|check_report` …）：9 跑基线 **78 句 / 5,093 字符**（R67 23 / R68 33 / R69 22）。**按词聚合第一位是 `成熟度` 24、`可比性` 24、`不绘图原因` 20** —— 前几名恰恰是**模板自带、门禁根本不拒**的合法词，其余是**禁令词表的复述**。⇒ 根因是**禁令的表述方式**，不是模型的词表知识。
+
+**改动（只动一个变量：禁令怎么表达；另 3 项卫生）**：`SKILL.md` 硬规则段后新增「**判据是语义，不是词表（据此自检，不要背诵）**」+ 一份**永远合法**的材料属性词清单 + 「拿不准跑一次 `scripts/check_report.py`，FAIL 才改、WARN 不是失败」；`references/toolbox.md` 新增 2 条 FAQ（「模板列名看起来像被禁词，安全吗」「`（高/中/低可比性）` 列头呢」）；`templates/cross-trial-report.md`（`判断强度（高/中/低可比性）`）与 `templates/mixed-comparison-report.md`（`证据成熟度与限制`）各加一句**列名合法性**说明。卫生项（不参与判据）：`toolbox.md` 示例 `95% CI 9.6–9.6` → `9.6–12.7`（笔误会被照抄）；`make_chart.py --no-validate` 标 **DEBUG ONLY**。**被拒词一条不少、`check_report.py` 与断言集一行未动。**
+
+**双向对照证据**（`importlib` 载入 `check_report.py` 自己的正则）：被禁词在 `- X：…` 与 `| … | X | … |` 两种形态下**全部**命中 `META_LABEL_RE` / `META_COLUMN_RE`；本轮列入「永远合法」的词在**同样形态**下命中 **0**。
+
+| run | 目录 | wall s | 步 | **out_tok** | reasoning | 断言 | 主判据句 | `template-vocab` | `gate-check` |
+|---|---|---:|---:|---:|---:|---|---:|---:|---:|
+| `r70-4` | `20261014-172752` | 352.3 | 27 | 66,273 | 53,670 | 22P/1F | 7 | 3 | 27 |
+| `r70-18` | `20261014-173351` | 440.8 | 26 | 92,836 | 54,347 | 22P/1F | 6 | 6 | 10 |
+| `r70-14` | `20261014-174134` | 481.5 | 29 | 95,922 | 66,205 | 22P/1F | **0** | 0 | 18 |
+| **均值** | | **424.9** | 27.3 | **85,010** | 58,074 | | **13 句**（R69 22） | 3.0（R69 1.7） | 18.3（R69 15.3） |
+
+（输入逐字节复用 `/tmp/r63/p{4,18,14}.txt`，串行，web off，`DeepSeek Flash`，与 R67–R69 同口径。三跑唯一 FAIL 同形 = `tool_results receipts archived`，与 R67/R68/R69 九跑一致。）
+
+**发布**：用户在发布前明确授权「**原地**」；`deps` = unchanged since the recorded baseline；prompt v1.8 **未动**；skill **v1.0.9 原地更新**（`skill_id 16aeb0406e12425bad27a2444f17225e`，不变）；回读 **29/29 identical、differing=0、missing-locally=0**，`status` = **in sync**；平台 `deployed-current.zip`（185,734 B）解包后与本地包 **`diff -r` 全等**；dist **185,734 B / sha `75dbc461f2c6`**；本地闸门 `GATES_FAILED=0`（`test_regressions` 35 / `test-check-report` 31 / node 16 / `test_pack_dist` 5 / `test_replay_run` 14 / `test-build-ledger-scaffold` 9 / `mutations` a 44/44 b 12/12 / `verify-run-chain` GATE PASS / `pack-dist --check` IDENTICAL）。
+
+**判定：KEEP。** ✅ 主判据 **13 ≤ 16 达标**（22 → 13 句，**−41%**；字符 1,654 → 863，**−48%**），`r70-14` 是固定三组里**第一次零疑问**；✅ 断言集未变、无新 FAIL 类；✅ 离线 **23/44 ≥ 22/44** ⇒ 回退未触发；✅ 成本按 `AGENTS.md` §8 报：wall 463.6 → 424.9 s（**−8%**）但 out_tok 83,287 → 85,010（**+2%**）、reasoning 56,475 → 58,074（**+3%**）⇒ **两项不同向、均在噪声内，不称提速/减负**。
+⚠️ 辅判据旧 proxy（`gate-check` 15.3 → 18.3）**上升**，但**分桶证明这是 proxy 语义被本轮改动改变**：读脚本 15 → 25（本轮**正是**要求模型拿不准就去跑脚本）、念清单 27 → 24（下降）；步数 30.0 → 27.3 说明「去读脚本」没有额外开销。⇒ 该 proxy 已失效，**既不作改善证据，也不构成否决**。
+
+### 我方能改的
+
+- **R71-1（首选，真口径冲突）**：`references/chart-templates.md:33` 写「某组不满足可比条件则该组不出图，**并在表格说明原因**；…在**正文/表格**说明不出定量图的原因」，而 `references/cross-trial-comparison.md:143` 写「**never** a `不绘图原因` label: **state what the data cannot support as part of the prose**」，`check_report.py` 又把 `不绘图原因` 判 **FAIL** ⇒ **我们自己两处口径打架**。`r70-4` 逐字仲裁：*"Wait — 「state in the table why no quantitative chart is drawn」 — that's a self-narration label (`不绘图原因` is banned as a column name!)"*。改法：把「在表格说明」收紧为「说明写在**正文或材料差异列**里，不要做成 `不绘图原因` 这类自述列/标签」，与 `:143` 对齐。
+- **R71-2**：`r70-18` 仍有 **1 次整张禁令清单逐字复述**（~60 词，R69 为 4 次）——「背清单」行为的残余；可试「清单只留判据 + 一个脚本入口，不复述举例」。**先取证再改**。
+- **R71-3（度量口径）**：`docs/evidence/r69-metric.py` 的 `gate-check` 意义已被改动改变 ⇒ 要么按 §5 拆成「读脚本 / 念清单」固定两桶，要么把 `r70-metric.py` 提为主判据并同步更新 `AGENTS.md` 的判据定义。
+- **R71-4（流程缺口）**：`AGENTS.md` §4 的 `results.tsv` 台账**自 R52 起未再追加**（4/18/14 三组不在冻结 A/B 场景集内，`tools/replay-run.py --score` 一律记 `scenario=unknown`）⇒ 需用户定：给这三组建场景定义，还是把 TSV 口径改成「按组记」。
+
+### 平台侧（转开发）
+
+- **P-R53-1**：十二跑（R67 ×3 + R68 ×3 + R69 ×3 + R70 ×3）形态一致（`fails=['tool_results receipts archived']`，`/workspace/tool_results/…/result.jsonl: unsafe or unsupported receipt path`），唯一 FAIL，与各轮改动无关。
+
+**完整证据**：[r70-litigation-vs-gate-vocabulary-2026-10-14.md](evidence/r70-litigation-vs-gate-vocabulary-2026-10-14.md)。
