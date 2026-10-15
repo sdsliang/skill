@@ -347,14 +347,12 @@ never referenced by the report, and a table cell citing the same ref twice.
   fact ledger and values there are expected; the aligned-detail section is where the table belongs;
 * an appendix that opens with a prose block instead of the renderer's legend — the appendix is
   renderer output (title, `—` legend, columns), never a place for a layout specification;
-* the report narrating itself: a self-label bullet or table column (`分析模式` / `选择依据` /
-  `可比性结论` / `对齐等级` / `不绘图原因` / `有限并列原因` / `纳入标准` / `检索策略` / `报告结构`), our own
-  work presented as a class (`可绘图` / `只能有限并列` / `不具备绘图条件` / `部分对齐` / `仅背景对齐`), a
-  process phrase (`本次选择` / `本次纳入` / `我们选择` / `本轮`), an internal field or runtime word
-  (`src=` / `esid` / `payload` / `JSONL` / `MCP` / 工作区 / 沙箱), or a self-audit tail (`无未复核记录` /
-  `无遗漏` / `全部通过`). The two kept slots are the non-head-to-head caveat and the `原文核对：`
-  line, both written as material statements. Broad self-reference (`本报告` / `本次`) is a warning,
-  not a failure.
+* the report narrating itself: through the lens of **meaning, not spelling** — any wording that presents
+  our own method, grading or bookkeeping instead of what the material says (the gate names the exact
+  token when it fires: e.g. a self-label column heading like `选择依据`, our own verdict turned into a
+  class like `部分对齐`, an internal field like `payload`). The two kept slots are the non-head-to-head
+  caveat and the `原文核对：` line, both written as material statements. Broad self-reference
+  (`本报告` / `本次`) is a warning, not a failure.
 
 Exit `0` — nothing fatal (warnings are printed and do **not** change the exit code) · `3` at least
 one FAIL, the product is broken · `2` usage/IO. Run it **before** `present_artifact`; the run is
@@ -426,10 +424,9 @@ disclosures in one trial → `**试验名**<br>注册号 · N 条披露`; one di
   need to re-litigate them per run. The test is **meaning, not spelling**: a word that names a
   *material property* is always legal — `成熟度`, `证据强度`, `判断强度`, `解读边界`, `组内证据关系`,
   `归属组`, `归组依据`, `可比性` as a limit. Only one thing is banned: phrasing that presents **our own
-  analysis, grading or process** as a deliverable (`分析模式` / `选择依据` / `可比性结论` / `对齐等级` /
-  `不绘图原因` and the class words like `部分对齐`). The banned list in the skill is a set of common
-  shapes, **not a checklist to memorize**; settle uncertainty by running `check_report.py` once, not
-  by re-deriving each word in your head.
+  analysis, grading or process** as a deliverable (`选择依据`-style headings, `部分对齐`-style class
+  words). The gate's own message names the token it hit, and settle uncertainty by running
+  `check_report.py` once, not by re-deriving each word in your head.
 * **Is my aligned-detail column header allowed to end with `（高/中/低可比性）`?** Yes — it states how
   firm the material comparison is. It is not `可比性结论`; do not rewrite it as a class label.
 * **Did my body survive?** One `check_report.py -v` pass, and the assertions inside `patch.py`. A

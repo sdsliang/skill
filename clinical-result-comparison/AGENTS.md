@@ -1,5 +1,27 @@
 # AGENTS.md — 常驻 program.md（autoresearch 循环）
 
+## R72 完成（2026-10-15，**已原地发布 + 三组验收；五条预登记判据全中 ⇒ KEEP，主判据归零**）
+
+**单变量**：禁令在常读路径的**呈现方式**（枚举清单 → 语义判据 + 3 个典型形态 + 指针）。**禁什么没变**；
+门禁正则 / 断言集 / `templates/` 一行未动。
+
+**复述源取证（改前红证据）**：`r71-18` 的 28 词复述 **27/28 命中 `references/toolbox.md`**、21/28 命中 `SKILL.md`；
+`r71b-4` 的 9 词复述 **9/9 全在 `toolbox.md`** ⇒ 要压的是 toolbox.md 那份（模型按装载契约每跑读一次它）。
+
+**改动**：`SKILL.md:197` + `references/toolbox.md`（FAIL 条目 + R70 FAQ）两处枚举 → 判据 + 3 例 + 「不要背清单」
++ 指向 `toolbox.md` / `check_report.py`（保留 R70 的「永远合法材料属性词」清单）。
+
+**R72-1 结案 = 非缺陷，不改**：`本次` 自指 WARN 是 `SELF_REFERENCE_RE`（`check_report.py:75`）的设计内 A-P10
+行为（WARN 从不改退出码）；`r71b-4` msg29 模型原话 *“The WARN is not a failure (exit 0), but let me fix it for quality”*。
+
+**实测（4/18/14 串行 web off）**：主判据 **0 句**（R71 4、R70 7；每 10 万 reasoning 字符 0.0 vs 0.7 / 1.4）；
+辅判据 **5 句**（R71 19、R70 13），且残余触发词**全是合法材料属性词**（`成熟度`×4 / `可比性` / `判断强度`），
+**一个禁令词都没有**；复述句 **0 条 ×3**；交付物门禁词 **0/0/0**；断言 **22P/1F** ×3（唯一 FAIL = 平台 `P-R53-1`）；
+离线 **23/25/24**（group-4 23 ≥ R70 23 > R71 22）；steps 均值 28.3 / out_tok 均值 90,324（R71 30.7 / 152,628）。
+发布：skill v1.0.9 原地（dist 185,910 B / `4f837df865b4`），prompt v1.8 未动，`in sync`，`GATES_FAILED=0`。
+**不吹**：n=3；`r72-18` 39 步（单跑离散仍在）；本批平台较快，墙钟**不称提速**。
+证据：[`docs/evidence/r72-banlist-presentation-2026-10-15.md`](docs/evidence/r72-banlist-presentation-2026-10-15.md)。
+
 ## R71 完成（2026-10-15，**已原地发布 + 三组验收；真矛盾修掉，但三条预登记判据全未达标 ⇒ 不称改善，建议保留**）
 
 - **改了**：把「不画图的原因写在哪」这一处口径在 **5 个位置**统一（prompt 1 + `SKILL.md` 1 + `references/chart-templates.md` 2 + `references/cross-trial-comparison.md` 1）—— 原文教模型「不出图就**在表格里说明原因**」，而 `check_report.py` 恰好把 `不绘图原因` 形态判 **FAIL**，`cross-trial-comparison.md:143` 又写「**never** a `不绘图原因` label」⇒ **我们自己两处打架**（`r70-4` 逐字仲裁过）。现统一为：原因写成**材料/数据的限制**，放在**正文**或表内**已有材料属性列**里，**不要**做成自述列名/标签。**门禁正则、断言集、`templates/` 一行未动。**
@@ -433,6 +455,36 @@ toolsmith-publish status | deps | tools | instructions                    # 平�
 复算脚本：`docs/evidence/r70-wall-clock-regression.py`（21 跑墙钟/字数/思考量 + 相关系数）。
 
 ---
+
+## R72 预登记（2026-10-15，**判据在改之前已定**；用户已同意「先试 A，救不回来就 B」）
+
+**先结掉 R72-1（原候选①）= 非缺陷。** `r71b-4` 里那条「`本次` 自指 WARN 触发正文重写」查清了：
+`check_report.py:75 SELF_REFERENCE_RE` + `:216 warnings.append("the report refers to itself …")` 是**设计内的 WARN（A-P10）**，
+模型 msg29 原话 *“The WARN is not a failure (exit 0), but let me fix it for quality”* —— 它是**主动按质量改**，改后
+「本次检验的成熟度」→「该终点当前的事件成熟度」**确实更好**，成本 ~1 步。⇒ **不改这一条**（我方能改的项不许凭感觉改）。
+
+**R72 单变量 = 禁令在常读路径的「呈现方式」**（枚举清单 → 语义判据 + ≤3 个典型形态 + 指针）。**禁什么没变**、
+门禁正则/断言集/`templates/` 一行不动。诱因有实证：`r71-18` 逐字复述的那串 28 个词，逐词对上的不是
+`SKILL.md:197`，而是 **`references/toolbox.md:351` 的枚举**（模型按装载契约「read it once per run」读了它）；
+`SKILL.md:197` 是第二处枚举。两处都改成「判据 + 3 例 + `check_report.py` 逐条点名 + toolbox 指针」。
+
+**改前基线（同一脚本）**：主判据 4 句（R71）/ 7 句（R70）；辅判据 19 句（R71）/ 13 句（R70）；
+产物禁词命中 0；steps 均值 30.7（max 33）；out_tok 均值 152,628；离线 22 / 24 / 29。
+
+**判据（全部要满足才算「救回来」）**：
+1. **主判据**（`docs/evidence/r71-metric.py`，定义不变）**≤ 2 句**，且必须并列「每 10 万 reasoning 字符」；
+2. **辅判据**（`docs/evidence/r70-metric.py`）**≤ 10 句**；
+3. **产物零禁词**：三跑 `artifacts/` 里 10 个禁词命中必须 **0**（防「删清单 ⇒ 产物变脏」的反向代价）；
+4. **不得拿返工换分**：steps 均值 ≤ 33 **且** out_tok 均值 ≤ 160k；
+5. 断言 **22P/1F**（唯一 FAIL = 平台 `P-R53-1`，断言集不得改）；离线 `--scenario a` 的 4 组 **≥ 23/44**。
+
+**判定**：1–4 全中且 5 不劣 ⇒ **KEEP，且允许说「减少了本体记账」**；主判据 = 3 ⇒ 噪声内不称改善；
+**主判据 ≥ 4 或产物出现禁词 或 steps 均值 > 40 或离线 < 22 ⇒ 判「救不回来」= B：回退 R71 + R72（`git revert`）**。
+
+**发布**：改完本地闸门全绿 → `pack-dist` → **发布前必须再问一次「原地」授权**（硬规则）→ 原地发布 skill v1.0.9（prompt v1.8 不动）→ 固定三组 4/18/14 真跑。
+**墙钟**：按 §8，平台吞吐仍在漂移则**只报 wall + out_tok，不称提速**。
+
+**结果（2026-10-15 收盘）：五条判据全中 ⇒ KEEP**（主 0 · 辅 5 · 产物 0 · steps 28.3 / out_tok 90,324 · 断言 22P/1F 且离线 23/25/24）。B（回退）未触发。
 
 ## R71 预登记（2026-10-15，**判据在改之前已定**）
 

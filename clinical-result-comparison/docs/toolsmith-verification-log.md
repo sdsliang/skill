@@ -3069,3 +3069,38 @@ $ toolsmith-publish deps --accept && toolsmith-publish deps
 - **P-R71-1（本轮新见，建议核）**：`r71-4` 的 turn 在 `/timing` 里 `completed_at=None` 且 `total_latency_ms=0`，但消息与产物（724 KB `messages.json`、`debug-history.json` 3.7 MB）已落库 ⇒ 平台在该次 turn 上**未持久化 timing 行**；按现有口径该 run 无法判为已验证（`inconclusive`）。
 
 **完整证据**：[r71-chart-reason-contradiction-2026-10-15.md](evidence/r71-chart-reason-contradiction-2026-10-15.md)。
+
+---
+
+## R72 — 禁令「呈现方式」：枚举清单 → 语义判据 + 三形态 + 指针（2026-10-15）
+
+**假设**：R71 残留的主判据句（逐字复述禁令清单、仲裁「这句算不算标签」）不是理解问题，而是**常读文本里那份枚举在被背诵**。复述源取证：`r71-18` 那条 28 词复述 **27/28 命中 `references/toolbox.md`**（`SKILL.md` 只有 21/28）、`r71b-4` 的 9 词复述 **9/9 全在 `toolbox.md`** ⇒ 单变量 = 禁令在常读路径的**呈现方式**（枚举 → 判据 + ≤3 典型形态 + 指针）。**禁什么没变**，门禁正则 / 断言集 / `templates/` 一行未动。
+
+**改前基线**：主判据 4 句（R71）/ 7（R70）；辅判据 19（R71）/ 13（R70）；产物禁词 0；steps 均值 30.7；out_tok 均值 152,628；离线 22/24/29。
+
+**改动**（2 文件 13 行）：`SKILL.md:197` 的 ~13 词枚举 →「语义判据 + 3 个典型形态 + 不要背清单 + 指向 `toolbox.md` / `check_report.py`」；`references/toolbox.md` 的 28 词 + 5 词两处枚举 → 3 个示例，保留 R70 的「永远合法材料属性词」清单与「门禁命中会点名该词」。
+
+**顺带结案 R72-1 = 非缺陷（不改）**：`本次` 自指是 `SELF_REFERENCE_RE`（`check_report.py:75`）的设计内 WARN（A-P10，WARN 从不改退出码），`r71b-4` msg29 模型原话 *“The WARN is not a failure (exit 0), but let me fix it for quality”*——它是主动按质量改，改后句子更好。
+
+**发布**：`deps` unchanged；skill **v1.0.9 原地更新**（`skill_id 16aeb0406e12425bad27a2444f17225e`，`2026-10-15T15:59:46`）；dist 29 entries / **185,910 B / sha `4f837df865b4`**；回读 29/29 identical / differing=0 / `deployed == local tree: True`；prompt v1.8 未动（`81876` / `ec562b525b64`）；`STATUS: in sync`；本地 **`GATES_FAILED=0`**（13 套，含 `test-check-report` 31、`mutations`、`verify-run-chain` GATE PASS、`node --test`）。
+
+**真跑**（4/18/14，串行，web off，`DeepSeek Flash`，输入与历史 12 跑逐字节相同）：
+
+| run | dir | wall s | 步 | out_tok | reasoning tok | 断言 | 主判据 | 辅判据 |
+|---|---|---:|---:|---:|---:|---|---:|---:|
+| `r72-4` | `20261015-155953` | 332.2 | 21 | 61,218 | 46,339 | 22P/1F | 0 | 4 |
+| `r72-18` | `20261015-160542` | 558.2 | 39 | 103,098 | 64,210 | 22P/1F | 0 | 1 |
+| `r72-14` | `20261015-161527` | 546.9 | 25 | 106,657 | 68,825 | 22P/1F | 0 | 0 |
+| **均值** | | **479.1** | **28.3** | **90,324** | 59,791 | | **0** | **5** |
+
+- 三跑唯一 FAIL 同形 = 平台 `P-R53-1`（十五跑一致）⇒ 断言集未变、无新 FAIL 类；`outcome=succeeded`。
+- **复述句 0 条 ×3**（R71 为 2 条 28 词 / 9 词）；**交付物门禁词命中 0/0/0**（`r72-artifact-scan.py`，用门禁自己的正则）；离线 `--scenario a` = **23 / 25 / 24**（group-4 23 ≥ R70 的 23 > R71 的 22）。
+
+**五条预登记判据全中 ⇒ KEEP**（主 0 ≤ 2 · 辅 5 ≤ 10 · 产物 0 · steps 28.3 ≤ 33 且 out_tok 90,324 ≤ 160k · 断言/离线不劣）。归因：辅判据残余触发词**全是合法材料属性词**（`成熟度`×4、`可比性`×1、`判断强度`×1），**一个禁令词都没有**（R71 残余含 `不绘图原因`/`部分对齐`/`可比性结论`/`不具备绘图条件`/`选择依据`）——争议对象从「我们的词表」换成「材料的含义」。
+**不吹的部分**：n=3 单批；`steps` 单跑离散仍在（`r72-18` 39 步）；本批平台较快（332–558 s vs R71 538–1487 s），墙钟**不称提速**，只能说成本未因本次改动上升（`out_tok` 90,324 与 R70 85,010 同级）。
+
+**我方能改的（本轮新增候选）**：`r72-4` 的 4 句辅判据全是同一个词 `成熟度`，疑为模板列名 `证据成熟度与限制` 与判据词同形导致的重复自问（先取样本定性，不直接改）；离线 `A-W1-dose-mapping` 历史全批 0/1（判评测口径 vs 真实缺漏）。
+
+**平台侧（第 16–17 跑一致）**：`P-R53-1`（`tool_results receipts archived`，唯一 FAIL，与各轮改动无关）；`P-R71-1`（`r71-4` turn 行未持久化 timing）。
+
+**完整证据**：[r72-banlist-presentation-2026-10-15.md](evidence/r72-banlist-presentation-2026-10-15.md)（§0–§7）。
