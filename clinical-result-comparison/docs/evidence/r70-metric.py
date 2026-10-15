@@ -16,20 +16,22 @@ for d in sorted(base.iterdir()):
     pat = sys.argv[1] if len(sys.argv) > 1 else r"^r(67|68|69|70)-(4|18|14)$"
     if not re.match(pat, tag): continue
     md = d/"messages.json"
-    if not md.exists(): continue
-    hits = collections.Counter(); n = 0; chars = 0
+    if not md.exists():
+        print(f"{tag:8} 跳过（无 messages.json）"); continue
+    hits = collections.Counter(); n = 0; chars = 0; rchars = 0
     for m in json.loads(md.read_text()):
         for p in m.get("parts", []):
             if p.get("type") != "reasoning": continue
+            rchars += len(p.get("text") or "")
             for s in SPLIT.split(p.get("text") or ""):
                 if not s: continue
                 b = [w for w in BAIT if w in s]; k = [w for w in MARK if w in s]
                 if b and k:
                     n += 1; chars += len(s)
                     for w in set(b): hits[w] += 1
-    per_run[tag] = (n, chars, hits); total.update(hits)
+    per_run[tag] = (n, chars, hits, rchars); total.update(hits)
 print(f"{'run':8} {'疑问句数':>8} {'字符':>8}  主要触发词")
-for tag,(n,chars,hits) in sorted(per_run.items()):
-    print(f"{tag:8} {n:8d} {chars:8,d}  " + ", ".join(f"{w}×{c}" for w,c in hits.most_common(5)))
+for tag,(n,chars,hits,rchars) in sorted(per_run.items()):
+    print(f"{tag:8} {n:8d} {chars:8,d} 每10万字符 {100000*n/rchars if rchars else 0:5.1f}  " + ", ".join(f"{w}×{c}" for w,c in hits.most_common(5)))
 print("\n按词聚合（9 跑合计，降序）:")
 for w,c in total.most_common(30): print(f"  {w:12} {c}")

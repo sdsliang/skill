@@ -3032,3 +3032,40 @@ $ toolsmith-publish deps --accept && toolsmith-publish deps
 - **P-R53-1**：十二跑（R67 ×3 + R68 ×3 + R69 ×3 + R70 ×3）形态一致（`fails=['tool_results receipts archived']`，`/workspace/tool_results/…/result.jsonl: unsafe or unsupported receipt path`），唯一 FAIL，与各轮改动无关。
 
 **完整证据**：[r70-litigation-vs-gate-vocabulary-2026-10-14.md](evidence/r70-litigation-vs-gate-vocabulary-2026-10-14.md)。
+
+---
+
+## R71 — 「不画图的原因写在哪」：我们自己 5 处口径打架（2026-10-15 改 / 原地发布 / 验收同批）
+
+**目标（真跑前预登记在 `AGENTS.md`）**：R70 之后，思考里的合法性仲裁集中到**我们自己造出来的矛盾**上 —— `references/chart-templates.md:33/35` 说「该组不出图，**并在表格说明原因**」「在**正文/表格**说明不出定量图的原因」，`references/cross-trial-comparison.md:157` 与 `SKILL.md:191` 说「reason stated in the table」，prompt 说「state in the table why no quantitative chart is drawn」，而 `cross-trial-comparison.md:143` 又写「**never** a `不绘图原因` label … as part of the prose」，`check_report.py` 恰好把该形态判 **FAIL**。**预登记主判据**：图表原因用词的合法性仲裁（`docs/evidence/r71-metric.py`，按句判「图表原因词 × 疑问标记」）**≤ 3 句**（改前基线用同一脚本量 R70 = **7 句**，且 `r71-4` ≤ 1）；**辅判据**：R70 的主判据（`r70-metric.py`）不得回升（≤ **13** 句）；断言维持 **22P/1F**；回退 = 断言集变化 / 新 FAIL 类 / 离线分 < `r70-4` 的 **23/44**。
+
+**改前红证据**：`git show HEAD` 计数 **SKILL.md 1 / chart-templates.md 2 / cross-trial-comparison.md 1 / prompt 1 = 5 处**，改后全 **0**；门禁视角证明是真矛盾（喂「按改前指令会写出的那行」`| 组 | 不绘图原因 |` / `- 不绘图原因：数值不可比` → `META_COLUMN_RE` 与 `META_LABEL_RE` **双命中 = 交付失败**）；`r70-4` 思考通道**逐字仲裁过**这一处（*“that's a self-narration label (「不绘图原因」 is banned as a column name!)”*）。
+
+**改动（单变量：原因写在哪）**：5 处统一为「原因写成**材料/数据的限制**（数值不可比 / 只有单个数值 / 人群不同），放在**正文**或表内**已有的材料属性列**里；**不要**做成 `不绘图原因` / `无法绘图` 这类**自述列名或标签**（`check_report.py` 判 FAIL）」。**门禁正则、断言集、`templates/` 结构一行未动。**
+
+**发布**：用户授权「**原地**」；`deps` = unchanged；`publish` 原地更新 prompt **v1.8**（内容替换，`sha=ec562b525b64`）与 skill **v1.0.9**（`skill_id` 不变，`2026-10-15T13:50:24`）；回读 **29/29 identical、differing=0**、`STATUS: in sync`、平台包与本地树 `diff -r` **全等**；dist **186,041 B / sha `9497a814b125`**；`GATES_FAILED=0`（14 套，含 `mutations` a 44/44 b 12/12、`node --test` 16）。
+
+| run | 目录 | wall s | 步 | **out_tok** | reasoning tok | 断言 | 主判据句 | 辅判据句 |
+|---|---|---:|---:|---:|---:|---|---:|---:|
+| `r71b-4` | `20261015-145135` | 1378.0 | 32 | 148,786 | 116,316 | 22P/1F | 2 | 11 |
+| `r71-18` | `20261015-135928` | 1486.8 | 27 | 209,910 | 154,712 | 22P/1F | 2 | 8 |
+| `r71b-14` | `20261015-151442` | 538.2 | 33 | 99,187 | 72,983 | 22P/1F | **0** | 0 |
+| **均值** | | **1134.3** | 30.7 | **152,628** | 114,670 | | **4 句**（R70 7） | **19 句**（R70 13） |
+
+（固定 4/18/14，串行，web off，`DeepSeek Flash`。**本批平台吞吐明显漂移**：out_tok 均值 152,628 对 R70 的 85,010、reasoning 114,670 对 58,074、wall 1134 s 对 425 s（其中 638–782 s 是建线程/落盘/收尾）。三跑唯一 FAIL 同形 = `tool_results receipts archived`，与 R67–R70 十二跑一致 ⇒ 断言集未变、无新 FAIL 类。**首次 `r71-4` 判 `inconclusive`**（turn 行无 `completed_at`、`total_latency_ms=0`，但有 724 KB `messages.json`）⇒ 重跑为 `r71b-4`；`r71-14` 被我自己的 `timeout 1500` 掐断 ⇒ 重跑为 `r71b-14`。输入在 `/tmp` 被清空后从历史 run 目录还原，与历史 12 跑 **`cmp` 逐字节相同**。）
+
+**判定：预登记三条判据全部未达标 ⇒ 不称任何改善；建议保留（交用户裁定）。** ❌ 主判据 **4 > 3**（落在预登记的「4–7 噪声带」；但按字符归一化 **1.4 → 0.7 每 10 万字符**，且 R70→R71 的 reasoning 字符从 506,684 涨到 603,723）；❌ 辅判据 **13 → 19 句回升**（归一化 2.6 → 3.1），命中预登记的 discard 触发条件，但**逐句归类只有 ~2 句可归因本轮**（新出现的 `本次` WARN 返工），另有 2 句是「读模板列名」被 `Hmm` 这个过松的疑问标记计入；⚠️ 离线 `r71b-4` **22/44 < 23/44**，回退条件字面命中 1 分；✅ 断言 **22P/1F ×3** 且无新 FAIL 类。**保留理由**：改前 5 处教模型写出的形态被门禁当场判 FAIL（可复现），撤回去＝把真矛盾装回去；三条未达标量级都极小。**与 R69 同款裁定：真错修掉 + 被测试钉住，但不声称减负/提速。**
+
+### 我方能改的
+
+- **R72-1（首选，本轮新发现）**：`r71b-4` 写出「…该终点当前的**事件成熟度**低于原设计预期」这类**正文材料限制句**后，`check_report.py` 因 `本次` 触发 **WARN（自指）**，模型随即整句重写（`check_report WARN: the report refers to itself ('本次')`）。**R70 刚写进 `SKILL.md` 的「FAIL 才改、WARN 不是失败」模型没照做** ⇒ 指引需要更强表达，或在 `toolbox.md` 给一个「正文写材料限制」的合规模板句（避开 `本次`/`本报告`）。
+- **R72-2**：主判据残留 4 句中 **2 句**是**整张禁令清单逐字复述**（R70 4 次 / R71 2 次）⇒ 试着把清单从「列举」压成「判据 + 一个脚本入口」，或把清单移出常读路径（硬规则段只留判据）。
+- **R72-3（度量口径，按 §6 三条教训）**：以后句数判据**必须并列「每 10 万 reasoning 字符」**，平台吞吐明显漂移（本轮 out_tok 1.8×）时**强制跑一次对照重跑**；疑问标记收紧为判定性提问（`Hmm`/`Wait` 太松，会把「读模板列名」算成仲裁）；BAIT 分「模板列名」与「禁令词」两类报告。
+- **R72-4（记账）**：`results.tsv` 自 R52 起未追加（4/18/14 不在冻结 A/B 场景集 ⇒ `tools/replay-run.py --score` 一律 `scenario=unknown`）⇒ 需用户定口径（给这三组建场景定义，或 TSV 改「按组记」）；本轮三跑的 commit / `deployed_sys_sha` / 输入 md5 已齐。
+
+### 平台侧（转开发）
+
+- **P-R53-1**：十三跑（R67/R68/R69/R70 各 ×3 + R71 ×3，另 `r71-4` 未验证）形态一致（`fails=['tool_results receipts archived']`，`/workspace/tool_results/…/result.jsonl: unsafe or unsupported receipt path`），唯一 FAIL，与各轮改动无关。
+- **P-R71-1（本轮新见，建议核）**：`r71-4` 的 turn 在 `/timing` 里 `completed_at=None` 且 `total_latency_ms=0`，但消息与产物（724 KB `messages.json`、`debug-history.json` 3.7 MB）已落库 ⇒ 平台在该次 turn 上**未持久化 timing 行**；按现有口径该 run 无法判为已验证（`inconclusive`）。
+
+**完整证据**：[r71-chart-reason-contradiction-2026-10-15.md](evidence/r71-chart-reason-contradiction-2026-10-15.md)。
