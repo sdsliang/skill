@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="utf-8">
+<title>「备注」样式小样 — 临床结果对比报告</title>
+<style>
+  /* 色值取自平台 frontend/src/index.css（:root / .dark 原值，未改写） */
+  :root{
+    --bg: oklch(0.985 0.003 106);
+    --fg: oklch(0.245 0.018 157);
+    --muted-fg: oklch(0.46 0.024 156);
+    --muted: oklch(0.96 0.007 120);
+    --border: oklch(0.875 0.008 150);
+    --accent: oklch(0.935 0.027 155);
+    --accent-fg: oklch(0.385 0.075 155);
+    --destructive: oklch(0.57 0.205 25);
+  }
+  [data-theme="dark"]{
+    --bg:#111318; --fg:#eef0f4; --muted-fg:#929aa8; --muted:#191c23;
+    --border:#353b48; --accent:#292137; --accent-fg:#eef0f4; --destructive:#f47772;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:28px 20px 72px;
+    background:var(--bg); color:var(--fg);
+    font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+    font-size:14px;              /* ArtifactMarkdownViewer 的外层就是 text-sm */
+    line-height:1.65;
+  }
+  .wrap{max-width:760px;margin:0 auto}
+  .bar{position:sticky;top:0;z-index:9;display:flex;gap:10px;align-items:center;
+       padding:10px 0 14px;background:var(--bg);border-bottom:1px solid var(--border);margin-bottom:26px}
+  .bar b{font-size:13px;letter-spacing:.02em}
+  button{font:inherit;font-size:12px;padding:5px 12px;border:1px solid var(--border);
+         background:var(--muted);color:var(--fg);border-radius:6px;cursor:pointer}
+  button:hover{background:var(--accent);color:var(--accent-fg)}
+  .hint{color:var(--muted-fg);font-size:12px}
+
+  /* ── 报告正文：按 streamdown 默认排版近似（色值/引用块为平台原值） ── */
+  .doc{font-size:14px}
+  .doc h1{font-size:1.5rem;font-weight:600;margin:0 0 .6em;letter-spacing:-.01em}
+  .doc h2{font-size:1.17rem;font-weight:600;margin:1.9em 0 .7em;padding-bottom:.25em;border-bottom:1px solid var(--border)}
+  .doc h3{font-size:1.02rem;font-weight:600;margin:1.5em 0 .5em}
+  .doc p{margin:.75em 0}
+  .doc strong{font-weight:600}
+  .doc em{font-style:italic}
+  .doc ul{margin:.7em 0;padding-left:1.3em}
+  .doc li{margin:.3em 0}
+  .doc table{width:100%;border-collapse:collapse;margin:1em 0;font-size:13px}
+  .doc thead{background:var(--muted)}
+  .doc th{text-align:left;font-weight:600;padding:7px 9px;border-bottom:1px solid var(--border);
+          border-right:1px solid var(--border);vertical-align:top}
+  .doc td{padding:7px 9px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);vertical-align:top}
+  .doc th:last-child,.doc td:last-child{border-right:0}
+
+  /* ★ 平台真实引用块样式（streamdown 2.3.0 原类名）：
+     my-4 border-muted-foreground/30 border-l-4 pl-4 text-muted-foreground italic */
+  .doc blockquote{
+    margin:1rem 0; border-left:4px solid color-mix(in oklab, var(--muted-fg) 30%, transparent);
+    padding-left:1rem; color:var(--muted-fg); font-style:italic;
+  }
+  .doc blockquote p{margin:0}
+
+  /* 变体：同色但不斜体 / 同色斜体 + 小一号 —— 后两者 markdown 做不到，仅作对照 */
+  .v-muted{color:var(--muted-fg)}
+  .v-small{font-size:.83em}
+
+  /* ── 说明卡（不是报告内容，只为小样标注） ── */
+  .case{margin:2.2rem 0 0;border:1px solid var(--border);border-radius:10px;overflow:hidden}
+  .case > header{display:flex;flex-wrap:wrap;gap:8px;align-items:baseline;
+                 padding:9px 14px;background:var(--muted);border-bottom:1px solid var(--border)}
+  .case > header b{font-size:13px}
+  .tag{font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid var(--border);color:var(--muted-fg)}
+  .tag.ok{color:var(--accent-fg);background:var(--accent);border-color:transparent}
+  .tag.no{color:var(--destructive);border-color:currentColor}
+  .case > .body{padding:4px 16px 16px}
+  .src{margin:10px 14px 0;padding:9px 11px;background:var(--muted);border-radius:6px;
+       font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;color:var(--muted-fg);white-space:pre-wrap}
+  .gone{outline:1px dashed var(--destructive);outline-offset:3px;padding:4px 6px;border-radius:4px}
+  .chartmock{border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin:10px 0;background:var(--bg)}
+  .chartmock .t{font-size:13px;font-weight:600}
+  .chartmock .note{font-size:11px;color:var(--muted-fg);margin-top:2px}
+  .chartmock .plot{display:flex;gap:18px;align-items:flex-end;height:88px;margin-top:12px;padding-left:4px;border-bottom:1px solid var(--border)}
+  .chartmock .bar{width:38px;border-radius:3px 3px 0 0;background:color-mix(in oklab, var(--accent-fg) 55%, transparent)}
+  .legend{font-size:11px;color:var(--muted-fg);margin-top:8px}
+  .verdict{margin:2.4rem 0 0;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--muted)}
+  .verdict h2{margin:0 0 .5em;font-size:14px}
+  .verdict table{font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="bar">
+    <b>「备注」样式小样</b>
+    <span class="hint">色值与引用块样式取自平台源码；字号/正文排版为 streamdown 默认的近似</span>
+    <span style="flex:1"></span>
+    <button onclick="toggle()">切换浅色 / 深色</button>
+  </div>
+
+  <!-- ════════ 0. 现状 ════════ -->
+  <section class="case">
+    <header>
+      <b>现状</b><span class="tag">备注平铺在正文里</span>
+      <span class="tag no">与正文完全同色同字号，读不出「这是附注」</span>
+    </header>
+    <div class="body doc">
+      <h2>五、终点家族扫描与跨试验纵向解读</h2>
+      <p>PFS 在两组中均为主要疗效终点，但事件定义与评估时点不同，只作方向性并列，不做合并估计。</p>
+      <p>备注：CONFIDENCE 与 VENTANA-1 的 PFS 事件定义分别为影像学进展与死亡或进展的复合终点，此处仅用于对照阅读。</p>
+    </div>
+    <div class="src">备注：CONFIDENCE 与 VENTANA-1 的 PFS 事件定义分别为……</div>
+  </section>
+
+  <!-- ════════ A. 引用块 ════════ -->
+  <section class="case">
+    <header>
+      <b>方案 A</b><span class="tag">`&gt;` 引用块</span>
+      <span class="tag ok">灰色 ✅ 左竖线 ✅ 斜体 ✅ 字号不变</span>
+    </header>
+    <div class="body doc">
+      <h2>五、终点家族扫描与跨试验纵向解读</h2>
+      <p>PFS 在两组中均为主要疗效终点，但事件定义与评估时点不同，只作方向性并列，不做合并估计。</p>
+      <blockquote><p>备注：CONFIDENCE 与 VENTANA-1 的 PFS 事件定义分别为影像学进展与死亡或进展的复合终点，此处仅用于对照阅读。</p></blockquote>
+      <p>两组的中位 PFS 分别为 8.4 个月与 6.9 个月，事件成熟度不同，不宜直接比较长短。</p>
+    </div>
+    <div class="src">&gt; 备注：CONFIDENCE 与 VENTANA-1 的 PFS 事件定义分别为影像学进展与死亡或进展的复合终点，此处仅用于对照阅读。</div>
+  </section>
+
+  <!-- ════════ B. 斜体 ════════ -->
+  <section class="case">
+    <header>
+      <b>方案 B</b><span class="tag">纯斜体</span>
+      <span class="tag no">只有字形变化，颜色仍是正文色</span>
+    </header>
+    <div class="body doc">
+      <h2>五、终点家族扫描与跨试验纵向解读</h2>
+      <p>PFS 在两组中均为主要疗效终点，但事件定义与评估时点不同，只作方向性并列，不做合并估计。</p>
+      <p><em>备注：CONFIDENCE 与 VENTANA-1 的 PFS 事件定义分别为影像学进展与死亡或进展的复合终点，此处仅用于对照阅读。</em></p>
+    </div>
+    <div class="src">*备注：CONFIDENCE 与 VENTANA-1 的 PFS 事件定义分别为……*</div>
+  </section>
+
+  <!-- ════════ C. 小标题 ════════ -->
+  <section class="case">
+    <header>
+      <b>方案 C</b><span class="tag">`#### 备注` 小标题</span>
+      <span class="tag">层级清楚，但还是正文色</span>
+    </header>
+    <div class="body doc">
+      <h2>五、终点家族扫描与跨试验纵向解读</h2>
+      <p>PFS 在两组中均为主要疗效终点，但事件定义与评估时点不同，只作方向性并列，不做合并估计。</p>
+      <h3 style="font-size:.9rem;color:var(--muted-fg);margin-top:1.2em">备注</h3>
+      <p>CONFIDENCE 与 VENTANA-1 的 PFS 事件定义分别为影像学进展与死亡或进展的复合终点，此处仅用于对照阅读。</p>
+    </div>
+    <div class="src">#### 备注
+CONFIDENCE 与 VENTANA-1 的 PFS 事件定义分别为……</div>
+  </section>
+
+  <!-- ════════ D. 灰 + 小一号（做不到） ════════ -->
+  <section class="case">
+    <header>
+      <b>方案 D</b><span class="tag">inline HTML：灰 + 小一号</span>
+      <span class="tag no">做不到 —— 平台没有 rehype-raw，HTML 会被丢弃</span>
+    </header>
+    <div class="body doc">
+      <h2>五、终点家族扫描与跨试验纵向解读</h2>
+      <p>PFS 在两组中均为主要疗效终点，但事件定义与评估时点不同，只作方向性并列，不做合并估计。</p>
+      <p style="margin:.75em 0;color:var(--muted-fg)">PFS 在两组中均为主要疗效终点…… <span class="gone">（这里本该出现一行灰色小字，实际线上会整段消失）</span></p>
+      <p class="hint" style="border-left:3px solid var(--destructive);padding-left:10px">
+        下面这行是 markdown 源码，线上渲染结果 = <b>空</b>（连文字都不剩），比样式不对更糟：
+      </p>
+      <div class="src" style="margin:0 0 0 10px">&lt;span style="color:#8a8a8a;font-size:.85em"&gt;备注：事件定义不同&lt;/span&gt;</div>
+    </div>
+    <div class="src">&lt;span style="color:#8a8a8a;font-size:.85em"&gt;备注：事件定义不同&lt;/span&gt;
+→ 渲染后：什么都没有</div>
+  </section>
+
+  <!-- ════════ E. 灰 + 小一号的「另一个位置」：图表内 ════════ -->
+  <section class="case">
+    <header>
+      <b>方案 E</b><span class="tag">图表内注释（ECharts rich 文本）</span>
+      <span class="tag ok">灰色 ✅ 小一号 ✅ 完全可控</span>
+      <span class="tag">只能出现在图里，不能出现在正文里</span>
+    </header>
+    <div class="body doc">
+      <div class="chartmock">
+        <div class="t">ORR 按临床问题分组（各研究内对照）</div>
+        <div class="note">注释：横轴为研究报告的独立队列，柱值取自原文，未合并、未插值。</div>
+        <div class="plot">
+          <div class="bar" style="height:78%"></div>
+          <div class="bar" style="height:56%"></div>
+          <div class="bar" style="height:64%"></div>
+          <div class="bar" style="height:41%"></div>
+        </div>
+        <div class="legend">↑ 标题/注释/图例说明都可以设成 <b>灰色 + 11px</b>（ECharts 支持 fontSize 与 color）</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ════════ 汇总 ════════ -->
+  <div class="verdict">
+    <h2>可选范围（一眼看完）</h2>
+    <table>
+      <tr><th style="width:34%">想要的效果</th><th style="width:16%">能不能</th><th>怎么落</th></tr>
+      <tr><td>灰色</td><td>✅</td><td><code>&gt;</code> 引用块（平台就是 <code>text-muted-foreground</code>）</td></tr>
+      <tr><td>灰色 + 斜体 + 左竖线</td><td>✅</td><td>同上（这是它默认样式）</td></tr>
+      <tr><td>字号小一号</td><td class="v-small"><b style="color:var(--destructive)">❌ 正文里</b></td><td>markdown 无字号；HTML 被平台丢弃 ⇒ 只能等平台加 <code>rehype-raw</code> 或给 <code>present_artifact</code> 加样式参数</td></tr>
+      <tr><td>字号小一号</td><td>✅</td><td>图表内注释（ECharts <code>rich</code>，11px 灰字）</td></tr>
+      <tr><td>表格里的备注列</td><td>✅</td><td>现有列名机制，例：<code>解读边界</code>（R70 已是合法材料属性词）</td></tr>
+    </table>
+    <p class="hint" style="margin:12px 0 0">小样的排版是近似：色值、引用块样式、表格分隔线取自平台源码原值；标题字号与行距按 streamdown 默认推测，线上可能略有差异。</p>
+  </div>
+
+</div>
+<script>
+  function toggle(){
+    var h = document.documentElement;
+    h.dataset.theme = h.dataset.theme === 'light' ? 'dark' : 'light';
+  }
+</script>
+</body>
+</html>
