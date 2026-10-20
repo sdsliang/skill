@@ -1,0 +1,51 @@
+{
+    "meeting": "ASCO 2026",
+    "langs": [
+        "cn",
+        "en"
+    ],
+    "denominator": 1639,
+    "input": "output/pharmcube-query-clinical-result-with-params/asco-2026-clinical-results.ndjson",
+    "outputDir": "output/visualizations",
+    "charts": {
+        "cn": [
+            "rank-indication-bar",
+            "rank-domain-bar",
+            "rank-sponsor-bar",
+            "rank-institute-bar",
+            "rank-institute-external-bar",
+            "rank-country-bar",
+            "rank-stage-bar",
+            "rank-evidence-source-bar",
+            "rank-evaluation-bar",
+            "matrix-stage-evaluation",
+            "rank-target-bar",
+            "rank-drug-bar",
+            "rank-moa-bar",
+            "flow-indication-target-sankey"
+        ],
+        "en": [
+            "rank-indication-bar",
+            "rank-domain-bar",
+            "rank-sponsor-bar",
+            "rank-institute-bar",
+            "rank-institute-external-bar",
+            "rank-country-bar",
+            "rank-stage-bar",
+            "rank-evidence-source-bar",
+            "rank-evaluation-bar",
+            "matrix-stage-evaluation",
+            "rank-target-bar",
+            "rank-drug-bar",
+            "rank-moa-bar",
+            "flow-indication-target-sankey"
+        ]
+    },
+    "skipped": {},
+    "failed": {},
+    "indexFiles": {
+        "cn": "cn/index.json",
+        "en": "en/index.json"
+    },
+    "exitCode": 0
+}

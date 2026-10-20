@@ -1,0 +1,553 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "chart",
+        "type": "bar",
+        "height": "auto",
+        "maxHeight": 520,
+        "title": "Most disclosed drugs",
+        "subTitle": "ASCO 2026 · abstracts per study",
+        "notes": [
+            {
+                "kind": "layout",
+                "role": "source-note",
+                "rows": [
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Note: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "Abstracts per drug; a multi-arm abstract counts once per drug, and each drug in a combination counts separately."
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Counting: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "Top 20 cover 39.6% of 3559 mentions; the remaining 786 values take 60.4%; abstracts carrying this dimension: 1539"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Source: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "Abstracts published at ASCO 2026: 1639 studies after deduplication"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "axisXTitle": "Abstracts",
+        "axisYTitle": "Drug",
+        "data": [
+            {
+                "label": "pembrolizumab",
+                "value": 162,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "帕博利珠单抗",
+                                "value": "3126"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "oxaliplatin",
+                "value": 119,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "奥沙利铂",
+                                "value": "2186"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "fluorouracil",
+                "value": 93,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "氟尿嘧啶",
+                                "value": "615"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "carboplatin",
+                "value": 89,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "卡铂",
+                                "value": "1618"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "nivolumab",
+                "value": 85,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "纳武利尤单抗",
+                                "value": "3130"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "cisplatin",
+                "value": 85,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "顺铂",
+                                "value": "1204"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "paclitaxel",
+                "value": 77,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "紫杉醇",
+                                "value": "1738"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "folinic acid",
+                "value": 72,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "亚叶酸",
+                                "value": "247"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "capecitabine",
+                "value": 71,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "卡培他滨",
+                                "value": "1967"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "gemcitabine",
+                "value": 69,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "吉西他滨",
+                                "value": "1821"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "nab-paclitaxel",
+                "value": 67,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "白蛋白紫杉醇",
+                                "value": "1742"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "docetaxel",
+                "value": 61,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "多西他赛",
+                                "value": "1799"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "bevacizumab",
+                "value": 53,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "贝伐珠单抗",
+                                "value": "3003"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "durvalumab",
+                "value": 52,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "度伐利尤单抗",
+                                "value": "4283"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "tislelizumab",
+                "value": 50,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "替雷利珠单抗",
+                                "value": "3988"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "cyclophosphamide",
+                "value": 44,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "环磷酰胺",
+                                "value": "604"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "atezolizumab",
+                "value": 43,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "阿替利珠单抗",
+                                "value": "3331"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "irinotecan",
+                "value": 43,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "伊立替康",
+                                "value": "1843"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "ipilimumab",
+                "value": 39,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "伊匹木单抗",
+                                "value": "3102"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "trastuzumab",
+                "value": 37,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "曲妥珠单抗",
+                                "value": "2885"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

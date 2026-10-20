@@ -1,0 +1,194 @@
+{
+    "meeting": "ASCO 2026",
+    "lang": "cn",
+    "denominator": 1639,
+    "totalCharts": 15,
+    "skippedCharts": 0,
+    "failedCharts": 0,
+    "chapters": [
+        {
+            "no": 1,
+            "act": "第一幕 · 研究版图",
+            "title": "本届会议在研究什么",
+            "narrative": "先看本届在研究什么（癌种、领域、地域），再看谁在主导：申办方是「谁做这项研究」，药物研发机构是「药属于谁」，两者常常不是同一家。",
+            "views": [
+                "rank-indication-bar",
+                "rank-domain-bar",
+                "rank-sponsor-bar",
+                "rank-institute-bar",
+                "rank-institute-external-bar",
+                "rank-country-bar"
+            ]
+        },
+        {
+            "no": 2,
+            "act": "第二幕 · 证据质量",
+            "title": "证据成熟到什么程度",
+            "narrative": "把分期、证据类型、总体评价与样本设计放在一起看：哪些结论可以外推，哪些只是早期信号。",
+            "views": [
+                "rank-stage-bar",
+                "rank-evidence-source-bar",
+                "rank-evaluation-bar",
+                "matrix-stage-evaluation"
+            ]
+        },
+        {
+            "no": 3,
+            "act": "第三幕 · 资产与机制",
+            "title": "哪些靶点与机制在竞争",
+            "narrative": "从药物、靶点、机制三个层次描述资产分布，并给出「癌种 → 靶点 → 药物」的传导路径。",
+            "views": [
+                "rank-target-bar",
+                "rank-drug-bar",
+                "rank-moa-bar",
+                "flow-indication-target-sankey"
+            ]
+        },
+        {
+            "no": 4,
+            "act": "第四幕 · 解读与关注清单",
+            "title": "该怎么读、该重点看什么",
+            "narrative": "把前四幕收敛成可执行的解读：分层结论、值得追踪的资产与仍缺证据的空白。",
+            "views": [
+                "summary-callout"
+            ]
+        }
+    ],
+    "views": [
+        {
+            "file": "cn/chapter-01/rank-indication-bar.json",
+            "view": "rank-indication-bar",
+            "type": "bar",
+            "chapter": 1,
+            "title": "高披露癌种",
+            "requirement": "提及该癌种的研究摘要数；一个摘要可涉及多个癌种，分别计入，占比之和大于 100%。",
+            "renderable": true
+        },
+        {
+            "file": "cn/chapter-01/rank-domain-bar.json",
+            "view": "rank-domain-bar",
+            "type": "bar",
+            "chapter": 1,
+            "title": "疾病领域构成",
+            "requirement": "按平台疾病领域标签统计，一个摘要可同时属于多个领域。",
+            "renderable": true
+        },
+        {
+            "file": "cn/chapter-01/rank-sponsor-bar.json",
+            "view": "rank-sponsor-bar",
+            "type": "bar",
+            "chapter": 1,
+            "title": "主要申办方",
+            "requirement": "按申办方计；一项研究有多个申办方时分别计入，IIT 与注册研究一并统计。",
+            "renderable": true
+        },
+        {
+            "file": "cn/chapter-01/rank-institute-bar.json",
+            "view": "rank-institute-bar",
+            "type": "bar",
+            "chapter": 1,
+            "title": "主要药物研发机构",
+            "requirement": "按「药物研发/持有方」计，与上图的「申办方」不是同一口径：一项研究的申办方可能是医院或 CRO，而药品的研发方另有其人。",
+            "renderable": true
+        },
+        {
+            "file": "cn/chapter-01/rank-institute-external-bar.json",
+            "view": "rank-institute-external-bar",
+            "type": "bar",
+            "chapter": 1,
+            "title": "被外部发起研究最多的研发方",
+            "requirement": "只统计「申办方与该药研发方无交集」的研究：这类研究多为学术/医院/合作方发起的验证性研究，而非研发方自己主导的注册研究。",
+            "renderable": true
+        },
+        {
+            "file": "cn/chapter-01/rank-country-bar.json",
+            "view": "rank-country-bar",
+            "type": "bar",
+            "chapter": 1,
+            "title": "研究主体所在地区",
+            "requirement": "按申办方所在国家或地区统计；跨国企业以其登记地计入。",
+            "renderable": true
+        },
+        {
+            "file": "cn/chapter-02/rank-stage-bar.json",
+            "view": "rank-stage-bar",
+            "type": "bar",
+            "chapter": 2,
+            "title": "研究分期与阶段",
+            "requirement": "平台分期标签，含试验分期（Ⅰ/Ⅱ/Ⅲ期）与疾病阶段（早期、局部晚期、晚期等）；无该标签的摘要不进入本图。",
+            "renderable": true
+        },
+        {
+            "file": "cn/chapter-02/rank-evidence-source-bar.json",
+            "view": "rank-evidence-source-bar",
+            "type": "bar",
+            "chapter": 2,
+            "title": "证据类型",
+            "requirement": "按平台证据来源标签统计；前瞻性与回顾性研究、真实世界研究、各期临床试验分别计数。",
+            "renderable": true
+        },
+        {
+            "file": "cn/chapter-02/rank-evaluation-bar.json",
+            "view": "rank-evaluation-bar",
+            "type": "bar",
+            "chapter": 2,
+            "title": "总体评价分布",
+            "requirement": "按平台结果评价标签统计；未标注评价的摘要单列为「未评价」，不计入积极或不佳。",
+            "renderable": true
+        },
+        {
+            "file": "cn/chapter-02/matrix-stage-evaluation.json",
+            "view": "matrix-stage-evaluation",
+            "type": "heatmap",
+            "chapter": 2,
+            "title": "分期 × 评价",
+            "requirement": "交叉组合的研究摘要数；格内为 0 的组合不画，读作「本届无该类研究」。",
+            "renderable": true
+        },
+        {
+            "file": "cn/chapter-03/rank-target-bar.json",
+            "view": "rank-target-bar",
+            "type": "bar",
+            "chapter": 3,
+            "title": "热门靶点",
+            "requirement": "提及该靶点的研究摘要数；组合方案中的每个靶点分别计入。",
+            "renderable": true
+        },
+        {
+            "file": "cn/chapter-03/rank-drug-bar.json",
+            "view": "rank-drug-bar",
+            "type": "bar",
+            "chapter": 3,
+            "title": "高披露药物",
+            "requirement": "按药物统计的研究摘要数；同一摘要的多臂研究只计一次，联合方案中的每个药物分别计入。",
+            "renderable": true
+        },
+        {
+            "file": "cn/chapter-03/rank-moa-bar.json",
+            "view": "rank-moa-bar",
+            "type": "bar",
+            "chapter": 3,
+            "title": "作用机制分布",
+            "requirement": "按平台药物作用机制标签统计；一个药物可带多个机制标签。",
+            "renderable": true
+        },
+        {
+            "file": "cn/chapter-03/flow-indication-target-sankey.json",
+            "view": "flow-indication-target-sankey",
+            "type": "sankey",
+            "chapter": 3,
+            "title": "癌种 → 靶点 → 药物",
+            "requirement": "只保留披露最多的若干癌种及其下靶点、药物，用于读传导路径，不代表全量分布。",
+            "renderable": true
+        },
+        {
+            "file": "cn/summary-callout.json",
+            "view": "summary-callout",
+            "type": "layout",
+            "chapter": 4,
+            "title": "总结",
+            "requirement": "",
+            "renderable": true
+        }
+    ]
+}

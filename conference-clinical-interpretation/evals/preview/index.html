@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>会议临床解读 · 本地预览</title>
+<script src="/runtime/echarts.min.js"></script>
+<style>
+  :root { --ink:#1a1f2b; --muted:#67707f; --line:#e3e7ee; --bg:#f6f7f9; --accent:#2f6fed; }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:24px; background:var(--bg); color:var(--ink);
+         font:14px/1.6 -apple-system,"PingFang SC","Noto Sans CJK SC",Segoe UI,sans-serif; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  .sub { color:var(--muted); margin-bottom:20px; font-size:13px; }
+  .chapter { margin:28px 0 10px; font-size:15px; font-weight:600; color:var(--accent); }
+  .chapter-desc { color:var(--muted); font-size:13px; margin:-6px 0 12px; }
+  .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:16px; }
+  .card h3 { margin:0 0 2px; font-size:15px; }
+  .card .subtitle { color:var(--muted); font-size:12.5px; margin-bottom:10px; }
+  .chart { width:100%; }
+  .notes { margin-top:10px; border-top:1px dashed var(--line); padding-top:8px; font-size:12.5px; color:var(--muted); }
+  .notes .row { display:flex; gap:6px; }
+  .notes .label { flex:0 0 auto; font-weight:600; color:#4a5361; }
+  .summary { background:linear-gradient(180deg,#eef4ff,#fff); }
+  .summary .label { font-weight:700; font-size:13px; color:var(--accent); }
+  .err { color:#c0392b; font-size:12px; white-space:pre-wrap; }
+</style>
+</head>
+<body>
+<h1>会议临床解读 · 本地预览</h1>
+<div class="sub" id="head"></div>
+<div id="root"></div>
+<script>
+const params = new URLSearchParams(location.search);
+const lang = params.get('lang') || 'cn';
+const base = `/output/visualizations/${lang}`;
+const root = document.getElementById('root');
+
+const mdInline = (s) => String(s ?? '')
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+  .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+  .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '$1')
+  .replace(/\{\{ref_(\d+)\}\}/g, '<sup>[$1]</sup>')
+  .replace(/\n/g, '<br>');
+
+function renderNotes(notes) {
+  const box = document.createElement('div');
+  box.className = 'notes';
+  for (const node of notes ?? []) {
+    for (const row of node.rows ?? []) {
+      const cols = row.cols ?? [];
+      const div = document.createElement('div');
+      div.className = 'row';
+      div.innerHTML = `<span class="label">${mdInline(cols[0]?.markdown ?? '')}</span>
+                       <span>${mdInline(cols[1]?.markdown ?? '')}</span>`;
+      box.appendChild(div);
+    }
+  }
+  return box;
+}
+
+function barOption(c) {
+  const rows = [...c.data].reverse();
+  return {
+    grid: { left: 8, right: 60, top: 8, bottom: 8, containLabel: true },
+    tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+    xAxis: { type: 'value', name: c.axisXTitle, nameLocation: 'middle', nameGap: 26, splitLine: { lineStyle: { color: '#eef1f6' } } },
+    yAxis: { type: 'category', data: rows.map(r => r.label), axisTick: { show: false } },
+    series: [{
+      type: 'bar', data: rows.map(r => r.value), barMaxWidth: 18,
+      itemStyle: { color: '#2f6fed', borderRadius: [0, 3, 3, 0] },
+      label: { show: true, position: 'right', color: '#67707f', fontSize: 11 },
+    }],
+  };
+}
+
+function heatmapOption(c) {
+  const xs = [...new Set(c.data.map(d => d.label))];
+  const ys = [...new Set(c.data.map(d => d.group))];
+  const max = Math.max(...c.data.map(d => d.value));
+  return {
+    grid: { left: 8, right: 96, top: 8, bottom: 44, containLabel: true },
+    tooltip: { position: 'top' },
+    xAxis: { type: 'category', data: xs, name: c.axisXTitle, nameLocation: 'middle', nameGap: 32, splitArea: { show: true } },
+    yAxis: { type: 'category', data: ys, name: c.axisYTitle, splitArea: { show: true } },
+    visualMap: { min: 0, max, calculable: true, orient: 'vertical', right: 8, top: 'middle', itemHeight: 120, text: ['多', '少'], inRange: { color: ['#eaf1fe', '#9dbdf7', '#2f6fed'] } },
+    series: [{
+      type: 'heatmap',
+      data: c.data.map(d => [xs.indexOf(d.label), ys.indexOf(d.group), d.value]),
+      label: { show: true, fontSize: 11 },
+      emphasis: { itemStyle: { shadowBlur: 8, shadowColor: 'rgba(0,0,0,.2)' } },
+    }],
+  };
+}
+
+function sankeyOption(c) {
+  // 颜色：癌种（首层）深、靶点中、药物浅
+  const nodes = [...new Set(c.data.flatMap(d => [d.source, d.target]))];
+  const first = new Set(c.data.map(d => d.source));
+  return {
+    tooltip: { trigger: 'item' },
+    series: [{
+      type: 'sankey', left: 8, right: 120, top: 8, bottom: 8,
+      data: nodes.map(n => ({ name: n, itemStyle: first.has(n) ? { color: '#2f6fed' } : undefined })),
+      links: c.data.map(d => ({ source: d.source, target: d.target, value: d.value })),
+      label: { fontSize: 11 },
+      lineStyle: { color: 'gradient', opacity: 0.35, curveness: 0.5 },
+      emphasis: { focus: 'adjacency' },
+    }],
+  };
+}
+
+function renderChart(json) {
+  const c = json.config;
+  const div = document.createElement('div');
+  div.className = 'chart';
+  const type = c.type;
+  const height = type === 'sankey' ? 560 : type === 'heatmap' ? 380 : Math.max(220, Math.min(560, (c.data?.length ?? 8) * 30));
+  div.style.height = height + 'px';
+  requestAnimationFrame(() => {
+    try {
+      const chart = echarts.init(div);
+      const option = type === 'bar' ? barOption(c) : type === 'heatmap' ? heatmapOption(c) : sankeyOption(c);
+      chart.setOption(option);
+      window.addEventListener('resize', () => chart.resize());
+    } catch (e) {
+      div.innerHTML = `<pre class="err">${e}\n${JSON.stringify(c).slice(0, 400)}</pre>`;
+    }
+  });
+  return div;
+}
+
+function renderLayout(json) {
+  const box = document.createElement('div');
+  for (const row of json.config.rows ?? []) {
+    const div = document.createElement('div');
+    if (row.role === 'summary-label') div.className = 'label';
+    div.innerHTML = mdInline(row.markdown ?? row.text ?? '');
+    box.appendChild(div);
+  }
+  return box;
+}
+
+function card(json, view) {
+  const el = document.createElement('div');
+  el.className = 'card' + (json.config.kind === 'layout' ? ' summary' : '');
+  if (json.config.kind === 'chart') {
+    const h = document.createElement('h3');
+    h.textContent = json.config.title;
+    const s = document.createElement('div');
+    s.className = 'subtitle';
+    s.textContent = json.config.subTitle;
+    el.append(h, s, renderChart(json), renderNotes(json.config.notes));
+  } else {
+    el.appendChild(renderLayout(json));
+  }
+  if (params.get('debug')) {
+    const p = document.createElement('div');
+    p.className = 'subtitle';
+    p.style.marginTop = '8px';
+    p.textContent = `${view.file} · ${json.config.kind}/${json.config.type ?? ''} · drill 行 ${(json.config.data ?? []).filter(d => d.drill).length}`;
+    el.appendChild(p);
+  }
+  return el;
+}
+
+(async () => {
+  const index = await (await fetch(`${base}/index.json`)).json();
+  document.getElementById('head').textContent =
+    `${index.meeting}｜${lang.toUpperCase()}｜分母 ${index.denominator} 篇研究摘要｜图 ${index.totalCharts} 个（跳过 ${index.skippedCharts} / 失败 ${index.failedCharts}）`;
+  let chapterCursor = 0;
+  for (const view of index.views) {
+    const chapter = index.chapters.find((c) => c.views.includes(view.view)) ?? index.chapters[index.chapters.length - 1];
+    if (chapter.no !== chapterCursor) {
+      chapterCursor = chapter.no;
+      const h = document.createElement('div');
+      h.className = 'chapter';
+      h.textContent = `${chapter.act} · ${chapter.title}`;
+      const d = document.createElement('div');
+      d.className = 'chapter-desc';
+      d.textContent = chapter.narrative;
+      root.append(h, d);
+    }
+    try {
+      const json = await (await fetch(`${base}/${view.file.replace(`${lang}/`, '')}`)).json();
+      root.appendChild(card(json, view));
+    } catch (e) {
+      const p = document.createElement('pre'); p.className = 'err'; p.textContent = `${view.file}: ${e}`;
+      root.appendChild(p);
+    }
+  }
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

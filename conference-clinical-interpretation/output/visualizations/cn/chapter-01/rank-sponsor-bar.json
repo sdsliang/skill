@@ -1,0 +1,433 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "chart",
+        "type": "bar",
+        "height": "auto",
+        "maxHeight": 520,
+        "title": "主要申办方",
+        "subTitle": "ASCO 2026 · 研究摘要数（按研究去重）",
+        "notes": [
+            {
+                "kind": "layout",
+                "role": "source-note",
+                "rows": [
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "说明："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "按申办方计；一项研究有多个申办方时分别计入，IIT 与注册研究一并统计。"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "口径："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "图中 Top 15 合计占 22.4%（口径内总数 1082；其余 494 个取值合计占 77.6%）；带该维度标注的摘要 1042 篇"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "数据来源："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "本届会议（ASCO 2026）公开的研究摘要，共 1639 篇按研究去重"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "axisXTitle": "研究摘要数",
+        "axisYTitle": "申办方",
+        "data": [
+            {
+                "label": "复旦大学",
+                "value": 28,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "复旦大学",
+                                "value": "4227"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "National Cancer Institute (NCI)",
+                "value": 24,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "National Cancer Institute (NCI)",
+                                "value": "17732"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "中山大学",
+                "value": 23,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "中山大学",
+                                "value": "15898"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "AstraZeneca",
+                "value": 23,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "AstraZeneca",
+                                "value": "303"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "MD Anderson",
+                "value": 23,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "MD Anderson",
+                                "value": "18097"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "恒瑞医药",
+                "value": 15,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "恒瑞医药",
+                                "value": "7407"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Pfizer",
+                "value": 14,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "Pfizer",
+                                "value": "169"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "四川大学华西医院",
+                "value": 13,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "四川大学华西医院",
+                                "value": "11627"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Roche",
+                "value": 13,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "Roche",
+                                "value": "324"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "天津市肿瘤医院",
+                "value": 12,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "天津市肿瘤医院",
+                                "value": "12348"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Johnson & Johnson",
+                "value": 12,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "Johnson & Johnson",
+                                "value": "25"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Merck & Co.",
+                "value": 12,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "Merck & Co.",
+                                "value": "179"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Memorial Sloan Kettering Cancer Center (MSKCC)",
+                "value": 11,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "Memorial Sloan Kettering Cancer Center (MSKCC)",
+                                "value": "18082"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "中山大学肿瘤防治中心",
+                "value": 10,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "中山大学肿瘤防治中心",
+                                "value": "15903"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "中山大学孙逸仙纪念医院",
+                "value": 9,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "中山大学孙逸仙纪念医院",
+                                "value": "40697"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

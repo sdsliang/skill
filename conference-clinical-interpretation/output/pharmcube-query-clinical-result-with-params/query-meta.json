@@ -1,0 +1,9 @@
+{
+  "meeting": "ASCO 2026",
+  "batches": 2,
+  "rawRows": 3858,
+  "records": 1639,
+  "bytes": 40242704,
+  "generatedAt": "2026-10-20T01:38:31.138Z",
+  "mergedBy": "scripts/chart/cli/merge-batches.mjs"
+}

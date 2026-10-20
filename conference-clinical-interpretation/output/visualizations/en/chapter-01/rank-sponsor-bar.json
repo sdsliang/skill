@@ -1,0 +1,433 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "chart",
+        "type": "bar",
+        "height": "auto",
+        "maxHeight": 520,
+        "title": "Leading sponsors",
+        "subTitle": "ASCO 2026 · abstracts per study",
+        "notes": [
+            {
+                "kind": "layout",
+                "role": "source-note",
+                "rows": [
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Note: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "Counted per sponsor; multi-sponsor studies count once per sponsor, investigator-initiated and registrational studies alike."
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Counting: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "Top 15 cover 22.4% of 1082 mentions; the remaining 494 values take 77.6%; abstracts carrying this dimension: 1042"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Source: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "Abstracts published at ASCO 2026: 1639 studies after deduplication"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "axisXTitle": "Abstracts",
+        "axisYTitle": "Sponsor",
+        "data": [
+            {
+                "label": "Fudan University",
+                "value": 28,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "复旦大学",
+                                "value": "4227"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "National Cancer Institute (NCI)",
+                "value": 24,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "National Cancer Institute (NCI)",
+                                "value": "17732"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Sun Yat-sen University",
+                "value": 23,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "中山大学",
+                                "value": "15898"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "AstraZeneca",
+                "value": 23,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "AstraZeneca",
+                                "value": "303"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "MD Anderson",
+                "value": 23,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "MD Anderson",
+                                "value": "18097"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Hengrui Pharmaceuticals",
+                "value": 15,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "恒瑞医药",
+                                "value": "7407"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Pfizer",
+                "value": 14,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "Pfizer",
+                                "value": "169"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "West China Hospital of Sichuan University",
+                "value": 13,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "四川大学华西医院",
+                                "value": "11627"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Roche",
+                "value": 13,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "Roche",
+                                "value": "324"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "TMUCIH",
+                "value": 12,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "天津市肿瘤医院",
+                                "value": "12348"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Johnson & Johnson",
+                "value": 12,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "Johnson & Johnson",
+                                "value": "25"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Merck & Co.",
+                "value": 12,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "Merck & Co.",
+                                "value": "179"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Memorial Sloan Kettering Cancer Center (MSKCC)",
+                "value": 11,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "Memorial Sloan Kettering Cancer Center (MSKCC)",
+                                "value": "18082"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Sun Yat-sen University Cancer Center",
+                "value": 10,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "中山大学肿瘤防治中心",
+                                "value": "15903"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Sun Yat-sen Memorial Hospital, Sun Yat-sen University",
+                "value": 9,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "中山大学孙逸仙纪念医院",
+                                "value": "40697"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

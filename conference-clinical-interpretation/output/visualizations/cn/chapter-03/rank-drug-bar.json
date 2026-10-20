@@ -1,0 +1,553 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "chart",
+        "type": "bar",
+        "height": "auto",
+        "maxHeight": 520,
+        "title": "高披露药物",
+        "subTitle": "ASCO 2026 · 研究摘要数（按研究去重）",
+        "notes": [
+            {
+                "kind": "layout",
+                "role": "source-note",
+                "rows": [
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "说明："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "按药物统计的研究摘要数；同一摘要的多臂研究只计一次，联合方案中的每个药物分别计入。"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "口径："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "图中 Top 20 合计占 39.6%（口径内总数 3559；其余 786 个取值合计占 60.4%）；带该维度标注的摘要 1539 篇"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "数据来源："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "本届会议（ASCO 2026）公开的研究摘要，共 1639 篇按研究去重"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "axisXTitle": "研究摘要数",
+        "axisYTitle": "药物",
+        "data": [
+            {
+                "label": "帕博利珠单抗",
+                "value": 162,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "帕博利珠单抗",
+                                "value": "3126"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "奥沙利铂",
+                "value": 119,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "奥沙利铂",
+                                "value": "2186"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "氟尿嘧啶",
+                "value": 93,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "氟尿嘧啶",
+                                "value": "615"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "卡铂",
+                "value": 89,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "卡铂",
+                                "value": "1618"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "纳武利尤单抗",
+                "value": 85,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "纳武利尤单抗",
+                                "value": "3130"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "顺铂",
+                "value": 85,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "顺铂",
+                                "value": "1204"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "紫杉醇",
+                "value": 77,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "紫杉醇",
+                                "value": "1738"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "亚叶酸",
+                "value": 72,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "亚叶酸",
+                                "value": "247"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "卡培他滨",
+                "value": 71,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "卡培他滨",
+                                "value": "1967"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "吉西他滨",
+                "value": 69,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "吉西他滨",
+                                "value": "1821"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "白蛋白紫杉醇",
+                "value": 67,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "白蛋白紫杉醇",
+                                "value": "1742"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "多西他赛",
+                "value": 61,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "多西他赛",
+                                "value": "1799"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "贝伐珠单抗",
+                "value": 53,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "贝伐珠单抗",
+                                "value": "3003"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "度伐利尤单抗",
+                "value": 52,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "度伐利尤单抗",
+                                "value": "4283"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "替雷利珠单抗",
+                "value": 50,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "替雷利珠单抗",
+                                "value": "3988"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "环磷酰胺",
+                "value": 44,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "环磷酰胺",
+                                "value": "604"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "阿替利珠单抗",
+                "value": 43,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "阿替利珠单抗",
+                                "value": "3331"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "伊立替康",
+                "value": 43,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "伊立替康",
+                                "value": "1843"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "伊匹木单抗",
+                "value": 39,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "伊匹木单抗",
+                                "value": "3102"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "曲妥珠单抗",
+                "value": 37,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "drug_earth_ids",
+                        "list": [
+                            {
+                                "label": "曲妥珠单抗",
+                                "value": "2885"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -88,3 +88,46 @@
 - **药物画像增强**：drug_earth 字典（Linking API `/linking/drug`）提供靶点/MOA/modality/阶段/DrugBank ID；`drug-profiles.json` 含 `lookup` 索引供 O(1) 检索。
 - **渲染器 v2 = ECharts 交互式仪表盘**：内嵌 echarts.min.js 保持自包含离线可读；与 v1 静态 SVG 版（`render-report.mjs`）并存，二者均为本地预览用途、不进 dist。
 - 与多临床结果对比 skill 明确分工：本 skill 统计解读，彼 skill 比较分析。
+
+## 2026-10-20 重构：交付形态切到产品 v3.1
+
+- 用户拍板「A + 按产品 v3.1」：仍在 `skill/conference-clinical-interpretation/` 这一套工程里改，交付形态照 v3.1
+  （`output/report-{cn,en}.md` + `citations-{cn,en}.json` + `output/visualizations/<lang>/…` + `index.json` + `summary-callout`）。
+- 数据源换成平台 MCP 工具 `pharmcube-query-clinical-result-with-params`（会议靠 `meeting_tags` 过滤），
+  全量 ASCO 2026 已拉齐：1648 → 合并后 **1639 条**（`output/pharmcube-query-clinical-result-with-params/asco-2026-clinical-results.ndjson`，40MB）。
+- 新流水线（node，无第三方依赖，运行在交付根）：
+  - `scripts/chart/cli/merge-batches.mjs`：批量响应 → NDJSON（数组并集、标量首个非空）
+  - `scripts/chart/cli/build-charts.mjs`：→ 两版图表树 + `index.json` + `summary-callout` + `report-source-<lang>.md` + `chapters-summary.json`
+  - `scripts/chart/cli/check-drill.mjs`：下钻载荷批量过 `list-filter-json` 白名单
+  - `scripts/chart/registry/views.mjs`：4 章 12 视图（bar / heatmap / sankey）
+- 已验证：26 个 envelope 全部过 `chart-component-layout-json-validation` 校验；两版各 245 条 drill 载荷 `failed=0`；
+  本地预览 `evals/preview/index.html`（`python3 -m http.server 8811` + `?lang=cn|en`）渲染正常。
+- 依赖技能已拉到 `working/deps-skills/`，并在 `skill/` 下建了 symlink（本地开发用；平台上它们是兄弟技能）。
+- 未完成：报告正文（report-cn/en）、引文 JSON（`--citations --picks`）、preflight、SKILL.md/references 重写、
+  system prompt、dist 打包、TS 发布配置与线上实测。
+- 已知限制：该工具不返回实体 ID 字段（无 `indication_ids`/`drug_earth_ids`），
+  `clinical_result_.*` 里只有 `disease_id`；臂内 `drugs[]` 才带 `drug_earth_id`/`company_ids`。按维度下钻因此只能部分生效。
+
+## 2026-10-20 支线：可交互解读页（HTML fragment）
+
+- 参考件 `D:\Users\feishu_download\药物闭环.html`（2.2MB、three.js WebGL 单场景、镜头/粒子/导览/`/` 搜索）。
+- 平台事实（`toolsmith-visualization/references/visualization-integration.md`）：`::visualization[标题]{path="/workspace/visualizations/x.html"}`
+  可以交付 **HTML fragment**，隔离 iframe 渲染，CDN 白名单 cdnjs/esm.sh/jsdelivr/unpkg（three.js 可用），
+  限制：≤1 MiB、不能有 doctype/html/head/body、**点击不下钻**（宿主只处理 resize/render-ready/render-error）。
+  → 结论：**双轨**。JSON envelope 负责「可下钻到证据列表」的定量图；HTML fragment 负责质感/动画/页内联动。
+- 原型：`evals/preview/gen-interactive.mjs` → `evals/preview/interactive-demo.html`（520KB，数据内联，无 CDN 依赖）。
+  5 个块：KPI 条 / 披露节奏（日期曲线 + LBA 点）/ 癌种热度环（极坐标，点选筛选）/ 药物星座（阶段×摘要数×积极率）/
+  靶点×癌种矩阵 / 可行动信号 Top12 / 当前筛选摘要列表。全部共享一份筛选状态（癌种·阶段·评价·日期·搜索）。
+  本地预览 `evals/preview/demo.html`（`.preview.html` 副本才补 charset，正式 fragment 保持纯净）。
+
+### 2026-10-20 决策与增补（支线 `feature/interactive-html-track`）
+
+- **HTML 轨不进交付包**（用户 2026-10-20 拍板），只作本地 demo / 设计探针：
+  `evals/preview/gen-interactive.mjs` + `interactive-demo.html`（+ 预览副本）。打包脚本必须排除 `evals/`，`::visualization` 仍只能指 `.json`。
+- **不做「vs 上届」对比**（用户拍板），章节不做 cohort 化。
+- **新增「药品研发机构」口径**（除申办方之外）：
+  - `rank-institute-bar`（主要药物研发机构，Top15，口径内总数 5703，带该维度标注 1539 篇）
+  - `rank-institute-external-bar`（被外部发起研究最多的研发方，Top12，577 篇）——只统计「申办方与该药研发方无交集」的研究
+  - 实测：997 篇同时有申办方与研发方，其中 576 篇（57.8%）**完全无交集**；542 篇只有研发方、没有申办方。说明「谁做研究」与「药属于谁」是两个口径，值得并列。
+- 顺带修掉校验器的 12 条 `subTitle 建议精练` 告警：副标题压成「会议 · 研究摘要数（按研究去重）」，
+  「Top-N 覆盖 / 口径内总数 / 长尾占比 / 带该维度标注的摘要数」全部下沉到 notes 的**口径行**（说明 → 口径 → 数据来源 三行）。现 14 张 × 2 语言 0 告警。

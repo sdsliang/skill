@@ -1,0 +1,21 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "layout",
+        "role": "summary-callout",
+        "rows": [
+            {
+                "kind": "string",
+                "role": "summary-label",
+                "text": "Summary"
+            },
+            {
+                "kind": "string",
+                "role": "summary-text",
+                "markdown": "Summary is written together with the report; it only restates figures already in the body."
+            }
+        ]
+    }
+}
