@@ -60,7 +60,15 @@ const NON_TARGET_TOKENS = new Set(['not available', 'n/a', 'na', 'none', 'unknow
 
 /** 中国口径：只认平台给的登记地/机构地区，不做名称白名单猜测 */
 const CN_COUNTRIES = new Set(['中国内地', '中国(港澳台)']);
-const isChinaUnit = (u) => u.companies.some((c) => CN_COUNTRIES.has(c.country));
+/**
+ * 中国口径有两条，必须分开算、并列展示（两者只有 336 篇重叠）：
+ *   - 资产侧 isChinaAsset：药品研发机构地区（`research_institute_area`，药品级去重集合）命中中国内地/港澳台
+ *   - 研究侧 isChinaSponsor：申办方登记地命中中国内地/港澳台
+ * 资产侧会带入跨国药企在华机构持有的进口药，研究侧会漏掉用境外资产做的中国研究；
+ * 单用任何一条都会把「中国声音」讲错，所以第四幕两条并列，并给出重叠/独有。
+ */
+const isChinaAsset = (u) => u.drugs.some((d) => (d.instituteAreas ?? []).some((a) => CN_COUNTRIES.has(a)));
+const isChinaSponsor = (u) => u.companies.some((c) => CN_COUNTRIES.has(c.country));
 
 const normName = (s2) => String(s2 ?? '').toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]/g, '');
 
@@ -115,16 +123,25 @@ export const DIMENSIONS = {
     drug: (u) => u.drugs.map((d) => ({ key: d.cn, cn: d.cn, en: d.en, ids: [d.id].filter(Boolean) })),
     /** 披露日期（YYYY-MM-DD） */
     day: (u) => (u.day ? [{ key: u.day, cn: u.day, en: u.day }] : []),
-    /** 中国口径：申办方登记地或药物研发机构地区在中国内地/港澳台 */
-    chinaRegion: (u) => (isChinaUnit(u)
-        ? [{ key: 'cn', cn: '中国主导研究', en: 'China-led' }]
+    /** 中国资产口径：药品研发机构地区在中国内地/港澳台（第四幕主口径） */
+    chinaRegion: (u) => (isChinaAsset(u)
+        ? [{ key: 'cn', cn: '中国资产', en: 'China-held drug' }]
         : [{ key: 'row', cn: '其他地区', en: 'Rest of world' }]),
-    chinaSponsor: (u) => (isChinaUnit(u)
+    /** 两条中国口径的重叠结构：仅资产侧 / 两者都是 / 仅申办方侧 */
+    chinaOverlap: (u) => {
+        const a = isChinaAsset(u);
+        const c = isChinaSponsor(u);
+        if (a && c) return [{ key: 'both', cn: '两者都是', en: 'Both' }];
+        if (a) return [{ key: 'assetOnly', cn: '仅研发机构在中国', en: 'China-held drug only' }];
+        if (c) return [{ key: 'sponsorOnly', cn: '仅申办方在中国', en: 'China sponsor only' }];
+        return [];
+    },
+    chinaSponsor: (u) => (isChinaSponsor(u)
         ? u.companies.filter((c) => CN_COUNTRIES.has(c.country))
             .map((c) => ({ key: c.cn, cn: c.cn, en: c.en, ids: [c.id].filter(Boolean) }))
         : []),
-    chinaTarget: (u) => (isChinaUnit(u) ? DIMENSIONS.target(u) : []),
-    chinaIndication: (u) => (isChinaUnit(u) ? DIMENSIONS.indication(u) : []),
+    chinaTarget: (u) => (isChinaAsset(u) ? DIMENSIONS.target(u) : []),
+    chinaIndication: (u) => (isChinaAsset(u) ? DIMENSIONS.indication(u) : []),
     /** 表现不佳或终止的研究所涉及的癌种（塌方口径） */
     negativeIndication: (u) => (u.evaluation === '不佳' || u.evaluation === '终止'
         ? DIMENSIONS.indication(u)
@@ -420,11 +437,26 @@ export const VIEWS = [
         dimY: 'indication',
         drillKey: null,
         topN: 10,
-        title: { cn: '癌种 × 中国 / 其他地区', en: 'Cancer type × China / rest of world' },
+        title: { cn: '癌种 × 中国资产 / 其他地区', en: 'Cancer type × China-held / rest of world' },
         axis: { x: { cn: '口径', en: 'Cohort' }, y: { cn: '癌种', en: 'Cancer type' } },
         note: {
-            cn: '同一癌种在中国口径与其他地区口径下的摘要数并列；中国口径 = 申办方登记地在中国内地/港澳台。缺少申办方的摘要无法归属，不计入任一侧。',
-            en: 'Abstracts per cancer type for China-related work versus the rest of the world; China = sponsor registered in mainland China, Hong Kong, Macau or Taiwan. Records without a sponsor cannot be attributed and are excluded from both sides.',
+            cn: '同一癌种在「中国资产」与其他地区口径下的摘要数并列；中国资产 = 药品研发机构地区含中国内地/港澳台。该口径会把跨国药企在华机构持有的进口药计入，与「中国申办方」口径只有部分重叠（见下一张）。',
+            en: 'Abstracts per cancer type for China-held drugs versus the rest of the world. China here means the drug development-institute region includes mainland China / Hong Kong / Macau / Taiwan, which also captures imported drugs held by a China entity of a multinational; overlap with the China-sponsor lens is partial (see the next chart).',
+        },
+    },
+    {
+        id: 'rank-china-overlap-bar',
+        chapter: 4,
+        type: 'bar',
+        dim: 'chinaOverlap',
+        drillKey: null,
+        topN: 3,
+        tailBucket: false,
+        title: { cn: '两条中国口径的重叠', en: 'How the two China lenses overlap' },
+        axis: { x: { cn: '研究摘要数', en: 'Abstracts' }, y: { cn: '口径', en: 'Lens' } },
+        note: {
+            cn: '中国资产（药品研发机构地区含中国内地/港澳台）与中国申办方（申办方登记地在同范围）的交叉分布；只统计至少命中一条口径的研究，两条例都不命中的不进图。仅研发机构侧多为跨国药企在华机构持有的进口药，仅申办方侧多为用境外资产做的本土研究。',
+            en: 'Cross-tab of China-held drugs (drug research-institute region includes mainland China / Hong Kong / Macau / Taiwan) against China-based sponsors. Only studies hitting at least one lens are shown. Asset-only entries are mostly imported drugs held by a China entity of a multinational; sponsor-only entries are mostly local studies run on foreign-owned assets.',
         },
     },
     {
@@ -435,10 +467,10 @@ export const VIEWS = [
         drillKey: null,
         topN: 12,
         tailBucket: true,
-        title: { cn: '中国研究最集中的靶点', en: 'Targets China-based work concentrates on' },
+        title: { cn: '中国资产最集中的靶点', en: 'Targets China-held drugs concentrate on' },
         axis: { x: { cn: '研究摘要数', en: 'Abstracts' }, y: { cn: '靶点', en: 'Target' } },
         note: {
-            cn: '中国口径研究涉及的靶点排名；与全体的靶点排名对照，可以看出中国研究是跟随主流靶点还是自成一路。',
+            cn: '中国资产口径（药品研发机构地区含中国内地/港澳台）涉及的靶点排名；与全体靶点排名对照，可以看出中国一侧是跟随主流靶点还是自成一路。',
             en: 'Target ranking within China-related work; compare with the overall ranking to see whether it follows the global mainstream or runs on its own track.',
         },
     },
@@ -453,8 +485,8 @@ export const VIEWS = [
         title: { cn: '中国申办方', en: 'China-based sponsors' },
         axis: { x: { cn: '研究摘要数', en: 'Abstracts' }, y: { cn: '申办方', en: 'Sponsor' } },
         note: {
-            cn: '中国口径的唯一判定标准：申办方登记地在中国内地/港澳台。跨国药企的中国分公司按登记地计，不合并到总部。前列多为高校与医院（研究者发起研究），企业侧见上方「主要药物研发机构」。',
-            en: 'Only sponsors registered in mainland China, Hong Kong, Macau or Taiwan; China subsidiaries of multinationals count where they are registered, not merged into the parent.',
+            cn: '这一张用「研究侧」口径：申办方登记地在中国内地/港澳台，跨国药企的中国分公司按登记地计、不合并到总部。与前三张「资产侧」口径并列读——谁在干活、药在谁手上，是两个不同问题。前列多为高校与医院（研究者发起研究）。',
+            en: 'This chart uses the research-side lens: sponsors registered in mainland China, Hong Kong, Macau or Taiwan, with China subsidiaries of multinationals counted where registered. Read it alongside the asset-side charts above — who does the work and who holds the drug are two different questions.',
         },
     },
     {

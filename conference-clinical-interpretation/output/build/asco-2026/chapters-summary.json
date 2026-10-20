@@ -25,6 +25,7 @@
             "rank-moa-bar",
             "flow-indication-target-sankey",
             "matrix-china-indication",
+            "rank-china-overlap-bar",
             "rank-china-target-bar",
             "rank-china-sponsor-bar",
             "rank-negative-indication-bar"
@@ -46,6 +47,7 @@
             "rank-moa-bar",
             "flow-indication-target-sankey",
             "matrix-china-indication",
+            "rank-china-overlap-bar",
             "rank-china-target-bar",
             "rank-china-sponsor-bar",
             "rank-negative-indication-bar"

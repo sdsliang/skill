@@ -312,45 +312,53 @@ Cancer type → target → drug — ASCO 2026 · abstracts per study
 
 ### matrix-china-indication
 
-Cancer type × China / rest of world — ASCO 2026 · abstracts per study
+Cancer type × China-held / rest of world — ASCO 2026 · abstracts per study
 
-- matrix-china-indication#1 Solid Tumor × Rest of world = 108
-- matrix-china-indication#2 Non-Small Cell Lung Cancer (NSCLC) × Rest of world = 102
-- matrix-china-indication#3 Colorectal Cancer (CRC) × Rest of world = 58
-- matrix-china-indication#4 Breast Cancer × Rest of world = 82
-- matrix-china-indication#5 Gastric Cancer × Rest of world = 33
-- matrix-china-indication#6 Melanoma × Rest of world = 61
-- matrix-china-indication#7 Hepatocellular Carcinoma (HCC) × Rest of world = 31
-- matrix-china-indication#8 Hormone Receptor Positive Breast Cancer × Rest of world = 41
-- matrix-china-indication#9 Ovarian Cancer (OVC) × Rest of world = 43
-- matrix-china-indication#10 Squamous Cell Carcinoma of the Head and Neck (SCCHN) × Rest of world = 39
-- matrix-china-indication#11 Solid Tumor × China-led = 33
-- matrix-china-indication#12 Non-Small Cell Lung Cancer (NSCLC) × China-led = 35
-- matrix-china-indication#13 Colorectal Cancer (CRC) × China-led = 34
-- matrix-china-indication#14 Breast Cancer × China-led = 6
-- matrix-china-indication#15 Gastric Cancer × China-led = 37
-- matrix-china-indication#16 Melanoma × China-led = 4
-- matrix-china-indication#17 Hepatocellular Carcinoma (HCC) × China-led = 25
-- matrix-china-indication#18 Hormone Receptor Positive Breast Cancer × China-led = 15
-- matrix-china-indication#19 Ovarian Cancer (OVC) × China-led = 9
-- matrix-china-indication#20 Squamous Cell Carcinoma of the Head and Neck (SCCHN) × China-led = 11
+- matrix-china-indication#1 Solid Tumor × Rest of world = 87
+- matrix-china-indication#2 Non-Small Cell Lung Cancer (NSCLC) × Rest of world = 80
+- matrix-china-indication#3 Colorectal Cancer (CRC) × Rest of world = 54
+- matrix-china-indication#4 Breast Cancer × Rest of world = 59
+- matrix-china-indication#5 Gastric Cancer × Rest of world = 31
+- matrix-china-indication#6 Melanoma × Rest of world = 55
+- matrix-china-indication#7 Hepatocellular Carcinoma (HCC) × Rest of world = 25
+- matrix-china-indication#8 Hormone Receptor Positive Breast Cancer × Rest of world = 36
+- matrix-china-indication#9 Ovarian Cancer (OVC) × Rest of world = 26
+- matrix-china-indication#10 Squamous Cell Carcinoma of the Head and Neck (SCCHN) × Rest of world = 27
+- matrix-china-indication#11 Solid Tumor × China-held drug = 54
+- matrix-china-indication#12 Non-Small Cell Lung Cancer (NSCLC) × China-held drug = 57
+- matrix-china-indication#13 Colorectal Cancer (CRC) × China-held drug = 38
+- matrix-china-indication#14 Breast Cancer × China-held drug = 29
+- matrix-china-indication#15 Gastric Cancer × China-held drug = 39
+- matrix-china-indication#16 Melanoma × China-held drug = 10
+- matrix-china-indication#17 Hepatocellular Carcinoma (HCC) × China-held drug = 31
+- matrix-china-indication#18 Hormone Receptor Positive Breast Cancer × China-held drug = 20
+- matrix-china-indication#19 Ovarian Cancer (OVC) × China-held drug = 26
+- matrix-china-indication#20 Squamous Cell Carcinoma of the Head and Neck (SCCHN) × China-held drug = 23
+
+### rank-china-overlap-bar
+
+How the two China lenses overlap — ASCO 2026 · abstracts per study
+
+- rank-china-overlap-bar#1 Both = 336
+- rank-china-overlap-bar#2 China-held drug only = 319
+- rank-china-overlap-bar#3 China sponsor only = 89
 
 ### rank-china-target-bar
 
-Targets China-based work concentrates on — ASCO 2026 · abstracts per study
+Targets China-held drugs concentrate on — ASCO 2026 · abstracts per study
 
-- rank-china-target-bar#1 PD1 = 161
-- rank-china-target-bar#2 DNA = 140
-- rank-china-target-bar#3 TYMS = 81
-- rank-china-target-bar#4 microtubule = 72
-- rank-china-target-bar#5 VEGFR2 = 43
-- rank-china-target-bar#6 PDL1 = 39
-- rank-china-target-bar#7 c-Kit = 35
-- rank-china-target-bar#8 EGFR = 35
-- rank-china-target-bar#9 HER2 = 31
-- rank-china-target-bar#10 VEGFR1 = 31
-- rank-china-target-bar#11 VEGFR3 = 31
-- rank-china-target-bar#12 VEGFR = 28
+- rank-china-target-bar#1 PD1 = 228
+- rank-china-target-bar#2 DNA = 202
+- rank-china-target-bar#3 microtubule = 121
+- rank-china-target-bar#4 TYMS = 106
+- rank-china-target-bar#5 EGFR = 54
+- rank-china-target-bar#6 PDL1 = 53
+- rank-china-target-bar#7 VEGFR2 = 53
+- rank-china-target-bar#8 DNA polymerase = 50
+- rank-china-target-bar#9 HER2 = 48
+- rank-china-target-bar#10 c-Kit = 42
+- rank-china-target-bar#11 RRM1 = 39
+- rank-china-target-bar#12 VEGFR1 = 39
 
 ### rank-china-sponsor-bar
 

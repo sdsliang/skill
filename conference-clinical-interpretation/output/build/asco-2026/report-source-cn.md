@@ -312,45 +312,53 @@
 
 ### matrix-china-indication
 
-癌种 × 中国 / 其他地区 — ASCO 2026 · 研究摘要数（按研究去重）
+癌种 × 中国资产 / 其他地区 — ASCO 2026 · 研究摘要数（按研究去重）
 
-- matrix-china-indication#1 实体瘤 × 其他地区 = 108
-- matrix-china-indication#2 非小细胞肺癌 × 其他地区 = 102
-- matrix-china-indication#3 结直肠癌 × 其他地区 = 58
-- matrix-china-indication#4 乳腺癌 × 其他地区 = 82
-- matrix-china-indication#5 胃癌 × 其他地区 = 33
-- matrix-china-indication#6 黑色素瘤 × 其他地区 = 61
-- matrix-china-indication#7 肝细胞癌 × 其他地区 = 31
-- matrix-china-indication#8 HR阳性乳腺癌 × 其他地区 = 41
-- matrix-china-indication#9 卵巢癌 × 其他地区 = 43
-- matrix-china-indication#10 头颈部鳞状细胞癌 × 其他地区 = 39
-- matrix-china-indication#11 实体瘤 × 中国主导研究 = 33
-- matrix-china-indication#12 非小细胞肺癌 × 中国主导研究 = 35
-- matrix-china-indication#13 结直肠癌 × 中国主导研究 = 34
-- matrix-china-indication#14 乳腺癌 × 中国主导研究 = 6
-- matrix-china-indication#15 胃癌 × 中国主导研究 = 37
-- matrix-china-indication#16 黑色素瘤 × 中国主导研究 = 4
-- matrix-china-indication#17 肝细胞癌 × 中国主导研究 = 25
-- matrix-china-indication#18 HR阳性乳腺癌 × 中国主导研究 = 15
-- matrix-china-indication#19 卵巢癌 × 中国主导研究 = 9
-- matrix-china-indication#20 头颈部鳞状细胞癌 × 中国主导研究 = 11
+- matrix-china-indication#1 实体瘤 × 其他地区 = 87
+- matrix-china-indication#2 非小细胞肺癌 × 其他地区 = 80
+- matrix-china-indication#3 结直肠癌 × 其他地区 = 54
+- matrix-china-indication#4 乳腺癌 × 其他地区 = 59
+- matrix-china-indication#5 胃癌 × 其他地区 = 31
+- matrix-china-indication#6 黑色素瘤 × 其他地区 = 55
+- matrix-china-indication#7 肝细胞癌 × 其他地区 = 25
+- matrix-china-indication#8 HR阳性乳腺癌 × 其他地区 = 36
+- matrix-china-indication#9 卵巢癌 × 其他地区 = 26
+- matrix-china-indication#10 头颈部鳞状细胞癌 × 其他地区 = 27
+- matrix-china-indication#11 实体瘤 × 中国资产 = 54
+- matrix-china-indication#12 非小细胞肺癌 × 中国资产 = 57
+- matrix-china-indication#13 结直肠癌 × 中国资产 = 38
+- matrix-china-indication#14 乳腺癌 × 中国资产 = 29
+- matrix-china-indication#15 胃癌 × 中国资产 = 39
+- matrix-china-indication#16 黑色素瘤 × 中国资产 = 10
+- matrix-china-indication#17 肝细胞癌 × 中国资产 = 31
+- matrix-china-indication#18 HR阳性乳腺癌 × 中国资产 = 20
+- matrix-china-indication#19 卵巢癌 × 中国资产 = 26
+- matrix-china-indication#20 头颈部鳞状细胞癌 × 中国资产 = 23
+
+### rank-china-overlap-bar
+
+两条中国口径的重叠 — ASCO 2026 · 研究摘要数（按研究去重）
+
+- rank-china-overlap-bar#1 两者都是 = 336
+- rank-china-overlap-bar#2 仅研发机构在中国 = 319
+- rank-china-overlap-bar#3 仅申办方在中国 = 89
 
 ### rank-china-target-bar
 
-中国研究最集中的靶点 — ASCO 2026 · 研究摘要数（按研究去重）
+中国资产最集中的靶点 — ASCO 2026 · 研究摘要数（按研究去重）
 
-- rank-china-target-bar#1 PD1 = 161
-- rank-china-target-bar#2 DNA = 140
-- rank-china-target-bar#3 TYMS = 81
-- rank-china-target-bar#4 microtubule = 72
-- rank-china-target-bar#5 VEGFR2 = 43
-- rank-china-target-bar#6 PDL1 = 39
-- rank-china-target-bar#7 c-Kit = 35
-- rank-china-target-bar#8 EGFR = 35
-- rank-china-target-bar#9 HER2 = 31
-- rank-china-target-bar#10 VEGFR1 = 31
-- rank-china-target-bar#11 VEGFR3 = 31
-- rank-china-target-bar#12 VEGFR = 28
+- rank-china-target-bar#1 PD1 = 228
+- rank-china-target-bar#2 DNA = 202
+- rank-china-target-bar#3 microtubule = 121
+- rank-china-target-bar#4 TYMS = 106
+- rank-china-target-bar#5 EGFR = 54
+- rank-china-target-bar#6 PDL1 = 53
+- rank-china-target-bar#7 VEGFR2 = 53
+- rank-china-target-bar#8 DNA polymerase = 50
+- rank-china-target-bar#9 HER2 = 48
+- rank-china-target-bar#10 c-Kit = 42
+- rank-china-target-bar#11 RRM1 = 39
+- rank-china-target-bar#12 VEGFR1 = 39
 
 ### rank-china-sponsor-bar
 

@@ -28,9 +28,13 @@ function pairs(cnList, enList) {
 export const day = (v) => txt(v).slice(0, 10);
 
 function normalizeDrug(d) {
-    const instituteAreas = arr(d.research_institute_area).map(txt);
-    const institutes = pairs(d.research_institute_names_cn, d.research_institute_names_en)
-        .map((p, i) => ({ ...p, id: txt(arr(d.research_institute_ids)[i]), area: instituteAreas[i] ?? '' }));
+    // 注意：research_institute_area 是**该药研发机构的去重地区集合**，不是与
+    // research_institute_names_* 等长的平行数组（实测 8563 个药里 2532 个长度对不上，
+    // 老代码按下标硬配会把 carboplatin 判成「中国内地」持有）。因此它只保留为药品级集合。
+    const instituteAreas = uniq(arr(d.research_institute_area).map(txt).filter(Boolean));
+    const names = pairs(d.research_institute_names_cn, d.research_institute_names_en);
+    const ids = arr(d.research_institute_ids);
+    const institutes = names.map((p, i) => ({ ...p, id: txt(ids[i]), area: '' }));
     const moa = pairs(d.moa_name_cn, d.moa_name_en);
     return {
         id: txt(d.drug_earth_id),
@@ -40,6 +44,8 @@ function normalizeDrug(d) {
         targetIds: arr(d.target_ids).map(txt),
         moa: moa.length ? moa : pairs(d.moa_name_cn, d.moa_name_en),
         institutes,
+        // 药品研发机构地区（去重集合），中国口径的第二条判定依据
+        instituteAreas,
     };
 }
 

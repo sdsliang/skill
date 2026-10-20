@@ -7,7 +7,7 @@
         "type": "heatmap",
         "height": "auto",
         "maxHeight": 460,
-        "title": "癌种 × 中国 / 其他地区",
+        "title": "癌种 × 中国资产 / 其他地区",
         "subTitle": "ASCO 2026 · 研究摘要数（按研究去重）",
         "notes": [
             {
@@ -26,7 +26,7 @@
                             {
                                 "kind": "string",
                                 "role": "note-content",
-                                "markdown": "同一癌种在中国口径与其他地区口径下的摘要数并列；中国口径 = 申办方登记地在中国内地/港澳台。缺少申办方的摘要无法归属，不计入任一侧。"
+                                "markdown": "同一癌种在「中国资产」与其他地区口径下的摘要数并列；中国资产 = 药品研发机构地区含中国内地/港澳台。该口径会把跨国药企在华机构持有的进口药计入，与「中国申办方」口径只有部分重叠（见下一张）。"
                             }
                         ]
                     },
@@ -71,7 +71,7 @@
             {
                 "label": "其他地区",
                 "group": "实体瘤",
-                "value": 108,
+                "value": 87,
                 "drill": [
                     {
                         "apiKey": "meeting_tags",
@@ -87,7 +87,7 @@
             {
                 "label": "其他地区",
                 "group": "非小细胞肺癌",
-                "value": 102,
+                "value": 80,
                 "drill": [
                     {
                         "apiKey": "meeting_tags",
@@ -103,7 +103,7 @@
             {
                 "label": "其他地区",
                 "group": "结直肠癌",
-                "value": 58,
+                "value": 54,
                 "drill": [
                     {
                         "apiKey": "meeting_tags",
@@ -119,7 +119,7 @@
             {
                 "label": "其他地区",
                 "group": "乳腺癌",
-                "value": 82,
+                "value": 59,
                 "drill": [
                     {
                         "apiKey": "meeting_tags",
@@ -135,38 +135,6 @@
             {
                 "label": "其他地区",
                 "group": "胃癌",
-                "value": 33,
-                "drill": [
-                    {
-                        "apiKey": "meeting_tags",
-                        "list": [
-                            {
-                                "label": "ASCO 2026",
-                                "value": "ASCO 2026"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "label": "其他地区",
-                "group": "黑色素瘤",
-                "value": 61,
-                "drill": [
-                    {
-                        "apiKey": "meeting_tags",
-                        "list": [
-                            {
-                                "label": "ASCO 2026",
-                                "value": "ASCO 2026"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "label": "其他地区",
-                "group": "肝细胞癌",
                 "value": 31,
                 "drill": [
                     {
@@ -182,136 +150,8 @@
             },
             {
                 "label": "其他地区",
-                "group": "HR阳性乳腺癌",
-                "value": 41,
-                "drill": [
-                    {
-                        "apiKey": "meeting_tags",
-                        "list": [
-                            {
-                                "label": "ASCO 2026",
-                                "value": "ASCO 2026"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "label": "其他地区",
-                "group": "卵巢癌",
-                "value": 43,
-                "drill": [
-                    {
-                        "apiKey": "meeting_tags",
-                        "list": [
-                            {
-                                "label": "ASCO 2026",
-                                "value": "ASCO 2026"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "label": "其他地区",
-                "group": "头颈部鳞状细胞癌",
-                "value": 39,
-                "drill": [
-                    {
-                        "apiKey": "meeting_tags",
-                        "list": [
-                            {
-                                "label": "ASCO 2026",
-                                "value": "ASCO 2026"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "label": "中国主导研究",
-                "group": "实体瘤",
-                "value": 33,
-                "drill": [
-                    {
-                        "apiKey": "meeting_tags",
-                        "list": [
-                            {
-                                "label": "ASCO 2026",
-                                "value": "ASCO 2026"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "label": "中国主导研究",
-                "group": "非小细胞肺癌",
-                "value": 35,
-                "drill": [
-                    {
-                        "apiKey": "meeting_tags",
-                        "list": [
-                            {
-                                "label": "ASCO 2026",
-                                "value": "ASCO 2026"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "label": "中国主导研究",
-                "group": "结直肠癌",
-                "value": 34,
-                "drill": [
-                    {
-                        "apiKey": "meeting_tags",
-                        "list": [
-                            {
-                                "label": "ASCO 2026",
-                                "value": "ASCO 2026"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "label": "中国主导研究",
-                "group": "乳腺癌",
-                "value": 6,
-                "drill": [
-                    {
-                        "apiKey": "meeting_tags",
-                        "list": [
-                            {
-                                "label": "ASCO 2026",
-                                "value": "ASCO 2026"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "label": "中国主导研究",
-                "group": "胃癌",
-                "value": 37,
-                "drill": [
-                    {
-                        "apiKey": "meeting_tags",
-                        "list": [
-                            {
-                                "label": "ASCO 2026",
-                                "value": "ASCO 2026"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "label": "中国主导研究",
                 "group": "黑色素瘤",
-                "value": 4,
+                "value": 55,
                 "drill": [
                     {
                         "apiKey": "meeting_tags",
@@ -325,7 +165,7 @@
                 ]
             },
             {
-                "label": "中国主导研究",
+                "label": "其他地区",
                 "group": "肝细胞癌",
                 "value": 25,
                 "drill": [
@@ -341,9 +181,9 @@
                 ]
             },
             {
-                "label": "中国主导研究",
+                "label": "其他地区",
                 "group": "HR阳性乳腺癌",
-                "value": 15,
+                "value": 36,
                 "drill": [
                     {
                         "apiKey": "meeting_tags",
@@ -357,9 +197,9 @@
                 ]
             },
             {
-                "label": "中国主导研究",
+                "label": "其他地区",
                 "group": "卵巢癌",
-                "value": 9,
+                "value": 26,
                 "drill": [
                     {
                         "apiKey": "meeting_tags",
@@ -373,9 +213,169 @@
                 ]
             },
             {
-                "label": "中国主导研究",
+                "label": "其他地区",
                 "group": "头颈部鳞状细胞癌",
-                "value": 11,
+                "value": 27,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "中国资产",
+                "group": "实体瘤",
+                "value": 54,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "中国资产",
+                "group": "非小细胞肺癌",
+                "value": 57,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "中国资产",
+                "group": "结直肠癌",
+                "value": 38,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "中国资产",
+                "group": "乳腺癌",
+                "value": 29,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "中国资产",
+                "group": "胃癌",
+                "value": 39,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "中国资产",
+                "group": "黑色素瘤",
+                "value": 10,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "中国资产",
+                "group": "肝细胞癌",
+                "value": 31,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "中国资产",
+                "group": "HR阳性乳腺癌",
+                "value": 20,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "中国资产",
+                "group": "卵巢癌",
+                "value": 26,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "中国资产",
+                "group": "头颈部鳞状细胞癌",
+                "value": 23,
                 "drill": [
                     {
                         "apiKey": "meeting_tags",

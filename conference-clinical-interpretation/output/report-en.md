@@ -82,25 +82,39 @@ Chaining the three layers shows the pathway clearly: the PD1 channel is used by 
 
 ## Act 4 · China's voice
 
-Under one hard rule — the sponsor is registered in mainland China, Hong Kong, Macau or Taiwan — China accounts for 425 abstracts, 25.9% of the meeting. That is the only criterion: Chinese subsidiaries of multinationals count at their registration location and are not merged into the parent, and abstracts without a sponsor cannot be attributed and are excluded from either side.
+"China's voice" has two lenses, and this report gives both side by side, because they only partly overlap — either one alone tells the story wrong.
 
-China's cancer-type mix differs sharply from the rest of the world: gastric cancer 37 abstracts, NSCLC 35, colorectal 34, solid tumours 33 and gastro-oesophageal junction 27, with a much heavier GI weight than the global picture (rest of world: solid tumours 108, NSCLC 102, breast 82, melanoma 61, colorectal 58). Chinese investigators put their resources into gastric, colorectal and GEJ cancers, which are highly prevalent locally, and invest relatively less in breast cancer and melanoma.
+**Asset side** (primary): the drug's **development-institute region** includes mainland China, Hong Kong, Macau or Taiwan — **655 abstracts, 40.0%**.
+**Research side** (contrast): the **sponsor's registration country** is in the same set — **425 abstracts, 25.9%**.
 
-::visualization[Cancer type × China / rest of world]{path="/workspace/visualizations/matrix-china-indication-en.json"}
+Cancer-type mix on the asset side: NSCLC 57 abstracts, solid tumours 54, gastric 39, colorectal 38, hepatocellular 31. Compared with the rest of the world, lung cancer and GI tumours (gastric, colorectal, liver) carry more weight and breast cancer and melanoma far less — Chinese-held assets concentrate on tumours that are highly prevalent locally.
 
-China's target ranking shows the same two peaks of PD1 plus chemotherapy backbone: PD1 161 abstracts, DNA 140, TYMS 81, microtubule 72, VEGFR2 43. Compared with the rest of the world, VEGFR2 (the anlotinib and apatinib family) is used far more densely in China, a direct projection of domestic multi-kinase small molecules.
+"China's voice" has two lenses, and this report gives both side by side, because they only partly overlap — either one alone tells the story wrong.
 
-::visualization[Targets most concentrated in China-led work]{path="/workspace/visualizations/rank-china-target-bar-en.json"}
+**Asset side** (primary): the drug's **development-institute region** includes mainland China, Hong Kong, Macau or Taiwan — **655 abstracts, 40.0%**.
+**Research side** (contrast): the **sponsor's registration country** is in the same set — **425 abstracts, 25.9%**.
 
-Who leads: Fudan University 25 abstracts, Sun Yat-sen University 19, Hengrui Pharma 13, West China Hospital 13, Sun Yat-sen University Cancer Center 10. The list is almost entirely universities and affiliated hospitals, so China's voice is first of all the voice of **investigator-initiated research**; on the industry side Hengrui, Baili-Bio, Akeso and Zelgen enter with phase 3 assets, but not yet in numbers that change the shape of the ranking.
+Cancer-type mix on the asset side: NSCLC 57 abstracts, solid tumours 54, gastric 39, colorectal 38, hepatocellular 31. Compared with the rest of the world, lung cancer and GI tumours (gastric, colorectal, liver) carry more weight and breast cancer and melanoma far less — Chinese-held assets concentrate on tumours that are highly prevalent locally.
+
+::visualization[Cancer type × China-held / rest of world]{path="/workspace/visualizations/matrix-china-indication-en.json"}
+
+Both hold in 336 abstracts (20.5%); development institute in China with an overseas sponsor in 319 (19.5%); China sponsor working on purely foreign-held assets in 89 (5.4%). Much of the 319 asset-only abstracts are imported drugs held by a China entity of a multinational (pembrolizumab, bevacizumab and the like) and are not, strictly speaking, Chinese-made research; the 89 sponsor-only abstracts are Chinese companies running local studies on foreign-owned assets. The asset lens answers "whose books the drug sits on", the research lens answers "who does the work" — do not read them as one number.
+
+::visualization[How the two China lenses overlap]{path="/workspace/visualizations/rank-china-overlap-bar-en.json"}
+
+The target ranking has two peaks, PD1 plus the chemotherapy backbone: PD1 228 abstracts, DNA 202, microtubule 121, TYMS 106, EGFR 54. PD1 covers 34.8% of the asset side, higher than in the overall cohort (27.0%); EGFR entering the top five is one of the few places where the China side has a distinct centre of gravity.
+
+::visualization[Targets China-held drugs concentrate on]{path="/workspace/visualizations/rank-china-target-bar-en.json"}
+
+Who leads on the research side: Fudan University 25 abstracts, Hengrui Pharma and Sun Yat-sen University 15 each, Tianjin Medical University Cancer Institute 11, West China Hospital 9. The list is almost entirely universities and affiliated hospitals, so China's voice is first of all the voice of **investigator-initiated research**; on the industry side Hengrui, Baili-Bio, Akeso and Zelgen enter with phase 3 assets, but not yet in numbers that change the shape of the ranking.
 
 ::visualization[China-based sponsors]{path="/workspace/visualizations/rank-china-sponsor-bar-en.json"}
 
-China's evidence maturity deserves its own note: evidence type is phase II 218 abstracts, prospective research 117, phase I 79 and phase I/II 47, with far fewer retrospective studies than the rest of the world (407 there); stage is advanced 129, locally advanced 47, phase III 34 and phase II 24. China leans towards prospective, phase II-heavy designs with modest sample sizes but disciplined conduct, rather than backfilling with real-world data.
+On maturity, the 655 asset-side abstracts split into phase II 249, prospective research 131, phase I 110 and retrospective 97; stage is advanced 200, locally advanced 67, phase III 50 and phase II 28. Prospective work clearly outweighs retrospective, so this side leans towards well-designed prospective studies with modest sample sizes rather than backfilling with real-world data.
 
-The positivity gap is the widest single difference: 96.5% positive in the China cohort versus 69.0% elsewhere, and 2.1% negative versus 12.4%. That gap cannot be read directly as higher quality — most likely it is three things stacking: negative results are less often written up as abstracts, China's mix is heavier in single-arm phase II without randomisation, and the meeting's China work concentrates on targets that are still unproven, where early signals are easily judged positive. China holds 15 of 49 LBAs (about 31%), above its 25.9% share of the total, so the weight of the headline data is rising{{ref_7}}.
+The positivity gap is still the widest single difference: 89.2% positive and 4.4% negative on the asset side, higher still on the research side at 96.5% / 2.1%, against 67.5% / 13.2% elsewhere. That gap cannot be read as higher quality — most likely three things stack: negative results are less often written up as abstracts, the China mix is heavier in single-arm phase II without randomisation, and the work concentrates on targets that are still unproven, where early signals are easily judged positive. LBAs reach 21 of 49 (42.9%) on the asset side and 15 of 49 (30.6%) on the research side, both above their share of volume, so the weight of the headline data is rising{{ref_7}}.
 
-Three representative examples: benmelstobart plus chemotherapy and anlotinib as first-line treatment of advanced non-squamous NSCLC in a phase 3 trial{{ref_8}}; M701 (a CD3/EpCAM bispecific) given intraperitoneally for malignant ascites in a phase 3 trial{{ref_9}}; and a randomised study of neoadjuvant chemoradiotherapy versus neoadjuvant chemotherapy followed by D2 gastrectomy in gastric cancer{{ref_7}}. What the three share is **adding to or subtracting from an existing standard of care** rather than opening a brand-new mechanism — which explains both China's high positivity rate and the continued scarcity of genuinely novel mechanisms.
+Three representative examples: benmelstobart plus chemotherapy and anlotinib as first-line treatment of advanced non-squamous NSCLC in a phase 3 trial{{ref_8}}; M701 (a CD3/EpCAM bispecific) given intraperitoneally for malignant ascites in a phase 3 trial{{ref_9}}; and a randomised study of neoadjuvant chemoradiotherapy versus neoadjuvant chemotherapy followed by D2 gastrectomy in gastric cancer{{ref_7}}. What the three share is **adding to or subtracting from an existing standard of care** rather than opening a brand-new mechanism — which explains both China's positivity rate and the continued scarcity of genuinely novel mechanisms.
 
 ## Act 5 · Which few readouts can change a decision
 

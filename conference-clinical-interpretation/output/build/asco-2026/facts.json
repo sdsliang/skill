@@ -3,8 +3,8 @@
   "denominator": 1639,
   "chapters": 6,
   "charts": {
-    "cn": 19,
-    "en": 19
+    "cn": 20,
+    "en": 20
   },
   "evaluation": {
     "积极": 1248,
@@ -14,12 +14,335 @@
   },
   "lba": {
     "total": 49,
-    "china": 15,
+    "china": 21,
+    "chinaSponsor": 15,
     "share": 3
   },
   "cohorts": {
     "china": {
       "name": "china",
+      "n": 655,
+      "share": 40,
+      "positive": 584,
+      "positiveRate": 89.2,
+      "negative": 29,
+      "negativeRate": 4.4,
+      "terminated": 3,
+      "unassessed": 42,
+      "lba": 21,
+      "keyEvidence": 324,
+      "topIndications": [
+        {
+          "cn": "非小细胞肺癌",
+          "en": "Non-Small Cell Lung Cancer (NSCLC)",
+          "value": 57,
+          "share": 8.7
+        },
+        {
+          "cn": "实体瘤",
+          "en": "Solid Tumor",
+          "value": 54,
+          "share": 8.2
+        },
+        {
+          "cn": "胃癌",
+          "en": "Gastric Cancer",
+          "value": 39,
+          "share": 6
+        },
+        {
+          "cn": "结直肠癌",
+          "en": "Colorectal Cancer (CRC)",
+          "value": 38,
+          "share": 5.8
+        },
+        {
+          "cn": "肝细胞癌",
+          "en": "Hepatocellular Carcinoma (HCC)",
+          "value": 31,
+          "share": 4.7
+        }
+      ],
+      "topTargets": [
+        {
+          "cn": "PD1",
+          "en": "PD1",
+          "value": 228,
+          "share": 34.8
+        },
+        {
+          "cn": "DNA",
+          "en": "DNA",
+          "value": 202,
+          "share": 30.8
+        },
+        {
+          "cn": "microtubule",
+          "en": "microtubule",
+          "value": 121,
+          "share": 18.5
+        },
+        {
+          "cn": "TYMS",
+          "en": "TYMS",
+          "value": 106,
+          "share": 16.2
+        },
+        {
+          "cn": "EGFR",
+          "en": "EGFR",
+          "value": 54,
+          "share": 8.2
+        }
+      ],
+      "topCompanies": [
+        {
+          "cn": "复旦大学",
+          "en": "Fudan University",
+          "value": 25,
+          "share": 3.8
+        },
+        {
+          "cn": "恒瑞医药",
+          "en": "Hengrui Pharmaceuticals",
+          "value": 15,
+          "share": 2.3
+        },
+        {
+          "cn": "中山大学",
+          "en": "Sun Yat-sen University",
+          "value": 15,
+          "share": 2.3
+        },
+        {
+          "cn": "天津市肿瘤医院",
+          "en": "TMUCIH",
+          "value": 11,
+          "share": 1.7
+        },
+        {
+          "cn": "四川大学华西医院",
+          "en": "West China Hospital of Sichuan University",
+          "value": 9,
+          "share": 1.4
+        }
+      ],
+      "topStages": [
+        {
+          "cn": "晚期",
+          "en": "Advanced",
+          "value": 200,
+          "share": 30.5
+        },
+        {
+          "cn": "局部晚期",
+          "en": "Locally advanced",
+          "value": 67,
+          "share": 10.2
+        },
+        {
+          "cn": "III期",
+          "en": "Stage III",
+          "value": 50,
+          "share": 7.6
+        },
+        {
+          "cn": "II期",
+          "en": "Stage II",
+          "value": 28,
+          "share": 4.3
+        }
+      ],
+      "topEvidence": [
+        {
+          "cn": "Phase II",
+          "en": "Phase II",
+          "value": 249,
+          "share": 38
+        },
+        {
+          "cn": "前瞻性研究",
+          "en": "Prospective study",
+          "value": 131,
+          "share": 20
+        },
+        {
+          "cn": "Phase I",
+          "en": "Phase I",
+          "value": 110,
+          "share": 16.8
+        },
+        {
+          "cn": "回顾性研究",
+          "en": "Retrospective study",
+          "value": 97,
+          "share": 14.8
+        }
+      ]
+    },
+    "row": {
+      "name": "row",
+      "n": 984,
+      "share": 60,
+      "positive": 664,
+      "positiveRate": 67.5,
+      "negative": 130,
+      "negativeRate": 13.2,
+      "terminated": 9,
+      "unassessed": 190,
+      "lba": 28,
+      "keyEvidence": 337,
+      "topIndications": [
+        {
+          "cn": "实体瘤",
+          "en": "Solid Tumor",
+          "value": 87,
+          "share": 8.8
+        },
+        {
+          "cn": "非小细胞肺癌",
+          "en": "Non-Small Cell Lung Cancer (NSCLC)",
+          "value": 80,
+          "share": 8.1
+        },
+        {
+          "cn": "乳腺癌",
+          "en": "Breast Cancer",
+          "value": 59,
+          "share": 6
+        },
+        {
+          "cn": "黑色素瘤",
+          "en": "Melanoma",
+          "value": 55,
+          "share": 5.6
+        },
+        {
+          "cn": "结直肠癌",
+          "en": "Colorectal Cancer (CRC)",
+          "value": 54,
+          "share": 5.5
+        }
+      ],
+      "topTargets": [
+        {
+          "cn": "PD1",
+          "en": "PD1",
+          "value": 214,
+          "share": 21.7
+        },
+        {
+          "cn": "DNA",
+          "en": "DNA",
+          "value": 203,
+          "share": 20.6
+        },
+        {
+          "cn": "microtubule",
+          "en": "microtubule",
+          "value": 86,
+          "share": 8.7
+        },
+        {
+          "cn": "PDL1",
+          "en": "PDL1",
+          "value": 86,
+          "share": 8.7
+        },
+        {
+          "cn": "TYMS",
+          "en": "TYMS",
+          "value": 83,
+          "share": 8.4
+        }
+      ],
+      "topCompanies": [
+        {
+          "cn": "National Cancer Institute (NCI)",
+          "en": "National Cancer Institute (NCI)",
+          "value": 23,
+          "share": 2.3
+        },
+        {
+          "cn": "AstraZeneca",
+          "en": "AstraZeneca",
+          "value": 22,
+          "share": 2.2
+        },
+        {
+          "cn": "MD Anderson",
+          "en": "MD Anderson",
+          "value": 17,
+          "share": 1.7
+        },
+        {
+          "cn": "Pfizer",
+          "en": "Pfizer",
+          "value": 14,
+          "share": 1.4
+        },
+        {
+          "cn": "Merck & Co.",
+          "en": "Merck & Co.",
+          "value": 11,
+          "share": 1.1
+        }
+      ],
+      "topStages": [
+        {
+          "cn": "晚期",
+          "en": "Advanced",
+          "value": 316,
+          "share": 32.1
+        },
+        {
+          "cn": "III期",
+          "en": "Stage III",
+          "value": 59,
+          "share": 6
+        },
+        {
+          "cn": "局部晚期",
+          "en": "Locally advanced",
+          "value": 58,
+          "share": 5.9
+        },
+        {
+          "cn": "早期",
+          "en": "Early",
+          "value": 33,
+          "share": 3.4
+        }
+      ],
+      "topEvidence": [
+        {
+          "cn": "回顾性研究",
+          "en": "Retrospective study",
+          "value": 312,
+          "share": 31.7
+        },
+        {
+          "cn": "真实世界研究",
+          "en": "Real-world study",
+          "value": 273,
+          "share": 27.7
+        },
+        {
+          "cn": "Phase II",
+          "en": "Phase II",
+          "value": 220,
+          "share": 22.4
+        },
+        {
+          "cn": "Phase I",
+          "en": "Phase I",
+          "value": 136,
+          "share": 13.8
+        }
+      ]
+    },
+    "chinaSponsor": {
+      "name": "chinaSponsor",
       "n": 425,
       "share": 25.9,
       "positive": 410,
@@ -176,167 +499,6 @@
           "en": "Phase I/II",
           "value": 47,
           "share": 11.1
-        }
-      ]
-    },
-    "row": {
-      "name": "row",
-      "n": 1214,
-      "share": 74.1,
-      "positive": 838,
-      "positiveRate": 69,
-      "negative": 150,
-      "negativeRate": 12.4,
-      "terminated": 10,
-      "unassessed": 226,
-      "lba": 34,
-      "keyEvidence": 380,
-      "topIndications": [
-        {
-          "cn": "实体瘤",
-          "en": "Solid Tumor",
-          "value": 108,
-          "share": 8.9
-        },
-        {
-          "cn": "非小细胞肺癌",
-          "en": "Non-Small Cell Lung Cancer (NSCLC)",
-          "value": 102,
-          "share": 8.4
-        },
-        {
-          "cn": "乳腺癌",
-          "en": "Breast Cancer",
-          "value": 82,
-          "share": 6.8
-        },
-        {
-          "cn": "黑色素瘤",
-          "en": "Melanoma",
-          "value": 61,
-          "share": 5
-        },
-        {
-          "cn": "结直肠癌",
-          "en": "Colorectal Cancer (CRC)",
-          "value": 58,
-          "share": 4.8
-        }
-      ],
-      "topTargets": [
-        {
-          "cn": "PD1",
-          "en": "PD1",
-          "value": 281,
-          "share": 23.1
-        },
-        {
-          "cn": "DNA",
-          "en": "DNA",
-          "value": 265,
-          "share": 21.8
-        },
-        {
-          "cn": "microtubule",
-          "en": "microtubule",
-          "value": 135,
-          "share": 11.1
-        },
-        {
-          "cn": "TYMS",
-          "en": "TYMS",
-          "value": 108,
-          "share": 8.9
-        },
-        {
-          "cn": "PDL1",
-          "en": "PDL1",
-          "value": 100,
-          "share": 8.2
-        }
-      ],
-      "topCompanies": [
-        {
-          "cn": "National Cancer Institute (NCI)",
-          "en": "National Cancer Institute (NCI)",
-          "value": 24,
-          "share": 2
-        },
-        {
-          "cn": "MD Anderson",
-          "en": "MD Anderson",
-          "value": 23,
-          "share": 1.9
-        },
-        {
-          "cn": "AstraZeneca",
-          "en": "AstraZeneca",
-          "value": 20,
-          "share": 1.6
-        },
-        {
-          "cn": "Pfizer",
-          "en": "Pfizer",
-          "value": 14,
-          "share": 1.2
-        },
-        {
-          "cn": "Roche",
-          "en": "Roche",
-          "value": 13,
-          "share": 1.1
-        }
-      ],
-      "topStages": [
-        {
-          "cn": "晚期",
-          "en": "Advanced",
-          "value": 387,
-          "share": 31.9
-        },
-        {
-          "cn": "局部晚期",
-          "en": "Locally advanced",
-          "value": 78,
-          "share": 6.4
-        },
-        {
-          "cn": "III期",
-          "en": "Stage III",
-          "value": 75,
-          "share": 6.2
-        },
-        {
-          "cn": "IV期",
-          "en": "Stage IV",
-          "value": 39,
-          "share": 3.2
-        }
-      ],
-      "topEvidence": [
-        {
-          "cn": "回顾性研究",
-          "en": "Retrospective study",
-          "value": 407,
-          "share": 33.5
-        },
-        {
-          "cn": "真实世界研究",
-          "en": "Real-world study",
-          "value": 354,
-          "share": 29.2
-        },
-        {
-          "cn": "Phase II",
-          "en": "Phase II",
-          "value": 251,
-          "share": 20.7
-        },
-        {
-          "cn": "Phase I",
-          "en": "Phase I",
-          "value": 167,
-          "share": 13.8
         }
       ]
     },
@@ -501,6 +663,11 @@
         }
       ]
     }
+  },
+  "chinaOverlap": {
+    "assetOnly": 319,
+    "both": 336,
+    "sponsorOnly": 89
   },
   "actionablePool": {
     "total": 586,
@@ -970,6 +1137,10 @@
       "skipped": false
     },
     {
+      "id": "rank-day-bar",
+      "skipped": false
+    },
+    {
       "id": "rank-country-bar",
       "skipped": false
     },
@@ -1002,11 +1173,11 @@
       "skipped": false
     },
     {
-      "id": "rank-day-bar",
+      "id": "matrix-china-indication",
       "skipped": false
     },
     {
-      "id": "rank-china-sponsor-bar",
+      "id": "rank-china-overlap-bar",
       "skipped": false
     },
     {
@@ -1014,7 +1185,7 @@
       "skipped": false
     },
     {
-      "id": "matrix-china-indication",
+      "id": "rank-china-sponsor-bar",
       "skipped": false
     },
     {

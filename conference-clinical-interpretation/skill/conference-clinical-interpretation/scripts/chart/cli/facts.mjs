@@ -50,8 +50,16 @@ const cohort = (name, sel) => {
     };
 };
 
+// 第四幕两条中国口径并列：资产侧（药品研发机构地区）为主，研究侧（申办方登记地）作对照
+const isChinaSponsor = (u) => DIMENSIONS.chinaSponsor(u).length > 0;
 const china = cohort('china', isChina);
 const row = cohort('row', (u) => !isChina(u));
+const chinaSponsorCohort = cohort('chinaSponsor', isChinaSponsor);
+const chinaOverlap = {
+    assetOnly: units.filter((u) => isChina(u) && !isChinaSponsor(u)).length,
+    both: units.filter((u) => isChina(u) && isChinaSponsor(u)).length,
+    sponsorOnly: units.filter((u) => !isChina(u) && isChinaSponsor(u)).length,
+};
 const all = cohort('all', () => true);
 
 // 可行动信号：积极 + 有关键证据，再按「能不能改决策」加权
@@ -84,8 +92,9 @@ const facts = {
     evaluation: {
         积极: all.positive, 不佳: all.negative, 终止: all.terminated, 未评价: all.unassessed,
     },
-    lba: { total: all.lba, china: china.lba, share: pct(all.lba, N) },
-    cohorts: { china, row, all },
+    lba: { total: all.lba, china: china.lba, chinaSponsor: chinaSponsorCohort.lba, share: pct(all.lba, N) },
+    cohorts: { china, row, chinaSponsor: chinaSponsorCohort, all },
+    chinaOverlap,
     actionablePool: { total: units.filter((u) => pos(u) && u.keyEvidence).length, screened: actionable.length },
     actionableTop: actionable.slice(0, 20).map(({ u, score }) => ({
         score,
@@ -112,10 +121,13 @@ fs.writeFileSync(path.join(buildDir, 'facts.json'), JSON.stringify(facts, null, 
 console.log(JSON.stringify({
     denominator: N,
     chinaShare: china.share,
-    positiveRate: { china: china.positiveRate, row: row.positiveRate, all: all.positiveRate },
-    negativeRate: { china: china.negativeRate, row: row.negativeRate },
+    chinaSponsorShare: chinaSponsorCohort.share,
+    chinaOverlap,
+    positiveRate: { china: china.positiveRate, row: row.positiveRate, chinaSponsor: chinaSponsorCohort.positiveRate, all: all.positiveRate },
+    negativeRate: { china: china.negativeRate, row: row.negativeRate, chinaSponsor: chinaSponsorCohort.negativeRate },
     lba: facts.lba,
     actionablePool: facts.actionablePool,
     topChinaIndications: china.topIndications.slice(0, 3),
+    topChinaSponsors: chinaSponsorCohort.topCompanies.slice(0, 3),
     topChinaTargets: china.topTargets.slice(0, 3),
 }, null, 2));

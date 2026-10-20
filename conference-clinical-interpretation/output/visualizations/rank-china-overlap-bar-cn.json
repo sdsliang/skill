@@ -1,0 +1,118 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "chart",
+        "type": "bar",
+        "height": "auto",
+        "maxHeight": 520,
+        "title": "两条中国口径的重叠",
+        "subTitle": "ASCO 2026 · 研究摘要数（按研究去重）",
+        "notes": [
+            {
+                "kind": "layout",
+                "role": "source-note",
+                "rows": [
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "说明："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "中国资产（药品研发机构地区含中国内地/港澳台）与中国申办方（申办方登记地在同范围）的交叉分布；只统计至少命中一条口径的研究，两条例都不命中的不进图。仅研发机构侧多为跨国药企在华机构持有的进口药，仅申办方侧多为用境外资产做的本土研究。"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "口径："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "图中 Top 3 合计占 100.0%（口径内总数 744）；带该维度标注的摘要 744 篇"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "数据来源："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "本届会议（ASCO 2026）公开的研究摘要，共 1639 篇按研究去重"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "axisXTitle": "研究摘要数",
+        "axisYTitle": "口径",
+        "data": [
+            {
+                "label": "两者都是",
+                "value": 336,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "仅研发机构在中国",
+                "value": 319,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "仅申办方在中国",
+                "value": 89,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -2,7 +2,7 @@
     "meeting": "ASCO 2026",
     "lang": "en",
     "denominator": 1639,
-    "totalCharts": 20,
+    "totalCharts": 21,
     "skippedCharts": 0,
     "failedCharts": 0,
     "chapters": [
@@ -52,6 +52,7 @@
             "narrative": "China-related work defined by one hard rule — the sponsor is registered in mainland China, Hong Kong, Macau or Taiwan: who leads, where it concentrates, and how its positivity rate compares with the rest of the world.",
             "views": [
                 "matrix-china-indication",
+                "rank-china-overlap-bar",
                 "rank-china-target-bar",
                 "rank-china-sponsor-bar"
             ]
@@ -215,8 +216,17 @@
             "view": "matrix-china-indication",
             "type": "heatmap",
             "chapter": 4,
-            "title": "Cancer type × China / rest of world",
-            "requirement": "Abstracts per cancer type for China-related work versus the rest of the world; China = sponsor registered in mainland China, Hong Kong, Macau or Taiwan. Records without a sponsor cannot be attributed and are excluded from both sides.",
+            "title": "Cancer type × China-held / rest of world",
+            "requirement": "Abstracts per cancer type for China-held drugs versus the rest of the world. China here means the drug development-institute region includes mainland China / Hong Kong / Macau / Taiwan, which also captures imported drugs held by a China entity of a multinational; overlap with the China-sponsor lens is partial (see the next chart).",
+            "renderable": true
+        },
+        {
+            "file": "rank-china-overlap-bar-en.json",
+            "view": "rank-china-overlap-bar",
+            "type": "bar",
+            "chapter": 4,
+            "title": "How the two China lenses overlap",
+            "requirement": "Cross-tab of China-held drugs (drug research-institute region includes mainland China / Hong Kong / Macau / Taiwan) against China-based sponsors. Only studies hitting at least one lens are shown. Asset-only entries are mostly imported drugs held by a China entity of a multinational; sponsor-only entries are mostly local studies run on foreign-owned assets.",
             "renderable": true
         },
         {
@@ -224,7 +234,7 @@
             "view": "rank-china-target-bar",
             "type": "bar",
             "chapter": 4,
-            "title": "Targets China-based work concentrates on",
+            "title": "Targets China-held drugs concentrate on",
             "requirement": "Target ranking within China-related work; compare with the overall ranking to see whether it follows the global mainstream or runs on its own track.",
             "renderable": true
         },
@@ -234,7 +244,7 @@
             "type": "bar",
             "chapter": 4,
             "title": "China-based sponsors",
-            "requirement": "Only sponsors registered in mainland China, Hong Kong, Macau or Taiwan; China subsidiaries of multinationals count where they are registered, not merged into the parent.",
+            "requirement": "This chart uses the research-side lens: sponsors registered in mainland China, Hong Kong, Macau or Taiwan, with China subsidiaries of multinationals counted where registered. Read it alongside the asset-side charts above — who does the work and who holds the drug are two different questions.",
             "renderable": true
         },
         {

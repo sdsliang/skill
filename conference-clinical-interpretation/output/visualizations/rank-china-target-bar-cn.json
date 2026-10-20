@@ -7,7 +7,7 @@
         "type": "bar",
         "height": "auto",
         "maxHeight": 520,
-        "title": "中国研究最集中的靶点",
+        "title": "中国资产最集中的靶点",
         "subTitle": "ASCO 2026 · 研究摘要数（按研究去重）",
         "notes": [
             {
@@ -26,7 +26,7 @@
                             {
                                 "kind": "string",
                                 "role": "note-content",
-                                "markdown": "中国口径研究涉及的靶点排名；与全体的靶点排名对照，可以看出中国研究是跟随主流靶点还是自成一路。"
+                                "markdown": "中国资产口径（药品研发机构地区含中国内地/港澳台）涉及的靶点排名；与全体靶点排名对照，可以看出中国一侧是跟随主流靶点还是自成一路。"
                             }
                         ]
                     },
@@ -42,7 +42,7 @@
                             {
                                 "kind": "string",
                                 "role": "note-content",
-                                "markdown": "图中 Top 12 合计占 54.7%（口径内总数 1330；其余 147 个取值合计占 45.3%）；带该维度标注的摘要 398 篇"
+                                "markdown": "图中 Top 12 合计占 47.1%（口径内总数 2198；其余 228 个取值合计占 52.9%）；带该维度标注的摘要 650 篇"
                             }
                         ]
                     },
@@ -70,7 +70,7 @@
         "data": [
             {
                 "label": "PD1",
-                "value": 161,
+                "value": 228,
                 "drill": [
                     {
                         "apiKey": "meeting_tags",
@@ -85,22 +85,7 @@
             },
             {
                 "label": "DNA",
-                "value": 140,
-                "drill": [
-                    {
-                        "apiKey": "meeting_tags",
-                        "list": [
-                            {
-                                "label": "ASCO 2026",
-                                "value": "ASCO 2026"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "label": "TYMS",
-                "value": 81,
+                "value": 202,
                 "drill": [
                     {
                         "apiKey": "meeting_tags",
@@ -115,7 +100,7 @@
             },
             {
                 "label": "microtubule",
-                "value": 72,
+                "value": 121,
                 "drill": [
                     {
                         "apiKey": "meeting_tags",
@@ -129,38 +114,8 @@
                 ]
             },
             {
-                "label": "VEGFR2",
-                "value": 43,
-                "drill": [
-                    {
-                        "apiKey": "meeting_tags",
-                        "list": [
-                            {
-                                "label": "ASCO 2026",
-                                "value": "ASCO 2026"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "label": "PDL1",
-                "value": 39,
-                "drill": [
-                    {
-                        "apiKey": "meeting_tags",
-                        "list": [
-                            {
-                                "label": "ASCO 2026",
-                                "value": "ASCO 2026"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "label": "c-Kit",
-                "value": 35,
+                "label": "TYMS",
+                "value": 106,
                 "drill": [
                     {
                         "apiKey": "meeting_tags",
@@ -175,7 +130,52 @@
             },
             {
                 "label": "EGFR",
-                "value": 35,
+                "value": 54,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "PDL1",
+                "value": 53,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "VEGFR2",
+                "value": 53,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "DNA polymerase",
+                "value": 50,
                 "drill": [
                     {
                         "apiKey": "meeting_tags",
@@ -190,7 +190,37 @@
             },
             {
                 "label": "HER2",
-                "value": 31,
+                "value": 48,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "c-Kit",
+                "value": 42,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "RRM1",
+                "value": 39,
                 "drill": [
                     {
                         "apiKey": "meeting_tags",
@@ -205,37 +235,7 @@
             },
             {
                 "label": "VEGFR1",
-                "value": 31,
-                "drill": [
-                    {
-                        "apiKey": "meeting_tags",
-                        "list": [
-                            {
-                                "label": "ASCO 2026",
-                                "value": "ASCO 2026"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "label": "VEGFR3",
-                "value": 31,
-                "drill": [
-                    {
-                        "apiKey": "meeting_tags",
-                        "list": [
-                            {
-                                "label": "ASCO 2026",
-                                "value": "ASCO 2026"
-                            }
-                        ]
-                    }
-                ]
-            },
-            {
-                "label": "VEGFR",
-                "value": 28,
+                "value": 39,
                 "drill": [
                     {
                         "apiKey": "meeting_tags",

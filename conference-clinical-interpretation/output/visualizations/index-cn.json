@@ -2,7 +2,7 @@
     "meeting": "ASCO 2026",
     "lang": "cn",
     "denominator": 1639,
-    "totalCharts": 20,
+    "totalCharts": 21,
     "skippedCharts": 0,
     "failedCharts": 0,
     "chapters": [
@@ -52,6 +52,7 @@
             "narrative": "按「申办方登记地在中国内地/港澳台」这一条硬口径统计中国研究：谁在领跑、集中在哪些癌种与靶点、积极率与其他地区差多少。",
             "views": [
                 "matrix-china-indication",
+                "rank-china-overlap-bar",
                 "rank-china-target-bar",
                 "rank-china-sponsor-bar"
             ]
@@ -215,8 +216,17 @@
             "view": "matrix-china-indication",
             "type": "heatmap",
             "chapter": 4,
-            "title": "癌种 × 中国 / 其他地区",
-            "requirement": "同一癌种在中国口径与其他地区口径下的摘要数并列；中国口径 = 申办方登记地在中国内地/港澳台。缺少申办方的摘要无法归属，不计入任一侧。",
+            "title": "癌种 × 中国资产 / 其他地区",
+            "requirement": "同一癌种在「中国资产」与其他地区口径下的摘要数并列；中国资产 = 药品研发机构地区含中国内地/港澳台。该口径会把跨国药企在华机构持有的进口药计入，与「中国申办方」口径只有部分重叠（见下一张）。",
+            "renderable": true
+        },
+        {
+            "file": "rank-china-overlap-bar-cn.json",
+            "view": "rank-china-overlap-bar",
+            "type": "bar",
+            "chapter": 4,
+            "title": "两条中国口径的重叠",
+            "requirement": "中国资产（药品研发机构地区含中国内地/港澳台）与中国申办方（申办方登记地在同范围）的交叉分布；只统计至少命中一条口径的研究，两条例都不命中的不进图。仅研发机构侧多为跨国药企在华机构持有的进口药，仅申办方侧多为用境外资产做的本土研究。",
             "renderable": true
         },
         {
@@ -224,8 +234,8 @@
             "view": "rank-china-target-bar",
             "type": "bar",
             "chapter": 4,
-            "title": "中国研究最集中的靶点",
-            "requirement": "中国口径研究涉及的靶点排名；与全体的靶点排名对照，可以看出中国研究是跟随主流靶点还是自成一路。",
+            "title": "中国资产最集中的靶点",
+            "requirement": "中国资产口径（药品研发机构地区含中国内地/港澳台）涉及的靶点排名；与全体靶点排名对照，可以看出中国一侧是跟随主流靶点还是自成一路。",
             "renderable": true
         },
         {
@@ -234,7 +244,7 @@
             "type": "bar",
             "chapter": 4,
             "title": "中国申办方",
-            "requirement": "中国口径的唯一判定标准：申办方登记地在中国内地/港澳台。跨国药企的中国分公司按登记地计，不合并到总部。前列多为高校与医院（研究者发起研究），企业侧见上方「主要药物研发机构」。",
+            "requirement": "这一张用「研究侧」口径：申办方登记地在中国内地/港澳台，跨国药企的中国分公司按登记地计、不合并到总部。与前三张「资产侧」口径并列读——谁在干活、药在谁手上，是两个不同问题。前列多为高校与医院（研究者发起研究）。",
             "renderable": true
         },
         {
