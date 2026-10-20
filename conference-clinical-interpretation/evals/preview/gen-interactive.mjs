@@ -35,6 +35,7 @@ const topBy = (getKeys, n) => {
     return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([k]) => k);
 };
 
+const CN_SET = new Set(['中国内地', '中国(港澳台)']);
 const NON_TARGET = new Set(['not available', 'n/a', 'na', 'none', 'unknown', 'unclear', 'tbd', '其他', 'other']);
 const realTargets = (u) => u.drugs.flatMap((d) => d.targets).filter((t) => !NON_TARGET.has(String(t).toLowerCase()));
 
@@ -65,6 +66,9 @@ const rows = units.map((u) => {
         y: dayList.indexOf(u.day),
         l: u.link || '',
         co: u.companies[0]?.cn || '',
+        // 两条中国口径：资产侧（药品研发机构地区）/ 研究侧（申办方登记地）
+        ca: u.drugs.some((d) => (d.instituteAreas ?? []).some((a) => CN_SET.has(a))) ? 1 : 0,
+        cs: u.companies.some((c) => CN_SET.has(c.country)) ? 1 : 0,
     };
 });
 
@@ -170,6 +174,12 @@ svg.wv-svg text{font-family:inherit}
       <h3>靶点 × 癌种 覆盖矩阵</h3>
       <div class="wv-cap">谁在哪个靶点上、针对哪些癌种堆了最多数据；深色 = 该组合的摘要数多。</div>
       <div id="wvMatrix"></div>
+    </div>
+
+    <div class="wv-card wv-wide">
+      <h3>中国声音 · 两条口径并列</h3>
+      <div class="wv-cap">资产侧＝药品研发机构地区含中国内地/港澳台；研究侧＝申办方登记地在中国。两者只有部分重叠，单看一条会把「药在谁账上」和「谁在干活」混成一个数。</div>
+      <div id="wvChina"></div>
     </div>
 
     <div class="wv-card">
@@ -434,9 +444,42 @@ function list(rows){
   }).join('') || '<div class="wv-cap">没有匹配的摘要。</div>';
 }
 
+function china(rows){
+  var box = document.getElementById('wvChina');
+  var a = rows.filter(function(r){ return r.ca; }).length;
+  var c = rows.filter(function(r){ return r.cs; }).length;
+  var both = rows.filter(function(r){ return r.ca && r.cs; }).length;
+  var onlyA = a - both, onlyC = c - both;
+  if (!rows.length){ box.innerHTML = '<div class="wv-cap">当前筛选下没有可统计的摘要。</div>'; return; }
+  var pos = function(sel){ var s = rows.filter(sel); var p = s.filter(function(r){ return r.e === D.evals.indexOf('积极'); }).length;
+    return s.length ? Math.round(p / s.length * 1000) / 10 : 0; };
+  var items = [
+    ['仅研发机构在中国', onlyA, 'var(--wv-accent)'],
+    ['两者都是', both, 'var(--wv-pos)'],
+    ['仅申办方在中国', onlyC, 'var(--wv-stop)']
+  ];
+  var max = Math.max.apply(null, [1].concat(items.map(function(i){ return i[1]; })));
+  var W = 620, RH = 46, L = 150, R = 54;
+  var H = items.length * RH + 26;
+  var bars = items.map(function(it, i){
+    var y = i * RH + 12;
+    var w = Math.max(2, (W - L - R) * it[1] / max);
+    return '<g><text x="' + (L - 10) + '" y="' + (y + 15) + '" text-anchor="end" font-size="12" fill="var(--wv-mute)">' + it[0] + '</text>'
+      + '<rect x="' + L + '" y="' + y + '" width="' + w + '" height="22" rx="4" fill="' + it[2] + '" opacity=".85"></rect>'
+      + '<text x="' + (L + w + 8) + '" y="' + (y + 15) + '" font-size="12" class="wv-mono" fill="var(--wv-ink)">' + it[1] + '</text></g>';
+  }).join('');
+  var pct = function(v){ return (v / rows.length * 100).toFixed(1); };
+  var legend = '<div class="wv-lg">'
+    + '<span>中国资产 ' + a + ' 篇（' + pct(a) + '%）· 积极率 <b class="wv-mono">' + pos(function(r){ return r.ca; }) + '%</b></span>'
+    + '<span>中国申办方 ' + c + ' 篇（' + pct(c) + '%）· 积极率 <b class="wv-mono">' + pos(function(r){ return r.cs; }) + '%</b></span>'
+    + '<span>两者都不占 ' + (rows.length - a - onlyC) + ' 篇 · 积极率 <b class="wv-mono">' + pos(function(r){ return !r.ca && !r.cs; }) + '%</b></span></div>';
+  box.innerHTML = '<svg class="wv-svg" viewBox="0 0 ' + W + ' ' + H + '" style="height:' + H + 'px">' + bars + '</svg>' + legend
+    + '<div class="wv-cap">资产侧会把跨国药企在华机构持有的进口药计入，研究侧会漏掉用境外资产做的本土研究——这也是两个口径数字明显不同的原因。</div>';
+}
+
 function render(resetScroll=true){
   const rows = M();
-  kpi(rows); chips(); timeline(rows); ring(rows); scatter(rows); matrix(rows); signals(rows); list(rows);
+  kpi(rows); chips(); timeline(rows); ring(rows); scatter(rows); matrix(rows); china(rows); signals(rows); list(rows);
   if (resetScroll) window.dispatchEvent(new Event('resize'));
 }
 render();
