@@ -1,0 +1,163 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "chart",
+        "type": "bar",
+        "height": "auto",
+        "maxHeight": 520,
+        "title": "披露节奏（按日）",
+        "subTitle": "ASCO 2026 · 研究摘要数（按研究去重）",
+        "notes": [
+            {
+                "kind": "layout",
+                "role": "source-note",
+                "rows": [
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "说明："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "按平台记录的发布日期归日；同一天发布的摘要集中出现，用于判断会期内的信息密度。"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "口径："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "图中 Top 6 合计占 100.0%（口径内总数 1639）；带该维度标注的摘要 1639 篇"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "数据来源："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "本届会议（ASCO 2026）公开的研究摘要，共 1639 篇按研究去重"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "axisXTitle": "研究摘要数",
+        "axisYTitle": "日期",
+        "data": [
+            {
+                "label": "2026-05-21",
+                "value": 510,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "2026-05-30",
+                "value": 464,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "2026-06-01",
+                "value": 327,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "2026-05-31",
+                "value": 273,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "2026-05-29",
+                "value": 37,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "2026-06-02",
+                "value": 28,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

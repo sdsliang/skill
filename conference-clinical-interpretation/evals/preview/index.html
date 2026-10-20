@@ -32,7 +32,7 @@
 <script>
 const params = new URLSearchParams(location.search);
 const lang = params.get('lang') || 'cn';
-const base = `/output/visualizations/${lang}`;
+const base = '/output/visualizations';
 const root = document.getElementById('root');
 
 const mdInline = (s) => String(s ?? '')
@@ -164,7 +164,7 @@ function card(json, view) {
 }
 
 (async () => {
-  const index = await (await fetch(`${base}/index.json`)).json();
+  const index = await (await fetch(`${base}/index-${lang}.json`)).json();
   document.getElementById('head').textContent =
     `${index.meeting}｜${lang.toUpperCase()}｜分母 ${index.denominator} 篇研究摘要｜图 ${index.totalCharts} 个（跳过 ${index.skippedCharts} / 失败 ${index.failedCharts}）`;
   let chapterCursor = 0;
@@ -181,7 +181,9 @@ function card(json, view) {
       root.append(h, d);
     }
     try {
-      const json = await (await fetch(`${base}/${view.file.replace(`${lang}/`, '')}`)).json();
+      const only = params.get('only');
+      if (only && !only.split(",").includes(view.view)) continue;
+      const json = await (await fetch(`${base}/${view.file}`)).json();
       root.appendChild(card(json, view));
     } catch (e) {
       const p = document.createElement('pre'); p.className = 'err'; p.textContent = `${view.file}: ${e}`;

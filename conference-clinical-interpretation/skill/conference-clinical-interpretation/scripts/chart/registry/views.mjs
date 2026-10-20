@@ -58,6 +58,10 @@ const EN = {
 /** 靶点占位值（平台未标注时的兜底文案），不计入排名 */
 const NON_TARGET_TOKENS = new Set(['not available', 'n/a', 'na', 'none', 'unknown', 'unclear', 'tbd', '其他', 'other']);
 
+/** 中国口径：只认平台给的登记地/机构地区，不做名称白名单猜测 */
+const CN_COUNTRIES = new Set(['中国内地', '中国(港澳台)']);
+const isChinaUnit = (u) => u.companies.some((c) => CN_COUNTRIES.has(c.country));
+
 const normName = (s2) => String(s2 ?? '').toLowerCase().replace(/[^a-z0-9\u4e00-\u9fff]/g, '');
 
 /** 该研究是否由「非研发方」发起：申办方与全部药物研发机构无交集 */
@@ -109,6 +113,22 @@ export const DIMENSIONS = {
         return out;
     },
     drug: (u) => u.drugs.map((d) => ({ key: d.cn, cn: d.cn, en: d.en, ids: [d.id].filter(Boolean) })),
+    /** 披露日期（YYYY-MM-DD） */
+    day: (u) => (u.day ? [{ key: u.day, cn: u.day, en: u.day }] : []),
+    /** 中国口径：申办方登记地或药物研发机构地区在中国内地/港澳台 */
+    chinaRegion: (u) => (isChinaUnit(u)
+        ? [{ key: 'cn', cn: '中国主导研究', en: 'China-led' }]
+        : [{ key: 'row', cn: '其他地区', en: 'Rest of world' }]),
+    chinaSponsor: (u) => (isChinaUnit(u)
+        ? u.companies.filter((c) => CN_COUNTRIES.has(c.country))
+            .map((c) => ({ key: c.cn, cn: c.cn, en: c.en, ids: [c.id].filter(Boolean) }))
+        : []),
+    chinaTarget: (u) => (isChinaUnit(u) ? DIMENSIONS.target(u) : []),
+    chinaIndication: (u) => (isChinaUnit(u) ? DIMENSIONS.indication(u) : []),
+    /** 表现不佳或终止的研究所涉及的癌种（塌方口径） */
+    negativeIndication: (u) => (u.evaluation === '不佳' || u.evaluation === '终止'
+        ? DIMENSIONS.indication(u)
+        : []),
     moa: (u) => u.drugs.flatMap((d) => d.moa.map((p) => ({ key: p.cn, cn: p.cn, en: p.en }))),
 };
 
@@ -116,39 +136,57 @@ export const DIMENSIONS = {
 export const CHAPTERS = [
     {
         no: 1,
-        act: '第一幕 · 研究版图',
-        actEn: 'Act I · Research landscape',
-        title: '本届会议在研究什么',
-        titleEn: 'What this meeting studies',
-        narrative: '先看本届在研究什么（癌种、领域、地域），再看谁在主导：申办方是「谁做这项研究」，药物研发机构是「药属于谁」，两者常常不是同一家。',
-        narrativeEn: 'What the meeting studies (cancer types, domains, geography), then who drives it: sponsors say who runs the study, originators say who owns the drug — often not the same party.',
+        act: '第一幕 · 一眼看完',
+        actEn: 'Act I · The one-screen view',
+        title: '本届一眼看完',
+        titleEn: 'This meeting at a glance',
+        narrative: '规模、节奏、地域：多少篇、什么时候放、谁的地盘。后面每一幕都建立在这一屏的基础上。',
+        narrativeEn: 'Scale, tempo, geography: how many abstracts, when they dropped, and whose turf it is. Everything that follows builds on this screen.',
     },
     {
         no: 2,
-        act: '第二幕 · 证据质量',
-        actEn: 'Act II · Evidence quality',
-        title: '证据成熟到什么程度',
-        titleEn: 'How mature the evidence is',
-        narrative: '把分期、证据类型、总体评价与样本设计放在一起看：哪些结论可以外推，哪些只是早期信号。',
-        narrativeEn: 'Staging, evidence type, overall assessment and study design together: which conclusions travel, and which are early signals only.',
+        act: '第二幕 · 热点与成熟度',
+        actEn: 'Act II · Heat and maturity',
+        title: '热点在哪，证据成熟到什么程度',
+        titleEn: 'Where the heat is, and how mature the evidence is',
+        narrative: '癌种与领域说明「大家在抢什么」，分期、证据类型与总体评价说明「抢到的东西有多硬」。两张牌一起看，才知道哪些结论可以外推、哪些只是早期信号。',
+        narrativeEn: 'Cancer types and domains say what everyone is racing for; staging, evidence type and overall assessment say how solid the result is. Read them together before carrying any conclusion forward.',
     },
     {
         no: 3,
-        act: '第三幕 · 资产与机制',
-        actEn: 'Act III · Assets & mechanisms',
-        title: '哪些靶点与机制在竞争',
-        titleEn: 'Which targets and mechanisms compete',
-        narrative: '从药物、靶点、机制三个层次描述资产分布，并给出「癌种 → 靶点 → 药物」的传导路径。',
-        narrativeEn: 'Assets by drug, target and mechanism, plus the cancer type → target → drug pathways behind them.',
+        act: '第三幕 · 谁在抢位置',
+        actEn: 'Act III · Who is taking the position',
+        title: '谁在做研究，谁握着资产',
+        titleEn: 'Who runs the studies, and who owns the assets',
+        narrative: '申办方是「谁做这项研究」，药物研发机构是「药属于谁」，两者多数不是同一家；再看靶点、药物与机制的集中度，以及「癌种 → 靶点 → 药物」的传导路径。',
+        narrativeEn: 'Sponsors say who runs the study; originators say who owns the drug — usually not the same party. Then the concentration of targets, drugs and mechanisms, plus the cancer type → target → drug pathways.',
     },
     {
         no: 4,
-        act: '第四幕 · 解读与关注清单',
-        actEn: 'Act IV · Reading & watchlist',
-        title: '该怎么读、该重点看什么',
-        titleEn: 'How to read it and what to watch',
-        narrative: '把前四幕收敛成可执行的解读：分层结论、值得追踪的资产与仍缺证据的空白。',
-        narrativeEn: 'Converging the previous acts into an actionable reading: layered conclusions, assets worth tracking, and gaps where evidence is still thin.',
+        act: '第四幕 · 中国声音',
+        actEn: 'Act IV · The China voice',
+        title: '中国研究在这届会上是什么位置',
+        titleEn: 'Where China-based work stands at this meeting',
+        narrative: '按「申办方登记地在中国内地/港澳台」这一条硬口径统计中国研究：谁在领跑、集中在哪些癌种与靶点、积极率与其他地区差多少。',
+        narrativeEn: 'China-related work defined by one hard rule — the sponsor is registered in mainland China, Hong Kong, Macau or Taiwan: who leads, where it concentrates, and how its positivity rate compares with the rest of the world.',
+    },
+    {
+        no: 5,
+        act: '第五幕 · 可行动信号',
+        actEn: 'Act V · Actionable signals',
+        title: '哪几条能改变决策',
+        titleEn: 'The few items that could change a decision',
+        narrative: '把上千条平均信息压成一页清单：每条给出「为什么值得动」，以及它只能支持到什么程度。本章不放图，只放分级后的清单。',
+        narrativeEn: 'Compressing a thousand average data points into one page: why each item deserves action, and how far it can support a decision. No charts here — only the graded list.',
+    },
+    {
+        no: 6,
+        act: '第六幕 · 塌方与空白',
+        actEn: 'Act VI · Damage and gaps',
+        title: '哪里在塌，哪里是空白，接下来盯谁',
+        titleEn: 'Where it broke, where nobody goes, and what to watch',
+        narrative: '不佳与终止集中在哪些癌种、哪些问题还没有答案，以及会后 6–12 个月值得盯的资产与时点。',
+        narrativeEn: 'Where negative and terminated results cluster, which questions remain unanswered, and which assets and dates to watch over the next 6–12 months.',
     },
 ];
 
@@ -156,7 +194,7 @@ export const CHAPTERS = [
 export const VIEWS = [
     {
         id: 'rank-indication-bar',
-        chapter: 1,
+        chapter: 2,
         type: 'bar',
         dim: 'indication',
         drillKey: 'indication_ids',
@@ -171,7 +209,7 @@ export const VIEWS = [
     },
     {
         id: 'rank-domain-bar',
-        chapter: 1,
+        chapter: 2,
         type: 'bar',
         dim: 'domain',
         drillKey: null,
@@ -186,7 +224,7 @@ export const VIEWS = [
     },
     {
         id: 'rank-sponsor-bar',
-        chapter: 1,
+        chapter: 3,
         type: 'bar',
         dim: 'company',
         drillKey: 'company_ids',
@@ -201,7 +239,7 @@ export const VIEWS = [
     },
     {
         id: 'rank-institute-bar',
-        chapter: 1,
+        chapter: 3,
         type: 'bar',
         dim: 'institute',
         drillKey: null,
@@ -216,7 +254,7 @@ export const VIEWS = [
     },
     {
         id: 'rank-institute-external-bar',
-        chapter: 1,
+        chapter: 3,
         type: 'bar',
         dim: 'instituteExternal',
         drillKey: null,
@@ -227,6 +265,21 @@ export const VIEWS = [
         note: {
             cn: '只统计「申办方与该药研发方无交集」的研究：这类研究多为学术/医院/合作方发起的验证性研究，而非研发方自己主导的注册研究。同样受上面那条「当前持有方」的影响，仿制药持有方（如卡铂、紫杉醇、奥沙利铂）会集中出现在前列。',
             en: 'Only studies whose sponsors do not include the drug originator: mostly academic, hospital or partner-led validation rather than originator-run registrational work. The same current-holder caveat applies, so generic holders of backbone chemotherapies cluster near the top.',
+        },
+    },
+    {
+        id: 'rank-day-bar',
+        chapter: 1,
+        type: 'bar',
+        dim: 'day',
+        drillKey: null,
+        topN: 20,
+        tailBucket: false,
+        title: { cn: '披露节奏（按日）', en: 'Disclosure tempo by day' },
+        axis: { x: { cn: '研究摘要数', en: 'Abstracts' }, y: { cn: '日期', en: 'Date' } },
+        note: {
+            cn: '按平台记录的发布日期归日；同一天发布的摘要集中出现，用于判断会期内的信息密度。',
+            en: 'Grouped by the release date on record; a burst shows the information density during the meeting window.',
         },
     },
     {
@@ -359,6 +412,67 @@ export const VIEWS = [
             en: 'Only the most disclosed cancer types with their targets and drugs, to read the pathways rather than the full distribution.',
         },
     },
+    {
+        id: 'matrix-china-indication',
+        chapter: 4,
+        type: 'heatmap',
+        dim: 'chinaRegion',
+        dimY: 'indication',
+        drillKey: null,
+        topN: 10,
+        title: { cn: '癌种 × 中国 / 其他地区', en: 'Cancer type × China / rest of world' },
+        axis: { x: { cn: '口径', en: 'Cohort' }, y: { cn: '癌种', en: 'Cancer type' } },
+        note: {
+            cn: '同一癌种在中国口径与其他地区口径下的摘要数并列；中国口径 = 申办方登记地在中国内地/港澳台。缺少申办方的摘要无法归属，不计入任一侧。',
+            en: 'Abstracts per cancer type for China-related work versus the rest of the world; China = sponsor registered in mainland China, Hong Kong, Macau or Taiwan. Records without a sponsor cannot be attributed and are excluded from both sides.',
+        },
+    },
+    {
+        id: 'rank-china-target-bar',
+        chapter: 4,
+        type: 'bar',
+        dim: 'chinaTarget',
+        drillKey: null,
+        topN: 12,
+        tailBucket: true,
+        title: { cn: '中国研究最集中的靶点', en: 'Targets China-based work concentrates on' },
+        axis: { x: { cn: '研究摘要数', en: 'Abstracts' }, y: { cn: '靶点', en: 'Target' } },
+        note: {
+            cn: '中国口径研究涉及的靶点排名；与全体的靶点排名对照，可以看出中国研究是跟随主流靶点还是自成一路。',
+            en: 'Target ranking within China-related work; compare with the overall ranking to see whether it follows the global mainstream or runs on its own track.',
+        },
+    },
+    {
+        id: 'rank-china-sponsor-bar',
+        chapter: 4,
+        type: 'bar',
+        dim: 'chinaSponsor',
+        drillKey: 'company_ids',
+        topN: 12,
+        tailBucket: false,
+        title: { cn: '中国申办方', en: 'China-based sponsors' },
+        axis: { x: { cn: '研究摘要数', en: 'Abstracts' }, y: { cn: '申办方', en: 'Sponsor' } },
+        note: {
+            cn: '中国口径的唯一判定标准：申办方登记地在中国内地/港澳台。跨国药企的中国分公司按登记地计，不合并到总部。前列多为高校与医院（研究者发起研究），企业侧见上方「主要药物研发机构」。',
+            en: 'Only sponsors registered in mainland China, Hong Kong, Macau or Taiwan; China subsidiaries of multinationals count where they are registered, not merged into the parent.',
+        },
+    },
+    {
+        id: 'rank-negative-indication-bar',
+        chapter: 6,
+        type: 'bar',
+        dim: 'negativeIndication',
+        drillKey: 'indication_ids',
+        topN: 12,
+        tailBucket: false,
+        title: { cn: '不佳与终止集中在哪些癌种', en: 'Where negative and terminated results cluster' },
+        axis: { x: { cn: '研究摘要数', en: 'Abstracts' }, y: { cn: '癌种', en: 'Cancer type' } },
+        note: {
+            cn: '只统计总体评价为「不佳」或「终止」的研究；这是「哪里在塌」的分母，不含未评价的研究。',
+            en: 'Only studies assessed as negative or terminated; this is the denominator for where things broke, excluding unassessed work.',
+        },
+    },
 ];
+
 
 export const viewsByChapter = (no) => VIEWS.filter((v) => v.chapter === no);

@@ -28,8 +28,9 @@ function pairs(cnList, enList) {
 export const day = (v) => txt(v).slice(0, 10);
 
 function normalizeDrug(d) {
+    const instituteAreas = arr(d.research_institute_area).map(txt);
     const institutes = pairs(d.research_institute_names_cn, d.research_institute_names_en)
-        .map((p, i) => ({ ...p, id: txt(arr(d.research_institute_ids)[i]) }));
+        .map((p, i) => ({ ...p, id: txt(arr(d.research_institute_ids)[i]), area: instituteAreas[i] ?? '' }));
     const moa = pairs(d.moa_name_cn, d.moa_name_en);
     return {
         id: txt(d.drug_earth_id),
@@ -64,7 +65,8 @@ export function toUnit(rec) {
         day: day(rec.clinical_result_paper_release_time),
         link: txt(rec.clinical_result_full_article_link),
         evaluation: txt(rec.clinical_result_evaluation),
-        keyEvidence: txt(rec.clinical_result_key_evidence),
+        // 平台用「是/否」表示是否有关键证据，不能当字符串直接用（「否」也是真值）
+        keyEvidence: /^(\u662f|yes|true|1)$/i.test(txt(rec.clinical_result_key_evidence)),
         lba: txt(rec.clinical_result_lba),
         indications,
         // 平台疾病 ID 只在「单癌种摘要」上无歧义，多癌种摘要不参与按 ID 下钻

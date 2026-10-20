@@ -1,0 +1,1025 @@
+{
+  "meeting": "ASCO 2026",
+  "denominator": 1639,
+  "chapters": 6,
+  "charts": {
+    "cn": 19,
+    "en": 19
+  },
+  "evaluation": {
+    "积极": 1248,
+    "不佳": 159,
+    "终止": 12,
+    "未评价": 232
+  },
+  "lba": {
+    "total": 49,
+    "china": 15,
+    "share": 3
+  },
+  "cohorts": {
+    "china": {
+      "name": "china",
+      "n": 425,
+      "share": 25.9,
+      "positive": 410,
+      "positiveRate": 96.5,
+      "negative": 9,
+      "negativeRate": 2.1,
+      "terminated": 2,
+      "unassessed": 6,
+      "lba": 15,
+      "keyEvidence": 281,
+      "topIndications": [
+        {
+          "cn": "胃癌",
+          "en": "Gastric Cancer",
+          "value": 37,
+          "share": 8.7
+        },
+        {
+          "cn": "非小细胞肺癌",
+          "en": "Non-Small Cell Lung Cancer (NSCLC)",
+          "value": 35,
+          "share": 8.2
+        },
+        {
+          "cn": "结直肠癌",
+          "en": "Colorectal Cancer (CRC)",
+          "value": 34,
+          "share": 8
+        },
+        {
+          "cn": "实体瘤",
+          "en": "Solid Tumor",
+          "value": 33,
+          "share": 7.8
+        },
+        {
+          "cn": "胃食管交界处癌",
+          "en": "Gastro-Esophageal Junction Cancer",
+          "value": 27,
+          "share": 6.4
+        }
+      ],
+      "topTargets": [
+        {
+          "cn": "PD1",
+          "en": "PD1",
+          "value": 161,
+          "share": 37.9
+        },
+        {
+          "cn": "DNA",
+          "en": "DNA",
+          "value": 140,
+          "share": 32.9
+        },
+        {
+          "cn": "TYMS",
+          "en": "TYMS",
+          "value": 81,
+          "share": 19.1
+        },
+        {
+          "cn": "microtubule",
+          "en": "microtubule",
+          "value": 72,
+          "share": 16.9
+        },
+        {
+          "cn": "VEGFR2",
+          "en": "VEGFR2",
+          "value": 43,
+          "share": 10.1
+        }
+      ],
+      "topCompanies": [
+        {
+          "cn": "复旦大学",
+          "en": "Fudan University",
+          "value": 25,
+          "share": 5.9
+        },
+        {
+          "cn": "中山大学",
+          "en": "Sun Yat-sen University",
+          "value": 19,
+          "share": 4.5
+        },
+        {
+          "cn": "恒瑞医药",
+          "en": "Hengrui Pharmaceuticals",
+          "value": 13,
+          "share": 3.1
+        },
+        {
+          "cn": "四川大学华西医院",
+          "en": "West China Hospital of Sichuan University",
+          "value": 13,
+          "share": 3.1
+        },
+        {
+          "cn": "中山大学肿瘤防治中心",
+          "en": "Sun Yat-sen University Cancer Center",
+          "value": 10,
+          "share": 2.4
+        }
+      ],
+      "topStages": [
+        {
+          "cn": "晚期",
+          "en": "Advanced",
+          "value": 129,
+          "share": 30.4
+        },
+        {
+          "cn": "局部晚期",
+          "en": "Locally advanced",
+          "value": 47,
+          "share": 11.1
+        },
+        {
+          "cn": "III期",
+          "en": "Stage III",
+          "value": 34,
+          "share": 8
+        },
+        {
+          "cn": "II期",
+          "en": "Stage II",
+          "value": 24,
+          "share": 5.6
+        }
+      ],
+      "topEvidence": [
+        {
+          "cn": "Phase II",
+          "en": "Phase II",
+          "value": 218,
+          "share": 51.3
+        },
+        {
+          "cn": "前瞻性研究",
+          "en": "Prospective study",
+          "value": 117,
+          "share": 27.5
+        },
+        {
+          "cn": "Phase I",
+          "en": "Phase I",
+          "value": 79,
+          "share": 18.6
+        },
+        {
+          "cn": "Phase I/II",
+          "en": "Phase I/II",
+          "value": 47,
+          "share": 11.1
+        }
+      ]
+    },
+    "row": {
+      "name": "row",
+      "n": 1214,
+      "share": 74.1,
+      "positive": 838,
+      "positiveRate": 69,
+      "negative": 150,
+      "negativeRate": 12.4,
+      "terminated": 10,
+      "unassessed": 226,
+      "lba": 34,
+      "keyEvidence": 380,
+      "topIndications": [
+        {
+          "cn": "实体瘤",
+          "en": "Solid Tumor",
+          "value": 108,
+          "share": 8.9
+        },
+        {
+          "cn": "非小细胞肺癌",
+          "en": "Non-Small Cell Lung Cancer (NSCLC)",
+          "value": 102,
+          "share": 8.4
+        },
+        {
+          "cn": "乳腺癌",
+          "en": "Breast Cancer",
+          "value": 82,
+          "share": 6.8
+        },
+        {
+          "cn": "黑色素瘤",
+          "en": "Melanoma",
+          "value": 61,
+          "share": 5
+        },
+        {
+          "cn": "结直肠癌",
+          "en": "Colorectal Cancer (CRC)",
+          "value": 58,
+          "share": 4.8
+        }
+      ],
+      "topTargets": [
+        {
+          "cn": "PD1",
+          "en": "PD1",
+          "value": 281,
+          "share": 23.1
+        },
+        {
+          "cn": "DNA",
+          "en": "DNA",
+          "value": 265,
+          "share": 21.8
+        },
+        {
+          "cn": "microtubule",
+          "en": "microtubule",
+          "value": 135,
+          "share": 11.1
+        },
+        {
+          "cn": "TYMS",
+          "en": "TYMS",
+          "value": 108,
+          "share": 8.9
+        },
+        {
+          "cn": "PDL1",
+          "en": "PDL1",
+          "value": 100,
+          "share": 8.2
+        }
+      ],
+      "topCompanies": [
+        {
+          "cn": "National Cancer Institute (NCI)",
+          "en": "National Cancer Institute (NCI)",
+          "value": 24,
+          "share": 2
+        },
+        {
+          "cn": "MD Anderson",
+          "en": "MD Anderson",
+          "value": 23,
+          "share": 1.9
+        },
+        {
+          "cn": "AstraZeneca",
+          "en": "AstraZeneca",
+          "value": 20,
+          "share": 1.6
+        },
+        {
+          "cn": "Pfizer",
+          "en": "Pfizer",
+          "value": 14,
+          "share": 1.2
+        },
+        {
+          "cn": "Roche",
+          "en": "Roche",
+          "value": 13,
+          "share": 1.1
+        }
+      ],
+      "topStages": [
+        {
+          "cn": "晚期",
+          "en": "Advanced",
+          "value": 387,
+          "share": 31.9
+        },
+        {
+          "cn": "局部晚期",
+          "en": "Locally advanced",
+          "value": 78,
+          "share": 6.4
+        },
+        {
+          "cn": "III期",
+          "en": "Stage III",
+          "value": 75,
+          "share": 6.2
+        },
+        {
+          "cn": "IV期",
+          "en": "Stage IV",
+          "value": 39,
+          "share": 3.2
+        }
+      ],
+      "topEvidence": [
+        {
+          "cn": "回顾性研究",
+          "en": "Retrospective study",
+          "value": 407,
+          "share": 33.5
+        },
+        {
+          "cn": "真实世界研究",
+          "en": "Real-world study",
+          "value": 354,
+          "share": 29.2
+        },
+        {
+          "cn": "Phase II",
+          "en": "Phase II",
+          "value": 251,
+          "share": 20.7
+        },
+        {
+          "cn": "Phase I",
+          "en": "Phase I",
+          "value": 167,
+          "share": 13.8
+        }
+      ]
+    },
+    "all": {
+      "name": "all",
+      "n": 1639,
+      "share": 100,
+      "positive": 1248,
+      "positiveRate": 76.1,
+      "negative": 159,
+      "negativeRate": 9.7,
+      "terminated": 12,
+      "unassessed": 232,
+      "lba": 49,
+      "keyEvidence": 661,
+      "topIndications": [
+        {
+          "cn": "实体瘤",
+          "en": "Solid Tumor",
+          "value": 141,
+          "share": 8.6
+        },
+        {
+          "cn": "非小细胞肺癌",
+          "en": "Non-Small Cell Lung Cancer (NSCLC)",
+          "value": 137,
+          "share": 8.4
+        },
+        {
+          "cn": "结直肠癌",
+          "en": "Colorectal Cancer (CRC)",
+          "value": 92,
+          "share": 5.6
+        },
+        {
+          "cn": "乳腺癌",
+          "en": "Breast Cancer",
+          "value": 88,
+          "share": 5.4
+        },
+        {
+          "cn": "胃癌",
+          "en": "Gastric Cancer",
+          "value": 70,
+          "share": 4.3
+        }
+      ],
+      "topTargets": [
+        {
+          "cn": "PD1",
+          "en": "PD1",
+          "value": 442,
+          "share": 27
+        },
+        {
+          "cn": "DNA",
+          "en": "DNA",
+          "value": 405,
+          "share": 24.7
+        },
+        {
+          "cn": "microtubule",
+          "en": "microtubule",
+          "value": 207,
+          "share": 12.6
+        },
+        {
+          "cn": "TYMS",
+          "en": "TYMS",
+          "value": 189,
+          "share": 11.5
+        },
+        {
+          "cn": "PDL1",
+          "en": "PDL1",
+          "value": 139,
+          "share": 8.5
+        }
+      ],
+      "topCompanies": [
+        {
+          "cn": "复旦大学",
+          "en": "Fudan University",
+          "value": 28,
+          "share": 1.7
+        },
+        {
+          "cn": "National Cancer Institute (NCI)",
+          "en": "National Cancer Institute (NCI)",
+          "value": 24,
+          "share": 1.5
+        },
+        {
+          "cn": "中山大学",
+          "en": "Sun Yat-sen University",
+          "value": 23,
+          "share": 1.4
+        },
+        {
+          "cn": "AstraZeneca",
+          "en": "AstraZeneca",
+          "value": 23,
+          "share": 1.4
+        },
+        {
+          "cn": "MD Anderson",
+          "en": "MD Anderson",
+          "value": 23,
+          "share": 1.4
+        }
+      ],
+      "topStages": [
+        {
+          "cn": "晚期",
+          "en": "Advanced",
+          "value": 516,
+          "share": 31.5
+        },
+        {
+          "cn": "局部晚期",
+          "en": "Locally advanced",
+          "value": 125,
+          "share": 7.6
+        },
+        {
+          "cn": "III期",
+          "en": "Stage III",
+          "value": 109,
+          "share": 6.7
+        },
+        {
+          "cn": "II期",
+          "en": "Stage II",
+          "value": 61,
+          "share": 3.7
+        }
+      ],
+      "topEvidence": [
+        {
+          "cn": "Phase II",
+          "en": "Phase II",
+          "value": 469,
+          "share": 28.6
+        },
+        {
+          "cn": "回顾性研究",
+          "en": "Retrospective study",
+          "value": 409,
+          "share": 25
+        },
+        {
+          "cn": "真实世界研究",
+          "en": "Real-world study",
+          "value": 364,
+          "share": 22.2
+        },
+        {
+          "cn": "Phase I",
+          "en": "Phase I",
+          "value": 246,
+          "share": 15
+        }
+      ]
+    }
+  },
+  "actionablePool": {
+    "total": 586,
+    "screened": 502
+  },
+  "actionableTop": [
+    {
+      "score": 8,
+      "title": "A phase III, randomized, open-label study of tunlametinib plus vemurafenib versus investigator's choice of therapy in patients with previously treated BRAFV600E-mutant metastatic colorectal cancer.",
+      "esid": "24_37_f4454738c41dc5cf011e4160ff211fec_1",
+      "indication": "结直肠癌",
+      "stage": "晚期",
+      "evaluation": "积极",
+      "lba": true,
+      "keyEvidence": true,
+      "endpoints": "中位无进展生存期",
+      "drugs": [
+        "维莫非尼",
+        "妥拉美替尼"
+      ],
+      "companies": [
+        "科州制药"
+      ]
+    },
+    {
+      "score": 8,
+      "title": "A randomized, open-label, parallel-controlled phase 3 trial of benmelstobart plus chemotherapy and anlotinib for first-line treatment of advanced non-squamous non–small cell lung cancer.",
+      "esid": "24_37_c13bf8d247b0c82402981857a2e9242b_1",
+      "indication": "非鳞状非小细胞肺癌",
+      "stage": "III期、局部晚期",
+      "evaluation": "积极",
+      "lba": true,
+      "keyEvidence": true,
+      "endpoints": "中位无进展生存期、无进展生存期",
+      "drugs": [
+        "贝莫苏拜单抗",
+        "安罗替尼",
+        "培美曲塞"
+      ],
+      "companies": [
+        "正大天晴"
+      ]
+    },
+    {
+      "score": 8,
+      "title": "ADAM trial: A multicenter, randomized, double-blinded, placebo-controlled, phase 3 trial of adjuvant avelumab (anti-PD-L1 antibody) in patients with Merkel cell carcinoma and lymph node metastases.",
+      "esid": "24_37_a975a5aca9c7e54d5d51a14b33604595_1",
+      "indication": "Merkel细胞瘤",
+      "stage": "III期、晚期",
+      "evaluation": "积极",
+      "lba": true,
+      "keyEvidence": true,
+      "endpoints": "无复发生存、其他",
+      "drugs": [
+        "阿维鲁单抗"
+      ],
+      "companies": [
+        "University of Washington"
+      ]
+    },
+    {
+      "score": 8,
+      "title": "Durvalumab monotherapy versus active monitoring for resected primary renal cell carcinoma in RAMPART: An international, phase 3, randomized controlled trial.",
+      "esid": "24_37_1a5f04b37f0564b5701e3c0c25243bbd_1",
+      "indication": "肾细胞癌",
+      "stage": "晚期",
+      "evaluation": "积极",
+      "lba": true,
+      "keyEvidence": true,
+      "endpoints": "无病生存期、其他",
+      "drugs": [
+        "度伐利尤单抗",
+        "度伐利尤单抗",
+        "曲麦利尤单抗"
+      ],
+      "companies": [
+        "University College London"
+      ]
+    },
+    {
+      "score": 8,
+      "title": "Izalontamab brengitecan (iza-bren) versus physician’s choice of chemotherapy in patients with unresectable locally advanced or metastatic triple-negative breast cancer (TNBC): A randomized phase III study.",
+      "esid": "24_37_e90fec6648660a8c535db11139dbd234_1",
+      "indication": "三阴性乳腺癌",
+      "stage": "局部晚期、晚期",
+      "evaluation": "积极",
+      "lba": true,
+      "keyEvidence": true,
+      "endpoints": "中位无进展生存期、中位总生存期",
+      "drugs": [
+        "伦康依隆妥单抗",
+        "艾立布林",
+        "卡培他滨"
+      ],
+      "companies": [
+        "百利天恒"
+      ]
+    },
+    {
+      "score": 8,
+      "title": "SARC041: A phase 3 randomized double-blind study of abemaciclib versus placebo in patients with advanced dedifferentiated liposarcoma.",
+      "esid": "24_37_1a8edaaaa482efb8f42a5c27064ea9cb_1",
+      "indication": "去分化脂肪肉瘤",
+      "stage": "晚期",
+      "evaluation": "积极",
+      "lba": true,
+      "keyEvidence": true,
+      "endpoints": "中位无进展生存期",
+      "drugs": [
+        "阿贝西利",
+        "阿贝西利"
+      ],
+      "companies": []
+    },
+    {
+      "score": 7,
+      "title": "A phase III CHIPRO study of chiauranib plus weekly paclitaxel for platinum-resistant or refractory ovarian cancer.",
+      "esid": "24_37_09105d5de80b7d9e847ab9275bcd38b9_1",
+      "indication": "卵巢癌",
+      "stage": "",
+      "evaluation": "积极",
+      "lba": true,
+      "keyEvidence": true,
+      "endpoints": "无进展生存期、总生存期",
+      "drugs": [
+        "西奥罗尼",
+        "紫杉醇",
+        "紫杉醇"
+      ],
+      "companies": [
+        "微芯生物"
+      ]
+    },
+    {
+      "score": 7,
+      "title": "Nationwide randomized, phase III, placebo-controlled trial of bupropion for cancer-related fatigue: Primary outcome results.",
+      "esid": "24_37_82bd415b827a68435dd32d581a7d811f_1",
+      "indication": "癌因性疲乏",
+      "stage": "",
+      "evaluation": "积极",
+      "lba": true,
+      "keyEvidence": true,
+      "endpoints": "疲劳",
+      "drugs": [
+        "安非他酮",
+        "安非他酮",
+        "安非他酮"
+      ],
+      "companies": [
+        "University of Rochester"
+      ]
+    },
+    {
+      "score": 7,
+      "title": "Pathological complete response and ctDNA analyses in SCIENCE: Results from a randomized, phase III trial of neoadjuvant chemotherapy plus sintilimab and chemoradiotherapy plus sintilimab versus chemoradiotherapy in resectable locally advanced esophageal squamous cell carcinoma.",
+      "esid": "24_37_d840cd53ba438c92217434b5587a1513_1",
+      "indication": "食管鳞状细胞癌",
+      "stage": "0期、II期",
+      "evaluation": "积极",
+      "lba": true,
+      "keyEvidence": true,
+      "endpoints": "无事件生存、病理学完全缓解",
+      "drugs": [
+        "白蛋白紫杉醇",
+        "卡铂",
+        "信迪利单抗"
+      ],
+      "companies": [
+        "四川省肿瘤医院"
+      ]
+    },
+    {
+      "score": 6,
+      "title": "Darovasertib plus crizotinib vs investigator’s choice as first-line treatment for patients with HLA-A2 negative metastatic uveal melanoma: Primary results from the OptimUM-02 trial.",
+      "esid": "24_37_f3900197a8d4c6ece8ac60b16658b5ee_1",
+      "indication": "葡萄膜黑色素瘤",
+      "stage": "晚期",
+      "evaluation": "积极",
+      "lba": true,
+      "keyEvidence": true,
+      "endpoints": "中位无进展生存期、总生存期",
+      "drugs": [
+        "darovasertib",
+        "克唑替尼",
+        "伊匹木单抗"
+      ],
+      "companies": [
+        "IDEAYA Biosciences"
+      ]
+    },
+    {
+      "score": 6,
+      "title": "Preliminary injection site reaction immune response results from open-label arm of ongoing phase III study to evaluate the efficacy and safety of GLSI-100 (GP2 + GM-CSF) in patients with breast cancer with residual disease or high-risk PCR after both neo-adjuvant and postoperative adjuvant anti-HER2 therapy (Flamingo-01).",
+      "esid": "24_37_8cc67e49bc10760a51412c359509c869_1",
+      "indication": "HER2阳性乳腺癌",
+      "stage": "III期",
+      "evaluation": "积极",
+      "lba": true,
+      "keyEvidence": true,
+      "endpoints": "",
+      "drugs": [
+        "GLSI-100"
+      ],
+      "companies": [
+        "Greenwich LifeSciences"
+      ]
+    },
+    {
+      "score": 5,
+      "title": "A phase 2 study evaluating SSGJ-707 (PF-08634404), a PD-1/VEGF bispecific antibody, + chemotherapy (chemo) in patients (pts) with first-line (1L) advanced/recurrent endometrial cancer (EC).",
+      "esid": "24_37_bc08c2b3cf85e3eb31ae94680d617017_1",
+      "indication": "子宫内膜癌",
+      "stage": "IV期、III期",
+      "evaluation": "积极",
+      "lba": false,
+      "keyEvidence": true,
+      "endpoints": "经确认的客观缓解率、其他",
+      "drugs": [
+        "卡铂",
+        "tivunatamig",
+        "紫杉醇"
+      ],
+      "companies": [
+        "三生制药"
+      ]
+    },
+    {
+      "score": 5,
+      "title": "A phase II, single-arm trial of adebrelimab plus nab-paclitaxel and carboplatin as first-line therapy for advanced thymic carcinoma: Interim efficacy and safety results.",
+      "esid": "24_37_7bd9204f766476acc24015e5fb164643_1",
+      "indication": "胸腺癌",
+      "stage": "IV期、III期",
+      "evaluation": "积极",
+      "lba": false,
+      "keyEvidence": true,
+      "endpoints": "总缓解率/客观缓解率",
+      "drugs": [
+        "白蛋白紫杉醇",
+        "卡铂",
+        "阿得贝利单抗"
+      ],
+      "companies": [
+        "上海市胸科医院"
+      ]
+    },
+    {
+      "score": 5,
+      "title": "Botensilimab (BOT) ± balstilimab (BAL) in patients (pts) with advanced cutaneous melanoma (cMEL) refractory/resistant (R/R) to anti–PD-(L)1 ± CTLA-4: A phase 2 trial.",
+      "esid": "24_37_5b64f1a40dc21c6c1714558de7b48716_1",
+      "indication": "黑色素瘤",
+      "stage": "IV期、III期",
+      "evaluation": "积极",
+      "lba": false,
+      "keyEvidence": true,
+      "endpoints": "经确认的客观缓解率",
+      "drugs": [
+        "博特利单抗",
+        "巴替利单抗",
+        "博特利单抗"
+      ],
+      "companies": [
+        "Agenus"
+      ]
+    },
+    {
+      "score": 5,
+      "title": "Cadonilimab in combination with chemotherapy versus chemotherapy alone in patients with immunotherapy-refractory recurrent or metastatic nasopharyngeal carcinoma: A multicenter, randomized, phase III trial the CONQUEST trial).",
+      "esid": "24_37_ef0cf6d8317ad6249df1fb170d81f076_1",
+      "indication": "鼻咽癌",
+      "stage": "晚期",
+      "evaluation": "积极",
+      "lba": false,
+      "keyEvidence": true,
+      "endpoints": "中位无进展生存期",
+      "drugs": [
+        "卡度尼利单抗"
+      ],
+      "companies": [
+        "中山大学孙逸仙纪念医院"
+      ]
+    },
+    {
+      "score": 5,
+      "title": "Effectiveness and safety of IBI310 combined with sintilimab versus sorafenib in the first-line treatment of advanced hepatocellular carcinoma (aHCC): A randomized, open-label, controlled, multicenter phase III clinical study.",
+      "esid": "24_37_8918ca7e3e4f28c0f52d777037399c05_1",
+      "indication": "肝细胞癌",
+      "stage": "晚期",
+      "evaluation": "积极",
+      "lba": false,
+      "keyEvidence": true,
+      "endpoints": "中位总生存期、经确认的客观缓解率",
+      "drugs": [
+        "伊匹木单抗生物类似物(信达生物)",
+        "信迪利单抗",
+        "伊匹木单抗生物类似物(信达生物)"
+      ],
+      "companies": [
+        "信达生物"
+      ]
+    },
+    {
+      "score": 5,
+      "title": "Efficacy of probiotics combined with glutamine compound for acute radiation enteritis during neoadjuvant chemoradiotherapy in locally advanced rectal cancer: A randomized controlled trial (NCT05406882).",
+      "esid": "24_37_8bcd1856e11ce39f7e985f62572da75c_1",
+      "indication": "急性放射性肠炎、直肠癌、腹泻",
+      "stage": "III期、II期",
+      "evaluation": "积极",
+      "lba": false,
+      "keyEvidence": true,
+      "endpoints": "其他",
+      "drugs": [
+        "卡培他滨",
+        "奥沙利铂",
+        "卡培他滨"
+      ],
+      "companies": [
+        "四川大学华西医院"
+      ]
+    },
+    {
+      "score": 5,
+      "title": "Efficacy, safety, and immunogenicity of pertuzumab biosimilar versus reference pertuzumab in combination with trastuzumab and docetaxel in HER2-positive metastatic breast cancer: A randomized, double-blind, multicenter, parallel group, phase III clinical trial.",
+      "esid": "24_37_d41db36d86c7fc4a0443a35d9265ae75_1",
+      "indication": "HER2阳性乳腺癌",
+      "stage": "晚期",
+      "evaluation": "积极",
+      "lba": false,
+      "keyEvidence": true,
+      "endpoints": "总缓解率/客观缓解率、其他",
+      "drugs": [
+        "多西他赛",
+        "曲妥珠单抗",
+        "多西他赛"
+      ],
+      "companies": [
+        "Intas Pharmaceuticals"
+      ]
+    },
+    {
+      "score": 5,
+      "title": "Final results of the phase III OCTAVA trial: Clinical benefit of low-dose anti–CTLA-4 plus anti–PD-1 combination vs anti–PD-1 monotherapy in unresectable or metastatic melanoma.",
+      "esid": "24_37_3dbec108811c6e4bd670e9ea990eaf53_1",
+      "indication": "黑色素瘤",
+      "stage": "IV期、III期",
+      "evaluation": "积极",
+      "lba": false,
+      "keyEvidence": true,
+      "endpoints": "中位无进展生存期",
+      "drugs": [
+        "nurulimab",
+        "prolgolimab",
+        "prolgolimab"
+      ],
+      "companies": [
+        "Biocad"
+      ]
+    },
+    {
+      "score": 5,
+      "title": "Four-year landmark survival analysis of low-dose nivolumab added to metronomic chemotherapy in advanced head and neck squamous cell carcinoma: A phase III randomized trial.",
+      "esid": "24_37_cab80428f699cf6bbc9bc4355831cae6_1",
+      "indication": "头颈部鳞状细胞癌",
+      "stage": "晚期",
+      "evaluation": "积极",
+      "lba": false,
+      "keyEvidence": true,
+      "endpoints": "总生存期、中位总生存期",
+      "drugs": [
+        "甲氨蝶呤",
+        "塞来昔布",
+        "厄洛替尼"
+      ],
+      "companies": []
+    }
+  ],
+  "negativeByIndication": [
+    {
+      "key": "乳腺癌",
+      "cn": "乳腺癌",
+      "en": "Breast Cancer",
+      "value": 14,
+      "ids": {}
+    },
+    {
+      "key": "非小细胞肺癌",
+      "cn": "非小细胞肺癌",
+      "en": "Non-Small Cell Lung Cancer (NSCLC)",
+      "value": 13,
+      "ids": {}
+    },
+    {
+      "key": "结直肠癌",
+      "cn": "结直肠癌",
+      "en": "Colorectal Cancer (CRC)",
+      "value": 8,
+      "ids": {}
+    },
+    {
+      "key": "HER2阳性乳腺癌",
+      "cn": "HER2阳性乳腺癌",
+      "en": "HER2 Positive Breast Cancer",
+      "value": 8,
+      "ids": {}
+    },
+    {
+      "key": "HR阳性乳腺癌",
+      "cn": "HR阳性乳腺癌",
+      "en": "Hormone Receptor Positive Breast Cancer",
+      "value": 8,
+      "ids": {}
+    },
+    {
+      "key": "癌症",
+      "cn": "癌症",
+      "en": "Cancer",
+      "value": 7,
+      "ids": {}
+    },
+    {
+      "key": "黑色素瘤",
+      "cn": "黑色素瘤",
+      "en": "Melanoma",
+      "value": 7,
+      "ids": {}
+    },
+    {
+      "key": "实体瘤",
+      "cn": "实体瘤",
+      "en": "Solid Tumor",
+      "value": 7,
+      "ids": {}
+    },
+    {
+      "key": "胃癌",
+      "cn": "胃癌",
+      "en": "Gastric Cancer",
+      "value": 7,
+      "ids": {}
+    },
+    {
+      "key": "胰腺导管癌",
+      "cn": "胰腺导管癌",
+      "en": "Pancreatic Ductal Carcinoma",
+      "value": 6,
+      "ids": {}
+    }
+  ],
+  "gaps": [
+    {
+      "id": "rank-indication-bar",
+      "skipped": false
+    },
+    {
+      "id": "rank-domain-bar",
+      "skipped": false
+    },
+    {
+      "id": "rank-sponsor-bar",
+      "skipped": false
+    },
+    {
+      "id": "rank-institute-bar",
+      "skipped": false
+    },
+    {
+      "id": "rank-institute-external-bar",
+      "skipped": false
+    },
+    {
+      "id": "rank-country-bar",
+      "skipped": false
+    },
+    {
+      "id": "rank-stage-bar",
+      "skipped": false
+    },
+    {
+      "id": "rank-evidence-source-bar",
+      "skipped": false
+    },
+    {
+      "id": "rank-evaluation-bar",
+      "skipped": false
+    },
+    {
+      "id": "matrix-stage-evaluation",
+      "skipped": false
+    },
+    {
+      "id": "rank-target-bar",
+      "skipped": false
+    },
+    {
+      "id": "rank-drug-bar",
+      "skipped": false
+    },
+    {
+      "id": "rank-moa-bar",
+      "skipped": false
+    },
+    {
+      "id": "rank-day-bar",
+      "skipped": false
+    },
+    {
+      "id": "rank-china-sponsor-bar",
+      "skipped": false
+    },
+    {
+      "id": "rank-china-target-bar",
+      "skipped": false
+    },
+    {
+      "id": "matrix-china-indication",
+      "skipped": false
+    },
+    {
+      "id": "rank-negative-indication-bar",
+      "skipped": false
+    }
+  ]
+}

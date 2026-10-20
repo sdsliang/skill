@@ -1,0 +1,21 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "layout",
+        "role": "summary-callout",
+        "rows": [
+            {
+                "kind": "string",
+                "role": "summary-label",
+                "text": "总结"
+            },
+            {
+                "kind": "string",
+                "role": "summary-text",
+                "markdown": "本届 1639 篇研究摘要里，积极 1248 篇（76.1%）、不佳 147 篇、终止 12 篇、未评价 229 篇；这个比例是「被写成摘要的样本」的选择偏差，不是成功率。确定性在化疗骨架 + PD1 通道：PD1 442 篇、帕博利珠单抗 162 篇，晚期人群占 516 篇。变量在技术迁移：ADC 155 篇 + 双抗 128 篇已超过铂类 289 篇的单项影响，iza-bren、妥拉美替尼+维莫非尼、贝莫苏拜单抗+安罗替尼、chiauranib 四条 III 期 LBA 是最值得设提醒的读数。中国声音占 425 篇（25.9%）、LBA 15/49（约 31%），积极率 96.5% 对其他地区 69.0%，但机制创新仍稀缺，且 576 篇研究里申办方与资产方完全无交集——「谁做研究」与「药属于谁」必须分开读。"
+            }
+        ]
+    }
+}

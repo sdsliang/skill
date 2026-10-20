@@ -1,0 +1,393 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "chart",
+        "type": "heatmap",
+        "height": "auto",
+        "maxHeight": 460,
+        "title": "Cancer type × China / rest of world",
+        "subTitle": "ASCO 2026 · abstracts per study",
+        "notes": [
+            {
+                "kind": "layout",
+                "role": "source-note",
+                "rows": [
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Note: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "Abstracts per cancer type for China-related work versus the rest of the world; China = sponsor registered in mainland China, Hong Kong, Macau or Taiwan. Records without a sponsor cannot be attributed and are excluded from both sides."
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Counting: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "2 × 10 grid, 20 non-empty cells, 807 mentions in total; an empty cell means no abstract for that combination"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Source: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "Abstracts published at ASCO 2026: 1639 studies after deduplication"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "axisXTitle": "Cohort",
+        "axisYTitle": "Cancer type",
+        "data": [
+            {
+                "label": "Rest of world",
+                "group": "Solid Tumor",
+                "value": 108,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rest of world",
+                "group": "Non-Small Cell Lung Cancer (NSCLC)",
+                "value": 102,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rest of world",
+                "group": "Colorectal Cancer (CRC)",
+                "value": 58,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rest of world",
+                "group": "Breast Cancer",
+                "value": 82,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rest of world",
+                "group": "Gastric Cancer",
+                "value": 33,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rest of world",
+                "group": "Melanoma",
+                "value": 61,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rest of world",
+                "group": "Hepatocellular Carcinoma (HCC)",
+                "value": 31,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rest of world",
+                "group": "Hormone Receptor Positive Breast Cancer",
+                "value": 41,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rest of world",
+                "group": "Ovarian Cancer (OVC)",
+                "value": 43,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rest of world",
+                "group": "Squamous Cell Carcinoma of the Head and Neck (SCCHN)",
+                "value": 39,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "China-led",
+                "group": "Solid Tumor",
+                "value": 33,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "China-led",
+                "group": "Non-Small Cell Lung Cancer (NSCLC)",
+                "value": 35,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "China-led",
+                "group": "Colorectal Cancer (CRC)",
+                "value": 34,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "China-led",
+                "group": "Breast Cancer",
+                "value": 6,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "China-led",
+                "group": "Gastric Cancer",
+                "value": 37,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "China-led",
+                "group": "Melanoma",
+                "value": 4,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "China-led",
+                "group": "Hepatocellular Carcinoma (HCC)",
+                "value": 25,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "China-led",
+                "group": "Hormone Receptor Positive Breast Cancer",
+                "value": 15,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "China-led",
+                "group": "Ovarian Cancer (OVC)",
+                "value": 9,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "China-led",
+                "group": "Squamous Cell Carcinoma of the Head and Neck (SCCHN)",
+                "value": 11,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

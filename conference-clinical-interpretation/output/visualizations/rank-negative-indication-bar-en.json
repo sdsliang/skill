@@ -1,0 +1,361 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "chart",
+        "type": "bar",
+        "height": "auto",
+        "maxHeight": 520,
+        "title": "Where negative and terminated results cluster",
+        "subTitle": "ASCO 2026 · abstracts per study",
+        "notes": [
+            {
+                "kind": "layout",
+                "role": "source-note",
+                "rows": [
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Note: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "Only studies assessed as negative or terminated; this is the denominator for where things broke, excluding unassessed work."
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Counting: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "Top 12 cover 41.9% of 227 mentions; abstracts carrying this dimension: 159"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Source: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "Abstracts published at ASCO 2026: 1639 studies after deduplication"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "axisXTitle": "Abstracts",
+        "axisYTitle": "Cancer type",
+        "data": [
+            {
+                "label": "Breast Cancer",
+                "value": 14,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "乳腺癌",
+                                "value": "141"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Non-Small Cell Lung Cancer (NSCLC)",
+                "value": 13,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "非小细胞肺癌",
+                                "value": "135"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Colorectal Cancer (CRC)",
+                "value": 8,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "结直肠癌",
+                                "value": "938"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "HER2 Positive Breast Cancer",
+                "value": 8,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "HER2阳性乳腺癌",
+                                "value": "142"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Hormone Receptor Positive Breast Cancer",
+                "value": 8,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "HR阳性乳腺癌",
+                                "value": "143"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Cancer",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "癌症",
+                                "value": "132"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Melanoma",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "黑色素瘤",
+                                "value": "149"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Solid Tumor",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "实体瘤",
+                                "value": "133"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Gastric Cancer",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "胃癌",
+                                "value": "139"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Pancreatic Ductal Carcinoma",
+                "value": 6,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "胰腺导管癌",
+                                "value": "1024"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Hepatocellular Carcinoma (HCC)",
+                "value": 5,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "肝细胞癌",
+                                "value": "138"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Glioblastoma Multiforme (GBM)",
+                "value": 5,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "胶质母细胞瘤",
+                                "value": "163"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

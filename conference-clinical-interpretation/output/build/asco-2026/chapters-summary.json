@@ -9,43 +9,53 @@
     "outputDir": "output/visualizations",
     "charts": {
         "cn": [
+            "rank-day-bar",
+            "rank-country-bar",
             "rank-indication-bar",
             "rank-domain-bar",
-            "rank-sponsor-bar",
-            "rank-institute-bar",
-            "rank-institute-external-bar",
-            "rank-country-bar",
             "rank-stage-bar",
             "rank-evidence-source-bar",
             "rank-evaluation-bar",
             "matrix-stage-evaluation",
+            "rank-sponsor-bar",
+            "rank-institute-bar",
+            "rank-institute-external-bar",
             "rank-target-bar",
             "rank-drug-bar",
             "rank-moa-bar",
-            "flow-indication-target-sankey"
+            "flow-indication-target-sankey",
+            "matrix-china-indication",
+            "rank-china-target-bar",
+            "rank-china-sponsor-bar",
+            "rank-negative-indication-bar"
         ],
         "en": [
+            "rank-day-bar",
+            "rank-country-bar",
             "rank-indication-bar",
             "rank-domain-bar",
-            "rank-sponsor-bar",
-            "rank-institute-bar",
-            "rank-institute-external-bar",
-            "rank-country-bar",
             "rank-stage-bar",
             "rank-evidence-source-bar",
             "rank-evaluation-bar",
             "matrix-stage-evaluation",
+            "rank-sponsor-bar",
+            "rank-institute-bar",
+            "rank-institute-external-bar",
             "rank-target-bar",
             "rank-drug-bar",
             "rank-moa-bar",
-            "flow-indication-target-sankey"
+            "flow-indication-target-sankey",
+            "matrix-china-indication",
+            "rank-china-target-bar",
+            "rank-china-sponsor-bar",
+            "rank-negative-indication-bar"
         ]
     },
     "skipped": {},
     "failed": {},
     "indexFiles": {
-        "cn": "cn/index.json",
-        "en": "en/index.json"
+        "cn": "index-cn.json",
+        "en": "index-en.json"
     },
     "exitCode": 0
 }

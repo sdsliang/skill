@@ -1,0 +1,361 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "chart",
+        "type": "bar",
+        "height": "auto",
+        "maxHeight": 520,
+        "title": "不佳与终止集中在哪些癌种",
+        "subTitle": "ASCO 2026 · 研究摘要数（按研究去重）",
+        "notes": [
+            {
+                "kind": "layout",
+                "role": "source-note",
+                "rows": [
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "说明："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "只统计总体评价为「不佳」或「终止」的研究；这是「哪里在塌」的分母，不含未评价的研究。"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "口径："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "图中 Top 12 合计占 41.9%（口径内总数 227）；带该维度标注的摘要 159 篇"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "数据来源："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "本届会议（ASCO 2026）公开的研究摘要，共 1639 篇按研究去重"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "axisXTitle": "研究摘要数",
+        "axisYTitle": "癌种",
+        "data": [
+            {
+                "label": "乳腺癌",
+                "value": 14,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "乳腺癌",
+                                "value": "141"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "非小细胞肺癌",
+                "value": 13,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "非小细胞肺癌",
+                                "value": "135"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "结直肠癌",
+                "value": 8,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "结直肠癌",
+                                "value": "938"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "HER2阳性乳腺癌",
+                "value": 8,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "HER2阳性乳腺癌",
+                                "value": "142"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "HR阳性乳腺癌",
+                "value": 8,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "HR阳性乳腺癌",
+                                "value": "143"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "癌症",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "癌症",
+                                "value": "132"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "黑色素瘤",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "黑色素瘤",
+                                "value": "149"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "实体瘤",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "实体瘤",
+                                "value": "133"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "胃癌",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "胃癌",
+                                "value": "139"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "胰腺导管癌",
+                "value": 6,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "胰腺导管癌",
+                                "value": "1024"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "肝细胞癌",
+                "value": 5,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "肝细胞癌",
+                                "value": "138"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "胶质母细胞瘤",
+                "value": 5,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "indication_ids",
+                        "list": [
+                            {
+                                "label": "胶质母细胞瘤",
+                                "value": "163"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -28,16 +28,10 @@ const buildDir = path.join(reportDir, 'build', slugify(meeting), 'filters');
 let worst = 0;
 fs.mkdirSync(buildDir, { recursive: true });
 for (const lang of langs) {
-    const root = path.join(outputDir, lang);
-    const files = [];
-    const walk = (dir) => {
-        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-            const full = path.join(dir, entry.name);
-            if (entry.isDirectory()) walk(full);
-            else if (entry.name.endsWith('.json') && entry.name !== 'index.json') files.push(full);
-        }
-    };
-    walk(root);
+    // 扁平产物：<viewId>-<lang>.json
+    const files = fs.readdirSync(outputDir)
+        .filter((n) => n.endsWith(`-${lang}.json`) && !n.startsWith('index-') && !n.startsWith('summary-callout-'))
+        .map((n) => path.join(outputDir, n));
     const visualizations = files.map((f) => ({ name: path.relative(outputDir, f), envelope: JSON.parse(fs.readFileSync(f, 'utf8')) }));
     const result = await validateDrillPayloads({ visualizations, pageType: 'evidence' });
     const out = { lang, ...result, files: visualizations.length };

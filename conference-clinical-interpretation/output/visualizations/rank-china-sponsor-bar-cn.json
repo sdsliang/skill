@@ -1,0 +1,361 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "chart",
+        "type": "bar",
+        "height": "auto",
+        "maxHeight": 520,
+        "title": "中国申办方",
+        "subTitle": "ASCO 2026 · 研究摘要数（按研究去重）",
+        "notes": [
+            {
+                "kind": "layout",
+                "role": "source-note",
+                "rows": [
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "说明："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "中国口径的唯一判定标准：申办方登记地在中国内地/港澳台。跨国药企的中国分公司按登记地计，不合并到总部。前列多为高校与医院（研究者发起研究），企业侧见上方「主要药物研发机构」。"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "口径："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "图中 Top 12 合计占 30.5%（口径内总数 430）；带该维度标注的摘要 425 篇"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "数据来源："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "本届会议（ASCO 2026）公开的研究摘要，共 1639 篇按研究去重"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "axisXTitle": "研究摘要数",
+        "axisYTitle": "申办方",
+        "data": [
+            {
+                "label": "复旦大学",
+                "value": 25,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "复旦大学",
+                                "value": "4227"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "中山大学",
+                "value": 19,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "中山大学",
+                                "value": "15898"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "恒瑞医药",
+                "value": 13,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "恒瑞医药",
+                                "value": "7407"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "四川大学华西医院",
+                "value": 13,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "四川大学华西医院",
+                                "value": "11627"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "中山大学肿瘤防治中心",
+                "value": 10,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "中山大学肿瘤防治中心",
+                                "value": "15903"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "天津市肿瘤医院",
+                "value": 8,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "天津市肿瘤医院",
+                                "value": "12348"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "中山大学孙逸仙纪念医院",
+                "value": 8,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "中山大学孙逸仙纪念医院",
+                                "value": "40697"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "百利天恒",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "百利天恒",
+                                "value": "16958"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "北京大学肿瘤医院",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "北京大学肿瘤医院",
+                                "value": "2711"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "北京协和医院",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "北京协和医院",
+                                "value": "15822"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "复旦大学附属中山医院",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "复旦大学附属中山医院",
+                                "value": "51934"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "南京鼓楼医院",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    },
+                    {
+                        "apiKey": "company_ids",
+                        "list": [
+                            {
+                                "label": "南京鼓楼医院",
+                                "value": "23567"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

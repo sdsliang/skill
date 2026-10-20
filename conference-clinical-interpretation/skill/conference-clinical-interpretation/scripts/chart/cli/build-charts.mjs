@@ -8,9 +8,10 @@
  *        --output-dir output/visualizations --report-dir output --lang both
  *
  * 产物：
- *   <output-dir>/<lang>/chapter-0N/<viewId>.json   图表 envelope
- *   <output-dir>/<lang>/summary-callout.json       总结块（骨架，正文留待写报告时填）
- *   <output-dir>/<lang>/index.json                 章节索引
+ *   <output-dir>/<viewId>-<lang>.json        图表 envelope（扁平、ASCII、无子目录——
+ *                                            平台只接受 /workspace/visualizations/<name>.json）
+ *   <output-dir>/summary-callout-<lang>.json 总结块（骨架，正文留待写报告时填）
+ *   <output-dir>/index-<lang>.json           章节索引
  *   <report-dir>/build/<slug>/report-source-<lang>.md   读数底稿（写报告只读它）
  *   <report-dir>/build/<slug>/chapters-summary.json     运行汇总（判「跑完没有」看它）
  */
@@ -61,15 +62,14 @@ const summary = { meeting, langs: args.langs, denominator, input, outputDir, cha
 const readouts = {};
 
 for (const lang of args.langs) {
-    const langRoot = path.join(outputDir, lang);
-    fs.rmSync(langRoot, { recursive: true, force: true });
+    const langRoot = outputDir;
+    // 清掉旧版 <lang>/chapter-0N/ 结构，避免与扁平产物混在一起
+    fs.rmSync(path.join(outputDir, lang), { recursive: true, force: true });
     fs.mkdirSync(langRoot, { recursive: true });
     const entries = [];
     const linesOut = [];
     for (const chapter of CHAPTERS) {
         const views = VIEWS.filter((v) => v.chapter === chapter.no);
-        const dir = path.join(langRoot, `chapter-${pad(chapter.no)}`);
-        fs.mkdirSync(dir, { recursive: true });
         for (const view of views) {
             const renderer = RENDERERS[view.type];
             try {
@@ -78,7 +78,7 @@ for (const lang of args.langs) {
                     (summary.skipped[lang] ??= []).push({ view: view.id, reason: built.skipped });
                     continue;
                 }
-                const file = path.join(dir, `${view.id}.json`);
+                const file = path.join(langRoot, `${view.id}-${lang}.json`);
                 fs.writeFileSync(file, JSON.stringify(built, null, 4) + '\n');
                 entries.push({
                     file: path.relative(outputDir, file),
@@ -97,15 +97,28 @@ for (const lang of args.langs) {
         }
     }
     // 总结块：正文由写报告阶段填，这里只留骨架
+    // 重跑构建不能把已写好的总结正文冲掉：已有文件就沿用它的 summary-text
+    const calloutPath = path.join(langRoot, `summary-callout-${lang}.json`);
+    let existingSummary = null;
+    if (fs.existsSync(calloutPath)) {
+        try {
+            const prev = JSON.parse(fs.readFileSync(calloutPath, 'utf8'));
+            existingSummary = prev?.config?.rows?.find((r) => r.role === 'summary-text')?.markdown ?? null;
+        } catch { existingSummary = null; }
+    }
     const callout = summaryCallout({
         lang,
         markdown: lang === 'en'
             ? 'Summary is written together with the report; it only restates figures already in the body.'
             : '总结正文在写报告时填入，只综合正文已有的数字与结论。',
     });
-    fs.writeFileSync(path.join(langRoot, 'summary-callout.json'), JSON.stringify(callout, null, 4) + '\n');
+    if (existingSummary) {
+        const row = callout.config.rows.find((r) => r.role === 'summary-text');
+        if (row) row.markdown = existingSummary;
+    }
+    fs.writeFileSync(path.join(langRoot, `summary-callout-${lang}.json`), JSON.stringify(callout, null, 4) + '\n');
     entries.push({
-        file: path.posix.join(lang, 'summary-callout.json'),
+        file: `summary-callout-${lang}.json`,
         view: 'summary-callout',
         type: 'layout',
         chapter: CHAPTERS.length,
@@ -130,8 +143,8 @@ for (const lang of args.langs) {
         })),
         views: entries,
     };
-    fs.writeFileSync(path.join(langRoot, 'index.json'), JSON.stringify(index, null, 4) + '\n');
-    summary.indexFiles[lang] = path.relative(outputDir, path.join(langRoot, 'index.json'));
+    fs.writeFileSync(path.join(langRoot, `index-${lang}.json`), JSON.stringify(index, null, 4) + '\n');
+    summary.indexFiles[lang] = path.relative(outputDir, path.join(langRoot, `index-${lang}.json`));
     readouts[lang] = linesOut;
 }
 

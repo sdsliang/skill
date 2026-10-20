@@ -1,0 +1,92 @@
+[
+  {
+    "ref": "ref_1",
+    "indication": "卵巢癌",
+    "pos": true,
+    "lba": true,
+    "keyEvidence": true,
+    "titleRe": "phase (iii|3)"
+  },
+  {
+    "ref": "ref_2",
+    "indication": "非小细胞肺癌",
+    "pos": true,
+    "titleRe": "phase (iii|3)",
+    "prefer": [
+      "ivonescimab"
+    ]
+  },
+  {
+    "ref": "ref_3",
+    "indication": "实体瘤",
+    "pos": true,
+    "titleRe": "phase 1",
+    "prefer": [
+      "first-in-human",
+      "first in human"
+    ]
+  },
+  {
+    "ref": "ref_4",
+    "titleRe": "real-world|real world",
+    "pos": true,
+    "prefer": [
+      "third-line",
+      "later-line"
+    ]
+  },
+  {
+    "ref": "ref_5",
+    "drugName": "帕博利珠单抗",
+    "pos": true,
+    "keyEvidence": true,
+    "titleRe": "phase (iii|3)"
+  },
+  {
+    "ref": "ref_6",
+    "indication": "结直肠癌",
+    "target": "PD1",
+    "pos": true
+  },
+  {
+    "ref": "ref_7",
+    "country": "中国内地",
+    "indication": "胃癌",
+    "lba": true,
+    "pos": true
+  },
+  {
+    "ref": "ref_8",
+    "country": "中国内地",
+    "indication": "非小细胞肺癌",
+    "pos": true,
+    "keyEvidence": true,
+    "titleRe": "phase (iii|3)",
+    "prefer": [
+      "anlotinib"
+    ]
+  },
+  {
+    "ref": "ref_9",
+    "country": "中国内地",
+    "titleRe": "bispecific|双特异性",
+    "pos": true
+  },
+  {
+    "ref": "ref_10",
+    "indication": "三阴性乳腺癌",
+    "pos": true,
+    "lba": true,
+    "keyEvidence": true
+  },
+  {
+    "ref": "ref_11",
+    "neg": true,
+    "indication": "乳腺癌",
+    "titleRe": "phase (iii|3)"
+  },
+  {
+    "ref": "ref_12",
+    "terminated": true
+  }
+]

@@ -1,0 +1,259 @@
+{
+    "meeting": "ASCO 2026",
+    "lang": "en",
+    "denominator": 1639,
+    "totalCharts": 20,
+    "skippedCharts": 0,
+    "failedCharts": 0,
+    "chapters": [
+        {
+            "no": 1,
+            "act": "Act I · The one-screen view",
+            "title": "This meeting at a glance",
+            "narrative": "Scale, tempo, geography: how many abstracts, when they dropped, and whose turf it is. Everything that follows builds on this screen.",
+            "views": [
+                "rank-day-bar",
+                "rank-country-bar"
+            ]
+        },
+        {
+            "no": 2,
+            "act": "Act II · Heat and maturity",
+            "title": "Where the heat is, and how mature the evidence is",
+            "narrative": "Cancer types and domains say what everyone is racing for; staging, evidence type and overall assessment say how solid the result is. Read them together before carrying any conclusion forward.",
+            "views": [
+                "rank-indication-bar",
+                "rank-domain-bar",
+                "rank-stage-bar",
+                "rank-evidence-source-bar",
+                "rank-evaluation-bar",
+                "matrix-stage-evaluation"
+            ]
+        },
+        {
+            "no": 3,
+            "act": "Act III · Who is taking the position",
+            "title": "Who runs the studies, and who owns the assets",
+            "narrative": "Sponsors say who runs the study; originators say who owns the drug — usually not the same party. Then the concentration of targets, drugs and mechanisms, plus the cancer type → target → drug pathways.",
+            "views": [
+                "rank-sponsor-bar",
+                "rank-institute-bar",
+                "rank-institute-external-bar",
+                "rank-target-bar",
+                "rank-drug-bar",
+                "rank-moa-bar",
+                "flow-indication-target-sankey"
+            ]
+        },
+        {
+            "no": 4,
+            "act": "Act IV · The China voice",
+            "title": "Where China-based work stands at this meeting",
+            "narrative": "China-related work defined by one hard rule — the sponsor is registered in mainland China, Hong Kong, Macau or Taiwan: who leads, where it concentrates, and how its positivity rate compares with the rest of the world.",
+            "views": [
+                "matrix-china-indication",
+                "rank-china-target-bar",
+                "rank-china-sponsor-bar"
+            ]
+        },
+        {
+            "no": 5,
+            "act": "Act V · Actionable signals",
+            "title": "The few items that could change a decision",
+            "narrative": "Compressing a thousand average data points into one page: why each item deserves action, and how far it can support a decision. No charts here — only the graded list.",
+            "views": []
+        },
+        {
+            "no": 6,
+            "act": "Act VI · Damage and gaps",
+            "title": "Where it broke, where nobody goes, and what to watch",
+            "narrative": "Where negative and terminated results cluster, which questions remain unanswered, and which assets and dates to watch over the next 6–12 months.",
+            "views": [
+                "rank-negative-indication-bar",
+                "summary-callout"
+            ]
+        }
+    ],
+    "views": [
+        {
+            "file": "rank-day-bar-en.json",
+            "view": "rank-day-bar",
+            "type": "bar",
+            "chapter": 1,
+            "title": "Disclosure tempo by day",
+            "requirement": "Grouped by the release date on record; a burst shows the information density during the meeting window.",
+            "renderable": true
+        },
+        {
+            "file": "rank-country-bar-en.json",
+            "view": "rank-country-bar",
+            "type": "bar",
+            "chapter": 1,
+            "title": "Where the sponsors are based",
+            "requirement": "By the country or region where the sponsor is registered.",
+            "renderable": true
+        },
+        {
+            "file": "rank-indication-bar-en.json",
+            "view": "rank-indication-bar",
+            "type": "bar",
+            "chapter": 2,
+            "title": "Most disclosed cancer types",
+            "requirement": "Abstracts mentioning the cancer type; one abstract can count for several types, so shares sum to more than 100%.",
+            "renderable": true
+        },
+        {
+            "file": "rank-domain-bar-en.json",
+            "view": "rank-domain-bar",
+            "type": "bar",
+            "chapter": 2,
+            "title": "Disease domains",
+            "requirement": "By platform disease-domain tags; one abstract can belong to several domains.",
+            "renderable": true
+        },
+        {
+            "file": "rank-stage-bar-en.json",
+            "view": "rank-stage-bar",
+            "type": "bar",
+            "chapter": 2,
+            "title": "Stage and setting",
+            "requirement": "Platform stage tags, mixing trial phase (I/II/III) with disease setting (early, locally advanced, advanced). Abstracts without the tag are excluded.",
+            "renderable": true
+        },
+        {
+            "file": "rank-evidence-source-bar-en.json",
+            "view": "rank-evidence-source-bar",
+            "type": "bar",
+            "chapter": 2,
+            "title": "Evidence types",
+            "requirement": "By platform evidence-source tags: prospective or retrospective studies, real-world studies and trial phases each count separately.",
+            "renderable": true
+        },
+        {
+            "file": "rank-evaluation-bar-en.json",
+            "view": "rank-evaluation-bar",
+            "type": "bar",
+            "chapter": 2,
+            "title": "Overall assessment",
+            "requirement": "By platform result-assessment tags; unlabelled abstracts are shown as not assessed rather than counted as positive or unfavorable.",
+            "renderable": true
+        },
+        {
+            "file": "matrix-stage-evaluation-en.json",
+            "view": "matrix-stage-evaluation",
+            "type": "heatmap",
+            "chapter": 2,
+            "title": "Stage by assessment",
+            "requirement": "Abstracts per cross combination; empty cells are drawn as blank and mean no such study at this meeting.",
+            "renderable": true
+        },
+        {
+            "file": "rank-sponsor-bar-en.json",
+            "view": "rank-sponsor-bar",
+            "type": "bar",
+            "chapter": 3,
+            "title": "Leading sponsors",
+            "requirement": "Counted per sponsor; multi-sponsor studies count once per sponsor, investigator-initiated and registrational studies alike.",
+            "renderable": true
+        },
+        {
+            "file": "rank-institute-bar-en.json",
+            "view": "rank-institute-bar",
+            "type": "bar",
+            "chapter": 3,
+            "title": "Leading drug originators",
+            "requirement": "Counted per drug originator/holder — a different lens from sponsors above: the sponsor may be a hospital or CRO while the drug belongs to someone else. The field records the **current holder** of the drug, so backbone chemotherapies (carboplatin, paclitaxel, gemcitabine, oxaliplatin) are held by generic manufacturers and inflate their rank; read this together with the drug ranking when judging the innovative portfolio.",
+            "renderable": true
+        },
+        {
+            "file": "rank-institute-external-bar-en.json",
+            "view": "rank-institute-external-bar",
+            "type": "bar",
+            "chapter": 3,
+            "title": "Originators most studied by external sponsors",
+            "requirement": "Only studies whose sponsors do not include the drug originator: mostly academic, hospital or partner-led validation rather than originator-run registrational work. The same current-holder caveat applies, so generic holders of backbone chemotherapies cluster near the top.",
+            "renderable": true
+        },
+        {
+            "file": "rank-target-bar-en.json",
+            "view": "rank-target-bar",
+            "type": "bar",
+            "chapter": 3,
+            "title": "Most studied targets",
+            "requirement": "Abstracts mentioning the target; each target in a combination counts separately.",
+            "renderable": true
+        },
+        {
+            "file": "rank-drug-bar-en.json",
+            "view": "rank-drug-bar",
+            "type": "bar",
+            "chapter": 3,
+            "title": "Most disclosed drugs",
+            "requirement": "Abstracts per drug; a multi-arm abstract counts once per drug, and each drug in a combination counts separately.",
+            "renderable": true
+        },
+        {
+            "file": "rank-moa-bar-en.json",
+            "view": "rank-moa-bar",
+            "type": "bar",
+            "chapter": 3,
+            "title": "Mechanisms of action",
+            "requirement": "By platform mechanism-of-action tags; a drug may carry several.",
+            "renderable": true
+        },
+        {
+            "file": "flow-indication-target-sankey-en.json",
+            "view": "flow-indication-target-sankey",
+            "type": "sankey",
+            "chapter": 3,
+            "title": "Cancer type → target → drug",
+            "requirement": "Only the most disclosed cancer types with their targets and drugs, to read the pathways rather than the full distribution.",
+            "renderable": true
+        },
+        {
+            "file": "matrix-china-indication-en.json",
+            "view": "matrix-china-indication",
+            "type": "heatmap",
+            "chapter": 4,
+            "title": "Cancer type × China / rest of world",
+            "requirement": "Abstracts per cancer type for China-related work versus the rest of the world; China = sponsor registered in mainland China, Hong Kong, Macau or Taiwan. Records without a sponsor cannot be attributed and are excluded from both sides.",
+            "renderable": true
+        },
+        {
+            "file": "rank-china-target-bar-en.json",
+            "view": "rank-china-target-bar",
+            "type": "bar",
+            "chapter": 4,
+            "title": "Targets China-based work concentrates on",
+            "requirement": "Target ranking within China-related work; compare with the overall ranking to see whether it follows the global mainstream or runs on its own track.",
+            "renderable": true
+        },
+        {
+            "file": "rank-china-sponsor-bar-en.json",
+            "view": "rank-china-sponsor-bar",
+            "type": "bar",
+            "chapter": 4,
+            "title": "China-based sponsors",
+            "requirement": "Only sponsors registered in mainland China, Hong Kong, Macau or Taiwan; China subsidiaries of multinationals count where they are registered, not merged into the parent.",
+            "renderable": true
+        },
+        {
+            "file": "rank-negative-indication-bar-en.json",
+            "view": "rank-negative-indication-bar",
+            "type": "bar",
+            "chapter": 6,
+            "title": "Where negative and terminated results cluster",
+            "requirement": "Only studies assessed as negative or terminated; this is the denominator for where things broke, excluding unassessed work.",
+            "renderable": true
+        },
+        {
+            "file": "summary-callout-en.json",
+            "view": "summary-callout",
+            "type": "layout",
+            "chapter": 6,
+            "title": "Summary",
+            "requirement": "",
+            "renderable": true
+        }
+    ]
+}

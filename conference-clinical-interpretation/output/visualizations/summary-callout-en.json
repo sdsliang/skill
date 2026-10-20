@@ -1,0 +1,21 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "layout",
+        "role": "summary-callout",
+        "rows": [
+            {
+                "kind": "string",
+                "role": "summary-label",
+                "text": "Summary"
+            },
+            {
+                "kind": "string",
+                "role": "summary-text",
+                "markdown": "Of 1,639 abstracts this year, 1,248 are positive (76.1%), 147 negative, 12 terminated and 229 not assessed; that rate is a selection bias of what gets written up, not a success rate. The certainty sits in the chemotherapy backbone and the PD1 channel (PD1 442 abstracts, pembrolizumab 162, advanced populations 516), the variable sits in the technology shift (ADCs 155 plus bispecifics 128 now outweigh any single chemotype) — four phase 3 LBAs worth a reminder: iza-bren, tunlametinib plus vemurafenib, benmelstobart plus anlotinib, and chiauranib. China accounts for 425 abstracts (25.9%) and 15 of 49 LBAs (~31%), with 96.5% positive versus 69.0% elsewhere, yet novel mechanisms remain scarce, and in 576 studies the sponsor and the asset owner have no overlap — who runs the research and who owns the drug must be read separately."
+            }
+        ]
+    }
+}

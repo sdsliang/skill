@@ -4,7 +4,37 @@
 - 分母：1639（按研究去重的研究摘要数）
 - 原始返回行（含多值 explode）：3858
 
-## 第一幕 · 研究版图 · 本届会议在研究什么
+## 第一幕 · 一眼看完 · 本届一眼看完
+
+### rank-day-bar
+
+披露节奏（按日） — ASCO 2026 · 研究摘要数（按研究去重）
+
+- rank-day-bar#1 2026-05-21 = 510
+- rank-day-bar#2 2026-05-30 = 464
+- rank-day-bar#3 2026-06-01 = 327
+- rank-day-bar#4 2026-05-31 = 273
+- rank-day-bar#5 2026-05-29 = 37
+- rank-day-bar#6 2026-06-02 = 28
+
+### rank-country-bar
+
+研究主体所在地区 — ASCO 2026 · 研究摘要数（按研究去重）
+
+- rank-country-bar#1 中国内地 = 425
+- rank-country-bar#2 美国 = 394
+- rank-country-bar#3 巴西 = 54
+- rank-country-bar#4 法国 = 14
+- rank-country-bar#5 韩国 = 14
+- rank-country-bar#6 意大利 = 13
+- rank-country-bar#7 日本 = 10
+- rank-country-bar#8 泰国 = 9
+- rank-country-bar#9 澳大利亚 = 8
+- rank-country-bar#10 中国台湾 = 6
+- rank-country-bar#11 德国 = 5
+- rank-country-bar#12 俄罗斯 = 5
+
+## 第二幕 · 热点与成熟度 · 热点在哪，证据成熟到什么程度
 
 ### rank-indication-bar
 
@@ -47,82 +77,6 @@
 - rank-domain-bar#10 诊断试剂领域 = 14
 - rank-domain-bar#11 心脑血管领域 = 10
 - rank-domain-bar#12 麻醉镇痛领域 = 8
-
-### rank-sponsor-bar
-
-主要申办方 — ASCO 2026 · 研究摘要数（按研究去重）
-
-- rank-sponsor-bar#1 复旦大学 = 28
-- rank-sponsor-bar#2 National Cancer Institute (NCI) = 24
-- rank-sponsor-bar#3 中山大学 = 23
-- rank-sponsor-bar#4 AstraZeneca = 23
-- rank-sponsor-bar#5 MD Anderson = 23
-- rank-sponsor-bar#6 恒瑞医药 = 15
-- rank-sponsor-bar#7 Pfizer = 14
-- rank-sponsor-bar#8 四川大学华西医院 = 13
-- rank-sponsor-bar#9 Roche = 13
-- rank-sponsor-bar#10 天津市肿瘤医院 = 12
-- rank-sponsor-bar#11 Johnson & Johnson = 12
-- rank-sponsor-bar#12 Merck & Co. = 12
-- rank-sponsor-bar#13 Memorial Sloan Kettering Cancer Center (MSKCC) = 11
-- rank-sponsor-bar#14 中山大学肿瘤防治中心 = 10
-- rank-sponsor-bar#15 中山大学孙逸仙纪念医院 = 9
-
-### rank-institute-bar
-
-主要药物研发机构 — ASCO 2026 · 研究摘要数（按研究去重）
-
-- rank-institute-bar#1 Roche = 289
-- rank-institute-bar#2 Merck & Co. = 227
-- rank-institute-bar#3 Cheplapharm = 203
-- rank-institute-bar#4 Bristol Myers Squibb = 153
-- rank-institute-bar#5 Sanofi = 149
-- rank-institute-bar#6 Eli Lilly = 142
-- rank-institute-bar#7 AstraZeneca = 139
-- rank-institute-bar#8 Pfizer = 127
-- rank-institute-bar#9 takata-seiyaku = 119
-- rank-institute-bar#10 Taiho Pharmaceutical = 107
-- rank-institute-bar#11 Ono Pharmaceutical = 105
-- rank-institute-bar#12 百济神州 = 102
-- rank-institute-bar#13 Medarex = 87
-- rank-institute-bar#14 恒瑞医药 = 79
-- rank-institute-bar#15 Celgene = 78
-
-### rank-institute-external-bar
-
-被外部发起研究最多的研发方 — ASCO 2026 · 研究摘要数（按研究去重）
-
-- rank-institute-external-bar#1 Roche = 117
-- rank-institute-external-bar#2 Cheplapharm = 89
-- rank-institute-external-bar#3 Merck & Co. = 77
-- rank-institute-external-bar#4 Eli Lilly = 73
-- rank-institute-external-bar#5 Sanofi = 70
-- rank-institute-external-bar#6 Bristol Myers Squibb = 68
-- rank-institute-external-bar#7 Taiho Pharmaceutical = 64
-- rank-institute-external-bar#8 takata-seiyaku = 58
-- rank-institute-external-bar#9 恒瑞医药 = 56
-- rank-institute-external-bar#10 百济神州 = 47
-- rank-institute-external-bar#11 Abraxis BioScience = 44
-- rank-institute-external-bar#12 Pfizer = 43
-
-### rank-country-bar
-
-研究主体所在地区 — ASCO 2026 · 研究摘要数（按研究去重）
-
-- rank-country-bar#1 中国内地 = 425
-- rank-country-bar#2 美国 = 394
-- rank-country-bar#3 巴西 = 54
-- rank-country-bar#4 法国 = 14
-- rank-country-bar#5 韩国 = 14
-- rank-country-bar#6 意大利 = 13
-- rank-country-bar#7 日本 = 10
-- rank-country-bar#8 泰国 = 9
-- rank-country-bar#9 澳大利亚 = 8
-- rank-country-bar#10 中国台湾 = 6
-- rank-country-bar#11 德国 = 5
-- rank-country-bar#12 俄罗斯 = 5
-
-## 第二幕 · 证据质量 · 证据成熟到什么程度
 
 ### rank-stage-bar
 
@@ -196,7 +150,64 @@
 - matrix-stage-evaluation#23 未评价 × 广泛期 = 4
 - matrix-stage-evaluation#24 不佳 × 广泛期 = 3
 
-## 第三幕 · 资产与机制 · 哪些靶点与机制在竞争
+## 第三幕 · 谁在抢位置 · 谁在做研究，谁握着资产
+
+### rank-sponsor-bar
+
+主要申办方 — ASCO 2026 · 研究摘要数（按研究去重）
+
+- rank-sponsor-bar#1 复旦大学 = 28
+- rank-sponsor-bar#2 National Cancer Institute (NCI) = 24
+- rank-sponsor-bar#3 中山大学 = 23
+- rank-sponsor-bar#4 AstraZeneca = 23
+- rank-sponsor-bar#5 MD Anderson = 23
+- rank-sponsor-bar#6 恒瑞医药 = 15
+- rank-sponsor-bar#7 Pfizer = 14
+- rank-sponsor-bar#8 四川大学华西医院 = 13
+- rank-sponsor-bar#9 Roche = 13
+- rank-sponsor-bar#10 天津市肿瘤医院 = 12
+- rank-sponsor-bar#11 Johnson & Johnson = 12
+- rank-sponsor-bar#12 Merck & Co. = 12
+- rank-sponsor-bar#13 Memorial Sloan Kettering Cancer Center (MSKCC) = 11
+- rank-sponsor-bar#14 中山大学肿瘤防治中心 = 10
+- rank-sponsor-bar#15 中山大学孙逸仙纪念医院 = 9
+
+### rank-institute-bar
+
+主要药物研发机构 — ASCO 2026 · 研究摘要数（按研究去重）
+
+- rank-institute-bar#1 Roche = 289
+- rank-institute-bar#2 Merck & Co. = 227
+- rank-institute-bar#3 Cheplapharm = 203
+- rank-institute-bar#4 Bristol Myers Squibb = 153
+- rank-institute-bar#5 Sanofi = 149
+- rank-institute-bar#6 Eli Lilly = 142
+- rank-institute-bar#7 AstraZeneca = 139
+- rank-institute-bar#8 Pfizer = 127
+- rank-institute-bar#9 takata-seiyaku = 119
+- rank-institute-bar#10 Taiho Pharmaceutical = 107
+- rank-institute-bar#11 Ono Pharmaceutical = 105
+- rank-institute-bar#12 百济神州 = 102
+- rank-institute-bar#13 Medarex = 87
+- rank-institute-bar#14 恒瑞医药 = 79
+- rank-institute-bar#15 Celgene = 78
+
+### rank-institute-external-bar
+
+被外部发起研究最多的研发方 — ASCO 2026 · 研究摘要数（按研究去重）
+
+- rank-institute-external-bar#1 Roche = 117
+- rank-institute-external-bar#2 Cheplapharm = 89
+- rank-institute-external-bar#3 Merck & Co. = 77
+- rank-institute-external-bar#4 Eli Lilly = 73
+- rank-institute-external-bar#5 Sanofi = 70
+- rank-institute-external-bar#6 Bristol Myers Squibb = 68
+- rank-institute-external-bar#7 Taiho Pharmaceutical = 64
+- rank-institute-external-bar#8 takata-seiyaku = 58
+- rank-institute-external-bar#9 恒瑞医药 = 56
+- rank-institute-external-bar#10 百济神州 = 47
+- rank-institute-external-bar#11 Abraxis BioScience = 44
+- rank-institute-external-bar#12 Pfizer = 43
 
 ### rank-target-bar
 
@@ -296,3 +307,83 @@
 - flow-indication-target-sankey#22 乳腺癌 → microtubule = 20
 - flow-indication-target-sankey#23 实体瘤 → EGFR = 4
 - flow-indication-target-sankey#24 乳腺癌 → HER2 = 25
+
+## 第四幕 · 中国声音 · 中国研究在这届会上是什么位置
+
+### matrix-china-indication
+
+癌种 × 中国 / 其他地区 — ASCO 2026 · 研究摘要数（按研究去重）
+
+- matrix-china-indication#1 实体瘤 × 其他地区 = 108
+- matrix-china-indication#2 非小细胞肺癌 × 其他地区 = 102
+- matrix-china-indication#3 结直肠癌 × 其他地区 = 58
+- matrix-china-indication#4 乳腺癌 × 其他地区 = 82
+- matrix-china-indication#5 胃癌 × 其他地区 = 33
+- matrix-china-indication#6 黑色素瘤 × 其他地区 = 61
+- matrix-china-indication#7 肝细胞癌 × 其他地区 = 31
+- matrix-china-indication#8 HR阳性乳腺癌 × 其他地区 = 41
+- matrix-china-indication#9 卵巢癌 × 其他地区 = 43
+- matrix-china-indication#10 头颈部鳞状细胞癌 × 其他地区 = 39
+- matrix-china-indication#11 实体瘤 × 中国主导研究 = 33
+- matrix-china-indication#12 非小细胞肺癌 × 中国主导研究 = 35
+- matrix-china-indication#13 结直肠癌 × 中国主导研究 = 34
+- matrix-china-indication#14 乳腺癌 × 中国主导研究 = 6
+- matrix-china-indication#15 胃癌 × 中国主导研究 = 37
+- matrix-china-indication#16 黑色素瘤 × 中国主导研究 = 4
+- matrix-china-indication#17 肝细胞癌 × 中国主导研究 = 25
+- matrix-china-indication#18 HR阳性乳腺癌 × 中国主导研究 = 15
+- matrix-china-indication#19 卵巢癌 × 中国主导研究 = 9
+- matrix-china-indication#20 头颈部鳞状细胞癌 × 中国主导研究 = 11
+
+### rank-china-target-bar
+
+中国研究最集中的靶点 — ASCO 2026 · 研究摘要数（按研究去重）
+
+- rank-china-target-bar#1 PD1 = 161
+- rank-china-target-bar#2 DNA = 140
+- rank-china-target-bar#3 TYMS = 81
+- rank-china-target-bar#4 microtubule = 72
+- rank-china-target-bar#5 VEGFR2 = 43
+- rank-china-target-bar#6 PDL1 = 39
+- rank-china-target-bar#7 c-Kit = 35
+- rank-china-target-bar#8 EGFR = 35
+- rank-china-target-bar#9 HER2 = 31
+- rank-china-target-bar#10 VEGFR1 = 31
+- rank-china-target-bar#11 VEGFR3 = 31
+- rank-china-target-bar#12 VEGFR = 28
+
+### rank-china-sponsor-bar
+
+中国申办方 — ASCO 2026 · 研究摘要数（按研究去重）
+
+- rank-china-sponsor-bar#1 复旦大学 = 25
+- rank-china-sponsor-bar#2 中山大学 = 19
+- rank-china-sponsor-bar#3 恒瑞医药 = 13
+- rank-china-sponsor-bar#4 四川大学华西医院 = 13
+- rank-china-sponsor-bar#5 中山大学肿瘤防治中心 = 10
+- rank-china-sponsor-bar#6 天津市肿瘤医院 = 8
+- rank-china-sponsor-bar#7 中山大学孙逸仙纪念医院 = 8
+- rank-china-sponsor-bar#8 百利天恒 = 7
+- rank-china-sponsor-bar#9 北京大学肿瘤医院 = 7
+- rank-china-sponsor-bar#10 北京协和医院 = 7
+- rank-china-sponsor-bar#11 复旦大学附属中山医院 = 7
+- rank-china-sponsor-bar#12 南京鼓楼医院 = 7
+
+## 第六幕 · 塌方与空白 · 哪里在塌，哪里是空白，接下来盯谁
+
+### rank-negative-indication-bar
+
+不佳与终止集中在哪些癌种 — ASCO 2026 · 研究摘要数（按研究去重）
+
+- rank-negative-indication-bar#1 乳腺癌 = 14
+- rank-negative-indication-bar#2 非小细胞肺癌 = 13
+- rank-negative-indication-bar#3 结直肠癌 = 8
+- rank-negative-indication-bar#4 HER2阳性乳腺癌 = 8
+- rank-negative-indication-bar#5 HR阳性乳腺癌 = 8
+- rank-negative-indication-bar#6 癌症 = 7
+- rank-negative-indication-bar#7 黑色素瘤 = 7
+- rank-negative-indication-bar#8 实体瘤 = 7
+- rank-negative-indication-bar#9 胃癌 = 7
+- rank-negative-indication-bar#10 胰腺导管癌 = 6
+- rank-negative-indication-bar#11 肝细胞癌 = 5
+- rank-negative-indication-bar#12 胶质母细胞瘤 = 5

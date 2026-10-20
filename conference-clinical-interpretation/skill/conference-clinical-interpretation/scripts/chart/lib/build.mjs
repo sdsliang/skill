@@ -189,7 +189,8 @@ export function renderBar({ units, view, meeting, lang, source }) {
 /** 热力图：X 轴维度 × Y 轴维度 */
 export function renderHeatmap({ units, view, meeting, lang, source }) {
     const yExtract = DIMENSIONS[view.dimY];
-    const yOrderAll = rank(units, { dim: view.dimY }).rows.map((r) => r.key);
+    // Y 轴只取 Top N，否则会把全部取值（如 272 个癌种）铺成一张没法读的格子图
+    const yOrderAll = rank(units, { dim: view.dimY }).rows.slice(0, view.topN ?? 12).map((r) => r.key);
     const { cells, xOrder } = cross(units, view, yOrderAll);
     if (!cells.length) return { skipped: 'empty' };
     const total = cells.reduce((s, c) => s + c.value, 0);

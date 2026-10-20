@@ -1,0 +1,259 @@
+{
+    "meeting": "ASCO 2026",
+    "lang": "cn",
+    "denominator": 1639,
+    "totalCharts": 20,
+    "skippedCharts": 0,
+    "failedCharts": 0,
+    "chapters": [
+        {
+            "no": 1,
+            "act": "第一幕 · 一眼看完",
+            "title": "本届一眼看完",
+            "narrative": "规模、节奏、地域：多少篇、什么时候放、谁的地盘。后面每一幕都建立在这一屏的基础上。",
+            "views": [
+                "rank-day-bar",
+                "rank-country-bar"
+            ]
+        },
+        {
+            "no": 2,
+            "act": "第二幕 · 热点与成熟度",
+            "title": "热点在哪，证据成熟到什么程度",
+            "narrative": "癌种与领域说明「大家在抢什么」，分期、证据类型与总体评价说明「抢到的东西有多硬」。两张牌一起看，才知道哪些结论可以外推、哪些只是早期信号。",
+            "views": [
+                "rank-indication-bar",
+                "rank-domain-bar",
+                "rank-stage-bar",
+                "rank-evidence-source-bar",
+                "rank-evaluation-bar",
+                "matrix-stage-evaluation"
+            ]
+        },
+        {
+            "no": 3,
+            "act": "第三幕 · 谁在抢位置",
+            "title": "谁在做研究，谁握着资产",
+            "narrative": "申办方是「谁做这项研究」，药物研发机构是「药属于谁」，两者多数不是同一家；再看靶点、药物与机制的集中度，以及「癌种 → 靶点 → 药物」的传导路径。",
+            "views": [
+                "rank-sponsor-bar",
+                "rank-institute-bar",
+                "rank-institute-external-bar",
+                "rank-target-bar",
+                "rank-drug-bar",
+                "rank-moa-bar",
+                "flow-indication-target-sankey"
+            ]
+        },
+        {
+            "no": 4,
+            "act": "第四幕 · 中国声音",
+            "title": "中国研究在这届会上是什么位置",
+            "narrative": "按「申办方登记地在中国内地/港澳台」这一条硬口径统计中国研究：谁在领跑、集中在哪些癌种与靶点、积极率与其他地区差多少。",
+            "views": [
+                "matrix-china-indication",
+                "rank-china-target-bar",
+                "rank-china-sponsor-bar"
+            ]
+        },
+        {
+            "no": 5,
+            "act": "第五幕 · 可行动信号",
+            "title": "哪几条能改变决策",
+            "narrative": "把上千条平均信息压成一页清单：每条给出「为什么值得动」，以及它只能支持到什么程度。本章不放图，只放分级后的清单。",
+            "views": []
+        },
+        {
+            "no": 6,
+            "act": "第六幕 · 塌方与空白",
+            "title": "哪里在塌，哪里是空白，接下来盯谁",
+            "narrative": "不佳与终止集中在哪些癌种、哪些问题还没有答案，以及会后 6–12 个月值得盯的资产与时点。",
+            "views": [
+                "rank-negative-indication-bar",
+                "summary-callout"
+            ]
+        }
+    ],
+    "views": [
+        {
+            "file": "rank-day-bar-cn.json",
+            "view": "rank-day-bar",
+            "type": "bar",
+            "chapter": 1,
+            "title": "披露节奏（按日）",
+            "requirement": "按平台记录的发布日期归日；同一天发布的摘要集中出现，用于判断会期内的信息密度。",
+            "renderable": true
+        },
+        {
+            "file": "rank-country-bar-cn.json",
+            "view": "rank-country-bar",
+            "type": "bar",
+            "chapter": 1,
+            "title": "研究主体所在地区",
+            "requirement": "按申办方所在国家或地区统计；跨国企业以其登记地计入。",
+            "renderable": true
+        },
+        {
+            "file": "rank-indication-bar-cn.json",
+            "view": "rank-indication-bar",
+            "type": "bar",
+            "chapter": 2,
+            "title": "高披露癌种",
+            "requirement": "提及该癌种的研究摘要数；一个摘要可涉及多个癌种，分别计入，占比之和大于 100%。",
+            "renderable": true
+        },
+        {
+            "file": "rank-domain-bar-cn.json",
+            "view": "rank-domain-bar",
+            "type": "bar",
+            "chapter": 2,
+            "title": "疾病领域构成",
+            "requirement": "按平台疾病领域标签统计，一个摘要可同时属于多个领域。",
+            "renderable": true
+        },
+        {
+            "file": "rank-stage-bar-cn.json",
+            "view": "rank-stage-bar",
+            "type": "bar",
+            "chapter": 2,
+            "title": "研究分期与阶段",
+            "requirement": "平台分期标签，含试验分期（Ⅰ/Ⅱ/Ⅲ期）与疾病阶段（早期、局部晚期、晚期等）；无该标签的摘要不进入本图。",
+            "renderable": true
+        },
+        {
+            "file": "rank-evidence-source-bar-cn.json",
+            "view": "rank-evidence-source-bar",
+            "type": "bar",
+            "chapter": 2,
+            "title": "证据类型",
+            "requirement": "按平台证据来源标签统计；前瞻性与回顾性研究、真实世界研究、各期临床试验分别计数。",
+            "renderable": true
+        },
+        {
+            "file": "rank-evaluation-bar-cn.json",
+            "view": "rank-evaluation-bar",
+            "type": "bar",
+            "chapter": 2,
+            "title": "总体评价分布",
+            "requirement": "按平台结果评价标签统计；未标注评价的摘要单列为「未评价」，不计入积极或不佳。",
+            "renderable": true
+        },
+        {
+            "file": "matrix-stage-evaluation-cn.json",
+            "view": "matrix-stage-evaluation",
+            "type": "heatmap",
+            "chapter": 2,
+            "title": "分期 × 评价",
+            "requirement": "交叉组合的研究摘要数；格内为 0 的组合不画，读作「本届无该类研究」。",
+            "renderable": true
+        },
+        {
+            "file": "rank-sponsor-bar-cn.json",
+            "view": "rank-sponsor-bar",
+            "type": "bar",
+            "chapter": 3,
+            "title": "主要申办方",
+            "requirement": "按申办方计；一项研究有多个申办方时分别计入，IIT 与注册研究一并统计。",
+            "renderable": true
+        },
+        {
+            "file": "rank-institute-bar-cn.json",
+            "view": "rank-institute-bar",
+            "type": "bar",
+            "chapter": 3,
+            "title": "主要药物研发机构",
+            "requirement": "按「药物研发/持有方」计，与上图的「申办方」不是同一口径：一项研究的申办方可能是医院或 CRO，而药品的研发方另有其人。注意该字段记的是**当前药品持有方**，基础化疗药（卡铂、紫杉醇、吉西他滨、奥沙利铂等）的持有方多为仿制药企业，会把排名顶高；判断创新药格局时请结合药物榜一起读。",
+            "renderable": true
+        },
+        {
+            "file": "rank-institute-external-bar-cn.json",
+            "view": "rank-institute-external-bar",
+            "type": "bar",
+            "chapter": 3,
+            "title": "被外部发起研究最多的研发方",
+            "requirement": "只统计「申办方与该药研发方无交集」的研究：这类研究多为学术/医院/合作方发起的验证性研究，而非研发方自己主导的注册研究。同样受上面那条「当前持有方」的影响，仿制药持有方（如卡铂、紫杉醇、奥沙利铂）会集中出现在前列。",
+            "renderable": true
+        },
+        {
+            "file": "rank-target-bar-cn.json",
+            "view": "rank-target-bar",
+            "type": "bar",
+            "chapter": 3,
+            "title": "热门靶点",
+            "requirement": "提及该靶点的研究摘要数；组合方案中的每个靶点分别计入。",
+            "renderable": true
+        },
+        {
+            "file": "rank-drug-bar-cn.json",
+            "view": "rank-drug-bar",
+            "type": "bar",
+            "chapter": 3,
+            "title": "高披露药物",
+            "requirement": "按药物统计的研究摘要数；同一摘要的多臂研究只计一次，联合方案中的每个药物分别计入。",
+            "renderable": true
+        },
+        {
+            "file": "rank-moa-bar-cn.json",
+            "view": "rank-moa-bar",
+            "type": "bar",
+            "chapter": 3,
+            "title": "作用机制分布",
+            "requirement": "按平台药物作用机制标签统计；一个药物可带多个机制标签。",
+            "renderable": true
+        },
+        {
+            "file": "flow-indication-target-sankey-cn.json",
+            "view": "flow-indication-target-sankey",
+            "type": "sankey",
+            "chapter": 3,
+            "title": "癌种 → 靶点 → 药物",
+            "requirement": "只保留披露最多的若干癌种及其下靶点、药物，用于读传导路径，不代表全量分布。",
+            "renderable": true
+        },
+        {
+            "file": "matrix-china-indication-cn.json",
+            "view": "matrix-china-indication",
+            "type": "heatmap",
+            "chapter": 4,
+            "title": "癌种 × 中国 / 其他地区",
+            "requirement": "同一癌种在中国口径与其他地区口径下的摘要数并列；中国口径 = 申办方登记地在中国内地/港澳台。缺少申办方的摘要无法归属，不计入任一侧。",
+            "renderable": true
+        },
+        {
+            "file": "rank-china-target-bar-cn.json",
+            "view": "rank-china-target-bar",
+            "type": "bar",
+            "chapter": 4,
+            "title": "中国研究最集中的靶点",
+            "requirement": "中国口径研究涉及的靶点排名；与全体的靶点排名对照，可以看出中国研究是跟随主流靶点还是自成一路。",
+            "renderable": true
+        },
+        {
+            "file": "rank-china-sponsor-bar-cn.json",
+            "view": "rank-china-sponsor-bar",
+            "type": "bar",
+            "chapter": 4,
+            "title": "中国申办方",
+            "requirement": "中国口径的唯一判定标准：申办方登记地在中国内地/港澳台。跨国药企的中国分公司按登记地计，不合并到总部。前列多为高校与医院（研究者发起研究），企业侧见上方「主要药物研发机构」。",
+            "renderable": true
+        },
+        {
+            "file": "rank-negative-indication-bar-cn.json",
+            "view": "rank-negative-indication-bar",
+            "type": "bar",
+            "chapter": 6,
+            "title": "不佳与终止集中在哪些癌种",
+            "requirement": "只统计总体评价为「不佳」或「终止」的研究；这是「哪里在塌」的分母，不含未评价的研究。",
+            "renderable": true
+        },
+        {
+            "file": "summary-callout-cn.json",
+            "view": "summary-callout",
+            "type": "layout",
+            "chapter": 6,
+            "title": "总结",
+            "requirement": "",
+            "renderable": true
+        }
+    ]
+}

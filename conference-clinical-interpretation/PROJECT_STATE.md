@@ -131,3 +131,22 @@
   - 实测：997 篇同时有申办方与研发方，其中 576 篇（57.8%）**完全无交集**；542 篇只有研发方、没有申办方。说明「谁做研究」与「药属于谁」是两个口径，值得并列。
 - 顺带修掉校验器的 12 条 `subTitle 建议精练` 告警：副标题压成「会议 · 研究摘要数（按研究去重）」，
   「Top-N 覆盖 / 口径内总数 / 长尾占比 / 带该维度标注的摘要数」全部下沉到 notes 的**口径行**（说明 → 口径 → 数据来源 三行）。现 14 张 × 2 语言 0 告警。
+
+## 2026-10-20（续）六幕重构 + 中国声音 + 报告正文落地（分支 `feature/interactive-html-track`）
+
+**章节从四幕扩到六幕**：一眼看完 / 热点与成熟度 / 谁在抢位置 / **中国声音（新增）** / 可行动信号（无图，纯清单）/ 塌方与空白。
+
+- 中国口径只留一条硬标准：`CN_COUNTRIES = {中国内地, 中国(港澳台)}` 命中 `companies[].country`。**删掉了用 `research_institute_area` 判中国的写法**——该字段实为药品代理/许可地区（Abraxis、Zuellig、Dr.Reddy's 都被判成中国），会把「中国研发机构榜」彻底带偏，那张图已一并删除。中国口径 = 425 篇（25.9%）。
+- 新增维度：`day` / `chinaRegion` / `chinaSponsor` / `chinaTarget` / `chinaIndication` / `negativeIndication`；新增视图 5 张（`rank-day-bar`、`rank-china-sponsor-bar`、`rank-china-target-bar`、`matrix-china-indication`、`rank-negative-indication-bar`），总图数 **19/语言**。
+- **修 `keyEvidence` 真值 bug**：平台返回「是/否」字符串，"否" 也是真值，之前 1639 篇全被算成有关键证据；修后真实值 661 篇。凡读布尔型 `clinical_result_*` 字段一律 `/^(是|yes|true|1)$/i`。
+- **产物改为扁平命名**：`output/visualizations/<viewId>-<lang>.json` + `index-<lang>.json` + `summary-callout-<lang>.json`。原因：平台只接受 `/workspace/visualizations/<name>.json`（ASCII、无子目录），旧的 `cn/chapter-01/` 结构过不了交付契约。
+- `build-charts.mjs` 重跑会保留已写好的 summary-callout 正文（不再用骨架覆盖）。
+- 新增三个 CLI：
+  - `cli/facts.mjs` → `output/build/<slug>/facts.json`（写报告只读它，不重算）
+  - `cli/citations.mjs` + `citation-select.json` → `citations-<lang>.json`（正文只写 `{{ref_n}}`，选片交给规则，避免手抄 esid）
+  - `cli/preflight.mjs` → 交付闸门：图表路径存在且为 .json、与 index 对账（不缺不多、顺序一致）、`{{ref_n}}` 双向齐全且首次出现递增、**中英数字多重集一致**（先去千分位逗号，只比 ≥20 的数字与百分比）、无占位符
+- 报告正文已落地：`output/report-cn.md` / `report-en.md`，19 条 `::visualization` 引用全部对齐 index 顺序，12 条引文双向齐全。
+
+**验证结果**：`build-charts` cn/en 各 19 张、`failed={}`、exit 0；`check-drill` 334/334 通过（两语言）；19×2 张图 + 2 个 summary-callout 过 `validate-cli` 全绿；`preflight` **PASS**，中英各 180 个数字完全一致。
+
+**关键读数（1639 篇）**：积极 1248（76.1%）/ 不佳 147 / 终止 12 / 未评价 229 / 无标注 3；LBA 49（中国 15）；申办方榜前列是复旦 28、NCI 24、中山 23；资产榜 Roche 289、Merck 227、Cheplapharm 203；中国 425 篇（25.9%），积极率 96.5% vs 其他地区 69.0%，不佳率 2.1% vs 12.4%。
