@@ -3104,3 +3104,36 @@ $ toolsmith-publish deps --accept && toolsmith-publish deps
 **平台侧（第 16–17 跑一致）**：`P-R53-1`（`tool_results receipts archived`，唯一 FAIL，与各轮改动无关）；`P-R71-1`（`r71-4` turn 行未持久化 timing）。
 
 **完整证据**：[r72-banlist-presentation-2026-10-15.md](evidence/r72-banlist-presentation-2026-10-15.md)（§0–§7）。
+
+## R73 — runner 断言按仓库 profile 化（O54：两处对本 skill 恒假的 FAIL）（2026-10-20，改 runner、无发布、不耗真跑）
+
+**触发**：在另一个项目（`~/apps/clinical result`，单条临床结果解读 skill `clinical-expert-knowledge-wr`）用同一 runner 跑 4 轮，断言稳定 `20 PASS / 4 FAIL`，其中 3 条与本 skill 无关，1 条是 runner 自身缺陷：
+
+| 断言 | 实测 | 定性 |
+|---|---|---|
+| `deployed support-file manifest matches local` | `manifest mismatch: missing=['README.md']` | **runner 假阳性（O54）**：平台 `agent/capabilities/skills.py:36` 的 `SKILL_METAFILE_NAMES={README.md, README, CHANGELOG.md, CHANGELOG, LICENSE, LICENSE.md, VERSION}` 是**故意不写进 `load_skill` 清单**的元文件；runner 却把它们算进 `expected`。任何带 README 的 skill 恒报一条 FAIL。 |
+| `output contract: fixed deliverable paths` / `citations contains nonempty source entries` | `missing ['output/citations.json']` | 断言写死对比产物（report+citations），单条解读 skill 契约里没有 citations |
+| `prose gate ran (scripts/tell-scan.py …)` | `no execute call referenced tell-scan.py` | 断言要求跑对比 skill 内的扫描器；本 skill 不打包该脚本 |
+
+**改动**（`~/.local/bin/toolsmith-publish`，备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v20261020-192141.bak`）：
+
+1. 新增模块常量 `SKILL_METAFILES`（与平台同一组名字），`expected` 集合扣除之 —— **无条件修**，属客观错判。
+2. `need` 改为读仓库配置：`set(cfg.get("deliverables") or ["output/report.md", "output/citations.json"])`；**默认值保持对比产物原样**，只有显式声明的仓库才收窄。
+3. citations 两条断言改由 `"output/citations.json" in need` 决定：不声明时输出一条 `citations not part of this repo's deliverables`（PASS + 说明），而不是静默少一项。
+4. prose gate 改由 `cfg.get("prose_gate", True)` 决定；`False` 时输出 `prose gate not part of this repo's contract (skipped: prose_gate=False)`。**默认仍开**，对比技能行为不变。
+5. `cfg` 用 `getattr(a, "cfg", None) or {}` 取，保证 `evals/runner-gate/test-runner.py` 的 `SimpleNamespace` 夹具照旧可跑（首版直接 `a.cfg` 打挂 26 个单测，已修）。
+
+**配置面**（`~/.config/toolsmith/projects.json`，备份 `.bak-20261020-192147`）：`~/apps/clinical result` 条目新增 `"deliverables": ["output/report.md"]`、`"prose_gate": false`。
+
+**验收（零网络）**：
+
+| 闸门 | 结果 |
+|---|---|
+| `python3 -m py_compile ~/.local/bin/toolsmith-publish` | OK |
+| `evals/runner-gate/test-runner.py` | **48/48 OK** |
+| `evals/runner-gate/verify-run-chain.py` | **GATE: PASS**（190 histories / 5 comparable / 185 skip） |
+| `tools/test_pack_dist.py` / `tools/test_replay_run.py` | 5/5 OK / 14/14 OK |
+
+**真跑回证（另一项目，非本轮改动对象）**：修后 4 连跑 `r12-en-keynote859`、`r13-zh-orient31`、`r14-zh-destinyb06-repeat` 均 **23 PASS / 0 FAIL**（修前 4 轮恒 20/4），`STATUS in sync`。
+
+**结论**：runner 只做「frozen default + per-repo override」，对比技能的断言集与阈值一项未松；`test-runner.py` 48 项与新配置缺省行为互为回归。

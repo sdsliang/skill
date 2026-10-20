@@ -1,3 +1,14 @@
+## R73 — runner 断言按仓库 profile 化（O54）（2026-10-20）
+
+- **O54（runner 假阳性，已修）**：`deployed support-file manifest matches local` 把平台 `SKILL_METAFILE_NAMES`
+  （README/CHANGELOG/LICENSE/VERSION）算进 `expected`，带 README 的 skill 恒报 `missing=['README.md']`。
+- **配套放松（默认不变）**：`deliverables` / `prose_gate` 改为 `projects.json` 可声明；缺省仍是对比的
+  report+citations + tell-scan 全开。首个使用者：`~/apps/clinical result`（`deliverables:["output/report.md"]`、
+  `prose_gate:false`）。
+- **验收**：`py_compile` OK；`test-runner.py` 48/48；`verify-run-chain.py` GATE PASS；`test_pack_dist` 5/5；
+  `test_replay_run` 14/14。
+- **台账**：`docs/toolsmith-verification-log.md` R73。
+
 ## R72 完成（2026-10-15）—— 禁令呈现瘦身：枚举清单 → 判据 + 三形态 + 指针【KEEP】
 
 - **结论**：五条预登记判据全中 ⇒ **KEEP**；主判据（图表原因仲裁句）**0 句**（R71 4 / R70 7），
