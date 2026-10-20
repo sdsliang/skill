@@ -210,8 +210,8 @@ export const VIEWS = [
         title: { cn: '主要药物研发机构', en: 'Leading drug originators' },
         axis: { x: { cn: '研究摘要数', en: 'Abstracts' }, y: { cn: '研发机构', en: 'Originator' } },
         note: {
-            cn: '按「药物研发/持有方」计，与上图的「申办方」不是同一口径：一项研究的申办方可能是医院或 CRO，而药品的研发方另有其人。',
-            en: 'Counted per drug originator/holder — a different lens from sponsors above: the sponsor may be a hospital or CRO while the drug belongs to someone else.',
+            cn: '按「药物研发/持有方」计，与上图的「申办方」不是同一口径：一项研究的申办方可能是医院或 CRO，而药品的研发方另有其人。注意该字段记的是**当前药品持有方**，基础化疗药（卡铂、紫杉醇、吉西他滨、奥沙利铂等）的持有方多为仿制药企业，会把排名顶高；判断创新药格局时请结合药物榜一起读。',
+            en: 'Counted per drug originator/holder — a different lens from sponsors above: the sponsor may be a hospital or CRO while the drug belongs to someone else. The field records the **current holder** of the drug, so backbone chemotherapies (carboplatin, paclitaxel, gemcitabine, oxaliplatin) are held by generic manufacturers and inflate their rank; read this together with the drug ranking when judging the innovative portfolio.',
         },
     },
     {
@@ -225,8 +225,8 @@ export const VIEWS = [
         title: { cn: '被外部发起研究最多的研发方', en: 'Originators most studied by external sponsors' },
         axis: { x: { cn: '研究摘要数', en: 'Abstracts' }, y: { cn: '研发机构', en: 'Originator' } },
         note: {
-            cn: '只统计「申办方与该药研发方无交集」的研究：这类研究多为学术/医院/合作方发起的验证性研究，而非研发方自己主导的注册研究。',
-            en: 'Only studies whose sponsors do not include the drug originator: mostly academic, hospital or partner-led validation rather than originator-run registrational work.',
+            cn: '只统计「申办方与该药研发方无交集」的研究：这类研究多为学术/医院/合作方发起的验证性研究，而非研发方自己主导的注册研究。同样受上面那条「当前持有方」的影响，仿制药持有方（如卡铂、紫杉醇、奥沙利铂）会集中出现在前列。',
+            en: 'Only studies whose sponsors do not include the drug originator: mostly academic, hospital or partner-led validation rather than originator-run registrational work. The same current-holder caveat applies, so generic holders of backbone chemotherapies cluster near the top.',
         },
     },
     {

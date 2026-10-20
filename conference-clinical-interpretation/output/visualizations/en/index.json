@@ -88,7 +88,7 @@
             "type": "bar",
             "chapter": 1,
             "title": "Leading drug originators",
-            "requirement": "Counted per drug originator/holder — a different lens from sponsors above: the sponsor may be a hospital or CRO while the drug belongs to someone else.",
+            "requirement": "Counted per drug originator/holder — a different lens from sponsors above: the sponsor may be a hospital or CRO while the drug belongs to someone else. The field records the **current holder** of the drug, so backbone chemotherapies (carboplatin, paclitaxel, gemcitabine, oxaliplatin) are held by generic manufacturers and inflate their rank; read this together with the drug ranking when judging the innovative portfolio.",
             "renderable": true
         },
         {
@@ -97,7 +97,7 @@
             "type": "bar",
             "chapter": 1,
             "title": "Originators most studied by external sponsors",
-            "requirement": "Only studies whose sponsors do not include the drug originator: mostly academic, hospital or partner-led validation rather than originator-run registrational work.",
+            "requirement": "Only studies whose sponsors do not include the drug originator: mostly academic, hospital or partner-led validation rather than originator-run registrational work. The same current-holder caveat applies, so generic holders of backbone chemotherapies cluster near the top.",
             "renderable": true
         },
         {

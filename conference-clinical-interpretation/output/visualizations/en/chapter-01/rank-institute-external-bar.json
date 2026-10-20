@@ -26,7 +26,7 @@
                             {
                                 "kind": "string",
                                 "role": "note-content",
-                                "markdown": "Only studies whose sponsors do not include the drug originator: mostly academic, hospital or partner-led validation rather than originator-run registrational work."
+                                "markdown": "Only studies whose sponsors do not include the drug originator: mostly academic, hospital or partner-led validation rather than originator-run registrational work. The same current-holder caveat applies, so generic holders of backbone chemotherapies cluster near the top."
                             }
                         ]
                     },
