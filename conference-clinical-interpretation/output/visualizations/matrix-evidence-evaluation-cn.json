@@ -1,0 +1,505 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "chart",
+        "type": "heatmap",
+        "height": "auto",
+        "maxHeight": 460,
+        "title": "证据类型 × 评价",
+        "subTitle": "ASCO 2026 · 研究摘要数（按研究去重）",
+        "notes": [
+            {
+                "kind": "layout",
+                "role": "source-note",
+                "rows": [
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "说明："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "交叉组合的研究摘要数。真实世界与回顾性研究这一行的「积极」格子明显更暗，是本届最值得注意的结构性差异：设计越松，被判定为积极的比例越低。"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "口径："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "8 × 4 格，非空格 27 个，口径内合计 2068 条；空格 = 该组合没有摘要"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "数据来源："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "本届会议（ASCO 2026）公开的研究摘要，共 1639 篇按研究去重"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "axisXTitle": "证据类型",
+        "axisYTitle": "评价",
+        "data": [
+            {
+                "label": "Phase II",
+                "group": "积极",
+                "value": 408,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase II",
+                "group": "未评价",
+                "value": 12,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase II",
+                "group": "不佳",
+                "value": 43,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase II",
+                "group": "终止",
+                "value": 5,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "回顾性研究",
+                "group": "积极",
+                "value": 197,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "回顾性研究",
+                "group": "未评价",
+                "value": 160,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "回顾性研究",
+                "group": "不佳",
+                "value": 52,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "真实世界研究",
+                "group": "积极",
+                "value": 175,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "真实世界研究",
+                "group": "未评价",
+                "value": 142,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "真实世界研究",
+                "group": "不佳",
+                "value": 47,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase I",
+                "group": "积极",
+                "value": 241,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase I",
+                "group": "未评价",
+                "value": 4,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase I",
+                "group": "不佳",
+                "value": 1,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "前瞻性研究",
+                "group": "积极",
+                "value": 211,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "前瞻性研究",
+                "group": "未评价",
+                "value": 12,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "前瞻性研究",
+                "group": "不佳",
+                "value": 13,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "前瞻性研究",
+                "group": "终止",
+                "value": 3,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase III",
+                "group": "积极",
+                "value": 131,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase III",
+                "group": "未评价",
+                "value": 12,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase III",
+                "group": "不佳",
+                "value": 29,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase III",
+                "group": "终止",
+                "value": 6,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase I/II",
+                "group": "积极",
+                "value": 140,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase I/II",
+                "group": "未评价",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase I/II",
+                "group": "不佳",
+                "value": 3,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase I/II",
+                "group": "终止",
+                "value": 1,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Not Applicable",
+                "group": "积极",
+                "value": 12,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Not Applicable",
+                "group": "未评价",
+                "value": 1,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

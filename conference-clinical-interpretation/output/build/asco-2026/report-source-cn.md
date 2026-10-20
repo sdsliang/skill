@@ -6,17 +6,6 @@
 
 ## 第一幕 · 一眼看完 · 本届一眼看完
 
-### rank-day-bar
-
-披露节奏（按日） — ASCO 2026 · 研究摘要数（按研究去重）
-
-- rank-day-bar#1 2026-05-21 = 510
-- rank-day-bar#2 2026-05-30 = 464
-- rank-day-bar#3 2026-06-01 = 327
-- rank-day-bar#4 2026-05-31 = 273
-- rank-day-bar#5 2026-05-29 = 37
-- rank-day-bar#6 2026-06-02 = 28
-
 ### rank-country-bar
 
 研究主体所在地区 — ASCO 2026 · 研究摘要数（按研究去重）
@@ -149,6 +138,64 @@
 - matrix-stage-evaluation#22 积极 × 广泛期 = 15
 - matrix-stage-evaluation#23 未评价 × 广泛期 = 4
 - matrix-stage-evaluation#24 不佳 × 广泛期 = 3
+
+### matrix-domain-stage
+
+适应症领域 × 分期 — ASCO 2026 · 研究摘要数（按研究去重）
+
+- matrix-domain-stage#1 晚期 × 肿瘤领域 = 516
+- matrix-domain-stage#2 局部晚期 × 肿瘤领域 = 125
+- matrix-domain-stage#3 III期 × 肿瘤领域 = 109
+- matrix-domain-stage#4 II期 × 肿瘤领域 = 61
+- matrix-domain-stage#5 IV期 × 肿瘤领域 = 54
+- matrix-domain-stage#6 早期 × 肿瘤领域 = 47
+- matrix-domain-stage#7 晚期 × 罕见病(欧洲) = 129
+- matrix-domain-stage#8 局部晚期 × 罕见病(欧洲) = 37
+- matrix-domain-stage#9 III期 × 罕见病(欧洲) = 33
+- matrix-domain-stage#10 II期 × 罕见病(欧洲) = 18
+- matrix-domain-stage#11 IV期 × 罕见病(欧洲) = 21
+- matrix-domain-stage#12 早期 × 罕见病(欧洲) = 7
+- matrix-domain-stage#13 晚期 × 罕见病(美国) = 109
+- matrix-domain-stage#14 局部晚期 × 罕见病(美国) = 30
+- matrix-domain-stage#15 III期 × 罕见病(美国) = 25
+- matrix-domain-stage#16 II期 × 罕见病(美国) = 8
+- matrix-domain-stage#17 IV期 × 罕见病(美国) = 14
+- matrix-domain-stage#18 早期 × 罕见病(美国) = 4
+- matrix-domain-stage#19 晚期 × 血液领域 = 3
+- matrix-domain-stage#20 局部晚期 × 血液领域 = 1
+- matrix-domain-stage#21 III期 × 血液领域 = 4
+- matrix-domain-stage#22 II期 × 血液领域 = 1
+- matrix-domain-stage#23 IV期 × 血液领域 = 1
+- matrix-domain-stage#24 早期 × 血液领域 = 1
+
+### matrix-evidence-evaluation
+
+证据类型 × 评价 — ASCO 2026 · 研究摘要数（按研究去重）
+
+- matrix-evidence-evaluation#1 积极 × Phase II = 408
+- matrix-evidence-evaluation#2 未评价 × Phase II = 12
+- matrix-evidence-evaluation#3 不佳 × Phase II = 43
+- matrix-evidence-evaluation#4 终止 × Phase II = 5
+- matrix-evidence-evaluation#5 积极 × 回顾性研究 = 197
+- matrix-evidence-evaluation#6 未评价 × 回顾性研究 = 160
+- matrix-evidence-evaluation#7 不佳 × 回顾性研究 = 52
+- matrix-evidence-evaluation#8 积极 × 真实世界研究 = 175
+- matrix-evidence-evaluation#9 未评价 × 真实世界研究 = 142
+- matrix-evidence-evaluation#10 不佳 × 真实世界研究 = 47
+- matrix-evidence-evaluation#11 积极 × Phase I = 241
+- matrix-evidence-evaluation#12 未评价 × Phase I = 4
+- matrix-evidence-evaluation#13 不佳 × Phase I = 1
+- matrix-evidence-evaluation#14 积极 × 前瞻性研究 = 211
+- matrix-evidence-evaluation#15 未评价 × 前瞻性研究 = 12
+- matrix-evidence-evaluation#16 不佳 × 前瞻性研究 = 13
+- matrix-evidence-evaluation#17 终止 × 前瞻性研究 = 3
+- matrix-evidence-evaluation#18 积极 × Phase III = 131
+- matrix-evidence-evaluation#19 未评价 × Phase III = 12
+- matrix-evidence-evaluation#20 不佳 × Phase III = 29
+- matrix-evidence-evaluation#21 终止 × Phase III = 6
+- matrix-evidence-evaluation#22 积极 × Phase I/II = 140
+- matrix-evidence-evaluation#23 未评价 × Phase I/II = 7
+- matrix-evidence-evaluation#24 不佳 × Phase I/II = 3
 
 ## 第三幕 · 谁在抢位置 · 谁在做研究，谁握着资产
 

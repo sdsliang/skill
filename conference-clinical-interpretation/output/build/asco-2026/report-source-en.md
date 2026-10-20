@@ -6,17 +6,6 @@
 
 ## Act I · The one-screen view · This meeting at a glance
 
-### rank-day-bar
-
-Disclosure tempo by day — ASCO 2026 · abstracts per study
-
-- rank-day-bar#1 2026-05-21 = 510
-- rank-day-bar#2 2026-05-30 = 464
-- rank-day-bar#3 2026-06-01 = 327
-- rank-day-bar#4 2026-05-31 = 273
-- rank-day-bar#5 2026-05-29 = 37
-- rank-day-bar#6 2026-06-02 = 28
-
 ### rank-country-bar
 
 Where the sponsors are based — ASCO 2026 · abstracts per study
@@ -149,6 +138,64 @@ Stage by assessment — ASCO 2026 · abstracts per study
 - matrix-stage-evaluation#22 Positive × Extensive stage = 15
 - matrix-stage-evaluation#23 Not assessed × Extensive stage = 4
 - matrix-stage-evaluation#24 Unfavorable × Extensive stage = 3
+
+### matrix-domain-stage
+
+Therapeutic area by stage — ASCO 2026 · abstracts per study
+
+- matrix-domain-stage#1 Advanced × Oncology = 516
+- matrix-domain-stage#2 Locally advanced × Oncology = 125
+- matrix-domain-stage#3 Stage III × Oncology = 109
+- matrix-domain-stage#4 Stage II × Oncology = 61
+- matrix-domain-stage#5 Stage IV × Oncology = 54
+- matrix-domain-stage#6 Early × Oncology = 47
+- matrix-domain-stage#7 Advanced × Rare disease (Europe) = 129
+- matrix-domain-stage#8 Locally advanced × Rare disease (Europe) = 37
+- matrix-domain-stage#9 Stage III × Rare disease (Europe) = 33
+- matrix-domain-stage#10 Stage II × Rare disease (Europe) = 18
+- matrix-domain-stage#11 Stage IV × Rare disease (Europe) = 21
+- matrix-domain-stage#12 Early × Rare disease (Europe) = 7
+- matrix-domain-stage#13 Advanced × Rare disease (US) = 109
+- matrix-domain-stage#14 Locally advanced × Rare disease (US) = 30
+- matrix-domain-stage#15 Stage III × Rare disease (US) = 25
+- matrix-domain-stage#16 Stage II × Rare disease (US) = 8
+- matrix-domain-stage#17 Stage IV × Rare disease (US) = 14
+- matrix-domain-stage#18 Early × Rare disease (US) = 4
+- matrix-domain-stage#19 Advanced × Hematology = 3
+- matrix-domain-stage#20 Locally advanced × Hematology = 1
+- matrix-domain-stage#21 Stage III × Hematology = 4
+- matrix-domain-stage#22 Stage II × Hematology = 1
+- matrix-domain-stage#23 Stage IV × Hematology = 1
+- matrix-domain-stage#24 Early × Hematology = 1
+
+### matrix-evidence-evaluation
+
+Evidence type by assessment — ASCO 2026 · abstracts per study
+
+- matrix-evidence-evaluation#1 Positive × Phase II = 408
+- matrix-evidence-evaluation#2 Not assessed × Phase II = 12
+- matrix-evidence-evaluation#3 Unfavorable × Phase II = 43
+- matrix-evidence-evaluation#4 Terminated × Phase II = 5
+- matrix-evidence-evaluation#5 Positive × Retrospective study = 197
+- matrix-evidence-evaluation#6 Not assessed × Retrospective study = 160
+- matrix-evidence-evaluation#7 Unfavorable × Retrospective study = 52
+- matrix-evidence-evaluation#8 Positive × Real-world study = 175
+- matrix-evidence-evaluation#9 Not assessed × Real-world study = 142
+- matrix-evidence-evaluation#10 Unfavorable × Real-world study = 47
+- matrix-evidence-evaluation#11 Positive × Phase I = 241
+- matrix-evidence-evaluation#12 Not assessed × Phase I = 4
+- matrix-evidence-evaluation#13 Unfavorable × Phase I = 1
+- matrix-evidence-evaluation#14 Positive × Prospective study = 211
+- matrix-evidence-evaluation#15 Not assessed × Prospective study = 12
+- matrix-evidence-evaluation#16 Unfavorable × Prospective study = 13
+- matrix-evidence-evaluation#17 Terminated × Prospective study = 3
+- matrix-evidence-evaluation#18 Positive × Phase III = 131
+- matrix-evidence-evaluation#19 Not assessed × Phase III = 12
+- matrix-evidence-evaluation#20 Unfavorable × Phase III = 29
+- matrix-evidence-evaluation#21 Terminated × Phase III = 6
+- matrix-evidence-evaluation#22 Positive × Phase I/II = 140
+- matrix-evidence-evaluation#23 Not assessed × Phase I/II = 7
+- matrix-evidence-evaluation#24 Unfavorable × Phase I/II = 3
 
 ## Act III · Who is taking the position · Who runs the studies, and who owns the assets
 

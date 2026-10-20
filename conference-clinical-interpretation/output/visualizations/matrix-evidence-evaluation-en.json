@@ -1,0 +1,505 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "chart",
+        "type": "heatmap",
+        "height": "auto",
+        "maxHeight": 460,
+        "title": "Evidence type by assessment",
+        "subTitle": "ASCO 2026 · abstracts per study",
+        "notes": [
+            {
+                "kind": "layout",
+                "role": "source-note",
+                "rows": [
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Note: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "Abstracts per cross combination. The positive cell is visibly darker for real-world and retrospective rows — the most telling structural difference this year: looser designs are less often judged positive."
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Counting: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "8 × 4 grid, 27 non-empty cells, 2068 mentions in total; an empty cell means no abstract for that combination"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Source: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "Abstracts published at ASCO 2026: 1639 studies after deduplication"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "axisXTitle": "Evidence type",
+        "axisYTitle": "Assessment",
+        "data": [
+            {
+                "label": "Phase II",
+                "group": "Positive",
+                "value": 408,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase II",
+                "group": "Not assessed",
+                "value": 12,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase II",
+                "group": "Unfavorable",
+                "value": 43,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase II",
+                "group": "Terminated",
+                "value": 5,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Retrospective study",
+                "group": "Positive",
+                "value": 197,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Retrospective study",
+                "group": "Not assessed",
+                "value": 160,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Retrospective study",
+                "group": "Unfavorable",
+                "value": 52,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Real-world study",
+                "group": "Positive",
+                "value": 175,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Real-world study",
+                "group": "Not assessed",
+                "value": 142,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Real-world study",
+                "group": "Unfavorable",
+                "value": 47,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase I",
+                "group": "Positive",
+                "value": 241,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase I",
+                "group": "Not assessed",
+                "value": 4,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase I",
+                "group": "Unfavorable",
+                "value": 1,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Prospective study",
+                "group": "Positive",
+                "value": 211,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Prospective study",
+                "group": "Not assessed",
+                "value": 12,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Prospective study",
+                "group": "Unfavorable",
+                "value": 13,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Prospective study",
+                "group": "Terminated",
+                "value": 3,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase III",
+                "group": "Positive",
+                "value": 131,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase III",
+                "group": "Not assessed",
+                "value": 12,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase III",
+                "group": "Unfavorable",
+                "value": 29,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase III",
+                "group": "Terminated",
+                "value": 6,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase I/II",
+                "group": "Positive",
+                "value": 140,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase I/II",
+                "group": "Not assessed",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase I/II",
+                "group": "Unfavorable",
+                "value": 3,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Phase I/II",
+                "group": "Terminated",
+                "value": 1,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Not applicable",
+                "group": "Positive",
+                "value": 12,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Not applicable",
+                "group": "Not assessed",
+                "value": 1,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

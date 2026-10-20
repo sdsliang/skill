@@ -13,6 +13,10 @@
   .sub { color:var(--muted); margin-bottom:20px; font-size:13px; }
   .chapter { margin:28px 0 10px; font-size:15px; font-weight:600; color:var(--accent); }
   .chapter-desc { color:var(--muted); font-size:13px; margin:-6px 0 12px; }
+  .row2 { display:grid; grid-template-columns:1fr 1fr; gap:0 16px; align-items:start; }
+  @media(max-width:900px){ .row2 { grid-template-columns:1fr; } }
+  .row2 .card { margin-bottom:16px; }
+  .card.wide { grid-column:1/-1; }
   .card { background:#fff; border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:16px; }
   .card h3 { margin:0 0 2px; font-size:15px; }
   .card .subtitle { color:var(--muted); font-size:12.5px; margin-bottom:10px; }
@@ -168,9 +172,11 @@ function card(json, view) {
   document.getElementById('head').textContent =
     `${index.meeting}｜${lang.toUpperCase()}｜分母 ${index.denominator} 篇研究摘要｜图 ${index.totalCharts} 个（跳过 ${index.skippedCharts} / 失败 ${index.failedCharts}）`;
   let chapterCursor = 0;
+  let pair = null;
   for (const view of index.views) {
     const chapter = index.chapters.find((c) => c.views.includes(view.view)) ?? index.chapters[index.chapters.length - 1];
     if (chapter.no !== chapterCursor) {
+      pair = null;
       chapterCursor = chapter.no;
       const h = document.createElement('div');
       h.className = 'chapter';
@@ -178,13 +184,29 @@ function card(json, view) {
       const d = document.createElement('div');
       d.className = 'chapter-desc';
       d.textContent = chapter.narrative;
+      pair = null;
       root.append(h, d);
     }
     try {
       const only = params.get('only');
       if (only && !only.split(",").includes(view.view)) continue;
       const json = await (await fetch(`${base}/${view.file}`)).json();
-      root.appendChild(card(json, view));
+      const el = card(json, view);
+      // 紧凑排布：热力图 / 桑基 / 清单占整行，条形图两两并排
+      const wide = json.config.kind === 'layout' || ['heatmap', 'sankey', 'scatter'].includes(json.config.chart?.type);
+      if (wide) {
+        el.classList.add('wide');
+        root.appendChild(el);
+        pair = null;
+      } else if (pair) {
+        pair.appendChild(el);
+        pair = null;
+      } else {
+        pair = document.createElement('div');
+        pair.className = 'row2';
+        root.appendChild(pair);
+        pair.appendChild(el);
+      }
     } catch (e) {
       const p = document.createElement('pre'); p.className = 'err'; p.textContent = `${view.file}: ${e}`;
       root.appendChild(p);

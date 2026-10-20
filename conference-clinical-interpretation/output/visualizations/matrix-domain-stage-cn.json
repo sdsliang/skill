@@ -1,0 +1,569 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "chart",
+        "type": "heatmap",
+        "height": "auto",
+        "maxHeight": 460,
+        "title": "适应症领域 × 分期",
+        "subTitle": "ASCO 2026 · 研究摘要数（按研究去重）",
+        "notes": [
+            {
+                "kind": "layout",
+                "role": "source-note",
+                "rows": [
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "说明："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "交叉组合的研究摘要数，只取占比最高的 6 个领域；空白格表示本届无该类研究。用于看「哪个领域在往早期走」——同一领域里 I/II 期格子越亮，说明管线越靠前。"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "口径："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "6 × 6 格，非空格 31 个，口径内合计 1449 条；空格 = 该组合没有摘要"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "数据来源："
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "本届会议（ASCO 2026）公开的研究摘要，共 1639 篇按研究去重"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "axisXTitle": "领域",
+        "axisYTitle": "分期",
+        "data": [
+            {
+                "label": "肿瘤领域",
+                "group": "晚期",
+                "value": 516,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "肿瘤领域",
+                "group": "局部晚期",
+                "value": 125,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "肿瘤领域",
+                "group": "III期",
+                "value": 109,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "肿瘤领域",
+                "group": "II期",
+                "value": 61,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "肿瘤领域",
+                "group": "IV期",
+                "value": 54,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "肿瘤领域",
+                "group": "早期",
+                "value": 47,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(欧洲)",
+                "group": "晚期",
+                "value": 129,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(欧洲)",
+                "group": "局部晚期",
+                "value": 37,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(欧洲)",
+                "group": "III期",
+                "value": 33,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(欧洲)",
+                "group": "II期",
+                "value": 18,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(欧洲)",
+                "group": "IV期",
+                "value": 21,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(欧洲)",
+                "group": "早期",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(美国)",
+                "group": "晚期",
+                "value": 109,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(美国)",
+                "group": "局部晚期",
+                "value": 30,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(美国)",
+                "group": "III期",
+                "value": 25,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(美国)",
+                "group": "II期",
+                "value": 8,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(美国)",
+                "group": "IV期",
+                "value": 14,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(美国)",
+                "group": "早期",
+                "value": 4,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "血液领域",
+                "group": "晚期",
+                "value": 3,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "血液领域",
+                "group": "局部晚期",
+                "value": 1,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "血液领域",
+                "group": "III期",
+                "value": 4,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "血液领域",
+                "group": "II期",
+                "value": 1,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "血液领域",
+                "group": "IV期",
+                "value": 1,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "血液领域",
+                "group": "早期",
+                "value": 1,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(中国)",
+                "group": "晚期",
+                "value": 47,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(中国)",
+                "group": "局部晚期",
+                "value": 5,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(中国)",
+                "group": "III期",
+                "value": 19,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(中国)",
+                "group": "II期",
+                "value": 5,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(中国)",
+                "group": "IV期",
+                "value": 11,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "罕见病(中国)",
+                "group": "早期",
+                "value": 2,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "感染领域",
+                "group": "晚期",
+                "value": 2,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

@@ -2,7 +2,7 @@
     "meeting": "ASCO 2026",
     "lang": "cn",
     "denominator": 1639,
-    "totalCharts": 21,
+    "totalCharts": 22,
     "skippedCharts": 0,
     "failedCharts": 0,
     "chapters": [
@@ -12,7 +12,6 @@
             "title": "本届一眼看完",
             "narrative": "规模、节奏、地域：多少篇、什么时候放、谁的地盘。后面每一幕都建立在这一屏的基础上。",
             "views": [
-                "rank-day-bar",
                 "rank-country-bar"
             ]
         },
@@ -27,7 +26,9 @@
                 "rank-stage-bar",
                 "rank-evidence-source-bar",
                 "rank-evaluation-bar",
-                "matrix-stage-evaluation"
+                "matrix-stage-evaluation",
+                "matrix-domain-stage",
+                "matrix-evidence-evaluation"
             ]
         },
         {
@@ -76,15 +77,6 @@
         }
     ],
     "views": [
-        {
-            "file": "rank-day-bar-cn.json",
-            "view": "rank-day-bar",
-            "type": "bar",
-            "chapter": 1,
-            "title": "披露节奏（按日）",
-            "requirement": "按平台记录的发布日期归日；同一天发布的摘要集中出现，用于判断会期内的信息密度。",
-            "renderable": true
-        },
         {
             "file": "rank-country-bar-cn.json",
             "view": "rank-country-bar",
@@ -146,6 +138,24 @@
             "chapter": 2,
             "title": "分期 × 评价",
             "requirement": "交叉组合的研究摘要数；格内为 0 的组合不画，读作「本届无该类研究」。",
+            "renderable": true
+        },
+        {
+            "file": "matrix-domain-stage-cn.json",
+            "view": "matrix-domain-stage",
+            "type": "heatmap",
+            "chapter": 2,
+            "title": "适应症领域 × 分期",
+            "requirement": "交叉组合的研究摘要数，只取占比最高的 6 个领域；空白格表示本届无该类研究。用于看「哪个领域在往早期走」——同一领域里 I/II 期格子越亮，说明管线越靠前。",
+            "renderable": true
+        },
+        {
+            "file": "matrix-evidence-evaluation-cn.json",
+            "view": "matrix-evidence-evaluation",
+            "type": "heatmap",
+            "chapter": 2,
+            "title": "证据类型 × 评价",
+            "requirement": "交叉组合的研究摘要数。真实世界与回顾性研究这一行的「积极」格子明显更暗，是本届最值得注意的结构性差异：设计越松，被判定为积极的比例越低。",
             "renderable": true
         },
         {

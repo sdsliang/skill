@@ -12,8 +12,6 @@
 
 本届披露高度集中在三个日期：5 月 21 日 510 篇、5 月 30 日 464 篇、6 月 1 日 327 篇，5 月 31 日 273 篇，其余日期合计不足 5%。真正的信息密度并不均匀——5 月 30 日与 6 月 1 日是摘要正文放量日，5 月 21 日则是标题集中放出日，同一批研究会在两个日期各出现一次，读的时候不要当成两批不同的研究。
 
-::visualization[披露节奏（按日）]{path="/workspace/visualizations/rank-day-bar-cn.json"}
-
 平台标记为 LBA（Late-Breaking Abstract）的只有 49 篇，占 3.0%，其中中国口径 15 篇——这是本届真正带"新数据"的部分，也是第五幕挑可行动信号时权重最高的一类{{ref_1}}。
 
 按申办方登记地看研究主体：中国内地 425 篇、美国 394 篇，两者合计接近半数；其后是巴西 54 篇、法国 14 篇、韩国 14 篇、意大利 13 篇、日本 10 篇，长尾很长。这一项只统计能归属到申办方的摘要，缺失这一项的研究不会出现在图上，也不代表它没有来源。
@@ -47,6 +45,10 @@
 分期与评价交叉后，结构更清楚：积极结果集中在晚期人群（390 篇），局部晚期 101 篇、III 期 80 篇、II 期 41 篇、IV 期 40 篇、早期 34 篇；不佳结果同样以晚期为主（42 篇），III 期 16 篇、局部晚期 10 篇。换句话说，**晚期人群既是最大的试验场，也是最大的失败场**，早期人群的样本量小到还不足以判断成败。
 
 ::visualization[分期 × 评价]{path="/workspace/visualizations/matrix-stage-evaluation-cn.json"}
+
+::visualization[适应症领域 × 分期]{path="/workspace/visualizations/matrix-domain-stage-cn.json"}
+
+::visualization[证据类型 × 评价]{path="/workspace/visualizations/matrix-evidence-evaluation-cn.json"}
 
 ## 第三幕 · 谁在做研究，谁握着资产
 

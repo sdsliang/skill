@@ -1,0 +1,569 @@
+{
+    "id": "chart-component-layout-json-validation",
+    "version": "0.2.0-beta.2",
+    "iframe_template": "https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json",
+    "config": {
+        "kind": "chart",
+        "type": "heatmap",
+        "height": "auto",
+        "maxHeight": 460,
+        "title": "Therapeutic area by stage",
+        "subTitle": "ASCO 2026 · abstracts per study",
+        "notes": [
+            {
+                "kind": "layout",
+                "role": "source-note",
+                "rows": [
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Note: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "Abstracts per cross combination, limited to the six largest areas; blank cells mean no such study this year. Read early-phase brightness as how far forward a field's pipeline sits."
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Counting: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "6 × 6 grid, 31 non-empty cells, 1449 mentions in total; an empty cell means no abstract for that combination"
+                            }
+                        ]
+                    },
+                    {
+                        "kind": "layout",
+                        "role": "source-note-row",
+                        "cols": [
+                            {
+                                "kind": "string",
+                                "role": "note-label",
+                                "markdown": "Source: "
+                            },
+                            {
+                                "kind": "string",
+                                "role": "note-content",
+                                "markdown": "Abstracts published at ASCO 2026: 1639 studies after deduplication"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ],
+        "axisXTitle": "Area",
+        "axisYTitle": "Stage",
+        "data": [
+            {
+                "label": "Oncology",
+                "group": "Advanced",
+                "value": 516,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Oncology",
+                "group": "Locally advanced",
+                "value": 125,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Oncology",
+                "group": "Stage III",
+                "value": 109,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Oncology",
+                "group": "Stage II",
+                "value": 61,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Oncology",
+                "group": "Stage IV",
+                "value": 54,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Oncology",
+                "group": "Early",
+                "value": 47,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (Europe)",
+                "group": "Advanced",
+                "value": 129,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (Europe)",
+                "group": "Locally advanced",
+                "value": 37,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (Europe)",
+                "group": "Stage III",
+                "value": 33,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (Europe)",
+                "group": "Stage II",
+                "value": 18,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (Europe)",
+                "group": "Stage IV",
+                "value": 21,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (Europe)",
+                "group": "Early",
+                "value": 7,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (US)",
+                "group": "Advanced",
+                "value": 109,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (US)",
+                "group": "Locally advanced",
+                "value": 30,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (US)",
+                "group": "Stage III",
+                "value": 25,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (US)",
+                "group": "Stage II",
+                "value": 8,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (US)",
+                "group": "Stage IV",
+                "value": 14,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (US)",
+                "group": "Early",
+                "value": 4,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Hematology",
+                "group": "Advanced",
+                "value": 3,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Hematology",
+                "group": "Locally advanced",
+                "value": 1,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Hematology",
+                "group": "Stage III",
+                "value": 4,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Hematology",
+                "group": "Stage II",
+                "value": 1,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Hematology",
+                "group": "Stage IV",
+                "value": 1,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Hematology",
+                "group": "Early",
+                "value": 1,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (China)",
+                "group": "Advanced",
+                "value": 47,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (China)",
+                "group": "Locally advanced",
+                "value": 5,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (China)",
+                "group": "Stage III",
+                "value": 19,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (China)",
+                "group": "Stage II",
+                "value": 5,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (China)",
+                "group": "Stage IV",
+                "value": 11,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Rare disease (China)",
+                "group": "Early",
+                "value": 2,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            },
+            {
+                "label": "Infectious disease",
+                "group": "Advanced",
+                "value": 2,
+                "drill": [
+                    {
+                        "apiKey": "meeting_tags",
+                        "list": [
+                            {
+                                "label": "ASCO 2026",
+                                "value": "ASCO 2026"
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    }
+}

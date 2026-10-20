@@ -285,21 +285,6 @@ export const VIEWS = [
         },
     },
     {
-        id: 'rank-day-bar',
-        chapter: 1,
-        type: 'bar',
-        dim: 'day',
-        drillKey: null,
-        topN: 20,
-        tailBucket: false,
-        title: { cn: '披露节奏（按日）', en: 'Disclosure tempo by day' },
-        axis: { x: { cn: '研究摘要数', en: 'Abstracts' }, y: { cn: '日期', en: 'Date' } },
-        note: {
-            cn: '按平台记录的发布日期归日；同一天发布的摘要集中出现，用于判断会期内的信息密度。',
-            en: 'Grouped by the release date on record; a burst shows the information density during the meeting window.',
-        },
-    },
-    {
         id: 'rank-country-bar',
         chapter: 1,
         type: 'bar',
@@ -371,6 +356,36 @@ export const VIEWS = [
         note: {
             cn: '交叉组合的研究摘要数；格内为 0 的组合不画，读作「本届无该类研究」。',
             en: 'Abstracts per cross combination; empty cells are drawn as blank and mean no such study at this meeting.',
+        },
+    },
+    {
+        id: 'matrix-domain-stage',
+        chapter: 2,
+        type: 'heatmap',
+        dim: 'domain',
+        dimY: 'stage',
+        drillKey: null,
+        topN: 6,
+        title: { cn: '适应症领域 × 分期', en: 'Therapeutic area by stage' },
+        axis: { x: { cn: '领域', en: 'Area' }, y: { cn: '分期', en: 'Stage' } },
+        note: {
+            cn: '交叉组合的研究摘要数，只取占比最高的 6 个领域；空白格表示本届无该类研究。用于看「哪个领域在往早期走」——同一领域里 I/II 期格子越亮，说明管线越靠前。',
+            en: 'Abstracts per cross combination, limited to the six largest areas; blank cells mean no such study this year. Read early-phase brightness as how far forward a field\'s pipeline sits.',
+        },
+    },
+    {
+        id: 'matrix-evidence-evaluation',
+        chapter: 2,
+        type: 'heatmap',
+        dim: 'evidenceSource',
+        dimY: 'evaluation',
+        drillKey: null,
+        topN: 8,
+        title: { cn: '证据类型 × 评价', en: 'Evidence type by assessment' },
+        axis: { x: { cn: '证据类型', en: 'Evidence type' }, y: { cn: '评价', en: 'Assessment' } },
+        note: {
+            cn: '交叉组合的研究摘要数。真实世界与回顾性研究这一行的「积极」格子明显更暗，是本届最值得注意的结构性差异：设计越松，被判定为积极的比例越低。',
+            en: 'Abstracts per cross combination. The positive cell is visibly darker for real-world and retrospective rows — the most telling structural difference this year: looser designs are less often judged positive.',
         },
     },
     {

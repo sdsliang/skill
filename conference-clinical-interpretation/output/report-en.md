@@ -12,8 +12,6 @@ Scale, tempo, geography: how many abstracts, when they dropped, and whose turf i
 
 Disclosure clusters on three dates: 510 abstracts on 21 May, 464 on 30 May, 327 on 1 June and 273 on 31 May; all other dates together account for less than 5%. Information density is not uniform — 30 May and 1 June are the days the abstract bodies are released, while 21 May is a titles drop, so the same studies appear twice and must not be read as two different cohorts.
 
-::visualization[Disclosure tempo by date]{path="/workspace/visualizations/rank-day-bar-en.json"}
-
 Only 49 abstracts are flagged as LBA (Late-Breaking Abstract), 3.0% of the total, 15 of them China-based — this is the part of the meeting that actually carries new data, and it gets the heaviest weight when Act 5 screens for actionable signals{{ref_1}}.
 
 Ranked by sponsor registration country, China accounts for 425 abstracts and the United States for 394, together close to half the meeting. Brazil follows with 54, France 14, Korea 14, Italy 13 and Japan 10, with a very long tail. This view only counts abstracts that can be attributed to a sponsor; records without one do not appear and are not evidence that no sponsor exists.
@@ -47,6 +45,10 @@ Overall evaluation: positive 1,248 abstracts (76.1%), negative 147 (9.0%), termi
 Crossing stage with evaluation makes the structure clearer: positive results concentrate in advanced populations (390 abstracts), then locally advanced 101, phase III 80, phase II 41, phase IV 40 and early stage 34; negative results are also mostly advanced (42), with phase III 16 and locally advanced 10. In other words, **the advanced population is both the largest testing ground and the largest failure ground**; early-stage samples are still too small to judge success or failure.
 
 ::visualization[Stage × evaluation]{path="/workspace/visualizations/matrix-stage-evaluation-en.json"}
+
+::visualization[Therapeutic area by stage]{path="/workspace/visualizations/matrix-domain-stage-en.json"}
+
+::visualization[Evidence type by assessment]{path="/workspace/visualizations/matrix-evidence-evaluation-en.json"}
 
 ## Act 3 · Who runs the research, who holds the asset
 

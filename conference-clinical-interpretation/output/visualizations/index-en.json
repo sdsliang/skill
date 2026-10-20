@@ -2,7 +2,7 @@
     "meeting": "ASCO 2026",
     "lang": "en",
     "denominator": 1639,
-    "totalCharts": 21,
+    "totalCharts": 22,
     "skippedCharts": 0,
     "failedCharts": 0,
     "chapters": [
@@ -12,7 +12,6 @@
             "title": "This meeting at a glance",
             "narrative": "Scale, tempo, geography: how many abstracts, when they dropped, and whose turf it is. Everything that follows builds on this screen.",
             "views": [
-                "rank-day-bar",
                 "rank-country-bar"
             ]
         },
@@ -27,7 +26,9 @@
                 "rank-stage-bar",
                 "rank-evidence-source-bar",
                 "rank-evaluation-bar",
-                "matrix-stage-evaluation"
+                "matrix-stage-evaluation",
+                "matrix-domain-stage",
+                "matrix-evidence-evaluation"
             ]
         },
         {
@@ -76,15 +77,6 @@
         }
     ],
     "views": [
-        {
-            "file": "rank-day-bar-en.json",
-            "view": "rank-day-bar",
-            "type": "bar",
-            "chapter": 1,
-            "title": "Disclosure tempo by day",
-            "requirement": "Grouped by the release date on record; a burst shows the information density during the meeting window.",
-            "renderable": true
-        },
         {
             "file": "rank-country-bar-en.json",
             "view": "rank-country-bar",
@@ -146,6 +138,24 @@
             "chapter": 2,
             "title": "Stage by assessment",
             "requirement": "Abstracts per cross combination; empty cells are drawn as blank and mean no such study at this meeting.",
+            "renderable": true
+        },
+        {
+            "file": "matrix-domain-stage-en.json",
+            "view": "matrix-domain-stage",
+            "type": "heatmap",
+            "chapter": 2,
+            "title": "Therapeutic area by stage",
+            "requirement": "Abstracts per cross combination, limited to the six largest areas; blank cells mean no such study this year. Read early-phase brightness as how far forward a field's pipeline sits.",
+            "renderable": true
+        },
+        {
+            "file": "matrix-evidence-evaluation-en.json",
+            "view": "matrix-evidence-evaluation",
+            "type": "heatmap",
+            "chapter": 2,
+            "title": "Evidence type by assessment",
+            "requirement": "Abstracts per cross combination. The positive cell is visibly darker for real-world and retrospective rows — the most telling structural difference this year: looser designs are less often judged positive.",
             "renderable": true
         },
         {

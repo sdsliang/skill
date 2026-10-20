@@ -9,7 +9,6 @@
     "outputDir": "output/visualizations",
     "charts": {
         "cn": [
-            "rank-day-bar",
             "rank-country-bar",
             "rank-indication-bar",
             "rank-domain-bar",
@@ -17,6 +16,8 @@
             "rank-evidence-source-bar",
             "rank-evaluation-bar",
             "matrix-stage-evaluation",
+            "matrix-domain-stage",
+            "matrix-evidence-evaluation",
             "rank-sponsor-bar",
             "rank-institute-bar",
             "rank-institute-external-bar",
@@ -31,7 +32,6 @@
             "rank-negative-indication-bar"
         ],
         "en": [
-            "rank-day-bar",
             "rank-country-bar",
             "rank-indication-bar",
             "rank-domain-bar",
@@ -39,6 +39,8 @@
             "rank-evidence-source-bar",
             "rank-evaluation-bar",
             "matrix-stage-evaluation",
+            "matrix-domain-stage",
+            "matrix-evidence-evaluation",
             "rank-sponsor-bar",
             "rank-institute-bar",
             "rank-institute-external-bar",
