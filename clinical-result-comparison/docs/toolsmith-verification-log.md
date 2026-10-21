@@ -3137,3 +3137,11 @@ $ toolsmith-publish deps --accept && toolsmith-publish deps
 **真跑回证（另一项目，非本轮改动对象）**：修后 4 连跑 `r12-en-keynote859`、`r13-zh-orient31`、`r14-zh-destinyb06-repeat` 均 **23 PASS / 0 FAIL**（修前 4 轮恒 20/4），`STATUS in sync`。
 
 **结论**：runner 只做「frozen default + per-repo override」，对比技能的断言集与阈值一项未松；`test-runner.py` 48 项与新配置缺省行为互为回归。
+
+### R73b — 报告文件名由仓库声明驱动（2026-10-21，改 runner、无发布）
+
+单条解读 skill 把交付文件名从 `output/report.md` 改成 `output/trial_result_interpretation.md` 后，`check_run` 里还有两处写死旧名（`report contains nonempty content` 的读取、`present_artifact is the final successful call for …` 的路径比对）。
+
+**改动**（备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v20261020-201500.bak`）：由 `need` 派生 `report_rel = next((p for p in sorted(need) if p.endswith(".md")), "output/report.md")`，两处都用它。对比技能 `deliverables` 缺省仍是 `output/report.md` + `output/citations.json` ⇒ `report_rel` 不变，行为零变化。
+
+**验收**：`py_compile` OK；`test-runner.py` **48/48 OK**；随后 10 并发真跑（另一项目）全部 `23 PASS / 0 FAIL`。

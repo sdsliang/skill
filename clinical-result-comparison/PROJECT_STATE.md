@@ -7,7 +7,9 @@
   `prose_gate:false`）。
 - **验收**：`py_compile` OK；`test-runner.py` 48/48；`verify-run-chain.py` GATE PASS；`test_pack_dist` 5/5；
   `test_replay_run` 14/14。
-- **台账**：`docs/toolsmith-verification-log.md` R73。
+- **R73b**：报告文件名改为由 `deliverables` 派生（`report_rel`），解掉 `present_artifact … for output/report.md`
+  与报告读取两处写死；缺省不变。
+- **台账**：`docs/toolsmith-verification-log.md` R73 / R73b。
 
 ## R72 完成（2026-10-15）—— 禁令呈现瘦身：枚举清单 → 判据 + 三形态 + 指针【KEEP】
 
