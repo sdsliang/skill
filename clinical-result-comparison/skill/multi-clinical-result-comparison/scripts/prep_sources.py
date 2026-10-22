@@ -278,6 +278,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--quiet", action="store_true", help="write files only, print one summary line")
     parser.add_argument("--external", action="store_true",
                         help="append the pull's new records after the existing refs as origin=external")
+    parser.add_argument("--only-esids", help="with --external: append only these esids from the pull "
+                                            "(the ones the block will actually cite)")
     parser.add_argument("--max-external", type=int, default=EXTERNAL_LIMIT,
                         help=f"hard cap on origin=external entries in the inventory (default {EXTERNAL_LIMIT})")
     args = parser.parse_args(argv)
@@ -348,9 +350,12 @@ def main(argv: list[str] | None = None) -> int:
         already = {str(entry.get("esid", "")).strip() for entry in refs.values() if isinstance(entry, dict)}
         external_used = sum(1 for entry in refs.values()
                             if isinstance(entry, dict) and str(entry.get("origin", "")).strip() == "external")
+        only = {item.strip() for item in (args.only_esids or "").split(",") if item.strip()}
         seen: set[str] = set()
         for record in records:
             esid = _esid(record)
+            if only and esid not in only:
+                continue
             if not esid:
                 skipped.append("(no esid)")
                 continue
@@ -360,9 +365,13 @@ def main(argv: list[str] | None = None) -> int:
             seen.add(esid)
             found.append((esid, record))
         if not found:
-            print(f"ERROR: the expansion pull carries no record absent from {args.refs}; nothing to append",
-                  file=sys.stderr)
+            scope = f"for --only-esids {sorted(only)}" if only else "at all"
+            print(f"ERROR: the expansion pull carries no record absent from {args.refs} {scope}; "
+                  "nothing to append", file=sys.stderr)
             return 3
+        appended = {esid for esid, _ in found}
+        if only - appended:
+            missing.extend(sorted(only - appended))
         remaining = args.max_external - external_used
         if len(found) > remaining:
             print(f"ERROR: external-reference budget exceeded: {external_used} already recorded, this pull adds "

@@ -569,6 +569,30 @@ class ContractTests(OfflineCase):
                 failures = self.failures(history(parts))
                 self.assertIn("prose gate exited clean (or its strong hits were --allow'ed)", failures)
 
+    def test_prose_gate_iteration_then_clean_passes(self):
+        # O54 / R77 run2: the model scanned (exit 3, weak hints only), rewrote the file, scanned
+        # again (exit 0). The contract asks for a clean *finished* file, so the last verdict wins;
+        # reading every receipt as final failed a run whose delivered report was clean.
+        parts = list(self.parts)
+        parts[3] = ret('g', 'execute',
+                       '== /workspace/output/report.md  [zh]  强 0 / 弱 2\n'
+                       'W-BOLD-COUNT  «14 处»\n'
+                       '合计强命中 0 条 / total strong hits 0.\nSCAN_EXIT=3')
+        parts.insert(4, call('g', 'execute', {'command': self.scan_cmd}))
+        parts.insert(5, ret('g', 'execute',
+                            '== /workspace/output/report.md  [zh]  强 0 / 弱 0\nSCAN_EXIT=0'))
+        names = [name for level, name, _ in self.checks(history(parts)) if level == 'PASS']
+        self.assertIn('prose gate ran and exited clean', names)
+
+    def test_prose_gate_still_fails_when_the_last_pass_is_dirty(self):
+        parts = list(self.parts)
+        parts.append(call('g', 'execute', {'command': self.scan_cmd}))
+        parts.append(ret('g', 'execute',
+                         '== /workspace/output/report.md  [zh]  强 2 / 弱 0\n'
+                         '合计强命中 2 条 / total strong hits 2.\nSCAN_EXIT=3'))
+        self.assertIn("prose gate exited clean (or its strong hits were --allow'ed)",
+                      self.failures(history(parts)))
+
     def test_scanner_exit_code_from_a_non_scanner_command_is_ignored(self):
         # O51 / R61-3:B9. `20261013-134217-r61-sem-2` shipped green yet the old flat
         # join-then-regex read `SCAN_EXIT=3` out of a chain that short-circuited on a patch.py

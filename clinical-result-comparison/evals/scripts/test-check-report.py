@@ -512,6 +512,14 @@ class ExternalReferenceTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 3, proc.stdout)
         self.assertIn("missing `用途：`", proc.stdout)
 
+    def test_an_external_source_appended_but_never_cited_fails(self):
+        # R77 run2: the pull was appended (ref_19/ref_20) and then the block was dropped, so the
+        # inventory carried two sources the deliverable never names — a paid-for pull with no output.
+        proc = self.run_case(block="## 结果（续）\n\n本组读数见上。\n",
+                             conclusion="本组读数不支持外推{{ref_1}}。")
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("but none is cited", proc.stdout)
+
     def test_a_purpose_given_as_an_internal_code_fails(self):
         entry = ("- GEMINI 1·vedolizumab：第 6 周应答 47.1% vs 25.5%{{ref_2}}｜与本组的差异：终点不同｜"
                  "用途：C1类内基线")

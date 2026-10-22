@@ -22,6 +22,12 @@ clinical-question cluster, before writing the conclusion. It is a step of the de
 | D1 | one **C1** call per clinical-question cluster (the class baseline) | 1 call per cluster, ≤2 calls per deliverable |
 | D2 | one **C2** call when the selected trials name the standard-of-care comparator on the same endpoint | 1 call per deliverable |
 
+**D1 is already served when the selected set is the class.** If the selected records already hold **≥2 distinct
+molecules of the same target/class in the same indication and line**, the class baseline is internal: skip D1 for
+that cluster and say nothing about it. D2 still runs when a named standard-of-care comparator sits outside the
+set. (A deliverable whose selected set spans five molecules of one class needs no external class anchor; pulling
+one anyway buys a comparison the reader can make anyway and costs a payload.)
+
 `C3` / `C4` are **not** part of the default lookup — they are used only when the material itself raises that
 question (a dose gap the selected records leave open, an earlier disclosure of the same trial). One call per
 question, never a second attempt with looser filters.
@@ -71,8 +77,14 @@ Trial-level facts (status, phase, planned enrolment, sponsor) are taken from the
 
 **This tool has no pagination parameter.** A wide filter returns an unbounded payload that can consume the
 whole context budget. Therefore: one filter dimension at a time, `child_*_included:false` always, a minimal
-`selected_fields` allowlist (identity, arms, endpoint, time point, design labels — **never** `abstract_text`),
-and **no retry with a looser filter**. An oversized response ends the question; it does not get re-run.
+`selected_fields` allowlist, and **no retry with a looser filter**. An oversized response ends the question; it
+does not get re-run.
+
+The allowlist is minimal but **citable**: `clinical_result.extra_esid`, `clinical_result.paper_title`,
+`clinical_result.paper_release_time`, `clinical_result.full_article_link` (plus arms/endpoint/time-point/design
+labels when the block needs them) — **never** `abstract_text`. `citations.json` demands a non-empty title, link
+and date per cited ref, so a field set without `full_article_link` is not "minimal", it is unusable: the source
+gets pulled and can never be cited, which leaves a dangling ref in the inventory.
 
 ## Channel 2 — the web (last resort)
 
@@ -87,6 +99,9 @@ a database summary page or an AI answer — and never to obtain a number the str
 - **≤6** external sources per deliverable;
 - **≤6** external tool calls in total (channel 2 ≤2 of them);
 - a source that yields no alignable number is **not** written into the report;
+- **append only what you will cite.** A pull can carry a dozen records when the block needs one: name the
+  ones you will use with `--only-esids`. An appended source that the block never cites is a gate failure
+  (it also means the reader paid for a pull that produced nothing).
 - budget exhausted or nothing alignable → **omit the section** (default lookup) and stop. The search is not
   continued under a different wording, and an oversized payload is not re-queried.
 
@@ -96,7 +111,8 @@ Retrieve first, then append through the packaged script — never hand-edit the 
 
 ```bash
 python3 /workspace/skills/multi-clinical-result-comparison/scripts/prep_sources.py --external \
-    --result <tool_results>/<tool>/call_<id>.jsonl --max-external 6 2>&1 | tail -30; echo "EXIT=${PIPESTATUS[0]}"
+    --result <tool_results>/<tool>/call_<id>.jsonl --only-esids <the ones the block will cite> \
+    --max-external 6 2>&1 | tail -30; echo "EXIT=${PIPESTATUS[0]}"
 ```
 
 It appends `ref_{k+1}…` after the selected `ref_1…ref_k`, writes the same `work/sources/ref_<n>.txt` bodies,

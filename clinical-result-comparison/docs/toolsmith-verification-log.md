@@ -3289,3 +3289,33 @@ render-facts 32 / pack-dist 5 / replay 14 / node 16 / mutations a 44/44 + b 12/1
 **边界**：三组基线**没有**触发外部通道（输入里没有类内对照需求，模型按预期不拓展）——所以「不越界」的正面证据
 来自探针 + 负向对照，不是三组基线；英文形态只有本地单测（`## External reference (non-selected sources)` 一组），
 未做英文真跑；`--external` 的预算/幂等/缺参路径为本地测试，真跑里未触发（探针 4 次 < 6 上限）。
+
+## R77 — 外部参照改为默认开启：原地发布 + 三组真跑（2026-10-22）
+
+发布（**原地更新当前版本**，用户「原地」）：prompt v1.9 内容整体替换为本地 v0.18（86,450 B `92314ea5aee7`，版本号仍 v1.9，v1.8 保留）；skill v1.0.10（`skill_id 9b1213e07d794e73a8e81c71845c7b15`）原地覆盖，30/30 identical，dist `v0.18.zip` 199,273→200,097 B `a5b60c411283`；`status` in sync。
+
+三组真跑（prompt 与 R76 逐字节同题，**不带任何「另外…」**；并发 3 组；模型 DeepSeek Flash；web off）：
+
+| 组 | 目录 | 组规模 | 墙钟 | 调用 | MCP 调用 | 默认检索 | refs 外部条目 | 断言 |
+|---|---|---|---|---|---|---|---|---|
+| 1 | `20261022-144322-r77-fixed-1` | 4 esid / 单试验 HARMONi-6 | 250.9 s | 24 | 2（1 选择 + 1 C2 替雷利珠单抗） | 已触发，**无可对齐新记录 → 整节省略** | 0 | 23 PASS / 0 FAIL |
+| 2 | `20261022-144322-r77-fixed-2` | 18 esid | 535.6 s | 65 | 2（1 选择 + 1 C2 帕博利珠单抗） | 已触发，**追加了 2 条但从头到尾未引用** | `ref_19`、`ref_20`（悬空） | 22 PASS / 1 FAIL（prose gate，见 O54） |
+| 3 | `20261022-144322-r77-fixed-3` | 14 esid / Lp(a) 5 分子 | 297.9 s | 27 | **1（只有选择拉取）** | **未触发**（模型自行判定「所选集合已是类内全景」） | 0 | 23 PASS / 0 FAIL |
+
+**结论（不吹）**：默认开启在 **3 组里只有 1 组走对**；另两组不是坏在渲染，而是坏在**规则本身不够硬也不够诚实**：
+
+1. **run3 完全没检索**：模型的原话是「所选集合已含 5 个同靶点分子，C1 的类内基线在集合内已成立」，于是跳过了默认检索。这个理由成立——它暴露的是我们的规则过宽：D1 没有「集合本身即类」的豁免，规则与实际判断打架。
+2. **run2 半成品**：它确实做了 C2 检索，并按 `--max-external 3` 追加了 `ref_19/ref_20`；但那次外部调用的 `selected_fields` 里**没有 `full_article_link`**（我们文件里教的就是「最小身份字段」），而 `citations.json` 要求每条引用有非空 link → 引用必失败 → 模型只能放弃整节，留下两条**悬空外部 ref**。`check_report.py` 当时还打印「2 origin=external entry(ies), placement checked」，把这种半状态当成了通过。
+3. **run1 走对**：C2 查询命中同一批已选记录 → `prep_sources.py --external` 报「no record absent」→ 整节省略、全文不提检索，正是默认开启想要的行为。
+
+### 本轮暴露并已修的三处（我方）
+
+| # | 缺陷 | 修法 | 门禁 |
+|---|---|---|---|
+| A | 附录表头裸 `ref_N`（用户提的缺陷 1） | `render-facts.py::_column_header` 单试验多披露分支改 `{{ref_n}}` 标记形；同步 SKILL.md／4 份 template／toolbox.md | `BARE_REF_RE`：report.md 里任何非 `{{ref_n}}` 的 `ref_N` → FAIL 并报行号 |
+| B | `用途：C1类内基线`（用户提的缺陷 2） | 改自然语言闭集（同类药物在这一人群的通常水平／已获批治疗在同一终点的水平／区分药物本身与剂量或时点的差别／核对本试验此前的披露），中英同规 | `EXTERNAL_USE_CODE_RE`：`用途：`/`Use:` 值含 `C1`–`C4` → FAIL |
+| C | （本轮真跑新发现）外部源追加了却不引用 / 最小字段集不可引用 | ① `check_report.py` 新增悬空外部参照 FAIL；② `external-context.md` 明确 allowlist 必须含 `full_article_link`（否则「最小」= 不可引用）；③ `prep_sources.py --external --only-esids` 只追加将被引用的记录 | check-report 44 项（+3）、skill-scripts 77 项（+2） |
+| D | （本轮真跑新发现）D1 与「集合本身即类」冲突 | `external-context.md` 增豁免：所选集合已含 **≥2 个同靶点/同类分子、同适应症同治疗线** → D1 跳过；D2 仍按需 | prompt checklist 同步 |
+
+**O54（runner）**：`prose gate` 断言把**每一份**扫描回执都当终判，`SCAN_EXIT=[3, 0]`（首扫只有弱提示、改写后复扫 0、强命中 0）被判 FAIL —— 契约要的是「交付文件干净」，迭代是应该发生的行为。已改 `scan_dirty` 只看**最后一份**回执，并在通过时注明「earlier pass(es) [3] were fixed before delivery」；runner 备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v19.bak`，`test-runner.py` 49→51（新增「迭代后干净 → PASS」「最后一遍仍脏 → FAIL」），`verify-run-chain` 仍 5 comparable PASS。
+

@@ -22,6 +22,21 @@ render-facts 期望改标记形（32 OK）；runner 49 / scorer 37 / skill-scrip
 pack-dist 5 / replay 14 / node 16 / mutations PASS / verify-run-chain PASS。dist **v0.18 200,097 B `a5b60c411283`**。
 提交 `571d192`（R77）+ `2d8e5a9`（R77b），已推。**v0.18 尚未发布**（等授权）。
 
+## R77 完成（2026-10-22 原地发布 + 三组真跑；R77b 修两处面向读者的泄漏；R78 待验证）
+
+**发布（原地）**：prompt v1.9 内容替换为本地 v0.18（86,450 B `92314ea5aee7`）；skill v1.0.10 原地覆盖（30/30 identical）；`status` in sync。
+
+**三组真跑（prompt 与 R76 同题、不带「另外…」、并发 3 组）**：run1（4 esid）250.9 s / 24 调用 / MCP 2 → 默认 C2 触发但无可对齐新记录 → 整节省略，23 PASS；run2（18 esid）535.6 s / 65 调用 / MCP 2 → 触发并追加 `ref_19/ref_20` 却**从未引用**（悬空），22 PASS / 1 FAIL（prose gate = O54）；run3（14 esid）297.9 s / 27 调用 / **MCP 1** → **默认检索未触发**（模型判「所选集合已是 5 分子类内全景」），23 PASS。
+
+**结论**：默认开启只 1/3 走对，且都不是渲染问题，是**规则过宽 + 半状态无门禁**。已修（R77b / R78 本地，未发布）：
+- 附录表头裸 `ref_N` → `{{ref_n}}` 标记形（`render-facts.py`），`check_report.py` 新增 `BARE_REF_RE` 闸门；
+- `用途：C1…` → 自然语言闭集 + `EXTERNAL_USE_CODE_RE` 闸门（中英同规）；
+- 外部源「追加未引用」→ FAIL（`check_report.py`）；`external-context.md` 的 allowlist 补 `paper_release_time` / `full_article_link`（「最小字段」若不可引用即无意义）；`prep_sources.py --external --only-esids` 只追加将被引用的记录；
+- D1 豁免：所选集合已含 ≥2 同靶点/同类分子（同适应症同线）→ 跳过 C1；D2 仍按需；
+- **O54**：runner 的 prose gate 只看**最后一份**扫描回执（备份 `toolsmith-publish.v19.bak`），test-runner 51 项。
+
+**闸门**：check-report **44** / skill-scripts **77** / runner 51 / scorer 37 / tell-scan 10 / build-ledger 9 / render-facts 32 / pack-dist 5 / replay 14 / node 16 / mutations PASS / verify-run-chain PASS。dist **v0.19 = 200,880 B `18f8ccf37d6a`**（prompt 本地 v0.19）。**v0.19 未发布**：下次真跑即 R78。
+
 ## R76 完成（2026-10-22，**受控外部参照通道**；新版本发布 + 4 次真跑全绿）
 
 **单变量 / 用户原话**：*「让它能有限客观拓展，不能只看我给的 ID」* → 在所选记录之外引入**有界、客观**的对照证据。

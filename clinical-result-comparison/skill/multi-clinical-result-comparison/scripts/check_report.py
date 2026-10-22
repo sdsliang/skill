@@ -324,6 +324,10 @@ def _external_reference_findings(report: str, external: set[str]) -> list[str]:
     if titles and not cited:
         findings.append(f"`{label}` section present but no origin=external marker is used — "
                         "drop the section or name the reference it holds")
+    if external and not cited:
+        findings.append(f"{len(external)} external reference(s) were appended to the inventory "
+                        f"({', '.join(sorted(external)[:3])}) but none is cited — an appended source is "
+                        "a claim that it belongs in the deliverable: cite it in the block, or do not pull it")
     start = titles[0] if titles else None
     if start is not None:
         end = len(lines)
@@ -516,7 +520,9 @@ def main(argv: list[str] | None = None) -> int:
         warnings.append(f"external-reference placement not checked: no readable ref inventory at {args.refs}")
     else:
         findings.extend(_external_reference_findings(report, external))
-        checks.append(("external references", f"{len(external)} origin=external entry(ies), placement checked"))
+        cited_external = external & set(MARKER_RE.findall(report))
+        checks.append(("external references",
+                       f"{len(cited_external)}/{len(external)} origin=external entr(ies) cited, placement checked"))
 
     # ---- chart products --------------------------------------------------------------
     charts: dict[str, dict] = {}

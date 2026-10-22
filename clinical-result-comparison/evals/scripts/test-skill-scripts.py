@@ -291,6 +291,20 @@ class Sandbox(unittest.TestCase):
         self.assertTrue((self.sources / "ref_3.txt").is_file())
         self.assertIn("External C body", (self.sources / "ref_3.txt").read_text(encoding="utf-8"))
 
+    def test_external_only_esids_appends_just_the_cited_sources(self):
+        # R77 run2: a 12-record pull where the block needed one. Naming the sources keeps the
+        # inventory honest — an appended-but-uncited source is a gate failure downstream.
+        self.prep()
+        self.external("--only-esids", "9_9_EXTD")
+        refs = json.loads(self.refs.read_text(encoding="utf-8"))
+        self.assertEqual([item["esid"] for item in refs.values()], [ESID_A, ESID_B, "9_9_EXTD"])
+        self.assertFalse((self.sources / "ref_3.txt").exists() is False)
+
+    def test_external_only_esids_reports_a_source_the_pull_does_not_carry(self):
+        self.prep()
+        proc = self.external("--only-esids", "9_9_EXTD,9_9_ABSENT", expect=3)
+        self.assertIn("9_9_ABSENT", proc.stderr)
+
     def test_external_never_readds_an_esid_already_in_the_inventory(self):
         self.prep()
         proc = self.external(include_selected=True)
