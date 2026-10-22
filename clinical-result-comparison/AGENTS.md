@@ -1,5 +1,23 @@
 # AGENTS.md — 常驻 program.md（autoresearch 循环）
 
+## R80 完成（2026-10-22，新增「在研同类试验」模块，代码 + 文档 + 测试全绿；未发布）
+
+用户要求补一块结果记录回答不了的视角：**同类里还在跑、还没读出结果的试验**。实现按「与外部参照分立」设计，不复用任何状态或闸门。
+
+**为什么分立**：外部参照要的是**可对齐数值**，因此天然只可能返回已有结果的研究；在研试验要的恰恰是**没有结果**。两者准入互斥 ⇒ 独立小节 `## 在研同类试验（尚未读出）` + 独立状态文件 `work/watchlist.json`（`listed` / `none_alignable` / `not_applicable --reason`）+ 独立工具 `pharmcube-query-clinical-trial-with-params-v2`（项目 tools 已由用户挂为第 2 个 MCP 工具，43 参数）。
+
+**探针 5 轮（`wl-probe` ~ `wl-probe6`）定下工具的硬约束**：`trial_phase` / `trial_status` 只收**单值字符串**（数组被 schema 拒）；`trial_has_result` / `trial_therapy_line` / `drug_is_primary` **服务端过滤不可用**（`false`/`true`/`"否"`/`"是"` 全空或 boolean 校验错），只能本地筛；`nct_ids` 混开发代号（`TOPAZ-UC`、`J6E-MC-KWAN`）；返回是 JSONL 落盘 + 「Data count: N」文本摘要，而 **N 是行数不是试验数**（NCT07186101 单试验回 **630 行** = 药 × 终点 × 登记平台 × 时间线笛卡尔展开）；日期为 epoch 毫秒（按北京时间还原，否则中国登记号整体早一天）。
+
+**新增 `scripts/trial_watchlist.py`（~330 行）**：`SELECTED_FIELDS` 13 条试验级字段；按 `trial_id` 去重后本地应用 status/has_result/phase/exclude；首选链接按 `REGISTRY_PREFERENCE`（US-ClinicalTrial → EU-EUCT → CN-CDE → JP-JRCT → IN-CTRI）取 `registry_url`，**别名永不当链接**，缺可引链接直接 `cannot be listed` 拒绝落盘（宁可不列，不造悬空 ref）；`--append` 走 `ps.append_watchlist_refs` 追加 `origin:watchlist` 条目（不重编号，`esid=trial:<trial_id>`）；`--none-found` / `--not-applicable --reason`（<8 字 exit 2）；上限 5 行；`stats` 只报去重后条数，不把行数写进报告。
+
+**闸门面**：`prep_sources.py` 新增 `append_watchlist_refs` / `WatchlistAppendError` / `WATCHLIST_LIMIT`；`check_report.py` 新增 `_watchlist_state_findings` + `_watchlist_section_findings`（缺记录 / 状态矛盾 / 追加未引用 / 多块 / 有节无标记 / 缺固定首句 / 超 5 行 / **预测性措辞**（`有望|预计获批|将优于|潜力|威胁|best-in-class|first-in-class`）/ 落在附录后 / 标记出现在表格行或节前 → FAIL），check 组 **6 → 8**。
+
+**闸门（全绿）**：check-report **59**、skill-scripts **89**、merge-ref-facts 16、tell-scan 10、build-ledger 9、runner 51、render-facts 32、regressions 37、pack-dist 5、replay 14、node **16**、mutations **a 44/44 + b 12/12 + PASS**、`verify-run-chain GATE: PASS (5 comparable)` ⇒ 合计 **338**。`py_compile` 全绿。`deps` 基线更新（MCP 文本引用面 1 → 3 个名字，其中 v2 为实际挂载）。
+
+**文档 / 版本**：新建 `references/ongoing-trials.md`（三态 + 参数坑 + 预算 + 呈现/禁止项 + 与 `external-context.md` 分工）；`toolbox.md` 新增 1b 节；`SKILL.md` 路由 14 + evidence boundary 一句；`external-context.md` 加「下一节不同任务」指路；prompt **v0.21**（92,599 B，`git rm` v0.20）；`pack-dist.py VERSION=v0.21 / EXPECTED=32`，dist **218,176 B `ac302a18450b`**。
+
+**未做**：发布（需用户授权）+ R80 三组真跑。
+
 ## R77 / R77b（2026-10-22，外部参照默认开启 + 两处面向读者的泄漏）
 
 **R77**：用户指出产品后端 prompt 固定，不能靠用户多说一句「另外给个背景参照」，要求默认带。

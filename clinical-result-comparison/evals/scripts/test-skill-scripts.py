@@ -947,6 +947,159 @@ class Sandbox(unittest.TestCase):
         self.assertEqual(payload["ref_1"]["title"], refs["ref_1"]["title"])
 
 
+ONGOING_TRIAL = {
+    "trial_id": "PMCT01014579",
+    "trial_title_zh": "A Phase 2 Study of LY4268989 With Mirikizumab in Ulcerative Colitis",
+    "trial_phase": "Phase II",
+    "trial_status": "招募中",
+    "trial_has_result": "否",
+    "trial_indication_names_zh": ["溃疡性结肠炎"],
+    "trial_enrollment_estimated_global": 252,
+    "trial_first_post_date": 1758470400000,
+    "nct_ids": ["NCT07186101", "CTR20260470", "EUCT2025-522338-30-00", "TOPAZ-UC", "J6E-MC-KWAN"],
+    "drug_name_zh": "zotemtegrast",
+    "drug_company_names_zh": ["Morphic Therapeutic"],
+    "drug_is_primary": "是",
+    "registry_id": "NCT07186101",
+    "registry_url": "https://www.clinicaltrials.gov/study/NCT07186101",
+    "registry_platform": "US-ClinicalTrial",
+}
+
+
+class TrialWatchlistTests(unittest.TestCase):
+    """`trial_watchlist.py`: one row per trial, bounded, and always leaving a record."""
+
+    def setUp(self) -> None:
+        self.root = Path(tempfile.mkdtemp(prefix="trial-watchlist-"))
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+        (self.root / "work" / "sources").mkdir(parents=True)
+        self.refs = self.root / "work" / "refs.json"
+        self.sources = self.root / "work" / "sources"
+
+    def sh(self, script: str, *args, expect: int | None = 0) -> subprocess.CompletedProcess:
+        proc = subprocess.run([sys.executable, "-B", str(SCRIPTS / script), *[str(a) for a in args]],
+                              cwd=str(self.root), capture_output=True, text=True)
+        if expect is not None:
+            self.assertEqual(proc.returncode, expect,
+                             f"{script} exit {proc.returncode}\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}")
+        return proc
+
+    def pull(self, records: list[dict], rows_per_trial: int = 3) -> Path:
+        """A trial pull expands one row per endpoint x registry x drug; reproduce that shape."""
+        path = self.root / "tool_results/pharmcube-query-clinical-trial-with-params-v2/call_9.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        lines = []
+        for record in records:
+            for index in range(rows_per_trial):
+                row = dict(record, endpoint_name_zh=f"endpoint {index}", endpoint_type="次要终点")
+                lines.append(json.dumps(row, ensure_ascii=False))
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        return path
+
+    def watchlist(self, *extra, expect: int | None = 0):
+        return self.sh("trial_watchlist.py", "--refs", self.refs, "--sources-dir", self.sources,
+                       "--tool-results", self.root / "tool_results", *extra, expect=expect)
+
+    def state(self) -> dict:
+        return json.loads((self.refs.parent / "watchlist.json").read_text(encoding="utf-8"))
+
+    def test_630_rows_collapse_to_one_trial_and_the_rest_is_filtered_locally(self) -> None:
+        # The real probe: one NCT id came back as 630 rows (5 registries x drugs x endpoints), so a
+        # row count is not a trial count. `trial_has_result` / status / phase cannot filter server-side.
+        second = dict(ONGOING_TRIAL, trial_id="PMCT2", nct_ids=["NCT07415044"], registry_id="NCT07415044",
+                      registry_url="https://www.clinicaltrials.gov/study/NCT07415044",
+                      trial_first_post_date=1767225600000, trial_phase="Phase III")
+        read_out = dict(ONGOING_TRIAL, trial_id="PMCT3", nct_ids=["NCT05611671"], registry_id="NCT05611671",
+                        registry_url="https://www.clinicaltrials.gov/study/NCT05611671",
+                        trial_has_result="是")
+        done = dict(ONGOING_TRIAL, trial_id="PMCT4", nct_ids=["NCT00000009"], trial_status="完成")
+        self.pull([ONGOING_TRIAL, second, read_out, done], rows_per_trial=40)
+        self.watchlist("--phase", "Phase II", "--phase", "Phase III", "--append")
+        state = self.state()
+        self.assertEqual(state["state"], "listed")
+        self.assertEqual([row["registry_id"] for row in state["trials"]], ["NCT07415044", "NCT07186101"],
+                         "newest registration first, one row per trial")
+        self.assertEqual(state["stats"]["rows"], 160)
+        self.assertEqual(state["stats"]["has_result"], 40)
+        self.assertEqual(state["stats"]["status"], 40)
+        self.assertEqual(state["refs_added"], ["ref_1", "ref_2"])
+        # A trial with a result read out is evidence, not a watchlist row: it must not be listed.
+        self.assertNotIn("NCT05611671", json.dumps(state["trials"]))
+
+    def test_the_cited_link_is_the_registry_url_not_an_alias(self) -> None:
+        self.pull([ONGOING_TRIAL], rows_per_trial=5)
+        self.watchlist("--append")
+        entry = json.loads(self.refs.read_text(encoding="utf-8"))["ref_1"]
+        self.assertEqual(entry["origin"], "watchlist")
+        self.assertEqual(entry["esid"], "trial:PMCT01014579")
+        self.assertEqual(entry["link"], "https://www.clinicaltrials.gov/study/NCT07186101")
+        self.assertEqual(entry["paper_release_time_str"], "2025-09-22",
+                         "epoch millis render as the Beijing date the registry posted")
+        self.assertEqual(entry["title"], ONGOING_TRIAL["trial_title_zh"])
+        self.assertNotIn("ref_1", entry["esid"], "the id must not be synthesised from the ref number")
+        self.assertEqual(entry["registry_id"], "NCT07186101")
+        self.assertEqual(entry["phase"], "Phase II")
+        body = (self.sources / "ref_1.txt").read_text(encoding="utf-8")
+        for fragment in ("NCT07186101", "TOPAZ-UC", "不构成本次比较的证据"):
+            self.assertIn(fragment, body)
+
+    def test_a_row_without_a_registry_link_is_refused_not_cited(self) -> None:
+        # `nct_ids` also carries development aliases (TOPAZ-UC); an alias is not a citable link.
+        record = dict(ONGOING_TRIAL, registry_id="TOPAZ-UC", registry_url="", registry_platform="")
+        self.pull([record], rows_per_trial=1)
+        proc = self.watchlist("--append", expect=3)
+        self.assertIn("cannot be listed", proc.stderr)
+        self.assertFalse(self.refs.exists())
+        self.assertFalse((self.sources / "ref_1.txt").exists())
+
+    def test_a_primary_drug_is_preferred_over_a_combination_partner(self) -> None:
+        partner = dict(ONGOING_TRIAL, drug_name_zh="米吉珠单抗", drug_is_primary="否",
+                       nct_ids=["NCT07186101"], registry_platform="CN-CDE",
+                       registry_id="CTR20260470", registry_url="https://www.cde.org.cn/x")
+        self.pull([ONGOING_TRIAL, partner], rows_per_trial=2)
+        self.watchlist("--append")
+        row = self.state()["trials"][0]
+        self.assertEqual(row["drugs"], ["zotemtegrast"])
+        self.assertEqual(row["registry_platform"], "US-ClinicalTrial")
+
+    def test_nothing_qualifying_without_a_record_is_an_error_not_silence(self) -> None:
+        self.pull([dict(ONGOING_TRIAL, trial_has_result="是")], rows_per_trial=1)
+        proc = self.watchlist(expect=3)
+        self.assertIn("--none-found", proc.stderr)
+        self.assertFalse(self.refs.exists(), "a failed selection must not touch the inventory")
+
+    def test_none_found_records_the_state_and_appends_nothing(self) -> None:
+        self.pull([dict(ONGOING_TRIAL, trial_status="终止")], rows_per_trial=1)
+        self.watchlist("--none-found")
+        state = self.state()
+        self.assertEqual(state["state"], "none_alignable")
+        self.assertEqual(state["trials"], [])
+        self.assertFalse(self.refs.exists())
+
+    def test_not_applicable_needs_a_reason(self) -> None:
+        proc = self.watchlist("--not-applicable", "--reason", "无需", expect=2)
+        self.assertIn("at least 8 characters", proc.stderr)
+        self.watchlist("--not-applicable", "--reason", "所选集合本身即为唯一在研资产")
+        self.assertEqual(self.state()["state"], "not_applicable")
+        self.assertEqual(self.state()["reason"], "所选集合本身即为唯一在研资产")
+
+    def test_the_selection_is_bounded_to_five_rows(self) -> None:
+        records = [dict(ONGOING_TRIAL, trial_id=f"PMCT{i}", nct_ids=[f"NCT000000{i:02d}"],
+                        registry_id=f"NCT000000{i:02d}",
+                        registry_url=f"https://www.clinicaltrials.gov/study/NCT000000{i:02d}",
+                        trial_first_post_date=1758470400000 + i * 86400000) for i in range(8)]
+        self.pull(records, rows_per_trial=1)
+        self.watchlist("--append")
+        self.assertEqual(len(self.state()["trials"]), 5)
+        self.assertEqual(len(self.state()["refs_added"]), 5)
+
+    def test_a_trial_already_in_the_selected_set_is_excluded(self) -> None:
+        self.pull([ONGOING_TRIAL], rows_per_trial=2)
+        self.watchlist("--exclude-nct", "nct07186101", expect=3)
+        self.watchlist("--exclude-nct", "nct07186101", "--none-found")
+        self.assertEqual(self.state()["state"], "none_alignable")
+
+
 class ShippedTextReceiptPathTests(unittest.TestCase):
     """R74: shipped text must not fake an absolute receipt path.
 

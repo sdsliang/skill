@@ -429,6 +429,145 @@ class PackagedTreeVsGateVocabularyTests(unittest.TestCase):
                             if any(label in text for label in TEMPLATE_COLUMN_BAN)))
 
 
+WATCHLIST_CAVEAT = "本段仅登记注册信息，这些试验尚无读出结果，不构成本次比较的证据。"
+WATCHLIST_ROW = ("| NCT07186101 | TOPAZ-UC | Phase II | 招募中 | 2025-09-22 | zotemtegrast | 252 例 |{{ref_3}}|")
+
+
+class OngoingTrialSectionTests(unittest.TestCase):
+    """`## 在研同类试验（尚未读出）`: registry facts in one bounded block, never evidence."""
+
+    def setUp(self) -> None:
+        self.root = Path(tempfile.mkdtemp(prefix="check-report-wl-"))
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+        self.report = self.root / "report.md"
+        self.citations = self.root / "citations.json"
+        self.refs = self.root / "refs.json"
+        self.charts = self.root / "visualizations"
+        self.charts.mkdir()
+        self.state = self.root / "watchlist.json"
+        # The external step has its own record; this class is about the ongoing-trials one.
+        (self.root / "external.json").write_text(json.dumps(
+            {"version": 1, "state": "none_alignable", "question": "C1", "refs_added": []}), encoding="utf-8")
+        self.citations.write_text(json.dumps({
+            "ref_1": {"title": "Selected trial", "link": "https://example.test/a",
+                      "paper_release_time_str": "2024-01-02"},
+            "ref_3": {"title": "TOPAZ-UC", "link": "https://clinicaltrials.gov/study/NCT07186101",
+                      "paper_release_time_str": "2025-09-22"},
+        }), encoding="utf-8")
+
+    def write_refs(self, watchlist: bool = True) -> None:
+        payload = {"ref_1": {"esid": "1_1_A", "origin": "selected", "title": "Selected trial"}}
+        if watchlist:
+            payload["ref_3"] = {"esid": "trial:PMCT01014579", "origin": "watchlist", "title": "TOPAZ-UC"}
+        self.refs.write_text(json.dumps(payload), encoding="utf-8")
+
+    def run_case(self, *, section: str | None = None, body: str = "## 结果\n\n效应量见下例{{ref_1}}。\n",
+                 conclusion: str = "该结果不能单独归因于靶点{{ref_1}}。",
+                 watchlist: bool = True, state: dict | None = None,
+                 appendix: bool = True) -> subprocess.CompletedProcess[str]:
+        self.write_refs(watchlist)
+        if state is None:
+            state = ({"version": 1, "state": "listed",
+                      "trials": [{"registry_id": "NCT07186101", "ref": "ref_3"}], "refs_added": ["ref_3"]}
+                     if watchlist else
+                     {"version": 1, "state": "none_alignable", "trials": [], "refs_added": []})
+        if state is not False:
+            self.state.write_text(json.dumps(state), encoding="utf-8")
+        if section is None:
+            section = (f"## 在研同类试验（尚未读出）\n\n{WATCHLIST_CAVEAT}\n\n"
+                       "| 登记号 | 代号 | 分期 | 状态 | 首次公示 | 药物 | 目标入组 | 来源 |\n"
+                       "| --- | --- | --- | --- | --- | --- | --- | --- |\n" + WATCHLIST_ROW + "\n")
+        appendix_text = ("\n## 附录：证据对齐矩阵\n\n| 事实 | 值 |\n| --- | --- |\n| 样本量 | 252 例{{ref_1}} |\n"
+                         if appendix else "\n")
+        self.report.write_text(body + "\n" + section + "\n## 结论\n\n" + conclusion + "\n" + appendix_text,
+                               encoding="utf-8")
+        return subprocess.run([sys.executable, "-B", str(CHECKER), "--report", str(self.report),
+                               "--citations", str(self.citations), "--charts-dir", str(self.charts),
+                               "--refs", str(self.refs), "--external-state", str(self.root / "external.json"),
+                               "--watchlist-state", str(self.state), "--vis-prefix", str(self.charts) + "/"],
+                              capture_output=True, text=True, check=False)
+
+    def test_a_bounded_section_passes(self):
+        proc = self.run_case()
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("PASS: 8 check group(s) green", proc.stdout)
+
+    def test_an_english_deliverable_uses_the_english_section_shape(self):
+        section = ("## Ongoing same-class trials (no results yet)\n\n"
+                   "Registered design only; no efficacy or safety results have been read out for these trials, "
+                   "so they are not evidence in this comparison.\n\n" + WATCHLIST_ROW + "\n")
+        proc = self.run_case(section=section)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+    def test_a_trial_appended_but_never_cited_fails(self):
+        proc = self.run_case(section="## 在研同类试验（尚未读出）\n\n" + WATCHLIST_CAVEAT + "\n")
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("but none is cited", proc.stdout)
+
+    def test_a_missing_record_fails_because_silence_is_not_an_outcome(self):
+        proc = self.run_case(state=False)
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("no ongoing-trials record", proc.stdout)
+
+    def test_listed_without_an_inventory_entry_fails(self):
+        proc = self.run_case(watchlist=False,
+                             state={"version": 1, "state": "listed", "trials": [],
+                                    "refs_added": ["ref_3"]})
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("holds no origin=watchlist entry", proc.stdout)
+
+    def test_none_alignable_with_a_watchlist_entry_fails(self):
+        proc = self.run_case(state={"version": 1, "state": "none_alignable", "trials": [], "refs_added": []})
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("yet 1 origin=watchlist", proc.stdout)
+
+    def test_not_applicable_needs_a_reason(self):
+        proc = self.run_case(state={"version": 1, "state": "not_applicable", "reason": "无",
+                                    "trials": [], "refs_added": []})
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("without a reason", proc.stdout)
+
+    def test_the_section_without_the_fixed_line_fails(self):
+        proc = self.run_case(section="## 在研同类试验（尚未读出）\n\n" + WATCHLIST_ROW + "\n")
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("must open with the fixed line", proc.stdout)
+
+    def test_a_forecast_in_the_section_fails(self):
+        row = WATCHLIST_ROW.replace("252 例", "252 例，有望优于现有治疗")
+        section = ("## 在研同类试验（尚未读出）\n\n" + WATCHLIST_CAVEAT + "\n\n"
+                   "| 登记号 | 药物 | 目标入组 |\n| --- | --- | --- |\n" + row + "\n")
+        proc = self.run_case(section=section)
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("predicts an outcome", proc.stdout)
+
+    def test_a_watchlist_marker_in_a_comparison_table_fails(self):
+        proc = self.run_case(body="## 结果\n\n| 指标 | 值 |\n| --- | --- |\n| 类内应答率 | 47%{{ref_3}} |\n")
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("outside its own section", proc.stdout)
+
+    def test_a_watchlist_marker_before_the_section_fails(self):
+        proc = self.run_case(body="## 结果\n\n同类的 NCT07186101 仍在招募{{ref_3}}。\n")
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("before the `## 在研同类试验` section", proc.stdout)
+
+    def test_the_section_after_the_appendix_fails(self):
+        self.write_refs()
+        self.state.write_text(json.dumps({"version": 1, "state": "listed",
+                                          "trials": [{"registry_id": "NCT07186101"}],
+                                          "refs_added": ["ref_3"]}), encoding="utf-8")
+        section = (f"## 在研同类试验（尚未读出）\n\n{WATCHLIST_CAVEAT}\n\n" + WATCHLIST_ROW + "\n")
+        self.report.write_text(
+            "## 结果\n\n效应量见下例{{ref_1}}。\n\n## 附录：证据对齐矩阵\n\n| 事实 | 值 |\n| --- | --- |\n"
+            "| 样本量 | 252 例{{ref_1}} |\n\n" + section, encoding="utf-8")
+        proc = subprocess.run([sys.executable, "-B", str(CHECKER), "--report", str(self.report),
+                               "--citations", str(self.citations), "--charts-dir", str(self.charts),
+                               "--refs", str(self.refs), "--watchlist-state", str(self.state),
+                               "--vis-prefix", str(self.charts) + "/"],
+                              capture_output=True, text=True, check=False)
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("inside or after the appendix", proc.stdout)
+
+
 class ExternalReferenceTests(unittest.TestCase):
     """The bounded external-reference block: one place, fixed caveat, never a table cell."""
 
@@ -458,7 +597,8 @@ class ExternalReferenceTests(unittest.TestCase):
     def run_case(self, *, block: str | None = None, body: str = "## 结果\n\n效应量见下例{{ref_1}}。\n",
                  conclusion: str = "该结果不能单独归因于靶点{{ref_2}}。",
                  selected_only: bool = False,
-                 state: dict | None = None) -> subprocess.CompletedProcess[str]:
+                 state: dict | None = None,
+                 watchlist: dict | None = None) -> subprocess.CompletedProcess[str]:
         if selected_only:
             self.citations.write_text(json.dumps({
                 "ref_1": {"title": "Selected trial", "link": "https://example.test/a",
@@ -474,6 +614,11 @@ class ExternalReferenceTests(unittest.TestCase):
                      {"version": 1, "state": "appended", "question": "C1", "refs_added": ["ref_2"]})
         if state is not False:
             self.state.write_text(json.dumps(state), encoding="utf-8")
+        # The ongoing-trials step leaves its own record; nothing to list is the normal outcome.
+        self.watchlist_state = self.root / "watchlist.json"
+        self.watchlist_state.write_text(json.dumps(
+            watchlist if watchlist is not None else
+            {"version": 1, "state": "none_alignable", "trials": [], "refs_added": []}), encoding="utf-8")
         if block is None:
             block = f"## 外部参照（非所选记录）\n\n{self.CAVEAT}\n\n{self.ENTRY}\n"
         self.report.write_text(
@@ -483,13 +628,14 @@ class ExternalReferenceTests(unittest.TestCase):
         return subprocess.run([sys.executable, "-B", str(CHECKER), "--report", str(self.report),
                                "--citations", str(self.citations), "--charts-dir", str(self.charts),
                                "--refs", str(self.refs), "--external-state", str(self.state),
+                               "--watchlist-state", str(self.watchlist_state),
                                "--vis-prefix", str(self.charts) + "/"],
                               capture_output=True, text=True, check=False)
 
     def test_a_bounded_block_passes_and_the_conclusion_may_cite_it(self):
         proc = self.run_case()
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
-        self.assertIn("PASS: 6 check group(s) green", proc.stdout)
+        self.assertIn("PASS: 8 check group(s) green", proc.stdout)
 
     def test_an_english_deliverable_uses_the_english_block_shape(self):
         entry = ("- GEMINI 1 (vedolizumab): week-6 response 47.1% vs 25.5% placebo{{ref_2}} — "

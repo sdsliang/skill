@@ -80,6 +80,102 @@ EXTERNAL_LIMIT = 6         # hard cap on origin=external entries (references/ext
 
 
 EXTERNAL_STATES = ("appended", "none_alignable", "not_applicable")
+WATCHLIST_ORIGIN = "watchlist"
+WATCHLIST_LIMIT = 5        # hard cap on origin=watchlist entries (references/ongoing-trials.md budget)
+
+
+class WatchlistAppendError(RuntimeError):
+    """The watchlist cannot be appended without breaking an inventory invariant."""
+
+
+def _read_refs(path: Path) -> dict:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+    except FileNotFoundError:
+        return {}
+    except (OSError, json.JSONDecodeError) as exc:
+        raise WatchlistAppendError(f"ref inventory {path} is unreadable: {exc}") from exc
+    if not isinstance(data, dict):
+        raise WatchlistAppendError(f"ref inventory {path} is not an object")
+    return data
+
+
+def append_watchlist_refs(*, refs_path: Path, sources_dir: Path, trials: list[dict],
+                          limit: int = WATCHLIST_LIMIT) -> list[str]:
+    """Append the listed trials after the existing refs as `origin:watchlist`, never renumbering.
+
+    A watchlist row is a registry entry, not a clinical-result record, so it has no esid: the entry
+    carries `esid: "trial:<trial_id>"` to keep the inventory self-describing, and `make_citations.py`
+    copies `title` / `link` / date out of it exactly as it does for a pulled record.
+    """
+    refs = _read_refs(refs_path)
+    indices = [int(key.split("_", 1)[1]) for key in refs if re.fullmatch(r"ref_[1-9]\d*", str(key))]
+    start_index = (max(indices) + 1) if indices else 1
+    existing = {str(entry.get("esid", "")).strip() for entry in refs.values() if isinstance(entry, dict)}
+    used = sum(1 for entry in refs.values()
+               if isinstance(entry, dict) and str(entry.get("origin", "")).strip() == WATCHLIST_ORIGIN)
+    if used + len(trials) > limit:
+        raise WatchlistAppendError(
+            f"watchlist budget exceeded: {used} already recorded, this selection adds {len(trials)}, "
+            f"cap is {limit}")
+    added: list[str] = []
+    for trial in trials:
+        trial_id = str(trial.get("trial_id", "")).strip()
+        registry = str(trial.get("registry_id", "")).strip()
+        link = str(trial.get("registry_url", "")).strip()
+        title = str(trial.get("title", "")).strip()
+        if not (trial_id and registry and link and title):
+            raise WatchlistAppendError(
+                f"trial {trial_id or registry or '(unknown)'} is missing trial_id/registry_id/registry_url/title; "
+                "a row without a citable link cannot be listed")
+        esid = f"trial:{trial_id}"
+        if esid in existing:
+            raise WatchlistAppendError(f"{registry} is already in {refs_path} ({esid})")
+        ref = f"ref_{start_index + len(added)}"
+        stamp = str(trial.get("first_post_date", "")).strip()
+        body = [
+            f"# {ref} · 在研同类试验（尚未读出）· {registry}",
+            "",
+            f"trial_id: {trial_id}",
+            f"title: {title}",
+            f"link: {link}",
+            f"registry_platform: {trial.get('registry_platform', '')}",
+            f"首次公示: {stamp or '（未返回）'}",
+            f"分期: {trial.get('phase', '')}｜状态: {trial.get('status', '')}",
+            f"药物: {'、'.join(trial.get('drugs') or []) or '（未返回）'}",
+            f"公司: {'、'.join(trial.get('companies') or []) or '（未返回）'}",
+            f"适应症: {'、'.join(trial.get('indications') or []) or '（未返回）'}",
+            f"目标入组: {trial.get('enrollment') or '（未返回）'}",
+            f"登记号: {', '.join(trial.get('registry_ids') or [registry])}",
+            f"别名: {'、'.join(trial.get('aliases') or []) or '（无）'}",
+            "",
+            "注册信息摘录（无读出结果，不构成本次比较的证据）。",
+        ]
+        path = sources_dir / f"{ref}.txt"
+        _atomic_write(path, "\n".join(body) + "\n")
+        refs[ref] = {
+            "esid": esid,
+            "origin": WATCHLIST_ORIGIN,
+            "title": title,
+            "link": link,
+            "paper_release_time": f"{stamp} 00:00:00" if stamp else "",
+            "paper_release_time_str": _date_only(stamp),
+            "journal": "",
+            "doi": "",
+            "pm_id": "",
+            "trial_abbreviation": "",
+            "indication": "、".join(trial.get("indications") or []),
+            "primary_endpoint": "",
+            "trial_id": trial_id,
+            "registry_id": registry,
+            "phase": trial.get("phase", ""),
+            "status": trial.get("status", ""),
+            "source_file": str(path),
+        }
+        existing.add(esid)
+        added.append(ref)
+    _atomic_write(refs_path, json.dumps(refs, ensure_ascii=False, indent=2) + "\n")
+    return added
 
 
 def external_state_path(args) -> Path:

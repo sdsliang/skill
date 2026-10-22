@@ -56,6 +56,19 @@ EXTERNAL_USE_KEYS = ("用途：", "Use:")
 # The `用途：` value is reader-facing prose: internal question codes (C1–C4) never ship.
 EXTERNAL_USE_CODE_RE = re.compile(r"\bC[1-4]\b|C[1-4]\s*类")
 EXTERNAL_LIMIT = 6
+WATCHLIST_TITLES = ("## 在研同类试验", "## Ongoing same-class trials")
+WATCHLIST_DISCLAIMERS = (
+    "本段仅登记注册信息，这些试验尚无读出结果，不构成本次比较的证据。",
+    "Registered design only; no efficacy or safety results have been read out for these trials, so they "
+    "are not evidence in this comparison.",
+)
+WATCHLIST_STATES = ("listed", "none_alignable", "not_applicable")
+WATCHLIST_LIMIT = 5
+# A watchlist row states a registry fact. The moment it predicts an outcome it becomes an unrooted
+# efficacy claim about a trial nobody has read out, which is exactly what this module must not do.
+WATCHLIST_FORECAST_RE = re.compile(
+    r"有望|预计(?:获批|上市|读出)|预期(?:优于|获益)|将优于|或将|潜力|威胁|best-in-class|first-in-class"
+)
 # A ref token is only replaced by the frontend when it is in marker form; a bare `ref_3` renders as
 # literal text, which reads as a leaked internal id.
 BARE_REF_RE = re.compile(r"(?<!\{)\bref_[1-9]\d*\b(?!\})")
@@ -288,8 +301,8 @@ def _table_cells(report: str) -> list[str]:
     return cells
 
 
-def _external_keys(path: Path) -> set[str] | None:
-    """Refs marked `origin:external` in the inventory; None when the inventory is unreadable."""
+def _refs_by_origin(path: Path, origin: str) -> set[str] | None:
+    """Refs marked `origin:<origin>` in the inventory; None when the inventory is unreadable."""
     try:
         data = json.loads(path.read_text(encoding="utf-8", errors="replace"))
     except (OSError, json.JSONDecodeError):
@@ -297,7 +310,15 @@ def _external_keys(path: Path) -> set[str] | None:
     if not isinstance(data, dict):
         return None
     return {str(key) for key, entry in data.items()
-            if isinstance(entry, dict) and str(entry.get("origin", "")).strip() == "external"}
+            if isinstance(entry, dict) and str(entry.get("origin", "")).strip() == origin}
+
+
+def _external_keys(path: Path) -> set[str] | None:
+    return _refs_by_origin(path, "external")
+
+
+def _watchlist_keys(path: Path) -> set[str] | None:
+    return _refs_by_origin(path, "watchlist")
 
 
 def _external_use_value(line: str) -> str:
@@ -351,6 +372,116 @@ def _external_state_findings(state_file: Path, external: set[str]) -> list[str]:
         added = payload.get("refs_added")
         if not isinstance(added, list) or not added:
             findings.append("external step recorded appended without naming the refs it added")
+    return findings
+
+
+
+def _watchlist_state_findings(state_file: Path, watchlist: set[str]) -> list[str]:
+    """`work/watchlist.json`: the ongoing-trials step happened and ended in one of three states.
+
+    Same lesson as `work/external.json` (R78): the step's normal outcome is a silent section, so
+    without a record "never ran" and "ran, nothing to list" are indistinguishable, and the free path
+    is to skip it. The record makes the outcome reviewable.
+    """
+    if not state_file.is_file():
+        return [f"no ongoing-trials record at {state_file} — run trial_watchlist.py (--append with the kept "
+                "rows, --none-found when nothing qualifies, or --not-applicable --reason)"]
+    try:
+        payload = json.loads(state_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return [f"ongoing-trials record at {state_file} is unreadable: {exc}"]
+    if not isinstance(payload, dict):
+        return [f"ongoing-trials record at {state_file} is not an object"]
+    state = str(payload.get("state", "")).strip()
+    findings: list[str] = []
+    if state not in WATCHLIST_STATES:
+        findings.append(f"ongoing-trials state {state!r} is not one of {', '.join(WATCHLIST_STATES)}")
+        return findings
+    rows = payload.get("trials")
+    row_count = len(rows) if isinstance(rows, list) else 0
+    if state == "not_applicable":
+        if len(str(payload.get("reason", "")).strip()) < 8:
+            findings.append("ongoing-trials step marked not_applicable without a reason — say why the lookup "
+                            "does not apply here")
+        if watchlist:
+            findings.append(f"ongoing-trials step marked not_applicable yet the inventory holds "
+                            f"{len(watchlist)} origin=watchlist entr(ies)")
+    elif state == "none_alignable":
+        if watchlist:
+            findings.append(f"ongoing-trials step recorded none_alignable yet {len(watchlist)} "
+                            "origin=watchlist entr(ies) are in the inventory")
+    else:  # listed
+        if not watchlist:
+            findings.append("ongoing-trials step recorded listed but the inventory holds no origin=watchlist "
+                            "entry")
+        added = payload.get("refs_added")
+        if not isinstance(added, list) or not added:
+            findings.append("ongoing-trials step recorded listed without naming the refs it added")
+        elif set(added) != watchlist:
+            findings.append(f"ongoing-trials record names {sorted(added)} but the inventory holds "
+                            f"{sorted(watchlist)} as origin=watchlist")
+        if row_count > WATCHLIST_LIMIT:
+            findings.append(f"{row_count} ongoing trial(s) recorded, over the budget of {WATCHLIST_LIMIT}")
+    return findings
+
+
+def _watchlist_section_findings(report: str, watchlist: set[str]) -> list[str]:
+    """The ongoing-same-class block: registry facts only, one place, never evidence."""
+    findings: list[str] = []
+    lines = report.splitlines()
+    label = WATCHLIST_TITLES[0]
+    titles = [index for index, line in enumerate(lines) if any(line.startswith(p) for p in WATCHLIST_TITLES)]
+    cited = watchlist & set(MARKER_RE.findall(report))
+    if len(titles) > 1:
+        findings.append(f"`{label}` appears {len(titles)} times — one block only")
+    if cited and not titles:
+        findings.append(f"ongoing-trial marker cited but the `{label}（尚未读出）` section is missing")
+    if titles and not cited:
+        findings.append(f"`{label}` section present but no origin=watchlist marker is used — drop the section "
+                        "or name the trial it lists")
+    if watchlist and not cited:
+        findings.append(f"{len(watchlist)} ongoing trial(s) were appended to the inventory "
+                        f"({', '.join(sorted(watchlist)[:3])}) but none is cited — cite it in the section, "
+                        "or do not append it")
+    start = titles[0] if titles else None
+    if start is not None:
+        end = len(lines)
+        for index in range(start + 1, len(lines)):
+            if lines[index].startswith("## "):
+                end = index
+                break
+        block = lines[start + 1:end]
+        if not any(line.strip() in WATCHLIST_DISCLAIMERS for line in block):
+            findings.append(f"`{label}` must open with the fixed line `{WATCHLIST_DISCLAIMERS[0]}` "
+                            "(or its English counterpart — no paraphrase)")
+        named = [mark for mark in MARKER_RE.findall("\n".join(block)) if mark in watchlist]
+        if len(set(named)) > WATCHLIST_LIMIT:
+            findings.append(f"{len(set(named))} trials listed in one block exceeds the budget of "
+                            f"{WATCHLIST_LIMIT}")
+        for line in block:
+            hit = WATCHLIST_FORECAST_RE.search(line)
+            if hit:
+                findings.append(f"ongoing-trials section predicts an outcome ({hit.group()!r}) — this section "
+                                "records registration facts, it never forecasts a readout")
+        appendix = next((index for index, line in enumerate(lines) if line.startswith(APPENDIX_TITLE)), None)
+        if appendix is not None and start > appendix:
+            findings.append(f"`{label}` sits inside or after the appendix — it belongs in the body, before the "
+                            "closing interpretation")
+        conclusion = next((index for index, line in enumerate(lines)
+                           if index > start and re.match(r"#{2,3}\s*(?:[一二三四五六七八九十]+、)?\s*"
+                                                        r"(?:结论|综合解读|总体解读|Conclusion)", line)), None)
+        if conclusion is None:
+            findings.append(f"`{label}` has no closing interpretation section after it — keep the block before "
+                            "the report's final interpretation")
+    for index, line in enumerate(lines):
+        for mark in MARKER_RE.findall(line):
+            if mark not in watchlist:
+                continue
+            if line.lstrip().startswith("|") and (start is None or index < start):
+                findings.append(f"ongoing-trial marker {{{{{mark}}}}} on a table line ({index + 1}) outside its "
+                                "own section — a still-running trial never enters a comparison table")
+            elif start is None or index < start:
+                findings.append(f"ongoing-trial marker {{{{{mark}}}}} before the `{label}` section ({index + 1})")
     return findings
 
 
@@ -433,6 +564,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="ref inventory; its origin:external entries define the bounded external-reference set")
     parser.add_argument("--external-state", type=Path,
                         help="record of the external step's outcome (default: <refs dir>/external.json)")
+    parser.add_argument("--watchlist-state", type=Path,
+                        help="record of the ongoing-trials step's outcome (default: <refs dir>/watchlist.json)")
     parser.add_argument("--chart-skill", type=Path, default=Path(f"/workspace/skills/{CHART_SKILL_NAME}"),
                         help="deployed chart skill; its config.js is the envelope authority when present")
     parser.add_argument("--vis-prefix", default="/workspace/visualizations/",
@@ -579,6 +712,27 @@ def main(argv: list[str] | None = None) -> int:
         cited_external = external & set(MARKER_RE.findall(report))
         checks.append(("external references",
                        f"{len(cited_external)}/{len(external)} origin=external entr(ies) cited, placement checked"))
+
+    # ---- ongoing same-class trials (never evidence) ----------------------------------
+    watchlist = _watchlist_keys(args.refs)
+    wl_state = getattr(args, "watchlist_state", None) or (args.refs.parent / "watchlist.json")
+    if watchlist is None:
+        warnings.append(f"ongoing-trials placement not checked: no readable ref inventory at {args.refs}")
+    else:
+        findings.extend(_watchlist_state_findings(wl_state, watchlist))
+        if wl_state.is_file():
+            try:
+                wl_payload = json.loads(wl_state.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                wl_payload = {}
+            rows = wl_payload.get("trials")
+            checks.append(("ongoing trials",
+                           f"state={wl_payload.get('state')} listed={len(rows) if isinstance(rows, list) else 0} "
+                           f"added={len(wl_payload.get('refs_added') or [])}"))
+        findings.extend(_watchlist_section_findings(report, watchlist))
+        cited_wl = watchlist & set(MARKER_RE.findall(report))
+        checks.append(("ongoing trials section",
+                       f"{len(cited_wl)}/{len(watchlist)} origin=watchlist entr(ies) cited, placement checked"))
 
     # ---- chart products --------------------------------------------------------------
     charts: dict[str, dict] = {}

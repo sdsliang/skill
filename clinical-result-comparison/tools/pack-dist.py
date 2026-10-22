@@ -36,11 +36,11 @@ import zipfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "skill", "multi-clinical-result-comparison")
-VERSION = "v0.20"
+VERSION = "v0.21"
 OUT = os.path.join(REPO, "dist", f"multi-clinical-result-comparison-{VERSION}.zip")
 PREFIX = "multi-clinical-result-comparison/"
 STAMP = (2026, 9, 10, 0, 0, 0)
-EXPECTED = 30
+EXPECTED = 32
 COMPRESS_LEVEL = 6
 
 

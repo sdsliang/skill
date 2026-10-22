@@ -122,6 +122,42 @@ versus 7.1 months (6.3–8.6) in the pembrolizumab plus chemotherapy group (HR 0
 
 `work/sources/ref_1.txt` 是 `render-facts.py` 验证 `quote` 的来源文件，不是你读数字的入口。
 
+## 1b. `trial_watchlist.py` — the ongoing same-class trials (never evidence)
+
+```
+python3 scripts/trial_watchlist.py --phase "Phase III" --exclude-nct NCT05611671 --append
+python3 scripts/trial_watchlist.py --none-found
+python3 scripts/trial_watchlist.py --not-applicable --reason "<clause>"
+```
+
+Turns one `pharmcube-query-clinical-trial-with-params-v2` pull into the bounded
+`## 在研同类试验（尚未读出）` block (`references/ongoing-trials.md`). Everything mechanical is here
+because the payload is hostile to naive counting: one registration came back as **630 rows**
+(drugs × endpoints × registries × timelines), so a row count is never a trial count.
+
+* `--result PATH` — the raw `tool_results/<run>/pharmcube-query-clinical-trial-with-params-v2/call_*.jsonl` pull;
+  omitted, the newest one under `--tool-results` is used.
+* Deduplicates to one row per trial and applies **locally** the filters the tool cannot apply
+  server-side: `trial_has_result` (booleans are rejected by the schema and `"是"`/`"否"` return
+  nothing), `trial_therapy_line` (`一线` returns nothing), and `drug_is_primary` (unusable, so the
+  primary drug is preferred when the flag is present, otherwise every returned drug is kept).
+  `--phase` (repeatable) and `--status` filtering is local too.
+* The citable link is the registry URL picked by fixed precedence
+  (`US-ClinicalTrial → EU-EUCT → CN-CDE → JP-JRCT → IN-CTRI`). `nct_ids` also mixes in development
+  aliases (`TOPAZ-UC`, `J6E-MC-KWAN`); an alias is never used as a registry id or a link, and a
+  trial whose registry URL is missing is refused rather than cited.
+* Epoch-millisecond dates render in **Beijing** time (a UTC rendering dates every Chinese
+  registration one day early).
+* `--append` appends the kept trials to `work/refs.json` as `origin: watchlist` after the existing
+  refs (no renumbering; `esid` is `trial:<trial_id>`), writes `work/sources/ref_<n>.txt`, and caps
+  the total at 5 rows (`--limit`). `--exclude-nct a,b` drops trials already in the selected set.
+* `--none-found` / `--not-applicable --reason` write `work/watchlist.json` without touching refs.
+  That record is **mandatory**: `check_report.py` fails a deliverable with no record, with a
+  `listed` state that names refs the inventory does not hold, or with a `not_applicable` that has
+  no reason. Nothing qualifying + no flag = exit 3, never silence.
+* Exit `0` selected/recorded · `3` nothing qualified, or nothing citable, while `--append` was
+  asked (the inventory is left untouched) · `2` usage/IO.
+
 ## 2. `build_ledger.py` — validate the fact ledger
 
 ```

@@ -176,6 +176,11 @@ Rules:
   (「因此不能把该结果单独归因于靶点」), but that sentence carries no external **numbers**;
 - the section reports the reference, not the search: no call counts, tool names, timeouts or coverage claims.
 
+**Next block, different job.** A *still-running* trial has nothing to align, so it never belongs here — it goes
+into the separate `## 在研同类试验（尚未读出）` block that follows this one (`references/ongoing-trials.md`).
+The two steps share the "always leave a record" rule and nothing else: different tool, different state file
+(`work/watchlist.json`), different gate.
+
 ## Failure forms
 
 | Situation | What the report says |
