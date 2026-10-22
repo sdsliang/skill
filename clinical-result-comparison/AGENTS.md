@@ -1,6 +1,6 @@
 # AGENTS.md — 常驻 program.md（autoresearch 循环）
 
-## R76 进行中（2026-10-22，**受控外部参照通道**；已本地落地，未发布未真跑）
+## R76 完成（2026-10-22，**受控外部参照通道**；新版本发布 + 4 次真跑全绿）
 
 **单变量 / 用户原话**：*「让它能有限客观拓展，不能只看我给的 ID」* → 在所选记录之外引入**有界、客观**的对照证据。
 定性：**同一个工具的第二种查询模式**（`pharmcube-query-clinical-result-with-params` 换过滤参数），
@@ -35,8 +35,22 @@ check-report **31 → 40** / build-ledger 9 / tell-scan 10 = **255**（含 numer
 `mutations.py` `GATE: PASS`（a 44/44 + b 12/12）；`verify-run-chain` `GATE: PASS`（5 可比）；
 `pack-dist --check` **IDENTICAL**（30 entries / **198,285 B** / `deb14d55797c`，`v0.17.zip`）。
 
-**待办**：① 发布授权（in-place，prompt v1.8→v1.9 / skill v1.0.9）；② **R76 三组真跑**，其中一组刻意给
-「C1 类内对照可用」的输入，验证它会拓展且不越界（越界标记必须被 `check_report.py` 拦下）。
+**发布（`--new-version`，用户「新版本吧」授权）**：prompt **v1.9** 85,396 B `c35280ed43a5`
+（`ceacf4212b5d4ef3984e6e0e3eb7f7cd`）；skill **v1.0.10** 新 `skill_id` `9b1213e07d794e73a8e81c71845c7b15`
+（family 不变、30/30 identical、`status` **in sync**）；dist `v0.17.zip` 198,285 B `deb14d55797c`。
+
+**真跑（4 次，全 `succeeded`）**：`r76-fixed-{1,2,3}` = 4/18/14 同题基线，317.9/376.2/323.7 s（server）、
+40/44/35 次调用、**23 PASS / 0 FAIL ×3**，三跑都**没有**触发外部通道（输入无类内对照需求）；
+`r76-ext-probe` = 同组 4 esid + 显式要「同靶点同适应症同线别的其他分子」参照，304.4 s、41 次调用
+（MCP **5** = 1 选择 + 4 外部）、**23 PASS / 0 FAIL**：`ref_1…ref_4` 与基线跑**逐字节相同**，追加
+`ref_5`/`ref_6`（`origin=external`）；报告唯一 `## 外部参照（非所选记录）` 落在域表后、结论前（不在附录），
+首句固定免责，两条各带 `与本组的差异：`/`用途：C1类内基线`；部署态 `check_report.py` 自报
+`ok: external references — 2 origin=external entry(ies), placement checked`；外部数值在表格/图表/附录/账本中**零出现**。
+**负向对照（离线，用真实产物）**：把 `{{ref_5}}` 注入研究设计表行 → `EXIT=3`、
+`external marker {{ref_5}} on a table line (18)` ⇒ 越界会被拦有真产物证据。
+
+**待观察（不改）**：探针的 `ref_6` 是 `Corporate Presentation`（SSGJ-707 ORR 81.3%）——结构化通道没有
+「来源类别下限」，公司路演材料与会议摘要并列被引；是否给 C1 加来源类别下限，先攒样本再定。
 
 ## R74/R75 完成（2026-10-22，**换图表协议 + 三组真跑**；R74 暴露两处缺陷、R75 全绿）
 

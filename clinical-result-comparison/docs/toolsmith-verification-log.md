@@ -3238,3 +3238,54 @@ build-ledger 9 / render-facts 32 / pack-dist 5 / replay 14 / node 16 / mutations
 
 **边界**：协议只在中/英文本地单测 + demo 覆盖，真跑三组全为 zh；场景 A/B 未重跑（44/12 事实分沿用 R72）；
 `evidence-timeline` 的 label 长度 WARN 阈值（18/16 字）尚未在真跑中触发，留观察。
+
+## R76 — 受控外部参照通道：三组基线 + 一组探针（2026-10-22 新版本发布 / 真跑 4 次全绿）
+
+**单变量**：只开一条**有界外部参照**通道（C1–C4 闭集 + ≤3/组 ≤6/交付 ≤6 调用 + 单一工具窄过滤 +
+固定隔离区块）。所选记录的口径、图表协议、账本、评分器全部不动（`ref_1…ref_k` 逐字节不变已核）。
+
+**发布（`--new-version`，用户「新版本吧」授权）**：prompt **v1.9** 85,396 B sha `c35280ed43a5`
+（version id `ceacf4212b5d4ef3984e6e0e3eb7f7cd`）；skill **v1.0.10** 新 `skill_id`
+`9b1213e07d794e73a8e81c71845c7b15`（`family_id` 不变），30/30 identical、`status` **in sync**；
+dist `v0.17.zip` 198,285 B sha `deb14d55797c`（`pack-dist --check` IDENTICAL）。
+
+| 组 | esid | wall（server / polled） | tool-* 调用 | MCP | 外部参照 | 断言 |
+|---|---|---|---|---|---|---|
+| `r76-fixed-1` | 4 | 317.9 / 327.0 s | 40 | 2 | 无 | **23 PASS / 0 FAIL** |
+| `r76-fixed-2` | 18 | 376.2 / 383.6 s | 44 | 1 | 无 | **23 PASS / 0 FAIL** |
+| `r76-fixed-3` | 14 | 323.7 / 326.2 s | 35 | 1 | 无 | **23 PASS / 0 FAIL** |
+| `r76-ext-probe` | 4 + 显式要类内基线 | 304.4 / 305.5 s | 41 | **5**（1 次选择拉取 + 4 次外部） | **2 条** | **23 PASS / 0 FAIL** |
+
+三组基线并行（批次墙钟 ≈ 6.4 min），探针单独跑。R75 同题：267.6/425.6/357.4 s —— 本轮 317.9/376.2/323.7 s，
+n=3、同一 DeepSeek Flash，**按纪律不称提速/不称退化**（组 1/3 变慢、组 2 变快）。
+
+**探针（这是本轮唯一能证明通道真的通的证据）**：prompt = 同一组 4 个 esid +「给出同一靶点、同一适应症、
+同一线别的其他分子已披露的对照读数作背景参照，只作背景校准，不要并入对比表，也不要排名」。
+
+- `work/refs.json` 键序 `ref_1…ref_4`（`origin=selected`，与 `r76-fixed-1` **逐字节相同**）+ `ref_5`/`ref_6`
+  （`origin=external`）⇒ 追加不重编号；
+- 报告只有一个 `## 外部参照（非所选记录）`，位置在 `## 六、证据成熟度…` 之后、`## 七、整个试验的综合解读`
+  之前（**不在附录内**），首句为固定免责句，两条各含 `与本组的差异：` 与 `用途：C1类内基线`；
+- 部署态技能包内 `check_report.py` **自己跑出** `ok: external references — 2 origin=external entry(ies),
+  placement checked` / `PASS: 5 check group(s) green` ⇒ 门禁在真实产物上是绿的，不是本地单测的推断；
+- 外部数值（RC148 鳞癌 ORR 90% / mPFS 10.8 mo；SSGJ-707 鳞癌 ORR 81.3%）**没有**出现在任何对齐表、
+  图表 JSON、附录或账本里（`ref_5`/`ref_6` 在 `ledger.json` 中零出现，已核）。
+
+**负向对照（离线，用真实产物）**：把 `{{ref_5}}` 注入 `r76-ext-probe` 报告的研究设计表行 →
+`check_report.py` 返 **EXIT=3**，报 `external marker {{ref_5}} on a table line (18) — external values stay
+out of the comparison tables and the appendix`。即「越界会被拦」在真实报告上有证据，不只是单测 fixture。
+
+**闸门**：skill-scripts **75** / check-report **40** / runner 49 / scorer 37 / tell-scan 10 / build-ledger 9 /
+render-facts 32 / pack-dist 5 / replay 14 / node 16 / mutations a 44/44 + b 12/12 /
+`verify-run-chain GATE: PASS` ⇒ 合计 **255**（含 numeric-integrity **287**）。
+
+**两栏记账**：
+
+- **我方能改的（待样本，未改）**：探针的 `ref_6` 来源是 `Corporate Presentation`（SSGJ-707 的 ORR 81.3%）。
+  结构化通道当前没有「来源类别下限」，公司路演材料与会议摘要被并列引用。是否给 C1 加一条
+  「来源类别需为期刊页/注册记录/会议摘要/赞助方正式公告，路演材料仅可作 C2 补充」——先攒样本再定，不凭一次改规则。
+- **平台侧**：本轮 **0 条新增**（O52/O53 结案后无回归）。
+
+**边界**：三组基线**没有**触发外部通道（输入里没有类内对照需求，模型按预期不拓展）——所以「不越界」的正面证据
+来自探针 + 负向对照，不是三组基线；英文形态只有本地单测（`## External reference (non-selected sources)` 一组），
+未做英文真跑；`--external` 的预算/幂等/缺参路径为本地测试，真跑里未触发（探针 4 次 < 6 上限）。
