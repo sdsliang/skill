@@ -176,3 +176,16 @@ Charts are descriptive evidence views, not head-to-head proof, rankings, or pool
 - source rhetoric versus supported conclusion;
 - dimension-specific leader, if any;
 - per-cluster overall who-is-better judgment and its boundary.
+
+## External reference block (bounded)
+
+When a cluster's conclusion needs an anchor the selected records cannot supply, add **one** section
+`## 外部参照（非所选记录）` after the domain tables and **before the final conclusion section** (the conclusion
+may then cite it) — one line per source, the fixed opening sentence
+`外部参照仅用于背景校准，不构成头对头比较。`, and the `｜与本组的差异：…｜用途：…` shape. The closed question set
+(C1–C4), the tool arguments and the hard budget live in `references/external-context.md`; `check_report.py`
+enforces the placement (an external marker must not appear before the section or on any table line).
+
+This block is **not** an extra column of the comparison: it must not add a row to any domain table, must not
+carry a `解读边界` cell, must not appear in a chart, and must not be summarised as a leader. If a cluster has
+no alignable external anchor, write `本组未检索到可对齐的外部参照。` and keep the section free of sources.

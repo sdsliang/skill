@@ -7,7 +7,7 @@ scratch space).
 
 Contract (byte-stable for an unchanged worktree — `toolsmith-publish status` compares the
 deployed zip against this output by member and by bytes):
-  - 29 entries: SKILL.md + references/*.md + templates/*.md + templates/charts/*.json + scripts/*.py
+  - 30 entries: SKILL.md + references/*.md + templates/*.md + templates/charts/*.json + scripts/*.py
     (R48: scripts grew from 1 to 7 and `references/toolbox.md` was added; R57: + `merge_ref_facts.py`;
      R59: + `scripts/tell-scan.py` and `references/prose-style-zh.md`)
   - arcname prefix `multi-clinical-result-comparison/`
@@ -20,7 +20,7 @@ expected within the same Python/zlib implementation; cross-zlib identity is not 
 
 Usage
 -----
-    tools/pack-dist.py                # build dist/multi-clinical-result-comparison-v0.15.zip
+    tools/pack-dist.py                # build dist/multi-clinical-result-comparison-v0.17.zip
     tools/pack-dist.py --check        # rebuild in memory and compare with the dist file (no write)
 """
 
@@ -36,11 +36,11 @@ import zipfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "skill", "multi-clinical-result-comparison")
-VERSION = "v0.16"
+VERSION = "v0.17"
 OUT = os.path.join(REPO, "dist", f"multi-clinical-result-comparison-{VERSION}.zip")
 PREFIX = "multi-clinical-result-comparison/"
 STAMP = (2026, 9, 10, 0, 0, 0)
-EXPECTED = 29
+EXPECTED = 30
 COMPRESS_LEVEL = 6
 
 

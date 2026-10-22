@@ -1,5 +1,43 @@
 # AGENTS.md — 常驻 program.md（autoresearch 循环）
 
+## R76 进行中（2026-10-22，**受控外部参照通道**；已本地落地，未发布未真跑）
+
+**单变量 / 用户原话**：*「让它能有限客观拓展，不能只看我给的 ID」* → 在所选记录之外引入**有界、客观**的对照证据。
+定性：**同一个工具的第二种查询模式**（`pharmcube-query-clinical-result-with-params` 换过滤参数），
+**不接新数据源、不改 `citations.json` 结构、不改评分器**（`deps` 基线只多一行文本引用）。
+
+**为什么必须同时改三处**：`input-contract.md` 的 *Evidence source priority* 是检索权限/预算的**唯一权威**，
+`SKILL.md`（"Do not … introduce unselected studies"）与 `chart-templates.md:39`（「不得扩展检索未选研究」）
+各有一句禁令——只开一处通道，模型会在「拓展」与「禁令」之间反复。
+
+**改了什么**
+- 新 `references/external-context.md`：**C1–C4 闭集**（C1 同类同适应症同线别的另一个分子 / C2 已批准或标准治疗锚点 /
+  C3 同一药物另一剂量·时点·披露 / C4 同一试验另一披露）；**硬预算** ≤3/组、≤6/交付、≤6 次工具调用
+  （web ≤2）；**该工具无分页参数** ⇒ 必须窄过滤（`child_*_included:false`、一次只加一个过滤维度、先 `drug_names`
+  后 `target_names`、最小 `selected_fields`、不拉 `abstract_text`）、超量即记「本组未检索到可对齐的外部参照」
+  **不许放宽重试**；外部记录只经 `prep_sources.py --external` 进 `ref_{k+1}…`，只许出现在唯一的
+  `## 外部参照（非所选记录）` 区块（位于对照章节之后、最终结论之前），固定免责句 +
+  `- <药物/试验>：<值>{{ref_n}}｜与本组的差异：…｜用途：C1…` 行式。
+- `SKILL.md` 路由第 13 条 + 禁令段改写；`input-contract.md` 新增 *External reference channel (bounded)*；
+  `conclusion-language.md` / `cross-trial-comparison.md` / `citation-and-ref.md` / `chart-templates.md` /
+  `toolbox.md` 同步（外部参照不进图表、不做头对头、不替所选记录补空）。
+- `scripts/prep_sources.py`：新增 `--external` / `--max-external`（默认 6）；追加模式**不改写 `ref_1…ref_k`**、
+  已入册 esid 跳过并报 NOTE、超预算或无数新增 **exit 3**、缺 `--result`/缺清单 **exit 2**；每条 refs 记录新增
+  `"origin": "selected"|"external"`。
+- `scripts/check_report.py`：新增 `--refs` 与 `_external_reference_findings()`（6 类 FAIL：标记出现在区块之前 /
+  出现在任何表格行 / 区块缺固定免责句 / 条目缺 `与本组的差异：`或`用途：` / 有条目无标记 / 有标记无小节 /
+  区块超 6 条；清单不可读降级 WARN 不静默）。
+- prompt `system-prompts/…-v0.17.md`（= v0.16 + 该通道硬规则 + 检查表两项）；`pack-dist` `EXPECTED 29 → 30`、
+  `VERSION v0.17`。
+
+**本地闸门（全绿）**：runner 49 / scorer 37 / tools 19 / node 16 / skill-scripts **69 → 75** /
+check-report **31 → 40** / build-ledger 9 / tell-scan 10 = **255**（含 numeric-integrity 32 = **287**）；
+`mutations.py` `GATE: PASS`（a 44/44 + b 12/12）；`verify-run-chain` `GATE: PASS`（5 可比）；
+`pack-dist --check` **IDENTICAL**（30 entries / **198,285 B** / `deb14d55797c`，`v0.17.zip`）。
+
+**待办**：① 发布授权（in-place，prompt v1.8→v1.9 / skill v1.0.9）；② **R76 三组真跑**，其中一组刻意给
+「C1 类内对照可用」的输入，验证它会拓展且不越界（越界标记必须被 `check_report.py` 拦下）。
+
 ## R74/R75 完成（2026-10-22，**换图表协议 + 三组真跑**；R74 暴露两处缺陷、R75 全绿）
 
 **单变量**：图表协议整体从旧 `chart-visualization-json` v1.0.12（`{id, iframe_template, option}`）
@@ -460,13 +498,13 @@ tools/replay-run.py --tsv --score \
 ```bash
 python3 evals/fact-check/check.py --run <run-dir> --scenario a|b [-v]     # 离线判分（exit 0/3/4）
 python3 evals/numeric-integrity/test-render-facts.py                      # 附录渲染/账本门禁回归（文件名含连字符，**不能**用 unittest discover，直接脚本跑）
-python3 evals/scripts/test-skill-scripts.py                              # R48 随包脚本回归（62 项；**不能**用 unittest discover，直接脚本跑；跑的是 subprocess，无 __pycache__ 污染）
+python3 evals/scripts/test-skill-scripts.py                              # 随包脚本回归（75 项；**不能**用 unittest discover，直接脚本跑；跑的是 subprocess，无 __pycache__ 污染）
 python3 evals/scripts/test-tell-scan.py                                  # R59 文体门禁回归（10 项：退出码 0/3/2、强 vs 弱、`--allow`、`--json`、**只读**、与上游 tell-scan.py sha256 一致（缺兄弟目录则 skip）；**不能**用 unittest discover）
 python3 evals/fact-check/mutations.py                                     # 负向对照闸门（64 项变异/合法对照；`MUT_SEED_A=0` 关掉 A-P10 基线种子）
-python3 evals/fact-check/test_regressions.py                              # 门禁回归（35 项，含 A-P10 的 NoRunLogisticsTests 5 项）
-python3 evals/scripts/test-check-report.py                                 # 交付层机械检查回归（25 项，含 R49 附录/图表去重、R50 第四语域与 R51 时间轴退役编码；**不能**用 unittest discover）
+python3 evals/fact-check/test_regressions.py                              # 门禁回归（37 项，含 A-P10 的 NoRunLogisticsTests 5 项）
+python3 evals/scripts/test-check-report.py                                 # 交付层机械检查回归（40 项，含 R49 附录/图表去重、R50 第四语域、R51 时间轴退役编码与 R76 外部参照放置/中英双形态；**不能**用 unittest discover）
 python3 evals/scripts/test-build-ledger-scaffold.py                       # `build_ledger.py --scaffold` 回归（9 项；**不能**用 unittest discover）
-python3 evals/runner-gate/test-runner.py                                   # runner 单测（45 项，含 R48 的 CJK 收据分隔符回归与 R59 的文体门禁 4 例；**不能**用 unittest discover）
+python3 evals/runner-gate/test-runner.py                                   # runner 单测（49 项，含 R48 的 CJK 收据分隔符回归、R59 文体门禁 4 例与 R75 的 B/KB/MB 清单行解析；**不能**用 unittest discover）
 python3 skill/multi-clinical-result-comparison/scripts/tell-scan.py <report.md>   # R59 文体门禁本体（exit 0 干净 / 3 强命中 / 2 用法；`--json` / `--allow` / `--weak`）
 python3 evals/runner-gate/verify-run-chain.py                             # runner 零网络回归
 tools/replay-run.py --tsv --score <run>…                                  # 成本 + 质量一行一 run

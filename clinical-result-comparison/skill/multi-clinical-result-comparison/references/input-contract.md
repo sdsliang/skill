@@ -326,6 +326,16 @@ diverged, no divergence sentence belongs in the body at all (R16, 2026-09-18, re
 `evals/fact-check` guards this twice: `A-P7` (verbatim echo of the spec) and `A-P8` (the same statement
 reworded).
 
+### External reference channel (bounded)
+
+The selected records are the evidence; an external **reference** is not. Exactly one channel is permitted, and it
+is defined in `references/external-context.md`: the C1–C4 closed question set (class baseline / standard-of-care
+anchor / same-drug other dose-or-timepoint / same-trial other disclosure), the narrow-filter argument shapes for
+the same `pharmcube-query-clinical-result-with-params` tool, the ≤3-per-cluster / ≤6-per-deliverable / ≤6-call
+budget, and the fixed `## 外部参照（非所选记录）` placement. This section owns its permissions and budget; no other
+file may widen them. External values never enter the fact ledger, an alignment table, a chart or the appendix,
+and they never support a head-to-head or a class-level verdict.
+
 ## Number rendering: one convention per deliverable
 
 Neither sign is mandated. `−13.9%` (signed) and `降低 13.9%` (unsigned magnitude + direction word)

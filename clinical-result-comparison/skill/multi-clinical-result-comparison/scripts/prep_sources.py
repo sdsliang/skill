@@ -24,8 +24,15 @@ Usage
     python3 /workspace/skills/multi-clinical-result-comparison/scripts/prep_sources.py --result tool_results/<tool>/call_x.jsonl \
         --esids 24_1_36342163 --sources-dir work/sources --refs work/refs.json
 
-Exit codes: 0 every requested esid was found; 3 some requested esids were not in the pull;
-2 usage / input error.
+Bounded external reference (`references/external-context.md`): append the records of an expansion pull AFTER the
+selected refs, leaving `ref_1..ref_k` untouched, marking every appended entry `"origin":"external"`, and
+refusing to renumber, to re-add an esid already present, or to exceed the budget:
+
+    python3 /workspace/skills/multi-clinical-result-comparison/scripts/prep_sources.py --external \
+        --result tool_results/<tool>/call_y.jsonl --max-external 6
+
+Exit codes: 0 every requested esid was found; 3 some requested esids were not in the pull (with `--external`:
+nothing new to append, or the budget would be exceeded); 2 usage / input error.
 """
 
 from __future__ import annotations
@@ -69,6 +76,7 @@ FIELD_KEYS = {
 }
 BODY_LIMIT = 4000          # characters of abstract/summary printed in the digest by default
 EVIDENCE_LIMIT = 12        # rows of arms/study_results summarised in the digest by default
+EXTERNAL_LIMIT = 6         # hard cap on origin=external entries (references/external-context.md budget)
 
 
 def _atomic_write(path: Path, content: str) -> None:
@@ -268,11 +276,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--body-chars", type=int, default=BODY_LIMIT, help="digest body characters per record")
     parser.add_argument("--full", action="store_true", help="print whole bodies and every arm/result row")
     parser.add_argument("--quiet", action="store_true", help="write files only, print one summary line")
+    parser.add_argument("--external", action="store_true",
+                        help="append the pull's new records after the existing refs as origin=external")
+    parser.add_argument("--max-external", type=int, default=EXTERNAL_LIMIT,
+                        help=f"hard cap on origin=external entries in the inventory (default {EXTERNAL_LIMIT})")
     args = parser.parse_args(argv)
 
-    esids = _esids_from_args(args)
-    if not esids:
+    esids = [] if args.external else _esids_from_args(args)
+    if not esids and not args.external:
         parser.error("give --esids or --esids-file")
+    if args.external and args.result is None:
+        parser.error("--external requires --result (name the expansion pull; never guess the newest payload)")
 
     result_file = args.result
     if result_file is None:
@@ -308,18 +322,63 @@ def main(argv: list[str] | None = None) -> int:
             continue
         by_esid[esid] = record
 
-    found: list[tuple[str, str, dict]] = []
-    missing: list[str] = []
-    for esid in esids:
-        record = by_esid.get(esid)
-        if record is None:
-            missing.append(esid)
-            continue
-        found.append((f"ref_{len(found) + 1}", esid, record))
-
+    origin = "external" if args.external else "selected"
     refs: dict[str, dict] = {}
-    digest: list[str] = [f"# 记录清单（{len(found)} 条；来自 {result_file}）", ""]
-    for ref, esid, record in found:
+    start_index = 1
+    found: list[tuple[str, dict]] = []
+    missing: list[str] = []
+    skipped: list[str] = []
+
+    if args.external:
+        if not args.refs.is_file():
+            print(f"ERROR: --external appends to an existing inventory, but {args.refs} does not exist "
+                  "(run the selection pull through prep_sources.py first)", file=sys.stderr)
+            return 2
+        try:
+            existing = json.loads(args.refs.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            print(f"ERROR: cannot read {args.refs}: {exc}", file=sys.stderr)
+            return 2
+        if not isinstance(existing, dict) or not existing:
+            print(f"ERROR: {args.refs} is not a ref inventory object", file=sys.stderr)
+            return 2
+        refs = existing
+        indices = [int(key.split("_", 1)[1]) for key in refs if re.fullmatch(r"ref_[1-9]\d*", str(key))]
+        start_index = (max(indices) + 1) if indices else 1
+        already = {str(entry.get("esid", "")).strip() for entry in refs.values() if isinstance(entry, dict)}
+        external_used = sum(1 for entry in refs.values()
+                            if isinstance(entry, dict) and str(entry.get("origin", "")).strip() == "external")
+        seen: set[str] = set()
+        for record in records:
+            esid = _esid(record)
+            if not esid:
+                skipped.append("(no esid)")
+                continue
+            if esid in already or esid in seen:
+                skipped.append(esid)
+                continue
+            seen.add(esid)
+            found.append((esid, record))
+        if not found:
+            print(f"ERROR: the expansion pull carries no record absent from {args.refs}; nothing to append",
+                  file=sys.stderr)
+            return 3
+        remaining = args.max_external - external_used
+        if len(found) > remaining:
+            print(f"ERROR: external-reference budget exceeded: {external_used} already recorded, this pull adds "
+                  f"{len(found)}, cap is {args.max_external} (keep at most {max(remaining, 0)})", file=sys.stderr)
+            return 3
+    else:
+        for esid in esids:
+            record = by_esid.get(esid)
+            if record is None:
+                missing.append(esid)
+                continue
+            found.append((esid, record))
+
+    digest: list[str] = [f"# 记录清单（{len(found)} 条；来自 {result_file}；origin={origin}）", ""]
+    for offset, (esid, record) in enumerate(found):
+        ref = f"ref_{start_index + offset}"
         path = args.sources_dir / f"{ref}.txt"
         try:
             _atomic_write(path, _source_body(record, ref, esid))
@@ -328,6 +387,7 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         entry = {
             "esid": esid,
+            "origin": origin,
             "title": _field(record, "title"),
             "link": _field(record, "link"),
             "paper_release_time": _field(record, "release"),
@@ -367,8 +427,11 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print("\n".join(digest).rstrip())
         print("")
-        print(f"WROTE {len(found)} record(s) to {args.sources_dir}")
+        print(f"WROTE {len(found)} record(s) ({origin}) to {args.sources_dir}")
         print(f"WROTE ref inventory to {args.refs} (keys: {', '.join(refs) or 'none'})")
+    if skipped:
+        print(f"NOTE: {len(skipped)} record(s) in the expansion pull were already in the inventory "
+              f"(not re-added): {', '.join(skipped[:5])}", file=sys.stderr)
     if duplicates:
         print(f"NOTE: the pull repeated {len(duplicates)} record row(s) (deduplicated): "
               f"{', '.join(sorted(set(duplicates))[:5])}", file=sys.stderr)

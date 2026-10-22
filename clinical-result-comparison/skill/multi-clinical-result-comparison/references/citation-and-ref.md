@@ -85,6 +85,16 @@ The Markdown report contains inline markers only. The citation metadata is emitt
 
 The code fence is documentation only. The delivered citation file must be raw, unfenced strict JSON. Every marker used in the report has exactly one matching key, no unused key is present, and keys are contiguous from `ref_1` in selection order over the records that returned. Links follow the input contract's byte-for-byte rule with its sole C1/C2 exception; empty links remain empty when no permitted full-text substitution applies.
 
+## External references in the same artifact
+
+A bounded external reference (`references/external-context.md`) is numbered **after** the selected records —
+`ref_1…ref_k` stay the user's selection in selection order, the external ones continue `ref_{k+1}…` — and uses
+**the same three-field schema**, so the delivered JSON keeps one shape and the front-end marker keeps working.
+`scripts/prep_sources.py --external` performs the append and is the only supported way to do it: it writes the
+`work/sources/ref_<n>.txt` body, records `"origin":"external"` in `work/refs.json`, and refuses to renumber,
+to re-add an already-present esid, or to exceed the budget. Never hand-edit the inventory, never restart
+numbering, and never point an external entry at a selected record's file.
+
 ## Verification
 
 Run `python3 /workspace/skills/multi-clinical-result-comparison/scripts/check_report.py -v` first — it does the mechanical part of everything below (both-direction marker/key parity, non-empty citation titles and field shape, chart products, appendix presence, internal leaks) and must exit 0 (warnings do not block) before `present_artifact`. Then, for the parts it cannot judge, scan every clinical numeral and ensure it has a nearby marker. Read the citation file back and parse it. Compare the set of inline marker keys against the JSON keys in both directions. Verify that **every entry has a non-empty `title`** (an empty title means a record that never came back was cited) and that the number of numbered sources equals the number of distinct retrieved esids after fan-out deduplication. Verify every cited source contains the claimed value; every JSON `title` matches the supplied metadata byte-for-byte, every `link` matches it byte-for-byte **or** is the whitelisted full-text URL of a record whose facts rest on that full text (see *link follows the analysis depth* above); and every `paper_release_time_str` is exactly the `YYYY-MM-DD` date part of the supplied `paper_release_time` — no `HH:MM:SS` and no time component, and `""` where the record supplied none. Then call `present_artifact` on the report file as the final tool call (see `references/file-delivery.md`).

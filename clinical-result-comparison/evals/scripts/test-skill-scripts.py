@@ -261,6 +261,66 @@ class Sandbox(unittest.TestCase):
                  self.root / "tool_results/pharmcube-query-clinical-result-with-params/call_1.jsonl",
                  expect=2)
 
+    # -- prep_sources.py --external (bounded external reference) --------------------------
+    def _expansion_pull(self, include_selected: bool = False) -> Path:
+        rows = [_record("9_9_EXTC", "External C", "https://example.test/c", "2024-02-02 00:00:00",
+                        abstract="External C body"),
+                _record("9_9_EXTD", "External D", "https://example.test/d", "2024-03-03 00:00:00",
+                        abstract="External D body")]
+        if include_selected:
+            rows.insert(0, RECORDS[0])
+        path = self.root / "tool_results" / "pharmcube-query-clinical-result-with-params" / "call_ext.jsonl"
+        path.write_text("\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + "\n", encoding="utf-8")
+        return path
+
+    def external(self, *extra, include_selected: bool = False, expect: int | None = 0):
+        return self.sh("prep_sources.py", "--external", "--result", self._expansion_pull(include_selected),
+                       "--sources-dir", self.sources, "--refs", self.refs, *extra, expect=expect)
+
+    def test_external_appends_after_the_selected_refs_without_renumbering(self):
+        self.prep()
+        before = json.loads(self.refs.read_text(encoding="utf-8"))
+        self.external()
+        refs = json.loads(self.refs.read_text(encoding="utf-8"))
+        self.assertEqual(list(refs), ["ref_1", "ref_2", "ref_3", "ref_4"])
+        self.assertEqual(refs["ref_1"], before["ref_1"])          # selected entries never change
+        self.assertEqual(refs["ref_2"], before["ref_2"])
+        self.assertEqual([refs[key]["origin"] for key in refs],
+                         ["selected", "selected", "external", "external"])
+        self.assertEqual(refs["ref_3"]["esid"], "9_9_EXTC")
+        self.assertTrue((self.sources / "ref_3.txt").is_file())
+        self.assertIn("External C body", (self.sources / "ref_3.txt").read_text(encoding="utf-8"))
+
+    def test_external_never_readds_an_esid_already_in_the_inventory(self):
+        self.prep()
+        proc = self.external(include_selected=True)
+        refs = json.loads(self.refs.read_text(encoding="utf-8"))
+        self.assertEqual([item["esid"] for item in refs.values()],
+                         [ESID_A, ESID_B, "9_9_EXTC", "9_9_EXTD"])
+        self.assertIn("already in the inventory", proc.stderr)
+
+    def test_external_requires_an_existing_inventory(self):
+        proc = self.sh("prep_sources.py", "--external", "--result", self._expansion_pull(),
+                       "--sources-dir", self.sources, "--refs", self.refs, expect=2)
+        self.assertIn("does not exist", proc.stderr)
+
+    def test_external_requires_an_explicit_result_file(self):
+        self.prep()
+        proc = self.sh("prep_sources.py", "--external", "--refs", self.refs, expect=2)
+        self.assertIn("--result", proc.stderr)
+
+    def test_external_is_not_idempotent_and_exits_3_when_nothing_is_new(self):
+        self.prep()
+        self.external()
+        self.external(expect=3)
+        self.assertEqual(len(json.loads(self.refs.read_text(encoding="utf-8"))), 4)
+
+    def test_external_budget_is_enforced_and_the_inventory_is_untouched(self):
+        self.prep()
+        proc = self.external("--max-external", "1", expect=3)
+        self.assertIn("budget exceeded", proc.stderr)
+        self.assertEqual(list(json.loads(self.refs.read_text(encoding="utf-8"))), ["ref_1", "ref_2"])
+
     # -- build_ledger.py ----------------------------------------------------------------
     def test_ledger_shape_is_exactly_what_the_render_gate_accepts(self):
         self.prep()

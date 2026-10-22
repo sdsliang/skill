@@ -53,3 +53,17 @@ Prefer a matrix of dimension-specific conclusions. Use “directionally favored�
 Never compare “how positive” results sound across different clinical questions. A positive body-composition endpoint, a negative symptom endpoint, and a long-term safety analysis do not form one efficacy ranking.
 
 对于同一试验的多份来源，不评价哪一份披露胜出。应说明整个试验的证据链是加强、基本不变、受到限定、削弱还是仍无法判断，并指出造成变化的具体分析状态。
+
+## External reference (non-selected sources)
+
+An external reference calibrates; it never competes. Permitted observations:
+
+- “类内另一个同靶点分子在同一适应症报告了更大的应答率（见外部参照），因此本结果不能单独归因于靶点。”
+- “外部参照的时点/人群与本组不一致，仅作背景校准。”
+- “本组未检索到可对齐的外部参照。”
+
+Forbidden: any wording that ranks, wins or loses against an external source（“优于/不如 GEMINI 1”）, any
+sentence placing an external number beside a selected number in the same comparison, and any upgrade from
+“this molecule under these conditions showed the smallest effect” to “this target or modality is worse”.
+A class- or target-level verdict requires randomised within-trial evidence, not a row of external references —
+the external block exists to *prevent* that inference, not to support it.

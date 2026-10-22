@@ -50,6 +50,7 @@ python3 -B /workspace/skills/multi-clinical-result-comparison/scripts/<name>.py 
 | Step | Script | Writes |
 | --- | --- | --- |
 | Pull → readable sources + ref inventory | `scripts/prep_sources.py` | `work/sources/ref_<n>.txt`, `work/refs.json` |
+| Expansion pull → external refs appended after the selected ones | `scripts/prep_sources.py --external` | same two paths (`origin=external`) |
 | Per-ref shard files → one facts file (**only** if you split the rows) | `scripts/merge_ref_facts.py` | `work/facts.json` |
 | Facts → strict ledger (+ the only validation) | `scripts/build_ledger.py` | `work/ledger.json` |
 | Body + appendix + `{{ref_n}}` | `scripts/render-facts.py` | `/workspace/output/report.md` (in place) |
@@ -76,6 +77,12 @@ python3 scripts/prep_sources.py --esids … --full --quiet
 * `--sources-dir` (default `work/sources`), `--refs` (default `work/refs.json`),
   `--body-chars` (digest body cap, default 4000), `--full` (whole bodies in the digest),
   `--quiet` (files only).
+* `--external --result <expansion pull>` — appends the bounded external references
+  (`references/external-context.md`) **after** the selected refs: `ref_1…ref_k` are never
+  renumbered or rewritten, every appended entry carries `"origin":"external"`, an esid already in
+  the inventory is skipped with a `NOTE`, the `--max-external` cap (default 6) is enforced, and it
+  exits **3** when the pull holds nothing new or the cap would be exceeded (exit 2 without
+  `--result` or an existing inventory). It never guesses the newest pull: name the file.
 * refs are numbered in **selection order**, only over esids that came back; a missing esid is
   reported and consumes **no** number (it is not a row in the report, not a marker, not a
   citation entry). A duplicate esid keeps its first ref and is reported on stderr.
@@ -330,13 +337,17 @@ markers, `entity:` syntax, the appendix title **and** that it has data rows, tha
 starts with the renderer's one-line legend rather than a hand-written specification paragraph, and
 that the title appears exactly once so a hand-written appendix can never stand beside the rendered
 one), marker ⇄ citation parity in both directions, citation entry shape (empty title, extra fields,
-a fenced code block),
+a fenced code block), the bounded external-reference block (a `origin:external` marker must not
+appear before `## 外部参照（非所选记录）` or on any table line, that section opens with its fixed
+caveat, every entry line names its `与本组的差异：` and `用途：`, the block holds at most six sources,
+and a cited external always has the section while a present section always cites one),
 chart products (envelope keys exactly `{id, version, iframe_template, config}` with `config.kind == "chart"`,
 version/template equal to the deployed `config.js`, non-empty data, no retired `describe`/`dataSource` in `config`, type vs
 file name, and that every `::visualization` target exists under the fixed prefix), plus internal
 leaks in the delivered text (`source_file`, `tool_results`, `esid`, `/workspace/work/`, a
 `ledger|facts.json` path, a Mermaid block). Warnings only: run-logistics wording, a chart product
-never referenced by the report, and a table cell citing the same ref twice.
+never referenced by the report, a table cell citing the same ref twice, and an unreadable
+`work/refs.json` (the external-reference placement then goes unchecked, never silently enforced).
 
 **FAIL** rules that keep one number in one place and the appendix renderer-owned:
 

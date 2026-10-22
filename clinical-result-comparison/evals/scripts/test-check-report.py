@@ -429,5 +429,116 @@ class PackagedTreeVsGateVocabularyTests(unittest.TestCase):
                             if any(label in text for label in TEMPLATE_COLUMN_BAN)))
 
 
+class ExternalReferenceTests(unittest.TestCase):
+    """The bounded external-reference block: one place, fixed caveat, never a table cell."""
+
+    ENTRY = ("- GEMINI 1·vedolizumab：第 6 周临床应答 47.1% vs 安慰剂 25.5%{{ref_2}}"
+             "｜与本组的差异：III 期静脉单抗、终点为第 6 周应答｜用途：C1类内基线")
+    CAVEAT = "外部参照仅用于背景校准，不构成头对头比较。"
+
+    def setUp(self) -> None:
+        self.root = Path(tempfile.mkdtemp(prefix="check-report-ext-"))
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+        self.report = self.root / "report.md"
+        self.citations = self.root / "citations.json"
+        self.refs = self.root / "refs.json"
+        self.charts = self.root / "visualizations"
+        self.charts.mkdir()
+        self.citations.write_text(json.dumps({
+            "ref_1": {"title": "Selected trial", "link": "https://example.test/a",
+                      "paper_release_time_str": "2024-01-02"},
+            "ref_2": {"title": "External trial", "link": "https://example.test/b",
+                      "paper_release_time_str": "2013-08-24"},
+        }), encoding="utf-8")
+        self.refs.write_text(json.dumps({
+            "ref_1": {"esid": "1_1_A", "origin": "selected", "title": "Selected trial"},
+            "ref_2": {"esid": "9_9_B", "origin": "external", "title": "External trial"},
+        }), encoding="utf-8")
+
+    def run_case(self, *, block: str | None = None, body: str = "## 结果\n\n效应量见下例{{ref_1}}。\n",
+                 conclusion: str = "该结果不能单独归因于靶点{{ref_2}}。",
+                 selected_only: bool = False) -> subprocess.CompletedProcess[str]:
+        if selected_only:
+            self.citations.write_text(json.dumps({
+                "ref_1": {"title": "Selected trial", "link": "https://example.test/a",
+                          "paper_release_time_str": "2024-01-02"}}), encoding="utf-8")
+            self.refs.write_text(json.dumps({
+                "ref_1": {"esid": "1_1_A", "origin": "selected", "title": "Selected trial"}}),
+                encoding="utf-8")
+        if block is None:
+            block = f"## 外部参照（非所选记录）\n\n{self.CAVEAT}\n\n{self.ENTRY}\n"
+        self.report.write_text(
+            body + "\n" + block + "\n## 结论\n\n" + conclusion +
+            "\n\n## 附录：证据对齐矩阵\n\n| 事实 | 值 |\n| --- | --- |\n| 样本量 | 280 例{{ref_1}} |\n",
+            encoding="utf-8")
+        return subprocess.run([sys.executable, "-B", str(CHECKER), "--report", str(self.report),
+                               "--citations", str(self.citations), "--charts-dir", str(self.charts),
+                               "--refs", str(self.refs), "--vis-prefix", str(self.charts) + "/"],
+                              capture_output=True, text=True, check=False)
+
+    def test_a_bounded_block_passes_and_the_conclusion_may_cite_it(self):
+        proc = self.run_case()
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("PASS: 5 check group(s) green", proc.stdout)
+
+    def test_an_english_deliverable_uses_the_english_block_shape(self):
+        entry = ("- GEMINI 1 (vedolizumab): week-6 response 47.1% vs 25.5% placebo{{ref_2}} — "
+                 "Difference from this set: phase 3 IV antibody, week-6 response endpoint — "
+                 "Use: C1 class baseline")
+        proc = self.run_case(block=("## External reference (non-selected sources)\n\n"
+                                    "External references are for background calibration only; they do not "
+                                    "constitute a head-to-head comparison.\n\n" + entry + "\n"))
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+    def test_external_marker_in_a_comparison_table_fails(self):
+        proc = self.run_case(body="## 结果\n\n效应量见下例{{ref_1}}。\n\n| 指标 | 值 |\n| --- | --- |\n"
+                                  "| 类内应答率 | 47.1%{{ref_2}} |\n", conclusion="对比见上。")
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("on a table line", proc.stdout)
+
+    def test_external_marker_before_the_block_fails(self):
+        proc = self.run_case(body="## 结果\n\n效应量见下例{{ref_1}}，且低于类内 47.1%{{ref_2}}。\n",
+                             conclusion="对比见上。")
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("before the `## 外部参照` section", proc.stdout)
+
+    def test_block_without_the_fixed_caveat_fails(self):
+        proc = self.run_case(block=f"## 外部参照（非所选记录）\n\n{self.ENTRY}\n")
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("must open with the fixed line", proc.stdout)
+
+    def test_entry_without_a_difference_or_a_purpose_fails(self):
+        proc = self.run_case(block=f"## 外部参照（非所选记录）\n\n{self.CAVEAT}\n\n{self.ENTRY.split('｜用途')[0]}\n")
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("missing `用途：`", proc.stdout)
+
+    def test_a_block_holding_no_external_marker_fails(self):
+        proc = self.run_case(block=f"## 外部参照（非所选记录）\n\n{self.CAVEAT}\n",
+                             conclusion="没有外部锚点时只能写本组读数{{ref_1}}。", selected_only=True)
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("no origin=external marker is used", proc.stdout)
+
+    def test_a_cited_external_without_the_block_fails(self):
+        proc = self.run_case(block="## 结果（续）\n\n本组读数见上。\n")
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("section is missing", proc.stdout)
+
+    def test_more_than_six_external_sources_fail(self):
+        keys = [f"ref_{index}" for index in range(2, 9)]
+        self.citations.write_text(json.dumps(
+            {key: {"title": f"External {key}", "link": f"https://example.test/{key}",
+                   "paper_release_time_str": "2024-01-02"} for key in ["ref_1"] + keys}), encoding="utf-8")
+        self.refs.write_text(json.dumps(
+            {key: {"esid": f"9_9_{index}", "origin": "external", "title": f"External {key}"}
+             for index, key in enumerate(keys, start=2)} | {"ref_1": {"esid": "1_1_A", "origin": "selected"}}),
+            encoding="utf-8")
+        entries = "\n".join(
+            f"- 外部 {key}：应答 40%{{{{{key}}}}}｜与本组的差异：人群更轻｜用途：C1类内基线" for key in keys)
+        proc = self.run_case(block=f"## 外部参照（非所选记录）\n\n{self.CAVEAT}\n\n{entries}\n",
+                             conclusion="该结果不能单独归因于靶点{{ref_2}}。")
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("exceeds the budget of 6", proc.stdout)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

@@ -46,6 +46,14 @@ ENVELOPE_KEYS = {"id", "version", "iframe_template", "config"}
 # `config.notes` as a node array, never as flat strings.
 RETIRED_CONFIG_FIELDS = ("dataSource", "describe")
 CITATION_FIELDS = ("title", "link", "paper_release_time_str")
+EXTERNAL_TITLES = ("## 外部参照", "## External reference")
+EXTERNAL_DISCLAIMERS = (
+    "外部参照仅用于背景校准，不构成头对头比较。",
+    "External references are for background calibration only; they do not constitute a head-to-head comparison.",
+)
+EXTERNAL_DIFF_KEYS = ("与本组的差异：", "Difference from this set:")
+EXTERNAL_USE_KEYS = ("用途：", "Use:")
+EXTERNAL_LIMIT = 6
 LEAK_PATTERNS = (
     ("source_file", r"source_file"),
     ("tool_results path", r"tool_results"),
@@ -275,6 +283,74 @@ def _table_cells(report: str) -> list[str]:
     return cells
 
 
+def _external_keys(path: Path) -> set[str] | None:
+    """Refs marked `origin:external` in the inventory; None when the inventory is unreadable."""
+    try:
+        data = json.loads(path.read_text(encoding="utf-8", errors="replace"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(data, dict):
+        return None
+    return {str(key) for key, entry in data.items()
+            if isinstance(entry, dict) and str(entry.get("origin", "")).strip() == "external"}
+
+
+def _external_reference_findings(report: str, external: set[str]) -> list[str]:
+    """The bounded external-reference block: one place, fixed wording, never a table cell."""
+    findings: list[str] = []
+    lines = report.splitlines()
+    label = EXTERNAL_TITLES[0]
+    titles = [index for index, line in enumerate(lines) if any(line.startswith(p) for p in EXTERNAL_TITLES)]
+    cited = external & set(MARKER_RE.findall(report))
+    if len(titles) > 1:
+        findings.append(f"`{label}` appears {len(titles)} times — one bounded block only")
+    if cited and not titles:
+        findings.append(f"external reference cited but the `{label}（非所选记录）` section is missing")
+    if titles and not cited:
+        findings.append(f"`{label}` section present but no origin=external marker is used — "
+                        "drop the section or name the reference it holds")
+    start = titles[0] if titles else None
+    if start is not None:
+        end = len(lines)
+        for index in range(start + 1, len(lines)):
+            if lines[index].startswith("## "):
+                end = index
+                break
+        block = lines[start + 1:end]
+        if not any(line.strip() in EXTERNAL_DISCLAIMERS for line in block):
+            findings.append(f"`{label}` must open with the fixed line `{EXTERNAL_DISCLAIMERS[0]}` "
+                            "(or its English counterpart — no paraphrase)")
+        named: set[str] = set()
+        for line in block:
+            if not line.lstrip().startswith("- "):
+                continue
+            marks = [mark for mark in MARKER_RE.findall(line) if mark in external]
+            if len(marks) != 1:
+                findings.append("external entry line must carry exactly one origin=external marker: "
+                                + line.strip()[:60])
+            named.update(marks)
+            if not any(key in line for key in EXTERNAL_DIFF_KEYS):
+                findings.append(f"external entry line is missing `{EXTERNAL_DIFF_KEYS[0]}`: "
+                                + line.strip()[:60])
+            if not any(key in line for key in EXTERNAL_USE_KEYS):
+                findings.append(f"external entry line is missing `{EXTERNAL_USE_KEYS[0]}`: "
+                                + line.strip()[:60])
+        if cited - named:
+            findings.append(f"external marker(s) with no entry line of their own: {sorted(cited - named)}")
+        if len(named) > EXTERNAL_LIMIT:
+            findings.append(f"{len(named)} external source(s) in one block exceeds the budget of {EXTERNAL_LIMIT}")
+    for index, line in enumerate(lines):
+        for mark in MARKER_RE.findall(line):
+            if mark not in external:
+                continue
+            if line.lstrip().startswith("|"):
+                findings.append(f"external marker {{{{{mark}}}}} on a table line ({index + 1}) — external values stay "
+                                "out of the comparison tables and the appendix")
+            elif start is None or index < start:
+                findings.append(f"external marker {{{{{mark}}}}} before the `{label}` section ({index + 1})")
+    return findings
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Mechanical pre-delivery checks for report.md, citations.json and /workspace/visualizations/*.json",
@@ -283,6 +359,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--report", type=Path, default=Path("/workspace/output/report.md"))
     parser.add_argument("--citations", type=Path, default=Path("/workspace/output/citations.json"))
     parser.add_argument("--charts-dir", type=Path, default=Path("/workspace/visualizations"))
+    parser.add_argument("--refs", type=Path, default=Path("/workspace/work/refs.json"),
+                        help="ref inventory; its origin:external entries define the bounded external-reference set")
     parser.add_argument("--chart-skill", type=Path, default=Path(f"/workspace/skills/{CHART_SKILL_NAME}"),
                         help="deployed chart skill; its config.js is the envelope authority when present")
     parser.add_argument("--vis-prefix", default="/workspace/visualizations/",
@@ -398,6 +476,14 @@ def main(argv: list[str] | None = None) -> int:
         if ENTITY_RE.search(json.dumps(citations, ensure_ascii=False)):
             findings.append("`entity:` syntax present in the citation JSON")
         checks.append(("markers vs citations", f"{len(markers)} marker(s) / {len(keys)} key(s)"))
+
+    # ---- bounded external reference ------------------------------------------------
+    external = _external_keys(args.refs)
+    if external is None:
+        warnings.append(f"external-reference placement not checked: no readable ref inventory at {args.refs}")
+    else:
+        findings.extend(_external_reference_findings(report, external))
+        checks.append(("external references", f"{len(external)} origin=external entry(ies), placement checked"))
 
     # ---- chart products --------------------------------------------------------------
     charts: dict[str, dict] = {}
