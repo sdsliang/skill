@@ -3319,3 +3319,60 @@ render-facts 32 / pack-dist 5 / replay 14 / node 16 / mutations a 44/44 + b 12/1
 
 **O54（runner）**：`prose gate` 断言把**每一份**扫描回执都当终判，`SCAN_EXIT=[3, 0]`（首扫只有弱提示、改写后复扫 0、强命中 0）被判 FAIL —— 契约要的是「交付文件干净」，迭代是应该发生的行为。已改 `scan_dirty` 只看**最后一份**回执，并在通过时注明「earlier pass(es) [3] were fixed before delivery」；runner 备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v19.bak`，`test-runner.py` 49→51（新增「迭代后干净 → PASS」「最后一遍仍脏 → FAIL」），`verify-run-chain` 仍 5 comparable PASS。
 
+## R78 — 原地发布 v0.19 后三组真跑：默认检索 **0/3 触发**（2026-10-22）
+
+发布：`toolsmith-publish publish`（原地，prompt v1.9 内容=v0.19 87,753 B，skill 30/30 identical，dist `v0.19.zip` 200,880 B `18f8ccf37d6a`）。
+
+三组（prompt 与 R76/R77 同题，并发 3，DeepSeek Flash，web off）：
+
+| 组 | 目录 | 墙钟 | 调用 | MCP 调用 | 外部 refs | 断言 |
+|---|---|---|---|---|---|---|
+| 1 | `20261022-150130-r78-fixed-1` | 277.3 s | 33 | **1** | 0 | 23 PASS / 0 FAIL |
+| 2 | `20261022-150130-r78-fixed-2` | 367.1 s | 35 | **1** | 0 | 23 PASS / 0 FAIL |
+| 3 | `20261022-150130-r78-fixed-3` | 334.9 s | 33 | **1** | 0 | 23 PASS / 0 FAIL |
+
+**三组全绿，但默认检索一次都没发生** —— 而且不是模型偷懒，是我上一轮（R77b）加的豁免被 3 组全部引用：
+
+- run1：「the rule says D1 is skipped when the selected set already holds ≥2 molecules of the same class … Here the set holds ivonescimab (PD-1/VEGF bispecific) AND tislelizumab (PD-1 mAb) — same indication, same line」→ 把双抗与单抗算作同一类，跳过。
+- run2：「several PD-1 inhibitors 1L sqNSCLC → D1 skipped … I'd say the class baseline is internal → skip external section. **Good, saves calls.**」
+- run3：「since the selected set holds ≥2 molecules of the same class in the same indication and line, the class baseline is internal and C1 lookup is skipped」
+
+**定性（我方的规则缺陷，不是模型缺陷）**：我给了一条“省调用”的合法出口，规则又用自然语言写成可自由裁量（“同类分子”没有可执行定义），于是三组都找到理由走出口。更根本的问题在 R77 就存在：这一步**成功时的产物是沉默**（没有可对齐值 → 整节省略、全文不提检索），所以「跑了但没收获」与「根本没跑」在交付物和门禁上**完全无法区分**——R78 是这种不可观测性的直接后果。
+
+## R79 — 三态落盘后原地发布 + 三组真跑：3/3 触发（2026-10-22）
+
+改动（本地 → 原地发布 prompt v1.9 / skill v1.0.10 / dist `v0.20.zip` 203,981 B `8f29e3ac675e`）：
+
+1. **删掉豁免**：`external-context.md` 明写 “D1 runs even when the selected set looks like the class”，并把 R78 三组作为理由记进文件；`--not-applicable` 的合法理由收窄为「没有同类靶点/模态可问、集合之外没有点名对照、用户禁止外部背景」，并明写「集合本身就是类」**不是**理由。
+2. **三态落盘 `work/external.json`**：`prep_sources.py --external` 现在必然写一条记录 —— `appended`（含 `refs_added`）/ `--none-found`（`none_alignable`，仅要求 pull 文件存在即证明真调用过）/ `--not-applicable --reason`（`not_applicable`）。
+3. **门禁**：`check_report.py` 缺记录、状态与 `refs.json` 矛盾（`none_alignable` 却有外部条目 / `appended` 却无）、`not_applicable` 无理由（<8 字）→ **FAIL**；check 组从 5 → 6。
+4. 测试：check-report **44 → 47**（缺记录、contradiction、not_applicable 三例），skill-scripts **77 → 80**（appended 落盘、none-found 不加 ref、not_applicable 需 reason）。
+
+三组真跑（同题、并发 3）：
+
+| 组 | 目录 | 墙钟 | 调用 | MCP 调用 | `work/external.json` | 外部 refs / 引用 | 断言 |
+|---|---|---|---|---|---|---|---|
+| 1 | `20261022-151618-r79-fixed-1` | 316.8 s | 34 | **2**（1 选择 + 1 默认） | `none_alignable` / C1 | 0 | 23 PASS / 0 FAIL |
+| 2 | `20261022-151618-r79-fixed-2` | 559.3 s | 63 | **7** | `appended` / C2 / `refs_added=[ref_20]` | `ref_19`、`ref_20`，**两条都被引用** | 23 PASS / 0 FAIL |
+| 3 | `20261022-151618-r79-fixed-3` | 430.8 s | 54 | **4** | `none_alignable` / C1 | 0 | 23 PASS / 0 FAIL |
+
+**3/3 触发**（R78 是 0/3），三种结局都真实出现过：run1/run3 记 `none_alignable`、报告按契约保持沉默；run2 记 `appended` 并写出真正的区块：
+
+```
+## 外部参照（非所选记录）
+
+外部参照仅用于背景校准，不构成头对头比较。
+
+- 帕博利珠单抗+化疗（KEYNOTE-407，5 年更新）：5 年 OS 率 18.4% 对 9.7%，OS HR 0.71、PFS HR 0.62，随机 559 例{{ref_19}}｜与本组的差异：对照为安慰剂+化疗、全球人群、随访约 57 个月｜用途：同类药物在一线鳞癌的通常水平。
+- 纳武利尤单抗（CheckMate 017，二线）：中位 OS 9.2 对 6.0 个月（p<0.001），ORR 20% 对 9%{{ref_20}}｜与本组的差异：对照为多西他赛、铂类治疗后进展人群｜用途：已获批治疗在同一终点的水平。
+```
+
+（区块落在「六、结论与信息缺口」之前，`用途` 为自然语言、无 C1–C4；无裸 `ref_n`。）
+
+**成本（单轮观测，n=1，不作趋势结论）**：与 R78 相比 run1 277→317 s、run2 367→559 s、run3 335→431 s；run2 多出的 5 次 MCP 调用换来两条真正可对齐的外部读数。这就是“默认开启”的真实价格。
+
+### 尚未闭合
+
+* `work/external.json` 只保留**最后**一次演进的状态：run2 出现 `refs_added=[ref_20]`，而 `ref_19` 是更早一次 append 加的（文件被后者覆盖）。要看全过程得读 `refs.json` 的 `origin` 分布。后续可改为 `steps[]` 累积，不急。
+* run1/run3 的 `none_alignable` 是否都诚实（pull 里确实无可对齐读数）尚未逐条核对 pull 文件；下一步抽查即可。
+

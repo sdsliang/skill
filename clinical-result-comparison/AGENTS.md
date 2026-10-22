@@ -22,6 +22,16 @@ render-facts 期望改标记形（32 OK）；runner 49 / scorer 37 / skill-scrip
 pack-dist 5 / replay 14 / node 16 / mutations PASS / verify-run-chain PASS。dist **v0.18 200,097 B `a5b60c411283`**。
 提交 `571d192`（R77）+ `2d8e5a9`（R77b），已推。**v0.18 尚未发布**（等授权）。
 
+## R78 / R79 完成（2026-10-22 原地两连发 + 6 次真跑）
+
+**R78（原地发布 v0.19 → 三组）**：3/3 断言全绿，但**默认外部检索 0/3 触发** —— R77b 我加的「集合本身即类 → 跳过 D1」豁免被 3 组全部引用（run1 甚至把 PD-1/VEGF 双抗与 PD-1 单抗算作同一类；run2 原话「Good, saves calls.」）。根因不是模型，是**成功时的产物是沉默**：无对齐值就整节省略，于是「跑了没收获」与「没跑」在交付物上不可区分。
+
+**R79（原地发布 v0.20 → 三组）**：把这一步改成**有记录的三态**——`prep_sources.py --external` 必然写 `work/external.json`：`appended`（含 `refs_added`）/ `--none-found`（`none_alignable`）/ `--not-applicable --reason`（理由收窄为三条，「集合即类」明确不是理由）；`check_report.py` 缺记录 / 状态与 refs 矛盾 / 无理由 → FAIL（check 组 5→6）。结果 **3/3 触发**（MCP 2/7/4），三种结局都真实出现：run1/run3 记 `none_alignable` 且报告沉默；run2 记 `appended` 并写出真正的 `## 外部参照` 区块（KEYNOTE-407 / CheckMate 017 两条，均被引用、`用途` 自然语言、无裸 token）。墙钟 316.8 / 559.3 / 430.8 s，调用 34/63/54。
+
+**闸门**：check-report **47**、skill-scripts **80**、runner 51、scorer 37、tell-scan 10、build-ledger 9、render-facts 32、pack-dist 5、replay 14、node 16、mutations PASS、verify-run-chain PASS。dist **v0.20 = 203,981 B `8f29e3ac675e`**（已原地发布，`status` in sync）。
+
+**未闭合**：`external.json` 只留最后一次状态（run2 的 `ref_19` 来自更早一次 append）；run1/run3 的 `none_alignable` 尚未逐条核对 pull。
+
 ## R77 完成（2026-10-22 原地发布 + 三组真跑；R77b 修两处面向读者的泄漏；R78 待验证）
 
 **发布（原地）**：prompt v1.9 内容替换为本地 v0.18（86,450 B `92314ea5aee7`）；skill v1.0.10 原地覆盖（30/30 identical）；`status` in sync。
