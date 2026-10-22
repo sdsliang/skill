@@ -183,7 +183,7 @@ class ChartTests(unittest.TestCase):
                 {'identity_patterns': ['red', 'one', 'day 1'], 'report_identity_patterns': ['red', 'one'], 'endpoint_regex': 'count', 'owner': 'ref_1', 'value': -2},
                 {'identity_patterns': ['blue', 'two', 'day 2'], 'report_identity_patterns': ['blue', 'two'], 'endpoint_regex': 'count', 'owner': 'ref_2', 'value': -4}]}
         self.chart = {'id': 'chart-visualization-json', 'iframe_template': 'https://example.invalid/chart',
-                      'option': {'type': 'bar', 'title': 'count', 'data': [
+                      'config': {'type': 'bar', 'title': 'count', 'data': [
                           {'label': 'red one day 1', 'description': 'count', 'value': -2},
                           {'label': 'blue two day 2', 'description': 'count', 'value': -4}]}}
         self.sv = {'charts': {'endpoint-bar-7.json': self.chart},
@@ -194,19 +194,19 @@ class ChartTests(unittest.TestCase):
 
     def test_order_independent(self):
         self.assertTrue(self.check())
-        self.chart['option']['data'].reverse()
+        self.chart['config']['data'].reverse()
         self.assertTrue(self.check())
 
     def test_value_label_sign_time_endpoint_mutations(self):
-        original = copy.deepcopy(self.chart['option']['data'])
+        original = copy.deepcopy(self.chart['config']['data'])
         for key, value in [('value', 2), ('value', -4), ('label', 'blue two day 2'), ('label', 'red one day 2'), ('value', float('nan')), ('value', True)]:
             with self.subTest(key=key, value=value):
-                self.chart['option']['data'] = copy.deepcopy(original)
-                self.chart['option']['data'][0][key] = value
+                self.chart['config']['data'] = copy.deepcopy(original)
+                self.chart['config']['data'][0][key] = value
                 self.assertFalse(self.check())
 
     def test_correct_description_cannot_hide_wrong_label(self):
-        row = self.chart['option']['data'][0]
+        row = self.chart['config']['data'][0]
         row['description'] = 'red one day 1 count'
         for label in ['blue', 'two', 'day 2', 'red blue', 'red one day 2']:
             with self.subTest(label=label):
@@ -218,14 +218,14 @@ class ChartTests(unittest.TestCase):
         self.assertFalse(self.check())
 
     def test_unsigned_equivalent(self):
-        for row in self.chart['option']['data']:
+        for row in self.chart['config']['data']:
             row['value'] = abs(row['value'])
         self.sv['report'] = 'red one count 降低 2{{ref_1}}。\n\nblue two count 降低 4{{ref_2}}。'
         self.assertTrue(self.check())
 
     def test_every_chart_including_unknown_names(self):
         spec = ITEMS['A-S2a-chart-structure']
-        for name, chart in [('endpoint-line-4.json', {'option': {'type': 'line'}}), ('evidence-timeline.json', None), ('endpoint-bar-5.json', {**self.chart, 'option': {'data': [None]}})]:
+        for name, chart in [('endpoint-line-4.json', {'config': {'type': 'line'}}), ('evidence-timeline.json', None), ('endpoint-bar-5.json', {**self.chart, 'config': {'data': [None]}})]:
             with self.subTest(name=name):
                 self.sv['charts'] = {name: chart}
                 self.assertFalse(ck.op_charts_structural(self.sv, spec)[0])
@@ -238,6 +238,41 @@ class ChartTests(unittest.TestCase):
             self.assertIn('endpoint-bar-9.json', sv['charts'])
             self.assertFalse(ck.op_charts_structural(sv, ITEMS['A-S2a-chart-structure'])[0])
             self.assertFalse(ck.op_chart_observations(sv, self.spec)[0])
+
+    ENVELOPE = {'id': 'chart-component-layout-json-validation', 'version': '0.2.0-beta.2',
+                'iframe_template': 'https://example.invalid/chart',
+                'config': {'kind': 'chart', 'type': 'bar', 'title': 'count',
+                           'data': [{'label': 'red one day 1', 'description': 'count', 'value': -2}]}}
+
+    def test_envelope_current_and_archived_shapes_both_score(self):
+        """2026-10 protocol swap: current envelope is `{id, version, iframe_template, config}`.
+
+        Archived runs (R14-R17 artifacts, `expect.option` in their own revision files) still have
+        `{id, iframe_template, option}`; scoring must not rewrite history, so the retired shape is
+        read-only compatible.  A current artifact is scored strictly (version, kind, new id).
+        """
+        spec = ITEMS['A-S2a-chart-structure']
+        self.sv['charts'] = {'endpoint-bar-1.json': copy.deepcopy(self.ENVELOPE)}
+        self.assertTrue(ck.op_charts_structural(self.sv, spec)[0])
+        legacy = {'id': 'chart-visualization-json', 'iframe_template': 'https://example.invalid/chart',
+                  'option': {'type': 'bar', 'title': 'count',
+                             'data': [{'label': 'red one day 1', 'description': 'count', 'value': -2}]}}
+        self.sv['charts'] = {'endpoint-bar-1.json': legacy}
+        self.assertTrue(ck.op_charts_structural(self.sv, spec)[0])
+
+    def test_envelope_current_shape_is_strict(self):
+        spec = ITEMS['A-S2a-chart-structure']
+        mutations = [('no version', lambda e: e.pop('version')),
+                     ('no kind', lambda e: e['config'].pop('kind')),
+                     ('wrong kind', lambda e: e['config'].__setitem__('kind', 'layout')),
+                     ('wrong id', lambda e: e.__setitem__('id', 'chart-component-layout-json')),
+                     ('bare config', lambda e: e.clear() or e.update({'config': {'kind': 'chart', 'type': 'bar', 'title': 't', 'data': [{'label': 'a', 'description': 'b', 'value': 1}]}}))]
+        for label, mutate in mutations:
+            with self.subTest(label=label):
+                envelope = copy.deepcopy(self.ENVELOPE)
+                mutate(envelope)
+                self.sv['charts'] = {'endpoint-bar-1.json': envelope}
+                self.assertFalse(ck.op_charts_structural(self.sv, spec)[0], label)
 
 
 class IdentityWordingTests(unittest.TestCase):
@@ -259,7 +294,7 @@ class IdentityWordingTests(unittest.TestCase):
         report = '\n\n'.join(
             f"{label}：Lp(a) 变化 {value}%{{{{ref_{owner}}}}}。"
             for label, value, owner in zip(labels, self.VALUES, self.OWNERS))
-        return {'charts': {'endpoint-bar-1.json': {'option': {'type': 'bar', 'title': 'Lp(a) 降幅',
+        return {'charts': {'endpoint-bar-1.json': {'config': {'type': 'bar', 'title': 'Lp(a) 降幅',
                     'data': rows}}}, 'report': report}
 
     def test_both_wordings_of_one_interval_identify_the_same_observation(self):

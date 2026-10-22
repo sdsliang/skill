@@ -278,10 +278,12 @@ python3 scripts/make_chart.py work/charts/endpoint-bar-1.json
 ```
 
 * You write **only the content**: `type` (`bar`|`line`|`timeline`), `file` (the fixed product
-  name), `title`, `subTitle`, `dataSource`, `describe`, `axisXTitle`/`axisYTitle` (bar/line),
-  `data[]`. The script pulls the skeleton from this Skill's `templates/charts/` and the envelope
-  (`id` + `iframe_template`) from the mounted `chart-visualization-json` skill, then validates
-  with the upstream CLI. Never hand-write the envelope and never hardcode `iframe_template`.
+  name), `language` (`zh`|`en`, same as the report), `title`, `subTitle`, `dataSource`, `describe`,
+  `axisXTitle`/`axisYTitle` (bar/line), `data[]`. The script pulls the `config` skeleton from this
+  Skill's `templates/charts/`, the envelope (`id` + `version` + `iframe_template`) from the mounted
+  `chart-component-layout-json-validation` skill, renders `describe`/`dataSource` into `config.notes`,
+  then validates with the upstream CLI. Never hand-write the envelope, never hardcode
+  `iframe_template`/`version`, and never put `option`/`config`/`notes` in the spec (exits `3`).
 * `data` rows: bar/line = `{label, value, description}` (line also needs `group`); timeline =
   `{label, content, description, time}` where `time` is the anchor (`YYYY-MM`). `description`
   carries the `{{ref_n}}` markers; the figure is the skeleton, the numbers live in the tables.
@@ -329,7 +331,8 @@ starts with the renderer's one-line legend rather than a hand-written specificat
 that the title appears exactly once so a hand-written appendix can never stand beside the rendered
 one), marker ⇄ citation parity in both directions, citation entry shape (empty title, extra fields,
 a fenced code block),
-chart products (envelope keys exactly `{id, iframe_template, option}`, non-empty data, type vs
+chart products (envelope keys exactly `{id, version, iframe_template, config}` with `config.kind == "chart"`,
+version/template equal to the deployed `config.js`, non-empty data, no retired `describe`/`dataSource` in `config`, type vs
 file name, and that every `::visualization` target exists under the fixed prefix), plus internal
 leaks in the delivered text (`source_file`, `tool_results`, `esid`, `/workspace/work/`, a
 `ledger|facts.json` path, a Mermaid block). Warnings only: run-logistics wording, a chart product

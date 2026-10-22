@@ -97,14 +97,27 @@ class CheckReportTests(unittest.TestCase):
                       "paper_release_time_str": "2024-01-02"}
         }), encoding="utf-8")
 
-    def chart(self, option: dict | None = None, name: str = "endpoint-bar-1.json") -> None:
-        if option is None:
-            option = {"type": "bar", "subTitle": "独立描述", "describe": "终点变化",
+    def chart(self, config: dict | None = None, name: str = "endpoint-bar-1.json") -> None:
+        if config is None:
+            config = {"type": "bar", "subTitle": "独立描述", "describe": "终点变化",
                       "data": [{"label": "A", "value": -13.9, "description": "治疗结果{{ref_1}}"},
                                 {"label": "B", "value": -70.5, "description": "治疗结果{{ref_1}}"}]}
+        config = dict(config)
+        rows = []
+        for key, label in (("describe", "说明："), ("dataSource", "数据来源：")):
+            text = config.pop(key, None)
+            if text:
+                rows.append({"kind": "layout", "role": "source-note-row", "cols": [
+                    {"kind": "string", "role": "note-label", "markdown": label},
+                    {"kind": "string", "role": "note-content", "markdown": text}]})
+        if rows:
+            config["notes"] = [{"kind": "layout", "role": "source-note", "rows": rows}]
+        config.setdefault("kind", "chart")
         path = self.charts / name
-        path.write_text(json.dumps({"id": "chart-visualization-json", "iframe_template": "https://example.test/i",
-                                    "option": option}, ensure_ascii=False), encoding="utf-8")
+        path.write_text(json.dumps({"id": "chart-component-layout-json-validation",
+                                    "version": "0.2.0-beta.2",
+                                    "iframe_template": "https://example.test/i",
+                                    "config": config}, ensure_ascii=False), encoding="utf-8")
 
     def report_text(self, body: str, appendix: str = "| 事实 | 值 |\n| --- | --- |\n| 样本量 | 12 例{{ref_1}} |\n") -> None:
         self.report.write_text(body + "\n\n## 附录：证据对齐矩阵\n\n" + appendix, encoding="utf-8")
@@ -135,7 +148,8 @@ class CheckReportTests(unittest.TestCase):
         self.report_text(self.base_body())
         proc = self.run_check()
         self.assertEqual(proc.returncode, 3)
-        self.assertIn("option.describe restates plotted value -13.9", proc.stdout)
+        self.assertIn("config.notes[0]", proc.stdout)
+        self.assertIn("restates plotted value -13.9", proc.stdout)
         self.assertIn("remove the value from the chart text", proc.stdout)
 
     def test_dose_numbers_are_not_flagged(self):

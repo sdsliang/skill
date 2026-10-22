@@ -4,7 +4,7 @@
 
 - 仅用于**同一试验的多篇披露**（合并后 ≥2 个真正不同的证据状态）的输入。
 - 不用于跨试验或混合输入：不同试验没有共享时间线，不生成该图。
-- 交付方式：**先把图表 skill 的 `templates/timeline.json` 拷成固定成品名** `/workspace/visualizations/evidence-timeline.json`（拿到 envelope 三键 `id`/`iframe_template`/`option`，**三键原样保留**；`iframe_template` 每次发布都变，禁止硬编码），**再把本 skill `templates/charts/evidence-timeline.json`（`option` 内层，不是可交付成品）的内容整体放进 `option`**，只改数据与文案字段（`title`/`subTitle`/`dataSource`/`describe`、`data[]`），JSON 无注释、无渲染代码可改。正文“证据链总览与时间线”一节中在时间线表格上方用 `::visualization[标题]{path="/workspace/visualizations/evidence-timeline.json"}` 绝对路径独占一行引用（写入 `/workspace/visualizations/` 后再引用；禁止目录穿越/反斜杠/前缀外路径，文件名 ASCII）。**不再输出 Mermaid 代码块、不再产出 HTML 图表。** 接入方不支持可视化文件时，正文保留时间线表格 + 文字结论，并提供图的下载链接。
+- 交付方式：**用 `python3 /workspace/skills/multi-clinical-result-comparison/scripts/make_chart.py` 组装**——把下面示例当作**内容 spec**（`type` + `file` + `language` + 文案 + `data[]`）保存为 `work/charts/evidence-timeline.json`，脚本从**运行期**图表 skill 取 envelope 四键（`id`/`version`/`iframe_template`/`config`，`version` 与 `iframe_template` 每次发布都变、禁止硬编码）、从本 skill `templates/charts/evidence-timeline.json` 取 `config` 骨架、把 `describe`/`dataSource` 渲染成 `config.notes`，写入 `/workspace/visualizations/evidence-timeline.json` 并跑上游校验。**不要**自己 `cp` 上游模板、**不要**手拼 envelope。正文“证据链总览与时间线”一节中在时间线表格上方用 `::visualization[标题]{path="/workspace/visualizations/evidence-timeline.json"}` 绝对路径独占一行引用（写入 `/workspace/visualizations/` 后再引用；禁止目录穿越/反斜杠/前缀外路径，文件名 ASCII）。**不再输出 Mermaid 代码块、不再产出 HTML 图表。** 接入方不支持可视化文件时，正文保留时间线表格 + 文字结论，并提供图的下载链接。
 
 ## 图要回答的问题
 
@@ -26,7 +26,7 @@
 ## 构建规则
 
 1. **一个证据状态对应一个节点**，不是一篇披露；可另加来源支持的研究里程碑（在 `label` 文字里点明，如「研究启动（里程碑）」），但里程碑不计入证据状态数或 ≥2 状态出图门槛。合并为同一状态的来源共享一个节点：`label` 写状态名 + 分析阶段/披露形式（如"pCR 主要分析 · 摘要/主刊"），`description` 中并列列出该状态支持来源的引用标记（如 `{{ref_1}}{{ref_3}}`）；披露数量多不代表独立验证。
-2. **节点内容字段**（camelCase，与上游 chart-visualization-json 协议一致）：
+2. **节点内容字段**（camelCase，与上游 chart-component-layout-json-validation 协议一致）：
    - `label`：证据状态名 + 分析阶段/披露形式（**≤18 字**，string，必填）；
    - `time`：本状态来源支持的时间锚点文案（**只写年月/日期，如 `2020-05`**；缺失写「时间未明」），不得猜测或推算日期，也不要把表格里的随访时长/样本量搬进来（string，必填）；
    - `group`：上游协议保留的可选字段，但现行时间轴**不渲染图例、也不按组区分形状/颜色**，本 skill 不用它表达任何含义（可省略）；
@@ -50,6 +50,8 @@
 ```json
 {
   "type": "timeline",
+  "file": "evidence-timeline.json",
+  "language": "zh",
   "title": "TRAIN-2（NCT01996267）证据链时间轴",
   "subTitle": "同一试验证据披露与结果演进 · 节点=合并后的证据状态",
   "dataSource": "所选记录的临床内容及按输入契约取得的同记录原文；交付时填写实际来源与分析深度",
@@ -63,4 +65,4 @@
 }
 ```
 
-将示例作为 **`option` 内层**放入图表 skill 当前模板的 envelope（`id` / `iframe_template` / `option`），再保存为**固定文件名** `evidence-timeline.json`（写入 `/workspace/visualizations/`；**纯 JSON，无 HTML 包裹**，先跑 `node /workspace/skills/chart-visualization-json/scripts/validate-cli.js <成品>` 通过 PASS 再引用），正文用 `::visualization[标题]{path="/workspace/visualizations/evidence-timeline.json"}` 绝对路径引用，并始终保留精确数值的时间线表格。
+上例是**内容 spec**（不是可交付成品）：`dataSource`/`describe` 会被脚本渲染成 `config.notes`，`language` 决定 notes 标签用「说明：/数据来源：」还是 `Note:`/`Data source:`。把它保存为 `work/charts/evidence-timeline.json` 后跑 `python3 /workspace/skills/multi-clinical-result-comparison/scripts/make_chart.py work/charts/evidence-timeline.json`，成品写入 `/workspace/visualizations/evidence-timeline.json`（**纯 JSON，无 HTML 包裹**）并由脚本跑 `node /workspace/skills/chart-component-layout-json-validation/scripts/validate-cli.js` 校验（exit `0` 才算 PASS）；正文用 `::visualization[标题]{path="/workspace/visualizations/evidence-timeline.json"}` 绝对路径引用，并始终保留精确数值的时间线表格。

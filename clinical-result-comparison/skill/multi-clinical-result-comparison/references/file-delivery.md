@@ -48,7 +48,7 @@ Two files are produced each run:
 
 ## Delivery sequence (terminal action)
 
-1. Write chart product files to `/workspace/visualizations/` under the fixed names from the naming contract first, via `python3 /workspace/skills/multi-clinical-result-comparison/scripts/make_chart.py` (each product is written and validated by the script — envelope `{ id, iframe_template, option }` taken from the live chart skill, never hand-copied, never hardcoded; per `references/chart-templates.md`).
+1. Write chart product files to `/workspace/visualizations/` under the fixed names from the naming contract first, via `python3 /workspace/skills/multi-clinical-result-comparison/scripts/make_chart.py` (each product is written and validated by the script — envelope `{ id, version, iframe_template, config }` taken from the live chart skill, never hand-copied, never hardcoded; per `references/chart-templates.md`).
 2. Write the report body **once** to `/workspace/output/report.md` and render it in place with one `render-facts.py` pass (`--draft` == `--out`); no `work/draft.md` stage.
 3. Build the citation JSON at `/workspace/output/citations.json` with `python3 /workspace/skills/multi-clinical-result-comparison/scripts/make_citations.py` (raw JSON, no code fences, no commentary).
 4. Verify before presenting — run `python3 /workspace/skills/multi-clinical-result-comparison/scripts/check_report.py -v` and fix every FAIL (it is the mechanical subset of the list below: marker/citation parity both ways, citation entry shape, chart envelope keys/type/path, appendix presence, internal leaks); then:

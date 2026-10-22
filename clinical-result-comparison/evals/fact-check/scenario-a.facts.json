@@ -50,7 +50,7 @@
       "id": "A-S2a-chart-structure",
       "kind": "shape",
       "op": "charts_structural",
-      "chart_id": "chart-visualization-json",
+      "chart_id": "chart-component-layout-json-validation",
       "iframe_template_regex": "^https://\\S+$",
       "quant_globs": [
         "endpoint-bar-*.json"
@@ -58,7 +58,7 @@
       "quant_types": [
         "bar"
       ],
-      "evidence": "每个落盘图表都必须是可渲染的 chart-visualization-json；定量行必须有标签、有限数值和可审计的描述",
+      "evidence": "每个落盘图表都必须是可渲染的 chart-component-layout-json-validation envelope（id/version/iframe_template/config）；定量行必须有标签、有限数值和可审计的描述",
       "rationale": "允许的文件名本身不能证明图表可用；逐个检查所有图表和所有定量行，防止折线/空行/缺描述绕过"
     },
     {
@@ -155,16 +155,16 @@
       "op": "chart_envelope",
       "file": "endpoint-bar-1.json",
       "expect": {
-        "id": "chart-visualization-json",
+        "id": "chart-component-layout-json-validation",
         "iframe_template_regex": "^https://\\S+$",
-        "option": {
+        "config": {
           "type": "bar",
           "group": false,
           "stack": false
         },
         "data_len": 5
       },
-      "evidence": "chart-visualization-json 协议 envelope：{id, iframe_template, option}；5 条数据 = 依洛尤单抗 1 组 + 奥帕司兰 4 个剂量组",
+      "evidence": "chart-component-layout-json-validation 协议 envelope：{id, version, iframe_template, config}，config.kind=chart；5 条数据 = 依洛尤单抗 1 组 + 奥帕司兰 4 个剂量组",
       "rationale": "envelope 缺失/类型错会静默渲染失败；label 为空说明数据行没填 ｜ **2026-09-17 改为条件式**：文件不存在时本项 PASS（定量主图可选），此时『为什么不出图』由 A-S2b-chart-or-reason 断言；文件存在时本项仍然是硬断言。",
       "optional_when_absent": true,
       "pattern": "endpoint-bar-*.json"

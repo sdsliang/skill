@@ -209,14 +209,15 @@ def M09(d, r, c, v):
 def M10(d, r, c, v):
     p = os.path.join(v, "endpoint-bar-1.json")
     j = json.load(open(p, encoding="utf-8"))
-    j["option"]["data"][0]["value"] = -19.9
+    (j.get("config") or j["option"])["data"][0]["value"] = -19.9
     json.dump(j, open(p, "w"), ensure_ascii=False, indent=1)
     return 1
 
 
 def M11(d, r, c, v):
-    json.dump({"id": "chart-visualization-json", "iframe_template": "https://x/y.json",
-               "option": {"type": "timeline", "data": []}},
+    json.dump({"id": "chart-component-layout-json-validation", "version": "0.2.0-beta.2",
+               "iframe_template": "https://x/y.json",
+               "config": {"kind": "chart", "type": "timeline", "data": []}},
               open(os.path.join(v, "evidence-timeline.json"), "w"))
     return 1
 

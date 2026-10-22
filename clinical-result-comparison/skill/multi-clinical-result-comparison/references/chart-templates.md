@@ -1,6 +1,6 @@
-# 图表使用规则（依赖 chart-visualization-json skill）
+# 图表使用规则（依赖 chart-component-layout-json-validation skill）
 
-本 skill 的图表部分只定义临床场景选择、证据可比性、数值绑定和交付边界；图表协议、字段、模板、Schema、渲染和校验均由上游 `chart-visualization-json` skill 负责。需要生成图表时读取并遵循上游 skill 的当前规则，不在本 skill 中复制其协议说明或维护平行实现。
+本 skill 的图表部分只定义临床场景选择、证据可比性、数值绑定和交付边界；图表协议、字段、模板、Schema、渲染和校验均由上游 `chart-component-layout-json-validation` skill 负责。需要生成图表时读取并遵循上游 skill 的当前规则，不在本 skill 中复制其协议说明或维护平行实现。
 
 `templates/charts/*.json` 是本 skill 提供的临床场景起点；它们的内容应作为上游图表模板的配置输入，不构成另一套图表协议。
 ## 一、选型规则（与 SKILL.md 工作流一致）
@@ -9,14 +9,16 @@
 
 | 场景 | 图表 type | 图表 skill 模板 | 本 skill 临床起点 |
 | --- | --- | --- | --- |
-| **同试验**证据链时间轴（≥2 个证据状态） | `timeline`（竖向列表：时间 + 卡片 · 节点等大等形、无图例，不编码成熟度/分类） | `templates/timeline.json` | `templates/charts/evidence-timeline.json` |
-| **同试验** OLE/长随访，同一队列多时点终点 | `line`（同队列时点连线，无对照即单臂曲线） | `templates/line.json` | `templates/charts/endpoint-line.json` |
-| **混合/不同试验**，终点无时间维（ORR 等单值） | `bar`（横向） | `templates/bar.json` | `templates/charts/endpoint-bar.json` |
-| **混合/不同试验**，终点有时间维（体重、PFS/OS 按时间点） | `line`；仅一个时间点→自动单点模式 | `templates/line.json` | `templates/charts/endpoint-line.json` |
+| **同试验**证据链时间轴（≥2 个证据状态） | `timeline`（竖向列表：时间 + 卡片 · 节点等大等形、无图例，不编码成熟度/分类） | `templates/charts/timeline.json` | `templates/charts/evidence-timeline.json` |
+| **同试验** OLE/长随访，同一队列多时点终点 | `line`（同队列时点连线，无对照即单臂曲线） | `templates/charts/line.json` | `templates/charts/endpoint-line.json` |
+| **混合/不同试验**，终点无时间维（ORR 等单值） | `bar`（横向） | `templates/charts/bar.json` | `templates/charts/endpoint-bar.json` |
+| **混合/不同试验**，终点有时间维（体重、PFS/OS 按时间点） | `line`；仅一个时间点→自动单点模式 | `templates/charts/line.json` | `templates/charts/endpoint-line.json` |
 
 > 「图表 skill 模板」列的路径相对图表 skill 根目录；「本 skill 临床起点」列的路径相对本 skill 根目录。二者同为图表 skill 协议结构，临床起点只是把 `title`/`describe`/`axisTitle`/示例数据预填成临床口径，**仍以图表 skill 的 schema 为准**。
 >
-> **两者的交付角色不同**：图表 skill 的 `templates/*.json` 是**带 envelope 的完整成品骨架**（复制它拿到 `id`/`iframe_template`）；本 skill 的临床起点是 **`option` 内层**（嵌进 envelope 的 `option` 里）。直接拿临床起点当成品交付会在校验时被拒（`未包 envelope`）。
+> **两者的交付角色不同**：图表 skill 的 `templates/charts/*.json` 是**带 envelope 的完整成品骨架**（复制它拿到 `id`/`version`/`iframe_template`）；本 skill 的临床起点是 **`config` 内层**（嵌进 envelope 的 `config` 里）。直接拿临床起点当成品交付会在校验时被拒（`未包 envelope`）。
+>
+> **`dataSource` / `describe` 是 spec 字段，不是 `config` 字段**：上游已把它们退场，改成 `config.notes` 节点数组。`make_chart.py` 会把 spec 的 `describe` / `dataSource` 渲染成 `source-note` → `source-note-row` → `note-label` + `note-content`，标签语言由 spec 的 `language`（`zh` / `en`）决定（缺省时按 spec 文本自动推断并打 `WARN`）。**不要手写 `notes` 节点树**。
 
 ### 时间维度优先判定（硬规则）
 
@@ -38,14 +40,14 @@
 
 ## 二、怎么用
 
-1. **只写「内容 spec」，组装与校验交给 `python3 /workspace/skills/multi-clinical-result-comparison/scripts/make_chart.py`**（**不要**自己 `cp` 模板、**不要**手拼 envelope、**不要**自己改 `option` 内层、**不要**手写成品 JSON）：spec 顶层写 `type`（`bar`/`line`/`timeline`）、`file`（固定成品名，如 `endpoint-bar-1.json`）、`title`/`subTitle`/`dataSource`/`describe`、`axisXTitle`/`axisYTitle`（bar/line）与 `data[]`，然后
+1. **只写「内容 spec」，组装与校验交给 `python3 /workspace/skills/multi-clinical-result-comparison/scripts/make_chart.py`**（**不要**自己 `cp` 模板、**不要**手拼 envelope、**不要**自己改 `config` 内层、**不要**手写成品 JSON）：spec 顶层写 `type`（`bar`/`line`/`timeline`）、`file`（固定成品名，如 `endpoint-bar-1.json`）、`language`（`zh`/`en`，跟报告语言一致）、`title`/`subTitle`/`dataSource`/`describe`、`axisXTitle`/`axisYTitle`（bar/line）与 `data[]`，然后
 
 ```bash
 python3 /workspace/skills/multi-clinical-result-comparison/scripts/make_chart.py work/charts/endpoint-bar-1.json
 ```
 
-   脚本会从本 skill `templates/charts/` 取 `option` 骨架、从**运行期** chart skill 取 envelope（`id` / `iframe_template` / `option` 三键；`iframe_template` 每次发布都会变，本 skill 文档里没有、也不该有这个值）、写入 `/workspace/visualizations/<固定成品名>` 并跑上游 CLI 校验。`--sort auto|none|value-desc|value-asc|time-asc`（默认 bar `value-desc`、line `none`、timeline `time-asc`）由脚本负责排序，不必自己排。完整 CLI / 退出码见 `references/toolbox.md`。
-2. **只改内容字段**：`title`/`subTitle`/`dataSource`/`describe`/`axisXTitle`/`axisYTitle` 与 `data[]`（及 timeline 的 `time`/`content`）。JSON 无注释；不要加 HTML/注释/尾逗号（脚本会校验结构、`data` 非空与数值形态）。**timeline 不要写 `weight`/`weightLegend`/`legend`**（见下条硬规则）。
+   脚本会从本 skill `templates/charts/` 取 `config` 骨架、从**运行期** chart skill 取 envelope（`id` / `version` / `iframe_template` / `config` 四键；`version` 与 `iframe_template` 每次发布都会变，本 skill 文档里没有、也不该有这两个值）、把 `describe`/`dataSource` 渲染成 `config.notes`、写入 `/workspace/visualizations/<固定成品名>` 并跑上游 CLI 校验。`--sort auto|none|value-desc|value-asc|time-asc`（默认 bar `value-desc`、line `none`、timeline `time-asc`）由脚本负责排序，不必自己排。完整 CLI / 退出码见 `references/toolbox.md`。
+2. **只改内容字段**：`title`/`subTitle`/`dataSource`/`describe`/`axisXTitle`/`axisYTitle` 与 `data[]`（及 timeline 的 `time`/`content`）。JSON 无注释；不要加 HTML/注释/尾逗号（脚本会校验结构、`data` 非空与数值形态）。**不要**在 spec 里写 `option` / `config` / `notes`（脚本判 `3` 并拒绝：envelope 与 notes 由它组装）。**timeline 不要写 `weight`/`weightLegend`/`legend`**（见下条硬规则）。
 3. **`make_chart.py` 退出码 `0`（已写，WARN 也算 `0`）后才在正文引用**；`3` = 结构/数值问题（`data` 为空或非数值、timeline 缺 `time`、`data[].value` 非数值、timeline 带 `weight`/`weightLegend`/`legend`、`file` 与 `type` 不符）**且不写文件**，按提示修 spec 重跑；`4` = 成品已写但校验器不可用，**必须如实说明「未校验」，不得当已校验**。空 `label`/`description`/`group` 只打印 `WARN:`（成品照写、exit `0`），**不要在写 spec 之前为它们预检**。详见下方「自检」。
 4. 正文中用 `::visualization[标题]{path="/workspace/visualizations/endpoint-bar-1.json"}` **绝对路径**引用（workspace 文件 + 引用通道），独占一行；图前后保留解释文字与 `{{ref_n}}` 标记。
    - 交付：文件**先写入** `/workspace/visualizations/`，再引用；引用路径必须从 `/workspace/visualizations/` 开头。
@@ -73,10 +75,10 @@ python3 /workspace/skills/multi-clinical-result-comparison/scripts/make_chart.py
 
 ### 自检（硬步骤，必跑）
 
-**生成后自检（硬步骤，必跑）**：`make_chart.py` 已把成品写成 envelope 三键（`id` / `iframe_template` / `option`）并跑过一次上游 CLI；交稿前再用 `python3 /workspace/skills/multi-clinical-result-comparison/scripts/check_report.py`（它会检查每个 `::visualization` 目标是否存在、envelope 键是否恰为三键、`data` 是否非空、`type` 与文件名是否一致）确认引用面，并在需要时手动复跑上游校验命令：
+**生成后自检（硬步骤，必跑）**：`make_chart.py` 已把成品写成 envelope 四键（`id` / `version` / `iframe_template` / `config`）并跑过一次上游 CLI；交稿前再用 `python3 /workspace/skills/multi-clinical-result-comparison/scripts/check_report.py`（它会检查每个 `::visualization` 目标是否存在、envelope 键是否恰为四键、`version`/`iframe_template` 是否与部署端 `config.js` 全等、`data` 是否非空、`type` 与文件名是否一致、`dataSource`/`describe` 是否仍留在 `config` 里）确认引用面，并在需要时手动复跑上游校验命令：
 
 ```bash
-node /workspace/skills/chart-visualization-json/scripts/validate-cli.js /workspace/visualizations/endpoint-bar-1.json
+node /workspace/skills/chart-component-layout-json-validation/scripts/validate-cli.js /workspace/visualizations/endpoint-bar-1.json
 # 前端仓库内的等价别名：
 pnpm validate:chart -- /workspace/visualizations/endpoint-bar-1.json
 ```
@@ -84,11 +86,11 @@ pnpm validate:chart -- /workspace/visualizations/endpoint-bar-1.json
 （把示例中的 `endpoint-bar-1.json` 换成该次运行实际产出的固定成品名，如 `endpoint-bar-2.json`、`endpoint-line-1.json`、`evidence-timeline.json`，对每个成品各跑一次。）
 
 全部 **PASS（退出码 0）** 才算完成；**FAIL 时按输出的 JSON path 与提示修正后重跑校验，直到 PASS**，不要让非法 JSON 进入交付。
-校验覆盖：envelope 三键（`id` 为字面量；`iframe_template` 与运行期图表 skill `config.js` 的 `IFRAME_TEMPLATE` **全等**）、
-`type` 属于图表 skill 收录的类型、`data` 非空、字段名/类型符合 Zod schema、timeline 的
+校验覆盖：envelope 四键（`id` 为字面量；`version` 与 `iframe_template` 与运行期图表 skill `config.js` 的 `VERSION` / `IFRAME_TEMPLATE` **全等**）、
+`config.kind == "chart"`、`type` 属于图表 skill 收录的类型、`config.notes` 节点结构、`data` 非空、字段名/类型符合 Zod schema、timeline 的
 `time` 与 `data[]` 顺序、JSON 可解析等。产物是**纯 JSON**，不校验 HTML 片段（本 skill 不产出 HTML）。
 
-**权威只有部署端那一份（避坑）**：校验结果以工作区里实际安装的图表 skill（`/workspace/skills/chart-visualization-json/`）为准。离线核对可以拿**带版本号的上游副本**（如 v1.0.9）跑同一个 `validate-cli.js`，但**前提是该副本版本与部署端一致**，且副本里内嵌的 `iframe_template` 只是**留档时点的值**，永远不能当本次运行的取值。
+**权威只有部署端那一份（避坑）**：校验结果以工作区里实际安装的图表 skill（`/workspace/skills/chart-component-layout-json-validation/`）为准。离线核对可以拿**带版本号的上游副本**（如 `0.2.0-beta.2`）跑同一个 `validate-cli.js`，但**前提是该副本与部署端同一版本**，且副本里内嵌的 `version` / `iframe_template` 只是**留档时点的值**，永远不能当本次运行的取值。
 不要拿手头保存的旧副本或旧文档里的模板当基准——图表 skill 升级协议（例如新增 envelope 要求）后，旧副本会给出错误的「PASS」结论。
 若部署端报出本文件未覆盖的新规则，以部署端报错为准修正，并把差异反馈给维护者（不要自研平行校验器）。
 

@@ -73,18 +73,23 @@ class Sandbox(unittest.TestCase):
     def setUp(self) -> None:
         self.root = Path(tempfile.mkdtemp(prefix="skill-scripts-"))
         self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
-        for name in ("work/sources", "output", "visualizations", "chartskill/templates"):
+        for name in ("work/sources", "output", "visualizations", "chartskill/templates/charts"):
             (self.root / name).mkdir(parents=True, exist_ok=True)
         pull = self.root / "tool_results" / "pharmcube-query-clinical-result-with-params"
         pull.mkdir(parents=True, exist_ok=True)
         lines = [json.dumps(row, ensure_ascii=False) for row in RECORDS]
         lines += [lines[0], "{not json", ""]                      # duplicate row + junk + blank
         (pull / "call_1.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        (self.root / "chartskill" / "config.js").write_text(
+            "const SKILL_NAME = 'chart-component-layout-json-validation'\n"
+            "const IFRAME_TEMPLATE = 'https://vcdn.example/iframe-template.json'\n"
+            "const VERSION = '0.2.0-beta.2'\n", encoding="utf-8")
         for kind in ("bar", "line", "timeline"):
-            (self.root / "chartskill" / "templates" / f"{kind}.json").write_text(
-                json.dumps({"id": "chart-visualization-json",
+            (self.root / "chartskill" / "templates" / "charts" / f"{kind}.json").write_text(
+                json.dumps({"id": "chart-component-layout-json-validation",
+                            "version": "0.2.0-beta.2",
                             "iframe_template": "https://vcdn.example/iframe-template.json",
-                            "option": {"type": kind}}, ensure_ascii=False), encoding="utf-8")
+                            "config": {"kind": "chart", "type": kind}}, ensure_ascii=False), encoding="utf-8")
         self.refs = self.root / "work" / "refs.json"
         self.sources = self.root / "work" / "sources"
         self.ledger = self.root / "work" / "ledger.json"
@@ -134,7 +139,8 @@ class Sandbox(unittest.TestCase):
                         "--chart-skill", self.root / "chartskill", "--no-validate", *extra, expect=expect)
 
     def bar_spec(self, **overrides) -> dict:
-        spec = {"type": "bar", "file": "endpoint-bar-1.json", "title": "MDS TBR 变化（跨试验并列展示）",
+        spec = {"type": "bar", "file": "endpoint-bar-1.json", "language": "zh",
+                "title": "MDS TBR 变化（跨试验并列展示）",
                 "subTitle": "跨试验并列展示≠头对头比较", "dataSource": "数值事实账本",
                 "describe": "两组的 MDS TBR 较基线变化", "axisXTitle": "试验", "axisYTitle": "较基线变化 (%)",
                 "data": [{"label": "NCT02729025 · 依洛尤单抗 420 mg 每月一次", "value": -8.3,
@@ -145,9 +151,20 @@ class Sandbox(unittest.TestCase):
         return spec
 
     @staticmethod
-    def chart_envelope(option: dict) -> dict:
-        return {"id": "chart-visualization-json",
-                "iframe_template": "https://vcdn.example/iframe-template.json", "option": option}
+    def chart_envelope(config: dict) -> dict:
+        return {"id": "chart-component-layout-json-validation",
+                "version": "0.2.0-beta.2",
+                "iframe_template": "https://vcdn.example/iframe-template.json", "config": config}
+
+    @staticmethod
+    def notes(describe: str = "按组展示", data_source: str = "本地数值事实账本") -> list[dict]:
+        rows = []
+        for label, text in (("说明：", describe), ("数据来源：", data_source)):
+            if text:
+                rows.append({"kind": "layout", "role": "source-note-row", "cols": [
+                    {"kind": "string", "role": "note-label", "markdown": label},
+                    {"kind": "string", "role": "note-content", "markdown": text}]})
+        return [{"kind": "layout", "role": "source-note", "rows": rows}] if rows else []
 
     def delivery_fixture(self, report_body: str | None = None, citations: dict | None = None,
                          chart: dict | None = None) -> dict:
@@ -156,12 +173,11 @@ class Sandbox(unittest.TestCase):
         self.build_ledger()
         vis = self.root / "visualizations"
         if chart is None:
-            chart = {"id": "chart-visualization-json",
-                     "iframe_template": "https://vcdn.example/iframe-template.json",
-                     "option": {"type": "bar", "title": "两组变化并列展示", "subTitle": "并列展示不等于头对头比较",
-                                "dataSource": "本地数值事实账本", "describe": "按组展示",
-                                "axisXTitle": "试验", "axisYTitle": "较基线变化 (%)",
-                                "data": [{"label": "依洛尤单抗组", "value": -8.3, "description": "较基线变化{{ref_1}}"}]}}
+            chart = self.chart_envelope({
+                "kind": "chart", "type": "bar", "title": "两组变化并列展示", "subTitle": "并列展示不等于头对头比较",
+                "notes": self.notes(),
+                "axisXTitle": "试验", "axisYTitle": "较基线变化 (%)",
+                "data": [{"label": "依洛尤单抗组", "value": -8.3, "description": "较基线变化{{ref_1}}"}]})
         (vis / "endpoint-bar-1.json").write_text(json.dumps(chart, ensure_ascii=False, indent=2), encoding="utf-8")
         body = report_body if report_body is not None else (
             "# 跨试验结果对比\n\n## 速览\n\n依洛尤单抗组的较基线变化为 -5.3 %{{ref_1}}，"
@@ -442,19 +458,49 @@ class Sandbox(unittest.TestCase):
     def test_make_chart_wraps_the_skeleton_in_the_upstream_envelope(self):
         self.chart(self.bar_spec())
         product = json.loads((self.root / "visualizations" / "endpoint-bar-1.json").read_text(encoding="utf-8"))
-        self.assertEqual(set(product), {"id", "iframe_template", "option"})
-        self.assertEqual(product["id"], "chart-visualization-json")
+        self.assertEqual(set(product), {"id", "version", "iframe_template", "config"})
+        self.assertEqual(product["id"], "chart-component-layout-json-validation")
+        self.assertEqual(product["version"], "0.2.0-beta.2")
         self.assertEqual(product["iframe_template"], "https://vcdn.example/iframe-template.json")
-        option = product["option"]
-        self.assertEqual(option["type"], "bar")
-        self.assertEqual(option["axisYTitle"], "较基线变化 (%)")
+        config = product["config"]
+        self.assertEqual(config["kind"], "chart")
+        self.assertEqual(config["type"], "bar")
+        self.assertEqual(config["axisYTitle"], "较基线变化 (%)")
         for skeleton_default in ("direction", "group", "stack"):       # skeleton defaults survive
-            self.assertIn(skeleton_default, option)
-        self.assertNotIn("_comment", option)
-        self.assertEqual([row["value"] for row in option["data"]], [-5.3, -8.3])   # value-desc
-        for row in option["data"]:                                     # anti-empty-artifact
+            self.assertIn(skeleton_default, config)
+        self.assertNotIn("_comment", config)
+        self.assertNotIn("describe", config)                            # retired flat fields stay out
+        self.assertNotIn("dataSource", config)
+        self.assertEqual([row["value"] for row in config["data"]], [-5.3, -8.3])   # value-desc
+        notes = config["notes"][0]
+        self.assertEqual(notes["role"], "source-note")
+        self.assertEqual([row["cols"][0]["markdown"] for row in notes["rows"]], ["说明：", "数据来源："])
+        self.assertEqual([row["cols"][1]["markdown"] for row in notes["rows"]],
+                         ["两组的 MDS TBR 较基线变化", "数值事实账本"])
+        for row in config["data"]:                                     # anti-empty-artifact
             self.assertTrue(row["label"].strip() and row["description"].strip())
             self.assertIn("{{ref_", row["description"])
+
+    def test_make_chart_localises_the_note_labels_from_the_declared_language(self):
+        self.chart(self.bar_spec(language="en"))
+        product = json.loads((self.root / "visualizations" / "endpoint-bar-1.json").read_text(encoding="utf-8"))
+        rows = product["config"]["notes"][0]["rows"]
+        self.assertEqual([row["cols"][0]["markdown"] for row in rows], ["Note:", "Data source:"])
+
+    def test_make_chart_infers_and_warns_when_the_language_is_not_declared(self):
+        spec = self.bar_spec()
+        spec.pop("language")
+        proc = self.chart(spec)
+        self.assertIn("spec.language is missing", proc.stderr)
+        product = json.loads((self.root / "visualizations" / "endpoint-bar-1.json").read_text(encoding="utf-8"))
+        self.assertEqual(product["config"]["notes"][0]["rows"][0]["cols"][0]["markdown"], "说明：")
+
+    def test_make_chart_rejects_a_hand_written_envelope_or_notes(self):
+        for field in ("option", "config", "notes"):
+            spec = self.bar_spec()
+            spec[field] = {}
+            proc = self.chart(spec, expect=3)
+            self.assertIn(f"spec.{field} is not accepted", proc.stderr)
 
     def test_make_chart_rejects_a_type_file_mismatch(self):
         proc = self.chart(self.bar_spec(file="evidence-timeline.json"), expect=2)
@@ -504,7 +550,7 @@ class Sandbox(unittest.TestCase):
     def test_make_chart_only_warns_about_a_missing_group_on_a_line_row(self):
         # R55: an empty `group` is a completeness advisory, not a structural one — the series plots
         # fine, so it must not cost a turn.  `--strict` stays as the opt-in escape hatch.
-        spec = {"type": "line", "file": "endpoint-line-1.json", "title": "t", "subTitle": "s",
+        spec = {"type": "line", "file": "endpoint-line-1.json", "language": "zh", "title": "t", "subTitle": "s",
                 "dataSource": "d", "describe": "x", "data": [{"label": "第 36 周", "value": -70.5,
                                                               "description": "Lp(a) 变化{{ref_2}}"}]}
         proc = self.chart(spec, expect=0)
@@ -674,19 +720,43 @@ class Sandbox(unittest.TestCase):
         paths["citations"].write_text("```json\n{}\n```\n", encoding="utf-8")
         self.assertIn("fenced", self.check(paths, expect=3).stdout)
 
-    def test_check_report_rejects_a_bare_option_instead_of_an_envelope(self):
-        paths = self.delivery_fixture(chart={"type": "bar", "title": "t", "data": [
+    def test_check_report_rejects_a_bare_config_instead_of_an_envelope(self):
+        paths = self.delivery_fixture(chart={"kind": "chart", "type": "bar", "title": "t", "data": [
             {"label": "a", "value": 1, "description": "d{{ref_1}}"}]})
         self.assertIn("envelope keys must be exactly", self.check(paths, expect=3).stdout)
 
     def test_check_report_rejects_an_empty_or_mistyped_chart(self):
-        empty = self.delivery_fixture(chart={"id": "chart-visualization-json", "iframe_template": "https://x",
-                                            "option": {"type": "bar", "data": []}})
-        self.assertIn("option.data is empty", self.check(empty, expect=3).stdout)
-        mistyped = self.delivery_fixture(chart={"id": "chart-visualization-json", "iframe_template": "https://x",
-                                                "option": {"type": "line", "data": [
-                                                    {"label": "a", "value": 1, "description": "d{{ref_1}}"}]}})
-        self.assertIn("option.type is", self.check(mistyped, expect=3).stdout)
+        empty = self.delivery_fixture(chart=self.chart_envelope(
+            {"kind": "chart", "type": "bar", "data": []}))
+        self.assertIn("config.data is empty", self.check(empty, expect=3).stdout)
+        mistyped = self.delivery_fixture(chart=self.chart_envelope(
+            {"kind": "chart", "type": "line", "data": [
+                {"label": "a", "value": 1, "description": "d{{ref_1}}"}]}))
+        self.assertIn("config.type is", self.check(mistyped, expect=3).stdout)
+
+    def test_check_report_rejects_the_retired_envelope_and_config_fields(self):
+        old = self.delivery_fixture(chart={"id": "chart-visualization-json",
+                                          "iframe_template": "https://x",
+                                          "option": {"type": "bar", "data": []}})
+        self.assertIn("envelope keys must be exactly", self.check(old, expect=3).stdout)
+        retired = self.delivery_fixture(chart=self.chart_envelope(
+            {"kind": "chart", "type": "bar", "describe": "按组展示", "subTitle": "并列展示",
+             "data": [{"label": "a", "value": 1, "description": "d{{ref_1}}"}]}))
+        proc = self.check(retired, expect=3)
+        self.assertIn("config.describe retired", proc.stdout)
+
+    def test_check_report_cross_checks_the_envelope_against_the_deployed_chart_skill(self):
+        paths = self.delivery_fixture()
+        self.check(paths, "--chart-skill", self.root / "chartskill")
+        stale = self.delivery_fixture(chart=self.chart_envelope(
+            {"kind": "chart", "type": "bar", "subTitle": "并列展示不等于头对头比较",
+             "data": [{"label": "a", "value": -8.3, "description": "d{{ref_1}}"}]}))
+        product = json.loads((self.root / "visualizations" / "endpoint-bar-1.json").read_text(encoding="utf-8"))
+        product["version"] = "0.1.0-old"
+        (self.root / "visualizations" / "endpoint-bar-1.json").write_text(
+            json.dumps(product, ensure_ascii=False), encoding="utf-8")
+        proc = self.check(stale, "--chart-skill", self.root / "chartskill", expect=3)
+        self.assertIn("version does not match the deployed chart skill", proc.stdout)
 
     def test_check_report_rejects_a_dangling_visualization_reference(self):
         paths = self.delivery_fixture(report_body=(
@@ -715,8 +785,8 @@ class Sandbox(unittest.TestCase):
         # ownership rules (a chart never restates its own plotted values) stay.
         paths = self.delivery_fixture(
             chart=self.chart_envelope({
-                "type": "bar", "title": "两组变化并列展示", "subTitle": "并列展示不等于头对头比较",
-                "dataSource": "本地数值事实账本", "describe": "按组展示",
+                "kind": "chart", "type": "bar", "title": "两组变化并列展示", "subTitle": "并列展示不等于头对头比较",
+                "notes": self.notes(),
                 "data": [{"label": "依洛尤单抗组", "value": -8.3,
                           "description": "该终点尚未在对照组评估{{ref_1}}"}]}),
             report_body=(

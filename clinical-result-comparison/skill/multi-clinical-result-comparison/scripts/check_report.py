@@ -5,8 +5,13 @@
 Run this after the render gate and before `present_artifact`.  It only checks things a machine
 can settle — text that must not appear, marker/citation parity, chart envelope shape, fixed
 paths — so it never replaces clinical review; it stops the run from shipping an unresolved
-`[[fact:…]]` token, a chart JSON that is a bare `option` object, a citation key no marker uses,
+`[[fact:…]]` token, a chart JSON that is a bare `config` object, a citation key no marker uses,
 or a `::visualization` reference pointing at nothing.
+
+The chart envelope is the upstream `chart-component-layout-json-validation` contract:
+`{id, version, iframe_template, config}`.  `version` / `iframe_template` change on every chart
+publish, so when the runtime chart skill is present the gate compares the product's values with
+its `config.js` instead of trusting any cached copy (a stale product is a finding, not a warning).
 
     python3 /workspace/skills/multi-clinical-result-comparison/scripts/check_report.py
     python3 /workspace/skills/multi-clinical-result-comparison/scripts/check_report.py --report /workspace/output/report.md \
@@ -35,6 +40,11 @@ VIS_REF_RE = re.compile(r"::visualization\[[^\]]*\]\{([^}]*)\}")
 PATH_ATTR_RE = re.compile(r'path\s*=\s*"([^"]+)"')
 FENCE_RE = re.compile(r"```")
 CHART_TYPE_BY_PREFIX = (("evidence-timeline", "timeline"), ("endpoint-bar-", "bar"), ("endpoint-line-", "line"))
+CHART_SKILL_NAME = "chart-component-layout-json-validation"
+ENVELOPE_KEYS = {"id", "version", "iframe_template", "config"}
+# Fields the upstream skill retired (v0.2.0): the source / reading-aid text now lives in
+# `config.notes` as a node array, never as flat strings.
+RETIRED_CONFIG_FIELDS = ("dataSource", "describe")
 CITATION_FIELDS = ("title", "link", "paper_release_time_str")
 LEAK_PATTERNS = (
     ("source_file", r"source_file"),
@@ -88,20 +98,55 @@ def _chart_number_tokens(text: str) -> list[tuple[str, float, int]]:
     return tokens
 
 
-def _chart_text_findings(name: str, option: dict) -> list[str]:
+def _runtime_envelope(chart_skill: Path) -> dict | None:
+    """Read id/version/iframe_template from the deployed chart skill's config.js, if present."""
+    try:
+        source = (chart_skill / "config.js").read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+    def literal(name: str) -> str | None:
+        match = re.search(rf"^\s*const\s+{name}\s*=\s*'([^']*)'", source, re.MULTILINE)
+        return match.group(1) if match else None
+
+    envelope = {"id": literal("SKILL_NAME"), "version": literal("VERSION"),
+                "iframe_template": literal("IFRAME_TEMPLATE")}
+    return envelope if all(envelope.values()) else None
+
+
+def _note_texts(notes) -> list[tuple[str, str]]:
+    """Flatten the `config.notes` node tree into (path, text) for the label + content nodes."""
+    found: list[tuple[str, str]] = []
+    if not isinstance(notes, list):
+        return found
+    for index, node in enumerate(notes):
+        if not isinstance(node, dict):
+            continue
+        for row_index, row in enumerate(node.get("rows") or []):
+            if not isinstance(row, dict):
+                continue
+            for col_index, col in enumerate(row.get("cols") or []):
+                if not isinstance(col, dict) or col.get("role") != "note-content":
+                    continue
+                if isinstance(col.get("markdown"), str):
+                    found.append((f"config.notes[{index}].rows[{row_index}].cols[{col_index}]", col["markdown"]))
+    return found
+
+
+def _chart_text_findings(name: str, config: dict) -> list[str]:
     """Return hard findings for plotted values repeated in chart prose."""
-    if str(option.get("type") or "").lower() == "timeline":
+    if str(config.get("type") or "").lower() == "timeline":
         return []
-    values = [row.get("value") for row in option.get("data", [])
+    values = [row.get("value") for row in config.get("data", [])
               if isinstance(row, dict) and isinstance(row.get("value"), (int, float))
               and not isinstance(row.get("value"), bool)]
     fields: list[tuple[str, str]] = []
-    for key in ("subTitle", "describe"):
-        if isinstance(option.get(key), str):
-            fields.append((f"option.{key}", option[key]))
-    for index, row in enumerate(option.get("data", [])):
+    if isinstance(config.get("subTitle"), str):
+        fields.append(("config.subTitle", config["subTitle"]))
+    fields.extend(_note_texts(config.get("notes")))
+    for index, row in enumerate(config.get("data", [])):
         if isinstance(row, dict) and isinstance(row.get("description"), str):
-            fields.append((f"option.data[{index}].description", row["description"]))
+            fields.append((f"config.data[{index}].description", row["description"]))
     for field, text in fields:
         for token, number, end in _chart_number_tokens(text):
             if "." not in token:
@@ -114,11 +159,11 @@ def _chart_text_findings(name: str, option: dict) -> list[str]:
     return []
 
 
-def _chart_table_findings(report: str, name: str, option: dict, references: list[re.Match[str]]) -> list[str]:
+def _chart_table_findings(report: str, name: str, config: dict, references: list[re.Match[str]]) -> list[str]:
     """Return hard findings for two plotted values repeated in a non-appendix section table."""
-    if str(option.get("type") or "").lower() == "timeline":
+    if str(config.get("type") or "").lower() == "timeline":
         return []
-    values = [float(row["value"]) for row in option.get("data", [])
+    values = [float(row["value"]) for row in config.get("data", [])
               if isinstance(row, dict) and isinstance(row.get("value"), (int, float))
               and not isinstance(row.get("value"), bool)]
     lines = report.splitlines()
@@ -238,6 +283,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--report", type=Path, default=Path("/workspace/output/report.md"))
     parser.add_argument("--citations", type=Path, default=Path("/workspace/output/citations.json"))
     parser.add_argument("--charts-dir", type=Path, default=Path("/workspace/visualizations"))
+    parser.add_argument("--chart-skill", type=Path, default=Path(f"/workspace/skills/{CHART_SKILL_NAME}"),
+                        help="deployed chart skill; its config.js is the envelope authority when present")
     parser.add_argument("--vis-prefix", default="/workspace/visualizations/",
                         help="required prefix of a ::visualization target (fixed at /workspace/visualizations/ "
                              "in the runtime; overridable only for a mirrored/test layout)")
@@ -369,6 +416,10 @@ def main(argv: list[str] | None = None) -> int:
         if not Path(target).is_file():
             findings.append(f"::visualization target does not exist: {target}")
     if args.charts_dir.is_dir():
+        runtime_envelope = _runtime_envelope(args.chart_skill)
+        if runtime_envelope is None:
+            warnings.append(f"deployed chart skill not readable at {args.chart_skill}; envelope version/"
+                            f"iframe_template cannot be cross-checked against it")
         for path in sorted(args.charts_dir.glob("*.json")):
             try:
                 payload = json.loads(path.read_text(encoding="utf-8"))
@@ -379,27 +430,43 @@ def main(argv: list[str] | None = None) -> int:
                 findings.append(f"{path.name}: chart product is not an object")
                 continue
             charts[path.name] = payload
-            if set(payload) != {"id", "iframe_template", "option"}:
-                findings.append(f"{path.name}: envelope keys must be exactly id/iframe_template/option "
-                                f"(got {sorted(payload)}) — a bare option object is invalid")
+            if set(payload) != ENVELOPE_KEYS:
+                findings.append(f"{path.name}: envelope keys must be exactly id/version/iframe_template/config "
+                                f"(got {sorted(payload)}) — a bare config object is invalid")
                 continue
-            if payload.get("id") != "chart-visualization-json":
-                findings.append(f"{path.name}: envelope id must be 'chart-visualization-json'")
+            if payload.get("id") != CHART_SKILL_NAME:
+                findings.append(f"{path.name}: envelope id must be {CHART_SKILL_NAME!r} "
+                                f"(got {payload.get('id')!r}); the retired chart-visualization-json envelope "
+                                f"is not accepted")
+            if not str(payload.get("version") or "").strip():
+                findings.append(f"{path.name}: empty version (it is refreshed on every chart publish)")
             if not str(payload.get("iframe_template") or "").strip():
                 findings.append(f"{path.name}: empty iframe_template (it is refreshed on every chart publish)")
-            option = payload.get("option")
-            if not isinstance(option, dict):
-                findings.append(f"{path.name}: option must be an object")
+            for field in ("version", "iframe_template"):
+                expected = (runtime_envelope or {}).get(field)
+                if expected and payload.get(field) != expected:
+                    findings.append(f"{path.name}: {field} does not match the deployed chart skill "
+                                    f"({payload.get(field)!r} != {expected!r}) — rebuild it with scripts/make_chart.py")
+            config = payload.get("config")
+            if not isinstance(config, dict):
+                findings.append(f"{path.name}: config must be an object")
                 continue
-            chart_type = str(option.get("type") or "").lower()
+            if config.get("kind") != "chart":
+                findings.append(f"{path.name}: config.kind must be 'chart' (got {config.get('kind')!r})")
+            retired = [field for field in RETIRED_CONFIG_FIELDS if field in config]
+            if retired:
+                findings.append(f"{path.name}: {', '.join('config.' + field for field in retired)} retired by "
+                                f"the upstream chart skill — move that text into config.notes source-note rows "
+                                f"(scripts/make_chart.py does this from the spec's description/dataSource)")
+            chart_type = str(config.get("type") or "").lower()
             expected_type = next((kind for prefix, kind in CHART_TYPE_BY_PREFIX if path.name.startswith(prefix)), None)
             if expected_type is None:
                 warnings.append(f"{path.name}: file name is outside the fixed product names")
             elif chart_type != expected_type:
-                findings.append(f"{path.name}: option.type is {chart_type!r}, expected {expected_type!r}")
-            data = option.get("data")
+                findings.append(f"{path.name}: config.type is {chart_type!r}, expected {expected_type!r}")
+            data = config.get("data")
             if not isinstance(data, list) or not data:
-                findings.append(f"{path.name}: option.data is empty — an empty chart is not a deliverable")
+                findings.append(f"{path.name}: config.data is empty — an empty chart is not a deliverable")
                 continue
             for index, row in enumerate(data):
                 if not isinstance(row, dict):
@@ -426,11 +493,11 @@ def main(argv: list[str] | None = None) -> int:
                         findings.append(f"{path.name}.data[{index}]: value is not numeric")
                     if not str(row.get("description") or "").strip():
                         findings.append(f"{path.name}.data[{index}]: empty description")
-            if chart_type == "timeline" and option.get("weightLegend") is not None:
+            if chart_type == "timeline" and config.get("weightLegend") is not None:
                 findings.append(
                     f"{path.name}: `weightLegend` is no longer rendered by the timeline chart — drop it and "
                     "state the maturity judgement in text")
-            if chart_type == "timeline" and option.get("legend") is not None:
+            if chart_type == "timeline" and config.get("legend") is not None:
                 findings.append(
                     f"{path.name}: the timeline chart renders no legend — `legend` would imply a "
                     "category/shape encoding that does not exist; drop it and name each state's category in "
@@ -448,16 +515,16 @@ def main(argv: list[str] | None = None) -> int:
 
     # Hard chart-duplication rules run only for referenced chart products.
     for name, payload in charts.items():
-        option = payload.get("option")
-        if not isinstance(option, dict) or name not in {Path(item).name for item in referenced}:
+        config = payload.get("config")
+        if not isinstance(config, dict) or name not in {Path(item).name for item in referenced}:
             continue
-        findings.extend(_chart_text_findings(name, option))
+        findings.extend(_chart_text_findings(name, config))
         chart_refs = []
         for match in VIS_REF_RE.finditer(report):
             path_match = PATH_ATTR_RE.search(match.group(1))
             if path_match and Path(path_match.group(1)).name == name:
                 chart_refs.append(match)
-        findings.extend(_chart_table_findings(report, name, option, chart_refs))
+        findings.extend(_chart_table_findings(report, name, config, chart_refs))
 
     # ---- soft content checks ---------------------------------------------------------
     for cell in _table_cells(report):

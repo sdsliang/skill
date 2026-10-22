@@ -319,6 +319,18 @@ def op_citations_distinct(sv: dict, spec: dict) -> tuple:
     return (ok, f"{spec['field']}s distinct={ok}")
 
 
+CHART_BODY_KEYS = ("config", "option")   # `option` only for replaying pre-2026-10 artifacts
+LEGACY_CHART_IDS = {"chart-visualization-json"}
+
+
+def chart_body(ch: dict) -> dict | None:
+    """The chart payload: `config` in the current envelope, `option` in archived artifacts."""
+    for key in CHART_BODY_KEYS:
+        if isinstance(ch.get(key), dict):
+            return ch[key]
+    return None
+
+
 def op_chart_envelope(sv: dict, spec: dict) -> tuple:
     if spec.get("pattern"):
         return _each_chart(op_chart_envelope, sv, spec)
@@ -331,37 +343,37 @@ def op_chart_envelope(sv: dict, spec: dict) -> tuple:
         return False, f"{spec['file']} missing"
     bad = []
     exp = spec["expect"]
-    if ch.get("id") != exp["id"]:
+    if ch.get("id") != exp["id"] and ch.get("id") not in LEGACY_CHART_IDS:
         bad.append(f"id={ch.get('id')!r}")
     tpl = str(ch.get("iframe_template") or "")
     if not re.match(exp["iframe_template_regex"], tpl):
         bad.append(f"iframe_template={tpl[:60]!r} does not match {exp['iframe_template_regex']}")
-    opt = ch.get("option")
-    if not isinstance(opt, dict):
-        bad.append("option missing")
+    opt = chart_body(ch)
+    if opt is None:
+        bad.append("config missing")
     else:
-        for k, v in exp["option"].items():
+        for k, v in exp.get("config", exp.get("option", {})).items():
             if opt.get(k) != v:
-                bad.append(f"option.{k}={opt.get(k)!r} want {v!r}")
+                bad.append(f"config.{k}={opt.get(k)!r} want {v!r}")
         data = opt.get("data")
         if not isinstance(data, list):
-            return False, "option.data must be a list"
+            return False, "config.data must be a list"
         if len(data) != exp["data_len"]:
-            bad.append(f"option.data len={len(data)} want {exp['data_len']}")
+            bad.append(f"config.data len={len(data)} want {exp['data_len']}")
         for row in data:
             if not isinstance(row, dict) or not isinstance(row.get("label"), str) or not row["label"].strip():
                 bad.append(f"empty label in data row {row}")
         for k in ("title",):
             if not str(opt.get(k) or "").strip():
-                bad.append(f"option.{k} empty")
-    return (not bad, "; ".join(bad) if bad else "envelope + option OK")
+                bad.append(f"config.{k} empty")
+    return (not bad, "; ".join(bad) if bad else "envelope + config OK")
 
 
 def _chart_rows(sv: dict, name: str) -> list | None:
     ch = sv["charts"].get(name)
     if not isinstance(ch, dict):
         return None
-    opt = ch.get("option")
+    opt = chart_body(ch)
     data = opt.get("data") if isinstance(opt, dict) else None
     return data if isinstance(data, list) else None
 
@@ -387,15 +399,20 @@ def op_charts_structural(sv: dict, spec: dict) -> tuple:
         if not isinstance(ch, dict):
             bad.append(f"{name}: chart is not an object")
             continue
-        if ch.get("id") != spec.get("chart_id", "chart-visualization-json"):
+        if ch.get("id") != spec.get("chart_id", "chart-component-layout-json-validation") \
+                and ch.get("id") not in LEGACY_CHART_IDS:
             bad.append(f"{name}: id={ch.get('id')!r}")
+        if "config" in ch and not str(ch.get("version") or "").strip():
+            bad.append(f"{name}: version missing")
         if not re.match(spec.get("iframe_template_regex", r"^https://\S+$"),
                         str(ch.get("iframe_template") or "")):
             bad.append(f"{name}: iframe_template is missing or not https")
-        opt = ch.get("option")
+        opt = chart_body(ch)
         if not isinstance(opt, dict):
-            bad.append(f"{name}: option missing or not an object")
+            bad.append(f"{name}: config missing or not an object")
             continue
+        if "config" in ch and opt.get("kind") != "chart":
+            bad.append(f"{name}: config.kind={opt.get('kind')!r}")
         if not isinstance(opt.get("title"), str) or not opt["title"].strip():
             bad.append(f"{name}: title missing")
         # Scenario A supports bar observations only; even illegal filenames must be inspected.
@@ -418,7 +435,7 @@ def op_charts_structural(sv: dict, spec: dict) -> tuple:
                 if not isinstance(row.get("description"), str) or not row["description"].strip():
                     bad.append(f"{name}[{i}]: description empty")
         elif "data" in opt and not isinstance(opt.get("data"), list):
-            bad.append(f"{name}: option.data is not a list")
+            bad.append(f"{name}: config.data is not a list")
     return (not bad, "; ".join(bad) if bad else f"{len(sv.get('charts', {}))} chart(s) structurally valid")
 
 
@@ -444,7 +461,7 @@ def op_chart_observations(sv: dict, spec: dict) -> tuple:
         return False, f"{name} has {len(rows)} rows; want {len(expected)} identified observations"
     used = set()
     bad = []
-    opt = sv["charts"][name]["option"]
+    opt = chart_body(sv["charts"][name]) or {}
     endpoint_context = " ".join(str(opt.get(k) or "") for k in ("title", "axisXTitle", "dataSource"))
     for i, row in enumerate(rows):
         if not isinstance(row, dict):

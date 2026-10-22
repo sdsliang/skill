@@ -1,10 +1,9 @@
 {
-  "_comment": "临床场景配置起点；成品协议与校验遵循上游 chart-visualization-json skill。",
+  "_comment": "临床场景配置起点（envelope.config 内层）；envelope（id/version/iframe_template）与 notes 由 scripts/make_chart.py 从运行期 chart-component-layout-json-validation skill 取得，时间轴渲染为竖向列表（节点等大等形、无图例），协议与校验以上游 skill 为准。",
+  "kind": "chart",
   "type": "timeline",
   "title": "TRAIN-2（NCT01996267）证据链时间轴",
   "subTitle": "同一试验证据披露与结果演进",
-  "dataSource": "所选记录的临床内容及按输入契约取得的同记录原文；交付时填写实际来源与分析深度",
-  "describe": "同一试验证据状态 ≥2 个时生成此图。数组顺序即时间顺序（自上而下），模板不重排；时间未知写「时间未明」，不得猜测。部署端时间轴渲染为竖向列表（时间 + 卡片），每个节点等大等形、不渲染图例；节点大小/形状/颜色都不作编码，成熟度与分类判断一律写进正文与节点文字。",
   "data": [
     { "time": "2013-12", "label": "研究启动（里程碑）", "content": "入组启动\n438 例 · 1:1 随机 · 荷兰 37 家中心", "description": "2013-12-09 起入组、2016-01-14 完成。" },
     { "time": "2016-08", "label": "早期毒性分析", "content": "FN 9% vs 0%\nG3-4 中性粒 53% vs 51%", "description": "110 例早期子集。" },

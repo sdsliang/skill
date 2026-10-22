@@ -618,7 +618,8 @@ class ContractTests(OfflineCase):
         self.assertTrue(any('final successful call' in name for name in self.failures()))
 
     def test_chart_targets_not_just_tag_counts(self):
-        chart = {'id': ts.ENVELOPE_ID, 'iframe_template': '/release/chart.html', 'option': {'type': 'bar'}}
+        chart = {'id': ts.ENVELOPE_ID, 'version': '0.2.0-beta.2', 'iframe_template': '/release/chart.html',
+                 'config': {'kind': 'chart', 'type': 'bar'}}
         self.files['visualizations/endpoint-bar-1.json'] = json.dumps(chart)
         self.files['output/report.md'] += '\n::visualization[Plot]{path="/workspace/visualizations/endpoint-bar-1.json"}'
         self.assertEqual(self.failures(), [])
