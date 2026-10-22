@@ -20,7 +20,7 @@ expected within the same Python/zlib implementation; cross-zlib identity is not 
 
 Usage
 -----
-    tools/pack-dist.py                # build dist/multi-clinical-result-comparison-v0.17.zip
+    tools/pack-dist.py                # build dist/multi-clinical-result-comparison-v0.18.zip
     tools/pack-dist.py --check        # rebuild in memory and compare with the dist file (no write)
 """
 
@@ -36,7 +36,7 @@ import zipfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "skill", "multi-clinical-result-comparison")
-VERSION = "v0.17"
+VERSION = "v0.18"
 OUT = os.path.join(REPO, "dist", f"multi-clinical-result-comparison-{VERSION}.zip")
 PREFIX = "multi-clinical-result-comparison/"
 STAMP = (2026, 9, 10, 0, 0, 0)

@@ -179,13 +179,15 @@ Charts are descriptive evidence views, not head-to-head proof, rankings, or pool
 
 ## External reference block (bounded)
 
-When a cluster's conclusion needs an anchor the selected records cannot supply, add **one** section
-`## 外部参照（非所选记录）` after the domain tables and **before the final conclusion section** (the conclusion
-may then cite it) — one line per source, the fixed opening sentence
+**Written by default** — the user does not have to ask (see *Default lookup* in `references/external-context.md`):
+run the one-C1-per-cluster lookup before the conclusion, and add **one** section `## 外部参照（非所选记录）`
+after the domain tables and **before the final conclusion section** (the conclusion may then cite it) whenever
+that lookup produced an alignable value — one line per source, the fixed opening sentence
 `外部参照仅用于背景校准，不构成头对头比较。`, and the `｜与本组的差异：…｜用途：…` shape. The closed question set
 (C1–C4), the tool arguments and the hard budget live in `references/external-context.md`; `check_report.py`
 enforces the placement (an external marker must not appear before the section or on any table line).
 
 This block is **not** an extra column of the comparison: it must not add a row to any domain table, must not
-carry a `解读边界` cell, must not appear in a chart, and must not be summarised as a leader. If a cluster has
-no alignable external anchor, write `本组未检索到可对齐的外部参照。` and keep the section free of sources.
+carry a `解读边界` cell, must not appear in a chart, and must not be summarised as a leader. If the default
+lookup yields no alignable anchor, **omit the section** and say nothing about the search; write
+`本组未检索到可对齐的外部参照。` only when the user explicitly asked for a reference and none exists.

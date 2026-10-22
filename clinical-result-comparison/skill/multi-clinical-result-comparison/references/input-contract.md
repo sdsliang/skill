@@ -332,7 +332,10 @@ The selected records are the evidence; an external **reference** is not. Exactly
 is defined in `references/external-context.md`: the C1–C4 closed question set (class baseline / standard-of-care
 anchor / same-drug other dose-or-timepoint / same-trial other disclosure), the narrow-filter argument shapes for
 the same `pharmcube-query-clinical-result-with-params` tool, the ≤3-per-cluster / ≤6-per-deliverable / ≤6-call
-budget, and the fixed `## 外部参照（非所选记录）` placement. This section owns its permissions and budget; no other
+budget, and the fixed `## 外部参照（非所选记录）` placement. **The permission is standing, not user-triggered**: the
+default lookup (one C1 per clinical-question cluster, plus one C2 when the selected trials name a standard-of-care
+comparator) runs whether or not the request asks for background, and is skipped only when the user forbids
+outside context. This section owns its permissions and budget; no other
 file may widen them. External values never enter the fact ledger, an alignment table, a chart or the appendix,
 and they never support a head-to-head or a class-level verdict.
 

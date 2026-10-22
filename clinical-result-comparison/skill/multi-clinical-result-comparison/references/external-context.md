@@ -11,6 +11,29 @@ boundary and owns this channel's permissions and budget. Nothing here relaxes th
 
 ## The four admissible questions (closed set)
 
+**This channel is on by default.** The user message never has to ask for it: nobody types «另外给个参照» into a fixed
+product prompt. Unless the user explicitly forbids outside context, run the default lookup below once per
+clinical-question cluster, before writing the conclusion. It is a step of the deliverable, not an optional extra.
+
+### Default lookup (and its own smaller budget)
+
+| Step | What | Budget |
+|---|---|---|
+| D1 | one **C1** call per clinical-question cluster (the class baseline) | 1 call per cluster, ≤2 calls per deliverable |
+| D2 | one **C2** call when the selected trials name the standard-of-care comparator on the same endpoint | 1 call per deliverable |
+
+`C3` / `C4` are **not** part of the default lookup — they are used only when the material itself raises that
+question (a dose gap the selected records leave open, an earlier disclosure of the same trial). One call per
+question, never a second attempt with looser filters.
+
+The hard ceiling is unchanged (≤3 per cluster, ≤6 per deliverable, ≤6 tool calls, ≤2 web calls) — the default
+lookup is the subset that runs without being asked.
+
+**If nothing alignable comes back, omit the section entirely.** Default-on does not mean "always show a block":
+a `本组未检索到可对齐的外部参照。` line in every ordinary report is noise, and the search itself is never
+reported. Write the `## 外部参照（非所选记录）` section only when at least one C1/C2 value is alignable, and say
+nothing anywhere else about what was or was not found.
+
 Ask an external question only when it falls in one of these four **and** its answer carries an alignable
 number (same metric family, stateable time point). Anything else stays out of the report.
 
@@ -64,7 +87,7 @@ a database summary page or an AI answer — and never to obtain a number the str
 - **≤6** external sources per deliverable;
 - **≤6** external tool calls in total (channel 2 ≤2 of them);
 - a source that yields no alignable number is **not** written into the report;
-- budget exhausted or nothing alignable → write `本组未检索到可对齐的外部参照。` and stop. The search is not
+- budget exhausted or nothing alignable → **omit the section** (default lookup) and stop. The search is not
   continued under a different wording, and an oversized payload is not re-queried.
 
 ## Provenance: the same chain, a separate block
@@ -87,7 +110,8 @@ link is the audit trail — do not add these values to the fact rows.
 
 ## Placement (mechanically enforced by `check_report.py`)
 
-Exactly one section, placed after the comparison sections and **before the final conclusion section** (so the
+Exactly one section — **written whenever the default lookup produced an alignable value, and whenever the user
+asked for a reference** — placed after the comparison sections and **before the final conclusion section** (so the
 conclusion may point at it), and never inside the appendix:
 
 ```markdown
@@ -118,7 +142,8 @@ Rules:
 
 | Situation | What the report says |
 |---|---|
-| nothing alignable found | `本组未检索到可对齐的外部参照。` |
+| nothing alignable found (default lookup) | **omit the section**; no sentence about the search anywhere |
+| nothing alignable found although the user asked for a reference | `本组未检索到可对齐的外部参照。` |
 | payload too large / filter too wide | stop; write nothing for that question |
 | two external sources disagree | cite the primary one and state the divergence inside that entry line; never resolve it with a claim |
 | only non-primary sources available | treat as unavailable |

@@ -512,6 +512,12 @@ class ExternalReferenceTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 3, proc.stdout)
         self.assertIn("missing `用途：`", proc.stdout)
 
+    def test_omitting_the_block_when_nothing_is_alignable_is_fine(self):
+        # Default-on lookup, empty result: the section is dropped entirely, the report stays green.
+        proc = self.run_case(block="## 结果（续）\n\n本组读数见上。\n", conclusion="本组读数不支持外推{{ref_1}}。",
+                             selected_only=True)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
     def test_a_block_holding_no_external_marker_fails(self):
         proc = self.run_case(block=f"## 外部参照（非所选记录）\n\n{self.CAVEAT}\n",
                              conclusion="没有外部锚点时只能写本组读数{{ref_1}}。", selected_only=True)
