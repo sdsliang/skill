@@ -90,7 +90,7 @@ python3 scripts/prep_sources.py --esids … --full --quiet
 **Digest 样式（直接读这份输出；数值已在其中，不要再打开 `work/sources/ref_n.txt` 手动提取数字）：**
 
 ```
-# 记录清单（2 条；来自 /workspace/tool_results/…/result.jsonl）
+# 记录清单（2 条；来自 tool_results/<调用目录>/result.jsonl）
 
 ## ref_1 · esid=a1b2c3d4 · 正文 1820 字
 title: HARMONi-6: ivonescimab plus chemotherapy versus pembrolizumab plus chemotherapy…

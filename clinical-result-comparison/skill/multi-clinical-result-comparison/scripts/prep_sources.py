@@ -3,7 +3,8 @@
 """Turn one bulk record pull into per-record source files and a ref inventory.
 
 The pull (the `pharmcube-query-clinical-result-with-params` tool result) is persisted by
-the runtime under `/workspace/tool_results/<tool-name>/call_*.jsonl`, one JSON record per
+the runtime under `tool_results/<tool-name>/call_<id>.jsonl` (i.e. `<workspace>/tool_results/...`;
+never quote the absolute prefix with a placeholder component), one JSON record per
 line.  This script is the only supported way to turn that payload into the material the
 later steps consume:
 
@@ -20,7 +21,7 @@ Usage
 -----
     python3 /workspace/skills/multi-clinical-result-comparison/scripts/prep_sources.py --esids 24_1_36342163,24_1_30561610
     python3 /workspace/skills/multi-clinical-result-comparison/scripts/prep_sources.py --esids-file work/selected.txt --full
-    python3 /workspace/skills/multi-clinical-result-comparison/scripts/prep_sources.py --result /workspace/tool_results/<tool>/call_x.jsonl \
+    python3 /workspace/skills/multi-clinical-result-comparison/scripts/prep_sources.py --result tool_results/<tool>/call_x.jsonl \
         --esids 24_1_36342163 --sources-dir work/sources --refs work/refs.json
 
 Exit codes: 0 every requested esid was found; 3 some requested esids were not in the pull;

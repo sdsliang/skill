@@ -1,3 +1,33 @@
+## R74/R75 — 图表协议换成 chart-component-layout-json-validation（2026-10-22）
+
+- **协议**：envelope `{id, version, iframe_template, config}`；`describe`/`dataSource` 退场 → `config.notes`
+  （`source-note` → `source-note-row` → `note-label`/`note-content`）；envelope 三件套**运行期**从部署端
+  `config.js` 读（禁止硬编码，旧构建模板 URL 会被删）；`chart-visualization-json` 旧 id 直接判失败。
+- **改动面**：`make_chart.py` 重写（spec 只写内容、config 骨架取本 skill `templates/charts/`、timeline 拒
+  `weight`/`weightLegend`/`legend`）、`check_report.py` 四键 + 与运行期 `config.js` 全等校验、
+  `templates/charts/` 重写 + 新增 `evidence-timeline.json`、8 文档 + prompt v0.16 改名重写、
+  evals 同步（`expect.config`；历史 run 只读兼容 `CHART_BODY_KEYS=("config","option")`）、
+  runner envelope 校验升四键。
+- **发布**：in-place，prompt **v1.8** 82,413 B `0566cd265955`；skill **v1.0.9** 29/29；
+  dist **189,246 B / `bb7a43c1291e`**；`deps --accept`；`status` in sync。
+- **R74（第一批，改前红）**：三跑同一条 `tool_results receipts archived` FAIL，根因是
+  `references/toolbox.md` digest 范例里的 `/workspace/tool_results/…/result.jsonl`（模型读了该文件 →
+  文档文字进 durable tool result → runner 当真实指针 fail-closed）。**推翻历史「平台侧 P-R53-1」定性**。
+  修：范例改相对 `tool_results/<tool>/<call>.jsonl`；新增 `ShippedTextReceiptPathTests`（O52）。
+- **R75（修后重跑）**：三跑 **23P/0F**；`receipts archived` 全 PASS。新暴露 runner 解析 bug：
+  `load_skill` 清单把 <1 KB 文件渲染成 `(873 B)`，旧正则只认 `KB` ⇒ 假 `missing`（O53），
+  修 `manifest_rows()`（接受 B/KB/MB），`test-runner` 48 → 49，并用存档清单文本离线复算 28/28 PASS。
+- **耗时**（wall，server/polled）：R74 343.1/344.5、499.2/498.4、479.3/483.4 s；
+  **R75 267.6/266.8、425.6/432.0、357.4/360.2 s**；三组并行，批次墙钟 R74 ≈ 8.3 min、R75 ≈ 7.2 min；
+  工具调用 26 / 50 / 47（R74：46 / 64 / 53）。均值 440.5 → 350.2 s，**不据此称提速**。
+- **产物核验**：三 envelope 键集恰四键、`id`/`version`/`iframe_template` 与部署端 `config.js` 一致、
+  `config.notes` 中文标签正确、无 `describe`/`dataSource` 残留、`validation: pass` ×3。
+- **闸门**：skill-scripts 69 / check-report 31 / runner 49 / scorer 37 / tell-scan 10 / build-ledger 9 /
+  render-facts 32 / pack-dist 5 / replay 14 / node 16 / mutations 44+12 / run-chain PASS
+  ⇒ 合计 **240**（含 numeric-integrity **272**）；`pack-dist --check` IDENTICAL。
+- **未做**：en 语言真跑（仅本地/demo 覆盖）、场景 A/B 未重跑（44/12 事实分沿用 R72 基线）。
+- **台账**：`docs/toolsmith-verification-log.md` R74 / R75。
+
 ## R73 — runner 断言按仓库 profile 化（O54）（2026-10-20）
 
 - **O54（runner 假阳性，已修）**：`deployed support-file manifest matches local` 把平台 `SKILL_METAFILE_NAMES`

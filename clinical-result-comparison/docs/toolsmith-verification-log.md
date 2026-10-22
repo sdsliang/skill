@@ -3145,3 +3145,96 @@ $ toolsmith-publish deps --accept && toolsmith-publish deps
 **改动**（备份 `~/.local/state/toolsmith-publish/toolsmith-publish.v20261020-201500.bak`）：由 `need` 派生 `report_rel = next((p for p in sorted(need) if p.endswith(".md")), "output/report.md")`，两处都用它。对比技能 `deliverables` 缺省仍是 `output/report.md` + `output/citations.json` ⇒ `report_rel` 不变，行为零变化。
 
 **验收**：`py_compile` OK；`test-runner.py` **48/48 OK**；随后 10 并发真跑（另一项目）全部 `23 PASS / 0 FAIL`。
+
+## R74 — 图表协议换到 chart-component-layout-json-validation + 三组真跑（2026-10-22，改前红）
+
+**触发**：用户要求把图表能力从旧 `chart-visualization-json` v1.0.12 全局就地替换为
+`http://39.106.82.157:36688/skills/eb54b2fb38554dcea5ee81d95dbbae99`
+（`chart-component-layout-json-validation` v1.0.0，family `29c0dfd62c984241b7481b67991be29b`），并做 TypeScript 侧真跑。
+
+**这不是改名，是换协议**：
+
+| 维度 | 旧 | 新 |
+|---|---|---|
+| envelope | `{id, iframe_template, option}` | `{id, version, iframe_template, config}` |
+| 正文容器 | `option` | `config`（`kind: "chart"` 必填） |
+| 说明/来源 | `describe` / `dataSource` 字段 | `config.notes` 节点数组（`source-note` → `source-note-row` → `note-label`/`note-content`） |
+| 版本权威 | 无（硬编码 URL 即可） | **运行期**读部署端 `config.js` 的 `SKILL_NAME`/`VERSION`/`IFRAME_TEMPLATE` |
+
+**改动清单（21 文件 / +455 −178，提交 `558cf81`）**：`make_chart.py` 重写（spec 只写内容、`option`/`config`/`notes`
+一律 exit 3；envelope 三件套运行期取；`notes` 按 `language` 渲染；写后跑上游 `validate-cli.js`）、
+`check_report.py` 四键硬校验 + 与运行期 `config.js` 全等（stale 即硬错、不可读降级 WARN）、
+`templates/charts/{endpoint-bar,endpoint-line}.json` 重写 + 新增 `evidence-timeline.json`、
+8 个文档 + prompt v0.16（4 处）改名重写、evals 同步（`scenario-a.facts.json` 改 `expect.config`，
+`check.py` 增 `CHART_BODY_KEYS=("config","option")` + `LEGACY_CHART_IDS` 做**存档只读兼容**）、
+`toolsmith-publish` envelope 升四键。
+
+**发布（in-place）**：prompt **v1.8** 82,413 B sha `0566cd265955`；skill **v1.0.9** 29/29；
+dist **29 entries / 189,246 B / `bb7a43c1291e`**；`deps --accept`（依赖新增新图表 skill）；`status` in sync。
+
+**第一批三组（改前红）**：`r74-fixed-{1,2,3}`（4/18/14 esid，并发 10）——内容门禁全过，但**三跑同一条 FAIL**：
+
+```
+[FAIL] tool_results receipts archived
+       4/5 final durable pointers … /workspace/tool_results/…/result.jsonl: unsafe or unsupported receipt path
+```
+
+**根因（我方文本，不是平台）**：`references/toolbox.md` 的 digest 范例把收据路径写成
+`` `/workspace/tool_results/…/result.jsonl` ``；模型 `read_file` 读了该文件，文档原样进入 durable tool result，
+runner 的收据扫描把带 `…` 的**假绝对路径**当真实指针并 fail-closed。
+⇒ **推翻 R53 起记的「平台侧 `P-R53-1`」定性**：它是我们自己的范例文字，runner 行为是对的。
+
+**修法**：`toolbox.md` / `input-contract.md` / `prep_sources.py`（2 处）/ prompt 里的收据范例改**相对路径**
+`tool_results/<tool>/<call>.jsonl`（不写 `/workspace/tool_results/` + 占位符），并加静态回归
+`ShippedTextReceiptPathTests`（`CONCRETE = ^/workspace/tool_results/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+\.[A-Za-z0-9]{1,8}$`；
+扫 SKILL.md + references + templates + scripts + **仅最新** prompt —— v0.15 仍含旧串，故按数值序取最大版本）。
+`test-skill-scripts.py` 68 → **69**；重打 dist `bb7a43c1291e` 并原地重发。
+
+## R75 — 修后三组真跑（2026-10-22，全绿）
+
+| 组 | esid | wall（server / polled） | 工具调用 | 产物 | 断言 |
+|---|---|---|---|---|---|
+| `r75-fixed-1` | 4 | **267.6 / 266.8 s** | 26 | `evidence-timeline.json`（2 节点） | **23 PASS / 0 FAIL** |
+| `r75-fixed-2` | 18 | **425.6 / 432.0 s** | 50（1 次 args-refused 后重发） | `endpoint-bar-1.json`（4 行） | **23 PASS / 0 FAIL** |
+| `r75-fixed-3` | 14 | **357.4 / 360.2 s** | 47 | `endpoint-line-1.json`（6 行） | **23 PASS / 0 FAIL** |
+
+三组并行（同一 project），批次墙钟 ≈ **7.2 min**（R74 批次 ≈ 8.3 min）。均值 440.5 → 350.2 s ——
+但 n=3、且 R74 批次含收据误判的返工，**按纪律不称提速**。
+
+**耗时全表（含 R74）**：R74 343.1/344.5、499.2/498.4、479.3/483.4 s（46/64/53 次调用）；
+R75 见上表。prompt 部署 sha 三跑恒 `64a5e4047f8c`（79,836 ch + 平台尾 12,415 ch），证明跑的是本轮字节。
+
+**产物逐份核验（新协议）**：
+
+- envelope 键集恰 `['config','id','iframe_template','version']`；
+- `id = chart-component-layout-json-validation`、`version = 0.2.0-beta.2`、
+  `iframe_template = https://vcdn.pharmcube.com/ai-charts-html/test/20261019-174655/iframe-template.json`
+  —— 与部署端 `config.js` 全等 ⇒ **运行期取值生效，非硬编码**；
+- `config.kind = chart`、`config.type` = timeline / bar / line，`data` 2 / 4 / 6 行；
+- `config.notes` 两条 `note-label` 为「说明：」「数据来源：」，`config.describe` / `config.dataSource` 残留 **0**；
+- `make_chart.py` 三跑均 `validation: pass`、`CHART_EXIT=0`；
+- 报告 `::visualization` 各 1 处，与产物文件一一对应（runner 的图表断言 PASS）。
+
+**新暴露的 runner bug（我方 runner，已修）**：三跑唯一 FAIL 是
+`deployed support-file manifest matches local (26 files) — missing=['templates/charts/endpoint-bar.json',
+'templates/charts/endpoint-line.json']`。两份文件**在包里、在清单里**（平台渲染为 `(873 B)` / `(916 B)`），
+但 `check_run` 的清单正则只认 `(<n> KB)` —— **<1 KB 的行被静默丢弃**，于是看起来"缺文件"（**O53**）。
+slim 骨架（873/916 B）是本轮才出现的，所以历史 26/28 文件跑从未触发。
+
+修：新增 `manifest_rows(body, skill_name)`，接受 `B|KB|MB` 并统一归一为 KB（`873 B → 0.8525 KB`），
+`check_run` 改用它；`test-runner.py` 48 → **49**。**离线回证**：取三份 R75 存档 `load_skill` 清单原文
+（各行含 `(873 B)`）用新解析器复算 → `rows=28 expected=28 PASS` ×3，即修后三跑该条会 PASS，无需再花三次真跑。
+
+**闸门**：skill-scripts **69** / check-report 31 / runner **49** / scorer **37** / tell-scan 10 /
+build-ledger 9 / render-facts 32 / pack-dist 5 / replay 14 / node 16 / mutations a 44/44 + b 12/12 /
+`verify-run-chain GATE: PASS` ⇒ 合计口径 **240**（含 numeric-integrity **272**）；
+`pack-dist --check` **IDENTICAL** 189,246 B `bb7a43c1291e`。
+
+**两栏记账**：
+
+- **我方能改的（已改）**：① O52 收据范例假绝对路径（三跑 FAIL，已改文本 + 静态回归，R75 转 PASS）；
+  ② O53 清单 <1 KB 解析漏洞（runner，已修 + 单测 + 存档文本离线复算）。
+- **平台侧**：本轮 **0 条新增**；同时**撤回**历史 `P-R53-1`（定性错误，见上）。
+
+**边界**：协议只在中/英文本地单测 + demo 覆盖，真跑三组全为 zh；场景 A/B 未重跑（44/12 事实分沿用 R72）；
+`evidence-timeline` 的 label 长度 WARN 阈值（18/16 字）尚未在真跑中触发，留观察。

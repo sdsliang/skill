@@ -103,6 +103,25 @@ class ReceiptTests(OfflineCase):
         self.assertEqual(result['failed'], 1)
         self.assertFalse((self.root / 'run.json').exists())
 
+    def test_manifest_rows_accept_byte_sized_files(self):
+        # R74/R75: `load_skill` renders sub-1 KB support files in bytes (`(873 B)`). The previous
+        # `(<n> KB)`-only pattern dropped those rows and reported them as `missing=[...]` on every
+        # run, which looked like a deploy failure even though the bundle had the files (O53).
+        body = ('## Support files\n'
+                '- /workspace/skills/multi-clinical-result-comparison/templates/charts/endpoint-bar.json (873 B)\n'
+                '- /workspace/skills/multi-clinical-result-comparison/templates/charts/endpoint-line.json (916 B)\n'
+                '- /workspace/skills/multi-clinical-result-comparison/templates/charts/evidence-timeline.json (1.2 KB)\n'
+                '- /workspace/skills/other-skill/ignored.json (5 B)\n')
+        rows = ts.manifest_rows(body, 'multi-clinical-result-comparison')
+        self.assertEqual([rel for rel, _ in rows],
+                         ['templates/charts/endpoint-bar.json',
+                          'templates/charts/endpoint-line.json',
+                          'templates/charts/evidence-timeline.json'])
+        self.assertAlmostEqual(rows[0][1], 873 / 1024, places=6)
+        self.assertAlmostEqual(rows[1][1], 916 / 1024, places=6)
+        self.assertAlmostEqual(rows[2][1], 1.2, places=6)
+        self.assertEqual(ts.manifest_rows('', 'multi-clinical-result-comparison'), [])
+
     def test_directory_mentions_are_not_receipts(self):
         self.assertEqual(ts.receipt_diagnostics('/workspace/tool_results/query/'), [])
         self.assertEqual(ts.receipt_diagnostics('File: ' + POINTER + '.'), [POINTER])

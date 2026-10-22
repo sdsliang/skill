@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -839,6 +840,41 @@ class Sandbox(unittest.TestCase):
         payload = json.loads(paths["citations"].read_text(encoding="utf-8"))
         refs = json.loads(self.refs.read_text(encoding="utf-8"))
         self.assertEqual(payload["ref_1"]["title"], refs["ref_1"]["title"])
+
+
+class ShippedTextReceiptPathTests(unittest.TestCase):
+    """R74: shipped text must not fake an absolute receipt path.
+
+    The runner scans durable tool results for `/workspace/tool_results/<call>/<file>` pointers and
+    fails closed ("unsafe or unsupported receipt path") on anything that is not a concrete two-part
+    path.  Our own `references/toolbox.md` digest example used `/workspace/tool_results/<ellipsis>/
+    result.jsonl`; the model read that file, the doc text landed in a durable tool result, and all
+    three fixed-group runs failed on a path that never existed.  Examples must therefore name the
+    directory relatively (`tool_results/<tool>/<call>.jsonl`), never with the absolute prefix plus a
+    placeholder.
+    """
+
+    CONCRETE = re.compile(r"^/workspace/tool_results/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+\.[A-Za-z0-9]{1,8}$")
+    TOKEN = re.compile(r"/workspace/tool_results/[^\s\"'`<>(){}\[\],;\u3000-\u303f\uff00-\uffef]*")
+
+    def shipped_files(self) -> list[Path]:
+        files = [SKILL / "SKILL.md"]
+        files += sorted((SKILL / "references").glob("*.md"))
+        files += sorted((SKILL / "templates").rglob("*.md"))
+        files += sorted((SKILL / "scripts").glob("*.py"))
+        prompts = sorted((REPO / "system-prompts").glob("*v*.md"),
+                         key=lambda p: tuple(int(n) for n in re.findall(r"v(\d+)\.(\d+)", p.name)[0]))
+        files.append(prompts[-1])         # only the newest prompt is published
+        return files
+
+    def test_no_placeholder_absolute_receipt_path(self) -> None:
+        offenders = []
+        for path in self.shipped_files():
+            text = path.read_text(encoding="utf-8")
+            for token in self.TOKEN.findall(text):
+                if not self.CONCRETE.match(token):
+                    offenders.append(f"{path.relative_to(REPO)}: {token}")
+        self.assertEqual(offenders, [], "shipped text quotes a non-concrete receipt path")
 
 
 if __name__ == "__main__":

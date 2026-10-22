@@ -272,7 +272,7 @@ Whole-run cap: **40** `web_fetch` calls. If the selection is larger than the bud
 that carry the key conclusions first and state the coverage. A failed fetch is dropped — no retry, no alternative route,
 no substitute URL — and the record is named as not re-checked at that depth (its source-side property, not
 the failure itself). `web_fetch` writes each response under
-`/workspace/tool_results/web_fetch/…`: copy what you need to `/workspace/sources/<esid>.<route>.json|md|xml`
+`tool_results/web_fetch/<call_id>.md`（运行期绝对前缀下的同一目录；引用时不要写带占位符的绝对路径）: copy what you need to `/workspace/sources/<esid>.<route>.json|md|xml`
 (that path is archived with the run, so the evidence stays auditable) and **digest it with a script** —
 never paste a response body into the context.
 
@@ -439,7 +439,7 @@ original-source checks, retrieval budget and depth labels when extraction is del
   number/uuid shapes) put the **ClinicalTrials.gov structured-results JSON** in that same field
   (measured medians 30–60 K chars, max 1.9 M, 77 % of that slice being JSON rather than prose). A 6–8
   esid selection therefore says nothing about payload size: persist the payload (the bounded call
-  writes it under `/workspace/tool_results/…`) and digest the file with a script, pulling bodies
+  writes it under `tool_results/<tool>/<call>.jsonl`) and digest the file with a script, pulling bodies
   straight into context only when they are already known to be abstract-sized. Delegation is a
   context-bounding device for genuinely heavy payloads (or for a persisted file a script cannot digest),
   not a default for every selection above 5.
