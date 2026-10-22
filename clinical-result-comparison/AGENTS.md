@@ -1,5 +1,27 @@
 # AGENTS.md — 常驻 program.md（autoresearch 循环）
 
+## R77 / R77b（2026-10-22，外部参照默认开启 + 两处面向读者的泄漏）
+
+**R77**：用户指出产品后端 prompt 固定，不能靠用户多说一句「另外给个背景参照」，要求默认带。
+`references/external-context.md` 新增 *Default lookup*：每临床问题组 1 次 C1、所选试验点名已批准对照时 1 次 C2，
+**不需要用户开口**；无可对齐值 → **整节省略**（「未检索到」只在用户明确要参照且没有时才写）；C3/C4 仍不默认。
+同步 SKILL.md 路由 13 / input-contract.md（「常设权限，非用户触发」）/ cross-trial-comparison.md / prompt v0.18。
+
+**R77b**（用户拿线上分享报告 `chat/share/c00cc6e3-…` 指出两处）：两处**都是我方代码/文本**，不是模型的错：
+
+1. **附录表头裸 `ref_N`**：`render-facts.py::_column_header` 的单试验多披露分支输出 `**<版本标签>**<br>ref_1`。
+   前端只替换 `{{ref_n}}` 标记形，裸 token 直出给读者。已改为 `{{ref_n}}` 标记形（无标签时 `**{{ref_n}}**`），
+   并同步 SKILL.md / 4 份 template / toolbox.md 的表头形态说明；`check_report.py` 新增 **bare ref token 闸门**
+   （`BARE_REF_RE` 排除 `{{…}}`，命中即 FAIL 并报行号）。核对线上报告：交付物里裸 token **只有表头这一行**。
+2. **`用途：C1类内基线`**：这是我们 reference 里写死的内部代号词汇。改为自然语言闭集
+   （同类药物在这一人群的通常水平 / 已获批治疗在同一终点的水平 / 区分药物本身与剂量或时点的差别 / 核对本试验此前的披露），
+   中英同规；`check_report.py` 新增 `EXTERNAL_USE_CODE_RE`，`用途：`/`Use:` 值出现 `C1`–`C4` 直接 FAIL。
+
+**闸门**：check-report **41 → 43**（新增「用途写成代号」「裸 ref token」两条 + 省略节仍绿），
+render-facts 期望改标记形（32 OK）；runner 49 / scorer 37 / skill-scripts 75 / tell-scan 10 / build-ledger 9 /
+pack-dist 5 / replay 14 / node 16 / mutations PASS / verify-run-chain PASS。dist **v0.18 200,097 B `a5b60c411283`**。
+提交 `571d192`（R77）+ `2d8e5a9`（R77b），已推。**v0.18 尚未发布**（等授权）。
+
 ## R76 完成（2026-10-22，**受控外部参照通道**；新版本发布 + 4 次真跑全绿）
 
 **单变量 / 用户原话**：*「让它能有限客观拓展，不能只看我给的 ID」* → 在所选记录之外引入**有界、客观**的对照证据。
