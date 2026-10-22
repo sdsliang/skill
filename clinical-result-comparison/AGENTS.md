@@ -1,6 +1,6 @@
 # AGENTS.md — 常驻 program.md（autoresearch 循环）
 
-## R80 完成（2026-10-22，新增「在研同类试验」模块，代码 + 文档 + 测试全绿；未发布）
+## R80 完成（2026-10-22，在研同类试验模块：原地发布 + 三组真跑 3/3 触发）
 
 用户要求补一块结果记录回答不了的视角：**同类里还在跑、还没读出结果的试验**。实现按「与外部参照分立」设计，不复用任何状态或闸门。
 
@@ -16,7 +16,11 @@
 
 **文档 / 版本**：新建 `references/ongoing-trials.md`（三态 + 参数坑 + 预算 + 呈现/禁止项 + 与 `external-context.md` 分工）；`toolbox.md` 新增 1b 节；`SKILL.md` 路由 14 + evidence boundary 一句；`external-context.md` 加「下一节不同任务」指路；prompt **v0.21**（92,599 B，`git rm` v0.20）；`pack-dist.py VERSION=v0.21 / EXPECTED=32`，dist **218,176 B `ac302a18450b`**。
 
-**未做**：发布（需用户授权）+ R80 三组真跑。
+**发布（原地）**：prompt v1.9 ← 本地 v0.21；skill v1.0.10 ← 32 条目（32/32 identical）；dist **218,181 B `48af91e78b02`**；`status` → in sync。第一次 publish 传的是旧 zip（我在打包后又改了 `trial_watchlist.py`/`toolbox.md` 的 glob 串），`status` 报 `30 identical / 2 differing` 才暴露 —— **改完任何进 zip 的文件必须重建 dist**。
+
+**R80 三组真跑**（同题 4/18/14、并发 3、`DeepSeek Flash`）：墙钟 368.2 / 476.0 / 487.5 s；MCP 调用 result/trial = 3/1、3/1、2/2；`work/watchlist.json` 三组全 `listed`（3 / 5 / 3 条），区块 `## 在研同类试验（尚未读出）` **3/3 出现**且位置正确（域表后、结论前），引用 `ref_6..8` / `ref_20..24` / `ref_15..17` **全部被引用且只出现在本区块内**，无预测词，附录/图表/账本无一条在研试验。断言 **23 PASS / 0 FAIL ×3**（含新增的两组闸门）。副作用：run2 in-run 触发裸 `ref_1` 闸门、run3 触发语域闸门，均当场修好 —— 闸门在生产里确实抓得到东西。
+
+**未闭合**：run3 用了 2 次 trial-v2（预算上限，仍合规）；中国登记号日期未人工核对。
 
 ## R77 / R77b（2026-10-22，外部参照默认开启 + 两处面向读者的泄漏）
 

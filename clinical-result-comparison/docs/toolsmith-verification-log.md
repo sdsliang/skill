@@ -3376,3 +3376,78 @@ render-facts 32 / pack-dist 5 / replay 14 / node 16 / mutations a 44/44 + b 12/1
 * `work/external.json` 只保留**最后**一次演进的状态：run2 出现 `refs_added=[ref_20]`，而 `ref_19` 是更早一次 append 加的（文件被后者覆盖）。要看全过程得读 `refs.json` 的 `origin` 分布。后续可改为 `steps[]` 累积，不急。
 * run1/run3 的 `none_alignable` 是否都诚实（pull 里确实无可对齐读数）尚未逐条核对 pull 文件；下一步抽查即可。
 
+
+## R80 — 新增「在研同类试验」模块（2026-10-22，原地发布 + 三组真跑 3/3 触发）
+
+用户要的视角是结果记录给不了的：**同类里还在跑、还没读出结果的试验**。与外部参照**分立**实现，理由写在代码与文档里——外部参照要「可对齐数值」，因此只可能返回已有结果的研究；在研试验要的恰恰是「没有结果」，两者准入互斥。
+
+### 探针（5 轮，`wl-probe` ~ `wl-probe6`，都在 `~/.local/state/toolsmith-runs/`）
+
+| 轮次 | 探针内容 | 结论（红 → 可用） |
+|---|---|---|
+| 0 | `20261022-154048-wl-probe` | 0 次调用 + `[FAIL] deployed skill == local tree` ⇒ 当时项目 tools 只有 1 个 MCP 工具，模型运行时**看不到** trial-v2。用户加工具后复测通过。 |
+| 1 | 数组形式 `trial_phase`/`trial_status` | **schema 拒绝数组**，3 次调用全空 ⇒ 两者必须是**单值字符串** |
+| 2 | 递进收窄 base = PD-1 + NSCLC | 10000（`drug_target_names` 截断 12704）→ 2196（+适应症）→ 656（+`trial_status="招募中"`）→ **0**（+`trial_therapy_line="一线治疗"` & `trial_has_result=false`） |
+| 3 | `nct_ids=["NCT07186101"]` 单试验 | **630 行**：药 × 终点 × 5 个登记平台 × 时间线**笛卡尔展开**；唯一 trial 1 个 ⇒ **行数不是试验数** |
+| 4 | 三项「本地筛」验证 | `trial_has_result="否"` → 空；`trial_therapy_line="一线"` → 空；`drug_is_primary=true` → 空 |
+| 5 | 同上换值 | `trial_has_result="是"` / `drug_is_primary="是"` → `Input should be a valid boolean`；`endpoint_type="主要终点"` → 955；`trial_phase="Phase III"` → 272 |
+
+**服务端可用过滤面**：`drug_target_names` / `trial_indication_names` / `trial_phase`（单值）/ `trial_status`（单值）/ `nct_ids` / `trial_type` / `trial_countries` / `trial_center_type` / `trial_biomarkers` / `drug_modality_names` / `drug_names` / `child_*_included`。
+**服务端不可用（必须本地筛）**：`trial_has_result`、`trial_therapy_line`、`drug_is_primary`。
+
+探针 3 的真实分布（630 行 / 1 trial）：`trial_status` 全「招募中」、`trial_has_result` 全「否」、`drug_is_primary` 420「是」/210「否」、五平台各 126 行、`timeline_date` 全 int、`trial_therapy_line` 全 `[]`、`nct_ids` 里混开发代号（`TOPAZ-UC`、`J6E-MC-KWAN`）。
+
+### 实现
+
+| 层 | 改动 |
+|---|---|
+| 新脚本 | `scripts/trial_watchlist.py`（~330 行）：`SELECTED_FIELDS` 13 条试验级字段；按 `trial_id` 去重 → 本地应用 status/has_result/phase/exclude → 首选链接按 `REGISTRY_PREFERENCE`（US → EU → CN → JP → IN）取 `registry_url`，**别名永不充当链接**，缺可引链接直接 `cannot be listed` 拒绝落盘 → `--append` 经 `ps.append_watchlist_refs` 追加 `origin=watchlist`、`esid=trial:<trial_id>`，不重编号 |
+| 状态 | `work/watchlist.json` 三态：`listed` / `none_alignable`（`--none-found`）/ `not_applicable`（`--reason` < 8 字 exit 2）；上限 5 行；`stats` 只报去重条数 |
+| 闸门 | `check_report.py` check 组 **6 → 8**：缺记录 / 状态与 `refs.json` 矛盾 / `listed` 却无区块 / 追加未引用 / 多块 / 缺固定首句 / 超 5 行 / **预测性措辞**（`有望｜预计获批｜将优于｜潜力｜威胁｜best-in-class｜first-in-class`）/ 区块落附录后 / `origin=watchlist` 标记出现在自身区块之外（含任何对齐表行）→ FAIL |
+| 文档 | 新建 `references/ongoing-trials.md`；`toolbox.md` 新增 `## 1b.`；`SKILL.md` 路由 14 + evidence boundary 一句；`external-context.md` 加 “Next block, different job.” |
+| 版本 | prompt **v0.21**（92,599 B `22efa1a27aca`，`git rm` v0.20）；`pack-dist VERSION=v0.21 / EXPECTED 30→32`；dist **218,181 B `48af91e78b02`** |
+| 测试 | check-report **47 → 59**、skill-scripts **80 → 89**（新增 `TrialWatchlistTests` 9 + 区块 11） |
+
+**闸门（全绿，合计 338）**：check-report 59 / skill-scripts 89 / merge-ref-facts 16 / tell-scan 10 / build-ledger 9 / runner 51 / render-facts 32 / regressions 37 / pack-dist 5 / replay 14 / node 16 / mutations **a 44/44 + b 12/12 + PASS** / `verify-run-chain GATE: PASS (5 comparable)`；`py_compile` 全绿；`deps` 基线 `--accept`（MCP 文本引用面 1 → 3 个名字，实际挂载 2 个）。
+
+**发布（原地）**：prompt v1.9 ← 本地 v0.21；skill v1.0.10 ← 32 条目（32/32 identical）；`status` → **in sync**。
+**一处发布返工**：第一次 `publish` 上传的是**旧 dist**（我在构建 zip 之后才改了两个 glob 字符串），`status` 报 `32 entries, 30 identical, 2 differing → LOCAL NOT DEPLOYED`；重建 dist 后再 publish 才 32/32。**教训：改完任何进入 zip 的文件都必须重建 dist，`publish` 不会替你重打。**
+
+### 三组真跑（同题 4/18/14、并发 3、`DeepSeek Flash`）
+
+| 组 | 目录 | 墙钟 | MCP(result/trial) | `work/watchlist.json` | 在研区块 | 断言 |
+|---|---|---|---|---|---|---|
+| 1 | `20261022-164318-r80-fixed-1` | 368.2 s | 3 / 1 | `listed`，3 条，`ref_6..8` | 3 行表 + 收尾一句 | 23 PASS / 0 FAIL（`check_report` 8 组绿） |
+| 2 | `20261022-164318-r80-fixed-2` | 476.0 s | 3 / 1 | `listed`，5 条，`ref_20..24` | 5 行表 | 23 PASS / 0 FAIL |
+| 3 | `20261022-164318-r80-fixed-3` | 487.5 s | 2 / **2** | `listed`，3 条，`ref_15..17` | 3 行表 | 23 PASS / 0 FAIL |
+
+**3/3 触发、3/3 区块位置正确**（域表之后、最终结论之前；run1 外部块在 114 行、在研块 120、结论 132；run2 135 / 141 / 153；run3 外部为 `none_alignable` 故无外部块，在研块 162、结论 172）。
+
+**引用与隔离（逐组核对）**：`ref_6..8` / `ref_20..24` / `ref_15..17` 全部被引用，且**只出现在自身区块内**（区块外的 ref 集合为空）；区块无预测词命中；附录里出现的 NCT 全部是所选试验（run1 的 `NCT05840016`、run2 的 `NCT01523587`/`NCT03668496`、run3 的 `NCT04270760`/`NCT05026996` 等），在研试验一条都没进账本、图表或对齐表。
+
+run1 区块原文（节选）：
+
+```
+## 在研同类试验（尚未读出）
+
+本段仅登记注册信息，这些试验尚无读出结果，不构成本次比较的证据。
+
+| 登记号（代号） | 分期 | 状态 | 首次公示 | 在研药物 | 目标入组 | 来源 |
+|---|---|---|---|---|---|---|
+| NCT07756645（M26-509） | III 期 | 招募中 | 2026-08-10 | RC148（ABBV-1480）+化疗，对照帕博利珠单抗+化疗 | 940 | {{ref_6}} |
+| NCT07416474 | III 期 | 招募中 | 2026-02-11 | RC148+铂类化疗，对照替雷利珠单抗+铂类化疗 | 574 | {{ref_7}} |
+| CTR20260016（DUALIGHT-02 / HB0025-C-0302） | III 期 | 招募中 | 2026-01-06 | 索布瑞芙普α（HB0025）+化疗，对照帕博利珠单抗+化疗 | 480 | {{ref_8}} |
+```
+
+**链接全部落在登记平台**（`clinicaltrials.gov/study/...` 4 条 + `chinadrugtrials.org.cn/...` 1 条），没有一条指向开发代号。`work/sources/ref_8.txt` 里 `登记号: NCT07360132, CTR20260016` / `别名: DUALIGHT-02、HB0025-C-0302` —— 同一试验在 run1 与 run2 里首选平台不同（run1 CN、run2 US），因为 run1 那次 pull 的 US 行没有可用 `registry_url`；两个都是该试验的合法登记页，属 `REGISTRY_PREFERENCE` 的正常回退，不是缺陷。
+
+**闸门在生产里真的抓到了东西**（三组各自的 in-run 失败 → 修正）：
+
+* run2：`FAIL: bare ref token(s) not in marker form: ref_1 on line 5` —— R77b 的裸 token 闸门在上线后被模型自己触发并当场修好。
+* run3：`FAIL: method/class narration in the deliverable: '直接对齐'` —— 语域闸门生效。
+* 三组最终都是 `PASS: 8 check group(s) green`（含新增的两组：`ongoing trials` 与 `ongoing trials section`）。
+
+### 尚未闭合
+
+* run3 用了 **2 次** trial-v2 调用（其余各 1 次），第一次大概是过滤面太窄以致空结果；文档里写的预算是「≤2 次」，仍在界内，但值得在下一轮看是否把第一刀收窄写法固定下来。
+* `first_post_date` 走 epoch 毫秒 + UTC+8 渲染，run1 的 `2026-08-10` 与登记页一致；尚未对一条中国登记号做人工核对。
