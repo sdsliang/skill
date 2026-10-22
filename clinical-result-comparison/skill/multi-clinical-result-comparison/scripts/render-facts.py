@@ -573,7 +573,7 @@ def _disclosure_label(column_records: list[dict[str, str]], facts_by_ref: dict[s
     """Short version tag for one disclosure column (`首次计划 OS 分析`, `2024 年会`).
 
     The full cutoff label stays in the `披露版本 / 数据截止` row; the header keeps only the
-    first segment so a one-trial appendix reads as `首次计划 OS 分析 / ref_2` instead of a wall of text.
+    first segment so a one-trial appendix reads as `首次计划 OS 分析 / {{ref_2}}` instead of a wall of text.
     """
     for record in column_records:
         for fact in facts_by_ref.get(record["ref"], []):
@@ -587,11 +587,15 @@ def _disclosure_label(column_records: list[dict[str, str]], facts_by_ref: dict[s
 
 
 def _column_header(label: str, column: list[dict[str, str]], layout: str) -> str:
-    """Render a two-line header: readable disclosure tag/ref or trial name/id/count."""
+    """Render a two-line header: readable disclosure tag/ref or trial name/id/count.
+
+    The source handle is always printed in marker form (`{{ref_n}}`): the frontend replaces markers with
+    links, whereas a bare `ref_n` is shown to the reader as raw text.
+    """
     if layout == "disclosure-columns":
         tag = _normalise_markdown(label)
-        ref = column[0]["ref"]
-        return f"**{tag}**<br>{ref}" if tag and tag != ref else f"**{ref}**"
+        marker = "{{%s}}" % column[0]["ref"]
+        return f"**{tag}**<br>{marker}" if tag and tag != column[0]["ref"] else f"**{marker}**"
     identifiers = sorted({rid for record in column for rid in _registration_ids(record)})
     name = _normalise_markdown(label)
     if identifiers:
@@ -609,7 +613,7 @@ def _appendix_layout(
     """Columns of the appendix: one per trial, or one per disclosure for a single-trial input.
 
     One trial whose disclosures are stacked inside a single cell is the unreadable case: each
-    disclosure then gets its own column (readable version tag + `ref_n`) so every evidence item keeps a
+    disclosure then gets its own column (readable version tag + `{{ref_n}}`) so every evidence item keeps a
     line of its own instead of an HTML `<br>` pile inside one cell.
     """
     keys, ref_to_key = _column_keys(records, facts_by_ref)

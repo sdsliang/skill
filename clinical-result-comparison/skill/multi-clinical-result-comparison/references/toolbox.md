@@ -414,7 +414,7 @@ pipeline (it cost a measured 9 tool calls in one run). The answer is here or in 
   paragraph describing its layout; its rows come from the facts you declared.
 * **What does an appendix column header look like?** Renderer decision, not yours: several
 disclosures in one trial → `**试验名**<br>注册号 · N 条披露`; one disclosure →
-`**可读短标签**<br>ref_n`; a missing tag → `**ref_n**`. Do not transcribe the layout anywhere in
+`**可读短标签**<br>{{ref_n}}`; a missing tag → `**{{ref_n}}**`. Do not transcribe the layout anywhere in
   the body.
 * **Which numbers go in the ledger?** Only material, cross-disclosure-comparable values (one row
   per comparable reading, quoted from `work/sources/ref_<n>.txt`). `--stats` tells you the counts and

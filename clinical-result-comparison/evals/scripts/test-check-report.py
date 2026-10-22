@@ -433,7 +433,7 @@ class ExternalReferenceTests(unittest.TestCase):
     """The bounded external-reference block: one place, fixed caveat, never a table cell."""
 
     ENTRY = ("- GEMINI 1·vedolizumab：第 6 周临床应答 47.1% vs 安慰剂 25.5%{{ref_2}}"
-             "｜与本组的差异：III 期静脉单抗、终点为第 6 周应答｜用途：C1类内基线")
+             "｜与本组的差异：III 期静脉单抗、终点为第 6 周应答｜用途：同类药物在这一人群的通常水平")
     CAVEAT = "外部参照仅用于背景校准，不构成头对头比较。"
 
     def setUp(self) -> None:
@@ -484,7 +484,7 @@ class ExternalReferenceTests(unittest.TestCase):
     def test_an_english_deliverable_uses_the_english_block_shape(self):
         entry = ("- GEMINI 1 (vedolizumab): week-6 response 47.1% vs 25.5% placebo{{ref_2}} — "
                  "Difference from this set: phase 3 IV antibody, week-6 response endpoint — "
-                 "Use: C1 class baseline")
+                 "Use: the level other drugs of this class reach in this population")
         proc = self.run_case(block=("## External reference (non-selected sources)\n\n"
                                     "External references are for background calibration only; they do not "
                                     "constitute a head-to-head comparison.\n\n" + entry + "\n"))
@@ -511,6 +511,20 @@ class ExternalReferenceTests(unittest.TestCase):
         proc = self.run_case(block=f"## 外部参照（非所选记录）\n\n{self.CAVEAT}\n\n{self.ENTRY.split('｜用途')[0]}\n")
         self.assertEqual(proc.returncode, 3, proc.stdout)
         self.assertIn("missing `用途：`", proc.stdout)
+
+    def test_a_purpose_given_as_an_internal_code_fails(self):
+        entry = ("- GEMINI 1·vedolizumab：第 6 周应答 47.1% vs 25.5%{{ref_2}}｜与本组的差异：终点不同｜"
+                 "用途：C1类内基线")
+        proc = self.run_case(block=f"## 外部参照（非所选记录）\n\n{self.CAVEAT}\n\n{entry}\n")
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("reads as an internal question code", proc.stdout)
+
+    def test_a_bare_ref_token_anywhere_fails(self):
+        proc = self.run_case(body="## 结果\n\n效应量见下例{{ref_1}}，与 ref_2 方向一致。\n",
+                             block="## 结果（续）\n\n本组读数见上。\n", selected_only=True,
+                             conclusion="本组读数不支持外推{{ref_1}}。")
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("bare ref token(s) not in marker form", proc.stdout)
 
     def test_omitting_the_block_when_nothing_is_alignable_is_fine(self):
         # Default-on lookup, empty result: the section is dropped entirely, the report stays green.
@@ -539,7 +553,7 @@ class ExternalReferenceTests(unittest.TestCase):
              for index, key in enumerate(keys, start=2)} | {"ref_1": {"esid": "1_1_A", "origin": "selected"}}),
             encoding="utf-8")
         entries = "\n".join(
-            f"- 外部 {key}：应答 40%{{{{{key}}}}}｜与本组的差异：人群更轻｜用途：C1类内基线" for key in keys)
+            f"- 外部 {key}：应答 40%{{{{{key}}}}}｜与本组的差异：人群更轻｜用途：同类药物在这一人群的通常水平" for key in keys)
         proc = self.run_case(block=f"## 外部参照（非所选记录）\n\n{self.CAVEAT}\n\n{entries}\n",
                              conclusion="该结果不能单独归因于靶点{{ref_2}}。")
         self.assertEqual(proc.returncode, 3, proc.stdout)

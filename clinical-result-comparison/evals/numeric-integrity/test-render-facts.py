@@ -327,8 +327,8 @@ class RenderFactsTests(unittest.TestCase):
         header = next(
             line for line in self.out.read_text(encoding="utf-8").splitlines() if line.startswith("| 维度 |")
         )
-        self.assertIn("**预设中期 OS 分析**<br>ref_1", header)
-        self.assertIn("**最终 PFS 分析**<br>ref_2", header)
+        self.assertIn("**预设中期 OS 分析**<br>{{ref_1}}", header)
+        self.assertIn("**最终 PFS 分析**<br>{{ref_2}}", header)
         self.assertNotIn("数据截止", header)
         self.assertEqual(self.audit_data()["appendix_layout"], "disclosure-columns")
 
@@ -407,8 +407,8 @@ class RenderFactsTests(unittest.TestCase):
         output = self.out.read_text(encoding="utf-8")
         header = next(line for line in output.splitlines() if line.startswith("| 维度 |"))
         self.assertEqual(header.count("|"), 4)
-        self.assertIn("**2024 年会**<br>ref_1", header)
-        self.assertIn("**2025 年会更新**<br>ref_2", header)
+        self.assertIn("**2024 年会**<br>{{ref_1}}", header)
+        self.assertIn("**2025 年会更新**<br>{{ref_2}}", header)
         os_row = next(line for line in output.splitlines() if line.startswith("| OS"))
         self.assertIn("8.34 %{{ref_1}}", os_row)
         self.assertIn("72 %{{ref_2}}", os_row)
@@ -554,7 +554,7 @@ class RenderFactsTests(unittest.TestCase):
         output = self.out.read_text(encoding="utf-8")
         header = next(line for line in output.splitlines() if line.startswith("| 维度 |"))
         self.assertEqual(header.count("|"), 4)
-        self.assertIn("**v1**<br>ref_1", header)
+        self.assertIn("**v1**<br>{{ref_1}}", header)
         self.assertEqual(self.audit_data()["appendix_trials"], 1)
         self.assertEqual(self.audit_data()["appendix_layout"], "disclosure-columns")
 

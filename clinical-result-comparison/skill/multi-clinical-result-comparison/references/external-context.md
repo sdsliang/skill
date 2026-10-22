@@ -119,19 +119,21 @@ conclusion may point at it), and never inside the appendix:
 
 外部参照仅用于背景校准，不构成头对头比较。
 
-- GEMINI 1·vedolizumab：溃疡性结肠炎诱导期第 6 周临床应答 47.1% vs 安慰剂 25.5%{{ref_4}}｜与本组的差异：终点为第 6 周应答、III 期静脉单抗，与本组第 12 周缓解不同域｜用途：C1类内基线
-- SWIFT·emvistegrast：第 12 周临床应答 66% vs 37%{{ref_5}}｜与本组的差异：同靶点口服小分子、n=238，安慰剂率明显更高｜用途：C1类内基线
+- GEMINI 1·vedolizumab：溃疡性结肠炎诱导期第 6 周临床应答 47.1% vs 安慰剂 25.5%{{ref_4}}｜与本组的差异：终点为第 6 周应答、III 期静脉单抗，与本组第 12 周缓解不同域｜用途：同类药物在这一人群的通常水平
+- SWIFT·emvistegrast：第 12 周临床应答 66% vs 37%{{ref_5}}｜与本组的差异：同靶点口服小分子、n=238，安慰剂率明显更高｜用途：同类药物在这一人群的通常水平
 ```
 
 Rules:
 
 - one line per external source, exact shape
-  `- <药物/试验>：<可对齐数值与口径>{{ref_n}}｜与本组的差异：<人群/终点/时点/设计>｜用途：<C1类内基线|C2标准治疗锚点|C3剂量-时点锚定|C4同试验前序披露>`;
+  `- <药物/试验>：<可对齐数值与口径>{{ref_n}}｜与本组的差异：<人群/终点/时点/设计>｜用途：<同类药物在这一人群的通常水平|已获批治疗在同一终点的水平|区分药物本身与剂量或时点的差别|核对本试验此前的披露>` — plain reader-facing words, **never** the internal question codes `C1`–`C4`;
 - the fixed line `外部参照仅用于背景校准，不构成头对头比较。` opens the section, verbatim;
 - **an English deliverable** uses the English counterparts and nothing else: heading
   `## External reference (non-selected sources)`, the fixed line
   `External references are for background calibration only; they do not constitute a head-to-head comparison.`,
-  and the keys `Difference from this set:` / `Use:` in place of `与本组的差异：` / `用途：`;
+  and the keys `Difference from this set:` / `Use:` in place of `与本组的差异：` / `用途：`, with the
+  same plain-words `Use:` value (`use: the level other drugs of this class reach in this population`) —
+  never the C1–C4 codes;
 - an `origin:external` marker may appear **only at or after this section and never on a table line** (`|`);
   it never enters an alignment cell, a snapshot table, a chart JSON, or the appendix;
 - a conclusion sentence may name an external source with its marker to block an over-attribution

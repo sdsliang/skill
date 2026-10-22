@@ -53,7 +53,12 @@ EXTERNAL_DISCLAIMERS = (
 )
 EXTERNAL_DIFF_KEYS = ("与本组的差异：", "Difference from this set:")
 EXTERNAL_USE_KEYS = ("用途：", "Use:")
+# The `用途：` value is reader-facing prose: internal question codes (C1–C4) never ship.
+EXTERNAL_USE_CODE_RE = re.compile(r"\bC[1-4]\b|C[1-4]\s*类")
 EXTERNAL_LIMIT = 6
+# A ref token is only replaced by the frontend when it is in marker form; a bare `ref_3` renders as
+# literal text, which reads as a leaked internal id.
+BARE_REF_RE = re.compile(r"(?<!\{)\bref_[1-9]\d*\b(?!\})")
 LEAK_PATTERNS = (
     ("source_file", r"source_file"),
     ("tool_results path", r"tool_results"),
@@ -295,6 +300,16 @@ def _external_keys(path: Path) -> set[str] | None:
             if isinstance(entry, dict) and str(entry.get("origin", "")).strip() == "external"}
 
 
+def _external_use_value(line: str) -> str:
+    """The text after `用途：` / `Use:` on an entry line, trimmed at the next separator."""
+    for key in EXTERNAL_USE_KEYS:
+        if key not in line:
+            continue
+        tail = line.split(key, 1)[1]
+        return tail.split("｜", 1)[0].strip().rstrip("。.；;")
+    return ""
+
+
 def _external_reference_findings(report: str, external: set[str]) -> list[str]:
     """The bounded external-reference block: one place, fixed wording, never a table cell."""
     findings: list[str] = []
@@ -335,6 +350,13 @@ def _external_reference_findings(report: str, external: set[str]) -> list[str]:
             if not any(key in line for key in EXTERNAL_USE_KEYS):
                 findings.append(f"external entry line is missing `{EXTERNAL_USE_KEYS[0]}`: "
                                 + line.strip()[:60])
+            else:
+                use = _external_use_value(line)
+                if not use:
+                    findings.append("external entry line has an empty `用途：` value: " + line.strip()[:60])
+                elif EXTERNAL_USE_CODE_RE.search(use):
+                    findings.append("external `用途：` reads as an internal question code "
+                                    f"({use[:24]!r}) — say what the reference is for in plain words")
         if cited - named:
             findings.append(f"external marker(s) with no entry line of their own: {sorted(cited - named)}")
         if len(named) > EXTERNAL_LIMIT:
@@ -391,6 +413,17 @@ def main(argv: list[str] | None = None) -> int:
     braces = {item for item in braces if item not in {"{{APPENDIX}}", "{{appendix}}"}}
     if braces:
         findings.append(f"placeholder braces that are not {{ref_n}} markers: {sorted(braces)[:5]}")
+    bare_refs = [
+        (number, BARE_REF_RE.findall(line)[0])
+        for number, line in enumerate(report.splitlines(), start=1)
+        if BARE_REF_RE.search(line)
+    ]
+    if bare_refs:
+        sample = ", ".join(f"{token} on line {number}" for number, token in bare_refs[:5])
+        findings.append(
+            f"bare ref token(s) not in marker form: {sample} — the frontend replaces {{{{ref_n}}}}, "
+            "a bare ref_n is shown to the reader as raw text"
+        )
     if ENTITY_RE.search(report):
         findings.append("`entity:` inline-reference syntax present (removed in v0.16, fails closed)")
     appendix_lines = [line for line in report.splitlines() if line.startswith(APPENDIX_TITLE)]

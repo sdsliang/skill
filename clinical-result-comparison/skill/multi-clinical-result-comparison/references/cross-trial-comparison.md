@@ -183,7 +183,8 @@ Charts are descriptive evidence views, not head-to-head proof, rankings, or pool
 run the one-C1-per-cluster lookup before the conclusion, and add **one** section `## 外部参照（非所选记录）`
 after the domain tables and **before the final conclusion section** (the conclusion may then cite it) whenever
 that lookup produced an alignable value — one line per source, the fixed opening sentence
-`外部参照仅用于背景校准，不构成头对头比较。`, and the `｜与本组的差异：…｜用途：…` shape. The closed question set
+`外部参照仅用于背景校准，不构成头对头比较。`, and the `｜与本组的差异：…｜用途：…` shape, where the
+`用途` value is plain reader-facing prose (`同类药物在这一人群的通常水平`), never an internal code. The closed question set
 (C1–C4), the tool arguments and the hard budget live in `references/external-context.md`; `check_report.py`
 enforces the placement (an external marker must not appear before the section or on any table line).
 
