@@ -310,6 +310,50 @@ def _external_use_value(line: str) -> str:
     return ""
 
 
+EXTERNAL_STATES = ("appended", "none_alignable", "not_applicable")
+
+
+def _external_state_findings(state_file: Path, external: set[str]) -> list[str]:
+    """`work/external.json`: the external step happened and ended in one of three states.
+
+    `prep_sources.py --external` writes it, so an absent file means the step never ran. That is the
+    hole R78 exposed: three runs skipped the default lookup entirely, said nothing in the report (by
+    contract), and passed every gate — silence was indistinguishable from "ran, nothing alignable".
+    """
+    if not state_file.is_file():
+        return [f"no external-step record at {state_file} — run prep_sources.py --external (append what you "
+                "will cite), --none-found (nothing alignable) or --not-applicable --reason (does not apply)"]
+    try:
+        payload = json.loads(state_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return [f"external-step record at {state_file} is unreadable: {exc}"]
+    if not isinstance(payload, dict):
+        return [f"external-step record at {state_file} is not an object"]
+    state = str(payload.get("state", "")).strip()
+    findings: list[str] = []
+    if state not in EXTERNAL_STATES:
+        findings.append(f"external-step state {state!r} is not one of {', '.join(EXTERNAL_STATES)}")
+        return findings
+    if state == "not_applicable":
+        if len(str(payload.get("reason", "")).strip()) < 8:
+            findings.append("external step marked not_applicable without a reason — say why the lookup does "
+                            "not apply here")
+        if external:
+            findings.append(f"external step marked not_applicable yet the inventory holds {len(external)} "
+                            "origin=external entr(ies)")
+    elif state == "none_alignable":
+        if external:
+            findings.append(f"external step recorded none_alignable yet {len(external)} origin=external "
+                            "entr(ies) are in the inventory")
+    else:  # appended
+        if not external:
+            findings.append("external step recorded appended but the inventory holds no origin=external entry")
+        added = payload.get("refs_added")
+        if not isinstance(added, list) or not added:
+            findings.append("external step recorded appended without naming the refs it added")
+    return findings
+
+
 def _external_reference_findings(report: str, external: set[str]) -> list[str]:
     """The bounded external-reference block: one place, fixed wording, never a table cell."""
     findings: list[str] = []
@@ -387,6 +431,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--charts-dir", type=Path, default=Path("/workspace/visualizations"))
     parser.add_argument("--refs", type=Path, default=Path("/workspace/work/refs.json"),
                         help="ref inventory; its origin:external entries define the bounded external-reference set")
+    parser.add_argument("--external-state", type=Path,
+                        help="record of the external step's outcome (default: <refs dir>/external.json)")
     parser.add_argument("--chart-skill", type=Path, default=Path(f"/workspace/skills/{CHART_SKILL_NAME}"),
                         help="deployed chart skill; its config.js is the envelope authority when present")
     parser.add_argument("--vis-prefix", default="/workspace/visualizations/",
@@ -516,9 +562,19 @@ def main(argv: list[str] | None = None) -> int:
 
     # ---- bounded external reference ------------------------------------------------
     external = _external_keys(args.refs)
+    state_file = args.external_state or (args.refs.parent / "external.json")
     if external is None:
         warnings.append(f"external-reference placement not checked: no readable ref inventory at {args.refs}")
     else:
+        findings.extend(_external_state_findings(state_file, external))
+        if state_file.is_file():
+            try:
+                state_payload = json.loads(state_file.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                state_payload = {}
+            checks.append(("external step",
+                           f"state={state_payload.get('state')} question={state_payload.get('question')} "
+                           f"added={len(state_payload.get('refs_added') or [])}"))
         findings.extend(_external_reference_findings(report, external))
         cited_external = external & set(MARKER_RE.findall(report))
         checks.append(("external references",

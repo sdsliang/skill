@@ -22,11 +22,24 @@ clinical-question cluster, before writing the conclusion. It is a step of the de
 | D1 | one **C1** call per clinical-question cluster (the class baseline) | 1 call per cluster, ≤2 calls per deliverable |
 | D2 | one **C2** call when the selected trials name the standard-of-care comparator on the same endpoint | 1 call per deliverable |
 
-**D1 is already served when the selected set is the class.** If the selected records already hold **≥2 distinct
-molecules of the same target/class in the same indication and line**, the class baseline is internal: skip D1 for
-that cluster and say nothing about it. D2 still runs when a named standard-of-care comparator sits outside the
-set. (A deliverable whose selected set spans five molecules of one class needs no external class anchor; pulling
-one anyway buys a comparison the reader can make anyway and costs a payload.)
+**D1 runs even when the selected set looks like the class.** R78 measured what happens otherwise: given a
+"the set already holds ≥2 same-class molecules, so the baseline is internal" escape hatch, **3 of 3 runs took it**
+and one of them counted a PD-1/VEGF bispecific plus a PD-1 antibody as "the same class". A set that is the class
+is exactly when the class baseline is worth *confirming* — and the confirmation is one call whose normal result is
+"no record absent from the inventory". So the escape hatch is gone: run the call, then record the outcome.
+
+**Every run ends in exactly one of three recorded states.** The omission rule below makes a successful lookup
+invisible (nothing is written, nothing is said), which by itself cannot be told apart from a step that never ran.
+So the step ends with one command, and `check_report.py` refuses a deliverable without it:
+
+| State | Command | Meaning |
+|---|---|---|
+| `appended` | `prep_sources.py --external --result … [--only-esids …]` | at least one alignable source was pulled **and will be cited** |
+| `none_alignable` | `prep_sources.py --external --result … --none-found` | the call ran; nothing in the pull is alignable |
+| `not_applicable` | `prep_sources.py --external --not-applicable --reason "<clause>"` | the lookup does not apply at all: no same-class target or modality to ask about, no named comparator outside the set, or the user forbade outside context |
+
+`--not-applicable` is a written claim, not a silent skip: the `--reason` lands in `work/external.json` and is read
+back by the gate (and by whoever audits the run). "The set is already the class" is **not** a valid reason.
 
 `C3` / `C4` are **not** part of the default lookup — they are used only when the material itself raises that
 question (a dose gap the selected records leave open, an earlier disclosure of the same trial). One call per
@@ -102,17 +115,24 @@ a database summary page or an AI answer — and never to obtain a number the str
 - **append only what you will cite.** A pull can carry a dozen records when the block needs one: name the
   ones you will use with `--only-esids`. An appended source that the block never cites is a gate failure
   (it also means the reader paid for a pull that produced nothing).
-- budget exhausted or nothing alignable → **omit the section** (default lookup) and stop. The search is not
-  continued under a different wording, and an oversized payload is not re-queried.
+- budget exhausted or nothing alignable → **omit the section** (default lookup) and record
+  `--none-found`, then stop. The search is not continued under a different wording, and an oversized payload is
+  not re-queried.
 
 ## Provenance: the same chain, a separate block
 
 Retrieve first, then append through the packaged script — never hand-edit the inventory, never renumber:
 
 ```bash
+# append (the usual path): only the sources the block will cite
 python3 /workspace/skills/multi-clinical-result-comparison/scripts/prep_sources.py --external \
     --result <tool_results>/<tool>/call_<id>.jsonl --only-esids <the ones the block will cite> \
     --max-external 6 2>&1 | tail -30; echo "EXIT=${PIPESTATUS[0]}"
+# the call ran, nothing alignable (block omitted; the report stays silent)
+python3 …/prep_sources.py --external --result <call_<id>.jsonl> --none-found 2>&1 | tail -5
+# the lookup does not apply at all (needs a reason; "the set is already the class" is not one)
+python3 …/prep_sources.py --external --not-applicable --question C1 \
+    --reason "<no same-class target in this indication | no named comparator outside the set | user forbade outside context>"
 ```
 
 It appends `ref_{k+1}…` after the selected `ref_1…ref_k`, writes the same `work/sources/ref_<n>.txt` bodies,

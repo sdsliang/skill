@@ -457,7 +457,8 @@ class ExternalReferenceTests(unittest.TestCase):
 
     def run_case(self, *, block: str | None = None, body: str = "## 结果\n\n效应量见下例{{ref_1}}。\n",
                  conclusion: str = "该结果不能单独归因于靶点{{ref_2}}。",
-                 selected_only: bool = False) -> subprocess.CompletedProcess[str]:
+                 selected_only: bool = False,
+                 state: dict | None = None) -> subprocess.CompletedProcess[str]:
         if selected_only:
             self.citations.write_text(json.dumps({
                 "ref_1": {"title": "Selected trial", "link": "https://example.test/a",
@@ -465,6 +466,14 @@ class ExternalReferenceTests(unittest.TestCase):
             self.refs.write_text(json.dumps({
                 "ref_1": {"esid": "1_1_A", "origin": "selected", "title": "Selected trial"}}),
                 encoding="utf-8")
+        # R78: the external step must leave a record; silence is no longer enough.
+        self.state = self.root / "external.json"
+        if state is None:
+            state = ({"version": 1, "state": "none_alignable", "question": "C1", "refs_added": []}
+                     if selected_only else
+                     {"version": 1, "state": "appended", "question": "C1", "refs_added": ["ref_2"]})
+        if state is not False:
+            self.state.write_text(json.dumps(state), encoding="utf-8")
         if block is None:
             block = f"## 外部参照（非所选记录）\n\n{self.CAVEAT}\n\n{self.ENTRY}\n"
         self.report.write_text(
@@ -473,13 +482,14 @@ class ExternalReferenceTests(unittest.TestCase):
             encoding="utf-8")
         return subprocess.run([sys.executable, "-B", str(CHECKER), "--report", str(self.report),
                                "--citations", str(self.citations), "--charts-dir", str(self.charts),
-                               "--refs", str(self.refs), "--vis-prefix", str(self.charts) + "/"],
+                               "--refs", str(self.refs), "--external-state", str(self.state),
+                               "--vis-prefix", str(self.charts) + "/"],
                               capture_output=True, text=True, check=False)
 
     def test_a_bounded_block_passes_and_the_conclusion_may_cite_it(self):
         proc = self.run_case()
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
-        self.assertIn("PASS: 5 check group(s) green", proc.stdout)
+        self.assertIn("PASS: 6 check group(s) green", proc.stdout)
 
     def test_an_english_deliverable_uses_the_english_block_shape(self):
         entry = ("- GEMINI 1 (vedolizumab): week-6 response 47.1% vs 25.5% placebo{{ref_2}} — "
@@ -526,6 +536,33 @@ class ExternalReferenceTests(unittest.TestCase):
         proc = self.run_case(block=f"## 外部参照（非所选记录）\n\n{self.CAVEAT}\n\n{entry}\n")
         self.assertEqual(proc.returncode, 3, proc.stdout)
         self.assertIn("reads as an internal question code", proc.stdout)
+
+    def test_a_missing_external_step_record_fails(self):
+        # R78: three runs skipped the default lookup and left no trace; the report is silent by
+        # contract, so without this record "skipped" and "ran, nothing alignable" look identical.
+        proc = self.run_case(block="## 结果（续）\n\n本组读数见上。\n",
+                             conclusion="本组读数不支持外推{{ref_1}}。", selected_only=True, state=False)
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("no external-step record", proc.stdout)
+
+    def test_not_applicable_needs_a_reason_and_no_external_refs(self):
+        proc = self.run_case(block="## 结果（续）\n\n本组读数见上。\n",
+                             conclusion="本组读数不支持外推{{ref_1}}。", selected_only=True,
+                             state={"version": 1, "state": "not_applicable", "question": "C1",
+                                    "refs_added": [], "reason": "无同类可对齐"})
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("not_applicable without a reason", proc.stdout)
+        proc = self.run_case(block="## 结果（续）\n\n本组读数见上。\n",
+                             conclusion="本组读数不支持外推{{ref_1}}。", selected_only=True,
+                             state={"version": 1, "state": "not_applicable", "question": "C1",
+                                    "refs_added": [], "reason": "所选集合之外没有同类药物可作基线"})
+        self.assertEqual(proc.returncode, 0, proc.stdout)
+
+    def test_a_state_that_contradicts_the_inventory_fails(self):
+        proc = self.run_case(state={"version": 1, "state": "none_alignable", "question": "C1",
+                                    "refs_added": []})
+        self.assertEqual(proc.returncode, 3, proc.stdout)
+        self.assertIn("recorded none_alignable yet 1 origin=external", proc.stdout)
 
     def test_a_bare_ref_token_anywhere_fails(self):
         proc = self.run_case(body="## 结果\n\n效应量见下例{{ref_1}}，与 ref_2 方向一致。\n",

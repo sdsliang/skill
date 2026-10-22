@@ -83,6 +83,13 @@ python3 scripts/prep_sources.py --esids … --full --quiet
   the inventory is skipped with a `NOTE`, the `--max-external` cap (default 6) is enforced, and it
   exits **3** when the pull holds nothing new or the cap would be exceeded (exit 2 without
   `--result` or an existing inventory). It never guesses the newest pull: name the file.
+* `--external` **always records the outcome** in `work/external.json` (`state` = `appended` |
+  `none_alignable` | `not_applicable`, plus `question`, `refs_added`, and the `reason` for a skip).
+  Use `--only-esids <a,b>` to append only what the block will cite, `--none-found` when the call
+  came back with nothing alignable, and `--not-applicable --reason "<clause>"` when the lookup does
+  not apply at all. `check_report.py` **fails** a deliverable with no record, with a state that
+  contradicts the inventory, or with a `not_applicable` that has no reason — otherwise a silently
+  skipped step is indistinguishable from a lookup that found nothing (R78: 3/3 runs skipped).
 * refs are numbered in **selection order**, only over esids that came back; a missing esid is
   reported and consumes **no** number (it is not a row in the report, not a marker, not a
   citation entry). A duplicate esid keeps its first ref and is reported on stderr.

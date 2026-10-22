@@ -305,6 +305,37 @@ class Sandbox(unittest.TestCase):
         proc = self.external("--only-esids", "9_9_EXTD,9_9_ABSENT", expect=3)
         self.assertIn("9_9_ABSENT", proc.stderr)
 
+    def test_external_records_the_appended_outcome(self):
+        # R78: the step's normal success is silence, so "ran, nothing alignable" and "never ran" look
+        # identical in the deliverable. Every outcome writes work/external.json.
+        self.prep()
+        self.external("--only-esids", "9_9_EXTD")
+        state = json.loads((self.refs.parent / "external.json").read_text(encoding="utf-8"))
+        self.assertEqual(state["state"], "appended")
+        self.assertEqual(state["question"], "C1")
+        self.assertEqual(state["refs_added"], ["ref_3"])
+
+    def test_external_none_found_records_the_state_without_adding_refs(self):
+        self.prep()
+        before = self.refs.read_text(encoding="utf-8")
+        proc = self.external("--none-found", include_selected=True)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(self.refs.read_text(encoding="utf-8"), before)
+        state = json.loads((self.refs.parent / "external.json").read_text(encoding="utf-8"))
+        self.assertEqual(state["state"], "none_alignable")
+
+    def test_external_not_applicable_needs_a_reason(self):
+        self.prep()
+        proc = self.sh("prep_sources.py", "--external", "--not-applicable", "--sources-dir", self.sources,
+                       "--refs", self.refs, expect=2)
+        self.assertIn("--reason", proc.stderr)
+        self.sh("prep_sources.py", "--external", "--not-applicable", "--question", "C2",
+                "--reason", "所选试验未点名集合之外的标准治疗对照",
+                "--sources-dir", self.sources, "--refs", self.refs)
+        state = json.loads((self.refs.parent / "external.json").read_text(encoding="utf-8"))
+        self.assertEqual((state["state"], state["question"]), ("not_applicable", "C2"))
+        self.assertIn("标准治疗", state["reason"])
+
     def test_external_never_readds_an_esid_already_in_the_inventory(self):
         self.prep()
         proc = self.external(include_selected=True)

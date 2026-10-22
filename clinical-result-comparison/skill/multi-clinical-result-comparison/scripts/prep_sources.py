@@ -79,6 +79,32 @@ EVIDENCE_LIMIT = 12        # rows of arms/study_results summarised in the digest
 EXTERNAL_LIMIT = 6         # hard cap on origin=external entries (references/external-context.md budget)
 
 
+EXTERNAL_STATES = ("appended", "none_alignable", "not_applicable")
+
+
+def external_state_path(args) -> Path:
+    return args.external_state or (args.refs.parent / "external.json")
+
+
+def _write_external_state(args, *, state: str, question: str, reason: str,
+                          refs_added: list[str], pull: str | None = None) -> None:
+    """Record the external step's outcome (`work/external.json`).
+
+    Why a file (R78): the step is a *default* action whose normal outcome is silence — when nothing
+    is alignable the block is omitted and the report says nothing about a lookup. Three runs in a row
+    used that silence to skip the step entirely and still pass every gate. One recorded outcome makes
+    "did it run" mechanically answerable, and keeps the reason for a skip in the ledger where a
+    reviewer can disagree with it.
+    """
+    payload = {"version": 1, "state": state, "question": question, "refs_added": refs_added}
+    if pull:
+        payload["pull"] = pull
+    if reason:
+        payload["reason"] = reason
+    _atomic_write(external_state_path(args),
+                  json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
+
+
 def _atomic_write(path: Path, content: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=str(path.parent), text=True)
@@ -280,6 +306,16 @@ def main(argv: list[str] | None = None) -> int:
                         help="append the pull's new records after the existing refs as origin=external")
     parser.add_argument("--only-esids", help="with --external: append only these esids from the pull "
                                             "(the ones the block will actually cite)")
+    parser.add_argument("--none-found", action="store_true",
+                        help="with --external: the pull came back, nothing in it is alignable (records no "
+                             "external state, adds no ref)")
+    parser.add_argument("--not-applicable", action="store_true",
+                        help="with --external: the lookup does not apply here (needs --reason)")
+    parser.add_argument("--question", choices=["C1", "C2", "C3", "C4"], default="C1",
+                        help="which bounded question the external step asked (default: C1)")
+    parser.add_argument("--reason", help="why --not-applicable (one clause, reader-free)")
+    parser.add_argument("--external-state", type=Path,
+                        help="where to record the external-step outcome (default: <refs dir>/external.json)")
     parser.add_argument("--max-external", type=int, default=EXTERNAL_LIMIT,
                         help=f"hard cap on origin=external entries in the inventory (default {EXTERNAL_LIMIT})")
     args = parser.parse_args(argv)
@@ -287,8 +323,26 @@ def main(argv: list[str] | None = None) -> int:
     esids = [] if args.external else _esids_from_args(args)
     if not esids and not args.external:
         parser.error("give --esids or --esids-file")
-    if args.external and args.result is None:
+    if args.external and args.result is None and not args.not_applicable:
         parser.error("--external requires --result (name the expansion pull; never guess the newest payload)")
+    if (args.none_found or args.not_applicable) and not args.external:
+        parser.error("--none-found / --not-applicable only mean something together with --external")
+    if args.none_found and args.not_applicable:
+        parser.error("--none-found and --not-applicable are different outcomes; pick one")
+    if args.not_applicable and not (args.reason or "").strip():
+        parser.error("--not-applicable requires --reason (say why the lookup does not apply here)")
+
+    if args.external and args.not_applicable:
+        # The lookup does not apply (no same-class target to ask about, no named external comparator,
+        # or the user forbade outside context). Nothing is pulled, but the decision is recorded so the
+        # step cannot be skipped silently — R78 had 3/3 runs talk themselves out of the lookup.
+        if not args.refs.is_file():
+            print(f"ERROR: --not-applicable still needs the selection inventory at {args.refs}", file=sys.stderr)
+            return 2
+        _write_external_state(args, state="not_applicable", question=args.question,
+                              reason=args.reason.strip(), refs_added=[])
+        print(f"RECORDED external step as not applicable ({args.question}): {args.reason.strip()}")
+        return 0
 
     result_file = args.result
     if result_file is None:
@@ -351,6 +405,18 @@ def main(argv: list[str] | None = None) -> int:
         external_used = sum(1 for entry in refs.values()
                             if isinstance(entry, dict) and str(entry.get("origin", "")).strip() == "external")
         only = {item.strip() for item in (args.only_esids or "").split(",") if item.strip()}
+        if args.none_found:
+            # The call ran and nothing in the pull is worth citing (usual case: every record was
+            # already selected, or the rows answer a different question). Record the outcome instead
+            # of appending sources the report will not name.
+            fresh = [esid for esid in (_esid(record) for record in records) if esid and esid not in already]
+            _write_external_state(args, state="none_alignable", question=args.question,
+                                  reason=(args.reason or "").strip(), refs_added=[],
+                                  pull=str(args.result))
+            print(f"RECORDED external step as none_alignable ({args.question}): the pull holds "
+                  f"{len(fresh)} record(s) absent from the inventory, none of them alignable — "
+                  "the block is omitted")
+            return 0
         seen: set[str] = set()
         for record in records:
             esid = _esid(record)
@@ -430,6 +496,12 @@ def main(argv: list[str] | None = None) -> int:
     except OSError as exc:
         print(f"ERROR: cannot write {args.refs}: {exc}", file=sys.stderr)
         return 2
+
+    if args.external:
+        _write_external_state(args, state="appended", question=args.question,
+                              reason=(args.reason or "").strip(),
+                              refs_added=[f"ref_{start_index + i}" for i in range(len(found))],
+                              pull=str(args.result))
 
     if args.quiet:
         print(f"{len(found)} record(s) written to {args.sources_dir}; refs -> {args.refs}; missing={missing}")
