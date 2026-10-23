@@ -98,4 +98,38 @@ p_value, outcome_p_value, hazard_ratio, hazard_ratio_ci, odd_ratio, relative_ris
 | `dist/ESMO2026-watchlist.csv` | 30 条定榜 |
 | `dist/ESMO2026-watchlist.md` | 三桶报告 |
 
+## 7. 会议摘要库（`medicalMeeting`）—— 并列第二入口
+
+结构化结果表不是会议全本。ESMO 2026 实测：
+
+| 指标 | 结构化结果表 | 会议摘要库 |
+|---|---|---|
+| 记录数 | 646（去重后 esid） | **5810** |
+| 可用摘要（有 abstract_id + 全文 + 非 TiP） | 646 | **4103** |
+| 覆盖关系 | — | 646 条全部能匹配上（title 归一后 646/646，零损失） |
+
+调用形态：
+
+```json
+{"name":"pharmcube-mcp-medicalMeeting",
+ "arguments":{"conference":"ESMO 2026","pageNo":1}}
+```
+
+可选过滤：`abstractId` / `drugName` / `target` / `disease`。20 条/页，ESMO 2026 共 290 页，8 并发约 4 分钟。
+
+**`conference` 留空 = 跨全部会议检索**，`scripts/meeting_pull.py --conference -` 即用于拉某药的历史读出一览。
+
+返回字段（对 triage 有用的）：
+
+| 字段 | 用途 |
+|---|---|
+| `abstract_id` | **报告形式来源**（后缀 `O`/`RO`/`P`/`eP`/`eTiP`）+ 唯一标识 |
+| `abstract_text` | 全文（B 型裸标题格式：`Background` / `Methods` / `Results` / `Conclusions` 各占一行） |
+| `title` | join 键（`NFKD` + 小写 + 非字母数字转空格） |
+| `drug` / `target` / `moa` | 结构化表常缺；ESMO 2026 分别 1954 / 1797 条有值 |
+| `abstract_release_date` / `meeting_date` / `url` | 时间线与引用 |
+| `session_type` | 报告形式（也可从 `abstract_id` 后缀直接得，更稳） |
+
+**注意**：会议摘要库没有 `study_results`、没有 `evidence_source`、没有 `evaluation`。所以它只能**补充**，不能**替代**结构化表的分桶依据。
+
 > 这些是**样例产物**，不是随 skill 发布的固定答案；换会议必须重跑。

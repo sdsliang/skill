@@ -1,0 +1,31 @@
+﻿rank,bucket,abstract_id,presentation,drug,target,indication,phase,n,key_data,why,data_type
+1,early,1000O,Oral,HS-20122,EGFR×cMET ADC,EGFR 突变 NSCLC,PhI,121,ORR 52.5%（59 可评价/90 入组）,全部 TKI 经治后仍有 52.5%，是 EGFR 突变后线 ADC 迄今最硬的一档数字,首次公布
+2,early,5RO,Rapid Oral,SYS6043,B7-H3 ADC,乳腺癌（含 TNBC/HER2+）,PhI/II,137,总体 ORR 45.7%；TNBC 70.6%（34 例）；HER2+ 71.4%（21 例）,分型 ORR 70%+，且 III 期（NCT07879911）已开，是本期最接近确证的单臂信号,首次公布
+3,early,3714O,Oral,HH2853（艾普美妥司他）,EZH1/2 抑制剂,上皮样肉瘤,PhII,94,ORR 40.0%（95%CI 28.9–52.0），mPFS 13.1 mo，mDoR 15.6 mo，n=94,罕见瘤种里 40% ORR + 13 个月 PFS，且已按关键 II 期设计，做的是注册级证据,未判定
+4,early,1458O,Oral,TRS005,CD20 ADC,转化型 DLBCL（t-DLBCL）,PhI,146,28 例可评价 ORR 50.0%，mPFS 8.67 mo，mOS 19.29 mo，全部 ≥2 线,转化型 DLBCL 是公认难治亚型，50% ORR + 8.7 个月 PFS 属近年少见,首次公布
+5,early,2393O,Oral,普米塔单抗,PD-L1×VEGF-A 双抗 + 化疗,二线神经内分泌肿瘤,PhII,31,cORR 40.0%，DCR 86.7%，mPFS 5.5 mo，n=31,二线 NEN 长期无标准，40% cORR 直接改写这条线的预期值,未判定
+6,early,2631RO,Rapid Oral,BAT8008 + BAT1308,TROP2 ADC + PD-1,一线 NSCLC,PhII,97,76 例可评价 ORR 57.9%，DCR 89.5%，6 月 PFS 率 64.8%,一线 NSCLC 里 TROP2 ADC 直接叠 PD-1、不加化疗，57.9% ORR 值得对打 KEYNOTE-024 系,未判定
+7,early,3588O,Oral,XmAb819,ENPP3×CD3 双抗,透明细胞肾癌（ccRCC）,PhI,101,60 例可评价 ORR 27%，DCR 68%；≥2 线 VEGFR-TKI 30%；HIF2α 经治 26%（n=23）,HIF2α 抑制剂之后仍 26%，ccRCC 后线第一次出现非 TKI 机制的有效信号,未判定
+8,early,4640RO,Rapid Oral,9MW2821,Nectin-4 ADC,TOP1i-ADC 耐药 TNBC,PhII,62,60 例可评价 ORR 30.0%，mPFS 3.7 mo，mDoR 8.7 mo,人群是 TOP1i-ADC 耐药，30% ORR 不能按普通 TNBC 的 30% 读；III 期已开,未判定
+9,early,1029P,Poster,CTS3497,PRMT5 抑制剂,MTAP 缺失实体瘤,PhI/II,60,总体 ORR 43%（28 例）；胃肠道 55%（11 例）；NSCLC 50%（6 例）,MTAP 缺失这个富集人群里 43%，且亚组更高，可与 BGB-58067 的 24.6% 直接对读,首次公布
+10,early,2567P,Poster,BG-C477,CEA ADC,NSCLC,PhI,43,总体 ORR 34.9%（43 例）；CEA 高表达 56.0%（25 例）vs 低表达 5.6%（18 例）,同一次报告里给出 56% vs 5.6% 的标记物分层，等于自带人群选择证据,首次公布
+1,pivotal,2215O,Oral,阿比特龙 + 泼尼松,CYP17A1,de novo 转移性激素敏感性前列腺癌,PhIII,1173,7.7 年随访 OS HR 0.75（0.65–0.87），mOS 6.4 vs 4.6 年；ADT+多西他赛亚组 HR 0.68,随访 7.7 年仍未衰减的 OS 获益，直接决定 mCSPC 四药联合的天花板,更新/长期随访
+2,pivotal,3808O,Oral,塔拉妥单抗（tarlatamab）,DLL3×CD3 双抗,经治小细胞肺癌,PhIII,509,OS 13.6 vs 8.4 mo，HR 0.62（0.51–0.76）；18 月 OS 率 42% vs 24%；铂耐药及脑转移亚组一致,SCLC 二十年没动过的二线 OS 被拉到 13.6 个月，且高危亚组不塌,更新/长期随访
+3,pivotal,1240O,Oral,QL1706（iparomlimab+tuvonralimab）,PD-1×CTLA-4,一线持续/复发/转移性宫颈癌,PhIII,492,mPFS 12.35 vs 7.75 mo，HR 0.64（0.51–0.81）；mOS 30.95 mo vs 对照,一线宫颈癌 PFS 近乎翻倍且 OS 已分离，是该适应证近年最强的一次随机数据,未判定
+4,pivotal,2614O,Oral,帕博利珠单抗 + 铂类化疗,PD-1,PD-L1≥50% 一线 NSCLC,PhIII,321,PFS 16.1 vs 6.9 mo，HR 0.56（0.43–0.74），p<0.001，n=321,正面回答 PD-L1 高表达该不该加化疗这个老问题，HR 0.56 属压倒性,未判定
+5,pivotal,4208O,Oral,塞普替尼（selpercatinib）,RET,RET 突变甲状腺髓样癌（TKI 初治）,PhIII,291,3 年 PFS 率 75% vs 25%，HR 0.21；3 年 OS 率 92% vs 75%，HR 0.34,HR 0.21 是本期随机对照里最极端的效应量，且 OS 已同步获益,更新/长期随访
+6,pivotal,4733O,Oral,维恩妥尤单抗 + 帕博利珠单抗,Nectin-4 ADC + PD-1,顺铂不适合的肌层浸润性膀胱癌（围手术期）,PhIII,255,EFS HR 0.40（0.25–0.65），2 年无事件率 75.8% vs 41.0%；pCR 58.8%,围手术期 ADC+IO 把 2 年无事件率从 41% 推到 76%，是膀胱保留路径的分水岭,亚组/二次分析
+7,pivotal,3530O,Oral,卡瑞利珠单抗 + 化疗（UNION）,PD-1,局部晚期直肠癌（新辅助）,PhIII,231,3 年 EFS 91.3% vs 77.4%，HR 0.33（0.15–0.71），p=0.0029，n=231,短程放疗 + 免疫 + 化疗把 3 年 EFS 拉到 91%，HR 0.33 足以改新辅助标准,首次公布
+8,pivotal,459O,Oral,tovecimig + 紫杉醇,DLL4×VEGF,经治晚期胆道癌,PhII/III,168,PFS 4.7 vs 2.6 mo，HR 0.44，p<0.0001；ORR 17.1% vs 5.3%，p=0.031，n=168,胆道癌二线长期无阳性随机试验，HR 0.44 且 ORR 亦达标，机制也是新的,未判定
+9,pivotal,3589RO,Rapid Oral,帕博利珠单抗（KEYNOTE-564）,PD-1,ccRCC 辅助治疗,PhIII,994,7 年 DFS 率 57.2% vs 44.6%，HR 0.68；OS HR 0.70，n=994，随访 85.9 mo,辅助免疫在肾癌的 OS 获益到 7 年仍在，是所有辅助 IO 里最硬的一条,更新/长期随访
+10,pivotal,4639RO,Rapid Oral,芦康沙妥珠单抗（sac-TMT）,TROP2 ADC,经治局部复发/转移性 TNBC,PhIII,263,最终 OS 14.7 vs 9.9 mo，HR 0.60（0.45–0.80）；30 月 OS 率 26.8% vs 13.2%,TNBC 二线 ADC 首次拿到最终 OS 分析阳性，30 月 OS 率翻倍,更新/长期随访
+1,failed,3586O,Oral,帕博利珠单抗 + 仑伐替尼 ± belzutifan / MK-1308A,PD-1 / VEGF / HIF2α / CTLA-4,一线晚期肾透明细胞癌,PhIII,1688,n=1688；PFS HR 1.08 与 1.07，OS HR 1.04 与 1.12，ORR 69–69% vs 对照 76.3%,两个强化三联不仅没赢，PFS/OS 的 HR 全部 >1，是本期最明确的一次“加药反而更差”,未判定
+2,failed,4735O,Oral,围手术期帕博利珠单抗 + 顺铂/吉西他滨,PD-1,肌层浸润性膀胱癌,PhIII,907,n=907；EFS HR 0.88（0.71–1.10），p=0.1366；OS HR 1.00（0.79–1.27）,pCR 提高 8.9 个点却没换成 EFS 获益，围手术期 IO 的替代终点争议再添一例,首次公布
+3,failed,4736O,Oral,纳武利尤单抗 + 吉西他滨/顺铂（新辅助+辅助）,PD-1,肌层浸润性膀胱癌,PhIII,653,n=653；EFS HR 0.94（0.71–1.25），p=0.67；pCR 39.1% vs 29.6%（OR 1.54，CI 0.88–2.69）,与同日 4733O 的 EV+pembro 形成对照：单纯加 IO 不够，载体决定成败,更新/长期随访
+4,failed,692O,Oral,trotabresib + 放疗/替莫唑胺,BET,新诊断胶质母细胞瘤,PhII,184,mPFS 7.9 vs 8.2 mo，12 月 PFS 率 22.2% vs 38.9%，p=0.048（方向不利）；mOS 16.9 vs 16.7,随机 II 期不仅没获益，12 月 PFS 率还低 16.7 个点，BET 抑制剂在 GBM 这条线该收了,未判定
+5,failed,1239O,Oral,放疗 ± 帕博利珠单抗（NRG-GY020）,PD-1,早期高危子宫内膜癌,PhIII,168,RFS3 73% vs 对照，Z=-0.48，p=0.68；3/4 级毒性 43% vs 15%，n=168,未达预设优效，毒性翻近三倍，早期子宫内膜癌加 IO 这条路基本被判死,亚组/二次分析
+6,failed,544RO,Rapid Oral,芳香化酶抑制剂给药顺序（GIM3 FATA）,芳香化酶,绝经后 HR+ 早期乳腺癌,PhIII,3697,n=3697；upfront vs switch DFS HR 0.95（0.82–1.09），OS HR 0.88（0.74–1.06）,3697 例、随访 88.9 个月的最终分析证明顺序之争没有赢家，可据此停掉相关假设,更新/长期随访
+7,failed,2879RO,Rapid Oral,度伐利尤单抗 + 根治性放化疗,PD-L1,局部晚期食管癌,PhII,112,cPFS、PFS、OS 均无显著差异（见表）；治疗相关 AE 在联合组更高，n=112,三个终点一起落空且毒性更高，食管癌同步 IO 的又一个阴性随机,未判定
+8,failed,2492P,Poster,辅助帕博利珠单抗（KEYNOTE-630）,PD-1,高危局部晚期皮肤鳞癌,PhIII,450,36 月 RFS 率 71.6% vs 66.5%，HR 0.81（0.58–1.12）；36 月 OS 率 80.7% vs 88.0%，HR 1.70（1.11–2.60）,RFS 未达显著、OS 反而显著更差（HR 1.70），是最需要写进“别照抄”清单的一条,更新/长期随访
+9,failed,1555P,Poster,仑伐替尼 + 帕博利珠单抗（LEAP-009）,VEGFR / PD-1,复发转移性头颈鳞癌,PhII,404,治疗相关 AE 致死 5.2% vs 0.7%；3–5 级 TRAE 51.6% vs 41.2%；停药 17.4% vs 9.2%（n=404）,终局安全性数据显示联合组死亡与停药比例明显更高，为该组合在此适应证画句号,更新/长期随访
+10,failed,4873P,Poster,奥拉帕利（MOST-Plus）,PARP,分子选择的晚期实体瘤,PhII,255,诱导 12 周后仅 9%（23/255）缓解、74% 治疗失败，仅 43 例进入随机部分,泛瘤种按标志物给 PARP 的可行性被自己的入组数据否掉，值得作为设计反面教材,未判定

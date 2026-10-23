@@ -50,9 +50,12 @@
 
 **现象**：解析器产出的 label 常是拼接串，如 `Efficacy-evaluable patients; percentage`、`rate at 16 weeks 82.2%`、`Patients who completed 6 cycles (n=13) 84.6%`。
 
-**处置**：`ENDPOINT_PHRASES` 做规范化映射；`NOISY_LABEL`（follow-up/cutoff/data cut/population/subgroup/review/assessed/analysis set）或长度 >60 字符时，退回 `primary_endpoint_cn[0]`。
+**处置**：`ENDPOINT_PHRASES` 做规范化映射；命中 `NOISY_LABEL`（follow-up / cutoff / data cut / population / subgroup / review / assessed / analysis set / **percentage / remaining on treatment / available data / pts with / patients who / part 1 and part 2**）或长度 >60 字符时**返回 `None`，不再拿别的字段兜底**。
 
-**残留**：仍有个别行会漏出原始 label。**这不影响榜（榜上的数字来自人工复核的摘要原文）**，但用机器信号做自动统计时要小心。
+**v0.2 修掉的两个具体错标**（都不是噪声，是错到会误导榜的）：
+
+1. **两字母缩写做子串匹配**：`"response".find("os") >= 0` → 任何含 "Overall **res**p**o**n**s**e" 的标签都被映射成「总生存期」。SYS6043 曾显示「总生存期 45.7%」，实际是 ORR。现在 `ABBREV_KEYS = {orr, os, pfs, efs, dfs, dcr, pcr, dor, hr, bcr, rfs}` 一律用**词边界正则**。
+2. **无 label 时继承 `primary_endpoint_cn[0]`**：该列表首项在多数 ADC 摘要是「剂量限制性毒性」，于是 HS-20122 的 ORR 52.5% 被印成「剂量限制性毒性 52.5%」。现在 `clean_label` 只在中文候选里挑出**非安全性且能命中端点关键词**的那一项，否则留 `None`。
 
 ## 7. 同一试验多摘要（去重会丢主结果）
 
@@ -94,3 +97,47 @@
 **后果**：不过滤的话，榜单会被大量真实世界疗效对比占满，且这些研究的"ORR"与注册试验不可比。
 
 **处置**：全部排除，单独计数，明示在交付物里。
+
+## 12. `Results` 截断（v0.1 的主要缺陷，已修）
+
+**现象**：v0.1 把摘要 Results 段截到 760 字符。ESMO 2026 实测 Results 段中位数 **956 字符**、最长 2094 —— **338/646（52%）的摘要把关键数字印在 760 之后**。
+
+**后果**：低分条目里有 260 条 Results > 760，其中 **117 条（45%）在截断点之后还有带百分比的疗效数字**，真正“数字只在未展示的表里”的只有 4 条。两名内部专家推荐因此被误判：HS-20122 的 `52.5%` 在偏移 919，CM518D1 的 `33.3%` 在偏移 851。
+
+**处置**：**Results 全文给模型**（整篇摘要才 ~2 KB，截断零收益），Background 320 / Conclusion 280 的压缩保留，`clinical_result_summary` 另作独立字段。批次 25 → 15 条以对标单文件读取上限。
+
+## 13. 会议摘要库里有、结构化表里没有
+
+**现象**：BG-C477（2567P）在摘要库里全文都有，在结构化结果表里 0 命中——会前一天才放出的 FIH 数据还没走完入库流水线。ESMO 2026 的 4103 篇可用摘要里只有 465 篇被结构化表覆盖，**3638 篇未覆盖**，其中 52 篇是口头级、带药名 + Results 数字 + 可解析期别。
+
+**后果**：只读结构化表，早期机会桶会系统性漏掉“最新鲜”的资产——而那正是这一桶的全部价值。
+
+**处置**：见 `references/screening-rules.md` §1.2。会议库独有记录转补充行，**只进 early 桶**（期别是正则抽的，稳健度不够撑 pivotal/failed）。
+
+## 14. 报告形式是最容易被忽略的强先验
+
+**现象**：摘要号后缀直接编码报告等级（`5RO` 快速口头、`1000O` 口头、`1015P` 壁报），不需要任何额外字段。
+
+**后果**：ESMO 2026 候选池口头级只占 25%，但内部专家挑的 7 条里 **4 条是口头（57%）**。不用这个先验，等于白白丢掉 2.3 倍富集。
+
+**处置**：池内排序改 `(presentation_rank, -n)`，榜单标出报告形式。**但仍不做硬门槛**——同一批专家也挑了 3 条壁报，砍掉壁报会丢掉一半命中。
+
+## 15. 绝对 ORR 阈值会打压耐药人群里的好数据
+
+**现象**：9MW2821 在 TOP1i-ADC 耐药 TNBC（62 例，48% 用过 TROP2 ADC）ORR 30.0%、mPFS 3.7 mo、已开 III 期 NCT07556848。按 40% 硬线会被判 weak。
+
+**处置**：ORR 门槛按人群难度分档（一线 ≥40% / 后线、耐药 ≥25%），且**降档必须写明人群**。脚本已提供 `refractory` 字段。
+
+## 16. 复核分片没有正文 —— 子任务会静默降级
+
+**现象**：ESMO 2026 v0.2 首轮把 `pool.json` 的条目直接切成 36 片，`condensed` 字段为空（池子里只有 `abstract_text`，`condensed` 是复核批次阶段才拼装的）。6 个子任务全部读到 `condensed = null`：4 个直接拒绝判定并要求重给分片，2 个改用 `summary` 凑合。**keep 率从 24%（46+45+20+39+40+42）掉到 2%（0+0+14+0+6+2）**，且 `evidence` 全部无法逐字校验。
+
+**原因**：池子层（`pool.json`）与复核层（`review.jsonl`）是两种 schema。切片必须基于复核层的 batch item（含 `background` / `results` / `summary`），拼成 `condensed = Background + 完整 Results + DB summary`。
+
+**处置**：切片脚本落盘前断言 `all(it["condensed"] for it in items)`；再加体积断言（单文件 ≤40 KB）。这条断言比任何提示词都有效——两次跑到同一批文件，模型一次判 keep 3%、一次判 24%，差别全在输入。
+
+## 17. 机器排序 ≠ 推荐排序
+
+**现象**：池子按 `(presentation_rank, -n)` 排，本意是"先读重要档"。但 7 条专家选择在机器序里的位置是 2 / 19 / 27 / 72 / 101。壁报档里 `1029P`（CTS3497，28 例 MTAP 缺失 ORR 43%）、`2567P`（BG-C477，43 例 CEA ADC）被 n 更大的平庸壁报压到 72、101 名。
+
+**处置**：机器序只决定"读的顺序"，定榜顺序交给读完 keep 的人。`scripts/make_watchlist.py` 只按给定顺序渲染，不做排序，就是为了不让这个隐含假设重新长回来。
