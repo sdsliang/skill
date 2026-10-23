@@ -1,0 +1,468 @@
+bucket,verdict,trial,indication,phase,evaluation,n,data_type,key_numbers,reason,esid
+early,weak,MK-1084-001,非小细胞肺癌,Phase I,积极,346,更新/长期随访,n=68 mNSCLC; ORR/PFS见表,疗效数字仅提及表格，摘要未给出完整结果,24_37_p_8b5ed1ae24ad4887ea9018182e7f409c_1
+early,drop,ARROW,非小细胞肺癌,Phase I/II,积极,281,未判定,281例; 改善>10分,仅报告生活质量改善，无肿瘤疗效终点,24_37_p_f6587470d43016666aac3e4532199573_1
+early,weak,DB-1310-O-1001,HR阳性乳腺癌,Phase I,积极,252,更新/长期随访,HR+/HER2- BC n=56; 中位随访6.5个月,疗效结果仅见表格，当前摘要未给具体数字,nr_24_37_p_5858f16fd4818c7bb7faaf1f68b3f7e0_1
+early,keep,CK-301-101,皮肤鳞状细胞癌,Phase I,积极,205,更新/长期随访,ORR 51.3%; 中位DOR 45.9个月; 24个月DOR率68.6%,单臂CSCC队列ORR均超44%，缓解持久,24_37_p_64b091fe0f0387ed33609bcea6812dd6_1
+early,weak,NB003-01,胃肠道间质瘤,Phase I,积极,190,未判定,ORR 29.1%; DCR 78.5%; mPFS 7.5个月; mOS 19.8个月,单臂ORR低于门槛，虽有疾病控制数据,24_37_p_51606349973562d51df5f70b20a2eabe_1
+early,weak,,肿瘤,Phase I,-,163,首次公布,n=163; 中位随访3.6个月,报告称未确认缓解，未给出明确疗效率,24_37_p_3e7493024138a37dd2d8349066e0cfe7_1
+early,weak,,实体瘤; 胃癌; 结直肠癌,Phase I/II,积极,149,首次公布,n=149; CRC 40、GC 40、SQCC 27、LUAD 23,摘要疗效依赖表格，未提供具体疗效数字,nr_24_37_p_2b2429a76eba72b6b5600b195b48c13f_1
+early,keep,,乳腺癌,Phase I/II,积极,137,首次公布,ORR 45.7% (70例可评估),乳腺癌单臂队列ORR 45.7%，达到门槛,24_37_p_81a20307a3f83cf9de60eda8fc104aeb_1
+early,weak,EIK1003-001,实体瘤; 卵巢癌; 乳腺癌,Phase I/II,积极,125,未判定,ORR 14.3%、24.5%; DCR 38.8%、79.2%,单臂小样本ORR低，联合组DCR较高,24_37_p_39ad7acb32006e67e6e50d165ed3c07e_1
+early,keep,,小细胞肺癌,Phase I,积极,124,未判定,ORR 56%; mOS 12.4个月; 2L亚组n=17 ORR 82%,复发SCLC单臂ORR 56%，生存数字明确,24_37_p_fe798dead9dee61d9096993ae176996a_1
+early,weak,,非小细胞肺癌; 实体瘤; 结直肠癌,Phase I,积极,121,首次公布,n=121; EGFRm NSCLC n=90,摘要截断，未出现可核实的具体疗效数字,24_37_p_ab09d44788c72e0f8993697424f922d6_1
+early,weak,,实体瘤; 肝细胞癌,Phase I,积极,110,亚组/二次分析,6个月DOR 72.7%; HCC n=110,疗效表未提供ORR等关键数据，仅有DOR率,24_37_p_5aa0cad69e313279541b172c1651ab9c_1
+early,weak,ALS-6000-101,实体瘤; 涎腺癌,Phase I,积极,105,首次公布,Ph1a n=63; Ph1b n=42,仅概述有缓解及疾病稳定，缺少具体疗效率,nr_24_37_p_fa84afb525742e199b099ccef57ced05_1
+early,weak,,急性髓系白血病; 骨髓增生异常综合征,Phase I,积极,101,未判定,CR 3/11 (27.3%); RP2D入组12例,关键队列仅11例可评估，属于小样本,nr_24_37_p_9157e762773cd1b2583d7475d62749b2_1
+early,keep,,小细胞肺癌; 神经内分泌肿瘤,Phase I,积极,101,更新/长期随访,ORR 68.3%; 确认ORR 55.4%; DCR 94.1%; mPFS 6.8个月,复发SCLC单臂ORR 68.3%，PFS明确,nr_24_37_p_7baf08db7d6b117183afd23f268263d3_1
+early,weak,XmAb819-01,肾透明细胞癌,Phase I,-,101,未判定,ORR 27%; DCR 68%; 可评估n=60,ORR 27%且无对照，未达预设强疗效数字门槛,24_37_p_5a7568769d8826516c53eaa3fd6601ba_1
+early,weak,OptimUM-01,葡萄膜黑色素瘤,Phase I/II,积极,101,未判定,总体ORR 22.1%; 治疗初始n=11; 2L n=14,总体ORR仅22.1%，亚组样本很小且数字在表内,24_37_p_bfd80b12d30854c0b52265365e789fba_1
+early,keep,ZG005-003,宫颈癌,Phase I/II,-,96,更新/长期随访,20 mg/kg ORR 81.4%; 中位随访9个月,一线宫颈癌ORR 81.4%，但属非对照研究,24_37_p_57fb308f105bb5cce6a385c7476f4fe3_1
+early,weak,,实体瘤,Phase I,-,89,更新/长期随访,确认ORR 38%; 31/81,确认ORR 38%低于门槛，单臂多瘤种研究,24_37_p_d8e69ac1b3a42a6728dd79320ec029b8_1
+early,weak,INCA33890-101,结直肠癌,Phase I,积极,88,首次公布,n=88; 900 mg q2w,联合疗效数字未呈现，仅有鼓励性描述,nr_24_37_p_1874b05c25064c578b567f58fcaa3f50_1
+early,weak,DeLLphi-303,小细胞肺癌,Phase I,积极,88,更新/长期随访,24个月OS率58.1%; mPFS 5.6个月; n=88,单臂联合研究，仅报告生存率与PFS，缺少对照,24_37_p_057edfb87eaabf0e2ad4e4b6b427170d_1
+early,weak,,实体瘤; 胃癌; 胰腺癌,Phase I/II,积极,84,未判定,入组84例; CRC可评估66例,疗效详情截断，随机化未说明对照及主要终点达成,nr_24_37_p_a4c0a8f0ed9ebee6d75d4b04b5199fb4_1
+early,keep,,非小细胞肺癌,Phase I/II,-,82,未判定,确认ORR 50.0% (16/32); 中位DoR 8.6个月,NSCLC单臂联合队列确认ORR 50%,24_37_p_5b1c581070a14dcf9ec80ae83072e994_1
+early,keep,CIBI363A103,非鳞状非小细胞肺癌; 鳞状非小细胞肺癌,Phase I,积极,80,更新/长期随访,ORR 47.4%、61.9%、86.4%; n=80,一线NSCLC多个剂量队列ORR超过门槛,24_37_p_993cbbe09d3e518800b07c69126fb286_1
+early,weak,IMA402-101,实体瘤,Phase I/II,积极,80,首次公布,cORR 30% (6/20); DCR 65% (13/20),确认ORR 30%，且RP2D队列仅20例,24_37_p_f5ce18b5923a80fdac5daeffe6742c61_1
+early,weak,,小细胞肺癌; 神经内分泌肿瘤,Phase I/II,积极,78,首次公布,SCLC可评估69例; ORR 34.8%; DCR 58.0%,SCLC ORR 34.8%低于门槛，且样本有限,nr_24_37_p_aec6e5830da1e253ed9ed6776124171b_1
+early,weak,IAM1363-01,癌症,Phase I,积极,76,未判定,n=76; 既往治疗中位数3线,摘要未给具体疗效数字，仅称有抗肿瘤活性,24_37_p_632a319ad164dfe5faa6ef66660306eb_1
+early,keep,,HER2阳性乳腺癌,Phase I/II,积极,75,更新/长期随访,ORR 83.1%总体; 4.8 mg/kg组86.4%; 24个月PFS率73.4%,HER2阳性乳腺癌ORR 83.1%，疗效明确,24_37_p_f05ac8de607ea08bdc225ef15a6fdebe_1
+early,drop,TTK-CS-101,实体瘤,Phase I,-,74,首次公布,n=74; MTD 240 mg; RP2D 160 mg,仅提供剂量、安全性及药代结果，无疗效结果,24_37_p_2fdae5ab09fbafcf5f44f566dcc3bf85_1
+early,weak,KEYNOTE-365,前列腺癌,Phase I/II,积极,70,亚组/二次分析,联合组n=40; 化疗组n=30; 中位DOR 5.9 vs 4.5个月,有随机化化疗对照但关键比较仅在表格且样本小,24_37_p_1894f136c6511e5bb7cb12d3cc8d7f70_1
+early,weak,,实体瘤,Phase I,积极,67,更新/长期随访,n=67; 5例DLT,疗效数字在摘要截断处，不能核实具体结果,24_37_p_fa68613b601dfbf52ffcd7b94df05cbd_1
+early,weak,,神经内分泌肿瘤,Phase I/II,-,67,未判定,Cohort 2 ORR 43.4%; 可评估n=23/46,ORR 43.4%但仅来自早期部分队列,24_37_p_593ec5595a7e3f0cf76b119bc95e40d1_1
+early,weak,,非小细胞肺癌,Phase I/II,积极,66,未判定,入组66例; 既往治疗≥2线占80%,主要疗效描述截断，未见具体响应率,nr_24_37_p_093053076f3c3c8d63dd1850beecef73_1
+early,weak,MK-3475-E45|KEYNOTE-E45|QRNT-009,实体瘤,Phase I/II,积极,65,未判定,PR 2例; SD 16例; 可评估53例,仅2例部分缓解，疾病控制信号有限,24_37_p_7126166a542a217447c205c8732e700a_1
+early,keep,TJ033721STM101,胃癌; 食管癌; 胃食管交界处癌,Phase I,积极,64,未判定,ORR 77%、75%; DCR 96%、100%; mPFS 16.9、14.5个月,一线胃食管癌ORR 75%以上且PFS约15个月,nr_24_37_p_c728993add601ad6154c7b302cf4e32b_1
+early,weak,,非小细胞肺癌; 实体瘤; 结直肠癌,Phase I,积极,64,首次公布,确认ORR 26.7% (8/30); DCR 80.0%; mPFS 5.1个月,CRC确认ORR 26.7%，低于门槛,24_37_p_32d007ccd937ecae96beb35a5d6d0295_1
+early,keep,JSKN033-102,宫颈癌,Phase I/II,积极,64,首次公布,ORR 52.9% (18/34); DCR 88.2%,宫颈癌单臂队列ORR 52.9%，达到门槛,24_37_p_b6a370fe84a207aa6face9dd1e9b8df8_1
+early,keep,,非小细胞肺癌; 实体瘤; 胰腺导管癌,Phase I,积极,62,未判定,ORR 52%; NSCLC 11/22; PDAC 1/1,KRAS G12C NSCLC单臂ORR 52%,24_37_p_a851ed130c074891eaff41ac1e82e768_1
+early,weak,,实体瘤,Phase I,积极,62,更新/长期随访,ORR 11.8%-28.6%; Q6W 3-5 mg/kg,各剂量ORR 11.8%-28.6%，无对照,24_37_p_b7c77934ed88051687351cb4ea7ec7df_1
+early,keep,,宫颈癌,Phase I/II,积极,62,亚组/二次分析,确认ORR 41.8% (23/55); DCR 87.3%; mPFS 8.4个月,宫颈癌确认ORR 41.8%，DCR 87.3%,nr_24_37_p_93e9dfc1e0d39b5818c24f4a95d2f97e_1
+early,keep,,小细胞肺癌,Phase I,积极,61,亚组/二次分析,ORR 67.2%; mDoR 5.8个月; mPFS 7.2个月,复发SCLC单臂ORR 67.2%，PFS明确,24_37_p_4f731e211794893bf5f790fcdb08b649_1
+early,keep,,非小细胞肺癌; 实体瘤; 鼻咽癌,Phase I/II,积极,60,首次公布,ORR 43% (n=28); GI癌ORR 55%,MTAP缺失肿瘤ORR 43%，胃肠亚组55%,nr_24_37_p_a5ebdf7010b9999bae87d352544e3f25_1
+early,weak,KANDLELIT-001,实体瘤,Phase I,-,60,首次公布,ORR 30%; mDOR 13.8个月; mPFS 5.7个月,ORR 30%且为多瘤种小队列,24_37_p_5135fd7f727a160a0d49b02831006bf8_1
+early,drop,DAREON-9,小细胞肺癌,Phase I,积极,60,更新/长期随访,n=60; 中位8周期,本摘要聚焦毒性管理，未给治疗总体疗效数字,24_37_p_c38a03c7d7a9d531e37f613384cbee39_1
+early,weak,PROCEADE-CRC-01,结直肠癌,Phase I,积极,60,更新/长期随访,mOS 15.7个月; mPFS 6.9个月; ORR 20.7%,ORR 20.7%且小样本单臂，OS无对照,24_37_p_37c899d4cd8b6a954529d59fd014793c_1
+early,keep,ZL-1310 001,小细胞肺癌,Phase I,积极,58,未判定,一线双联确认ORR 80% (12/15); 三联确认ORR 91% (n=13); 总双联ORR 65.9%,一线SCLC联合队列ORR 80%-91%,24_37_p_a25bcb7e984724eeaa1e45eb981a1093_1
+early,weak,DS8201-A-U106,HER2低表达乳腺癌; HER2阳性乳腺癌; 乳腺癌,Phase I,积极,56,更新/长期随访,mPFS 34.0个月、12.7个月; n=30、26,仅PFS数据，未给ORR且为小样本单臂,24_37_p_098af10dfdc5e0683a38d26130066954_1
+early,drop,EIK1004-001,实体瘤,Phase I/II,积极,56,首次公布,n=56; 无DLT,摘要只称早期抗肿瘤活性，未提供疗效结果,24_37_p_67b3f87119885324b9012eac42abb6c6_1
+early,weak,,非小细胞肺癌; 实体瘤,Phase I,积极,55,首次公布,ORR 24.1%; DCR 81.5%; 可评估29例,MTAP缺失实体瘤ORR 24.1%，低于门槛,24_37_p_ae66c1471d0641d30f094cd2db364bc6_1
+early,drop,,非小细胞肺癌,Phase I,积极,55,未判定,PD-L1阳性cORR 32.4%; 阴性0%; 一致率84.0%,研究比较影像判读一致性，不是治疗疗效结果,24_37_p_24793e85dc3d6dc7e8c7d0db20b02fae_1
+early,keep,ZG 005 - 001,宫颈癌,Phase I/II,积极,55,更新/长期随访,cORR 40.9%; mPFS 8.1个月; mDoR 22.6个月,晚期宫颈癌ORR 40.9%，缓解持续22.6个月,24_37_p_63a9d48d01f279b838c16eb3f7a792f4_1
+early,weak,,实体瘤,Phase I,积极,54,首次公布,ORR 12.1% (33例); DCR 60.6%,多瘤种可评估仅33例，ORR 12.1%,24_37_p_d5bf2fbf90a6e28beab2cb266928de83_1
+early,weak,MHB088C-CP001CN,食管鳞状细胞癌; 神经内分泌肿瘤; 胰腺导管癌,Phase I/II,积极,53,首次公布,ESCC ORR 31.9%; DCR 66.0%; mPFS 4.24个月,食管癌总体ORR 31.9%，未达到强疗效门槛,nr_24_37_p_9701729f0ac86ea89d63aa00882d96a9_1
+early,weak,SHR-4394-101,去势抵抗前列腺癌,Phase I,积极,53,首次公布,确认ORR 35.3% (6/17); PSA50 57.1% (42例),客观缓解可评估仅17例，ORR未达门槛,nr_24_37_p_dfe35550413e25f646b62e019f82abdf_1
+early,weak,,去势抵抗前列腺癌,Phase I,积极,52,未判定,n=52; 既往治疗中位数6线,疗效摘要截断，未提供可核实具体疗效数字,nr_24_37_p_91cc0d7a780e3f8d53b7a1e6a3429283_1
+early,weak,,实体瘤; 肝细胞癌; 结直肠癌,Phase I/II,积极,51,首次公布,HCC 13例; CRC 38例,分癌种疗效样本小且关键结果未在截取摘要中给出,24_37_p_2cac99aa3a5622f217b3b693fc7326c7_1
+early,weak,,非小细胞肺癌; 癌症脑转移,Phase I,积极,51,亚组/二次分析,颅内ORR 37% (7/19); 颅内DOR 19.8个月,脑转移亚组仅19例，颅内ORR低于40%,24_37_p_d20a10d7ca6979aacc7af5eaca5c3256_1
+early,weak,,结直肠癌,Phase I/II,积极,51,未判定,单药n=34; 联合n=17,疗效仅见表格，摘要未列出具体结果,nr_24_37_p_ebc19798572ddac4dbebf55ab47b9669_1
+early,weak,,腺样囊性癌,Phase I,-,50,更新/长期随访,PR 3/40; MYB mRNA下降21%-76%,缓解仅3例，单臂小样本且主要结果被截断,24_37_p_295c53652891148f531ac2c856901b00_1
+early,weak,,胰腺导管癌,Phase I,积极,50,更新/长期随访,n=50; GnP n=25; mFFX n=25,摘要聚焦安全性，联合疗效数字未呈现,24_37_p_808e03ad42f53f9308a8a77dfe724484_1
+early,keep,EMBOLD PanTumor-101,小细胞肺癌,Phase I,-,50,未判定,确认ORR 32% (6 mg/kg)、61% (8 mg/kg); 评估40例,复发SCLC单臂8 mg/kg队列ORR 61%,24_37_p_a2cfe5af59de032e66e7f240e9757fdc_1
+early,weak,PAnTHA,前列腺癌,Phase I,积极,50,未判定,n=50; 口干86%; 80%完成4周期,摘要仅研究口干安全性，未报告当前疗效结果,24_37_p_b52a91d2307906c11631ac68fe47c1fc_1
+early,drop,,去势抵抗前列腺癌; 前列腺癌,Phase I,积极,49,亚组/二次分析,ctDNA下降≥50% 90%; ≥95% 57%; n=49,仅报告ctDNA及循环肿瘤细胞等生物标志物,24_37_p_352f00552be21b0966ec4650d5ffe91f_1
+early,weak,PRESERVE-001,黑色素瘤,Phase I/II,积极,49,更新/长期随访,2年OS 50.9%、31.7%; 总n=49,生存数字未在正文列出，ORR需看表且队列小,24_37_p_7dd75ea704f45d7515a43165f78d0875_1
+early,weak,,结直肠癌,Phase I,积极,49,首次公布,单药n=24; 联合n=25,联合疗效数据未列具体数字,24_37_p_b852e8b9e0936dde1a542b965c132037_1
+early,keep,,胃癌; 胃食管交界处癌,Phase I,积极,46,首次公布,ORR 80%; 确认ORR 60%; DCR 100%; n=35,胃癌联合队列ORR 80%，确认ORR 60%,24_37_p_d5fee04070d97253574cdd79bc91c2a2_1
+early,keep,,实体瘤,Phase I/II,-,46,未判定,ORR 52.5%; mPFS 5.8个月; OS 12个月,总体ORR 52.5%，高RNA-ISH组ORR 75%,24_37_p_67eea331fa195f5b3afa1663b486f08c_1
+early,weak,,结直肠癌; MSI-H或dMMR实体瘤,Phase I/II,积极,45,首次公布,ORR 15.6%; mDoR 8.4个月; n=45,MSS CRC单臂ORR 15.6%，未达疗效门槛,24_37_p_5e2eafff8e9665bc8d5532cf7d06a5fc_1
+early,weak,,去势抵抗前列腺癌,Phase I/II,积极,45,更新/长期随访,PSA50 26.7%; 既往abiraterone亚组40.9%; mPFS 9.1个月,单臂随机剂量队列，主要客观终点未达40%,24_37_p_664206722aa79caf3f1d27d389aa186d_1
+early,drop,R4-FOUR-PET,实体瘤; PET显像,Phase I,积极,44,未判定,入组44例; SUVmax 2.98 vs 7.9,诊断显像和药代研究，无患者治疗疗效结果,nr_24_37_p_b676142f49355932f0b3f0ba4a4d3900_1
+early,drop,,实体瘤,Phase I,积极,44,首次公布,n=44; PFS p<0.001; OS p=0.03,结果为靶点占有及免疫生物标志物关联,24_37_p_04145ca438acc2a81c31dfe8b498838d_1
+early,keep,DAREON-7,神经内分泌肿瘤,Phase I,积极,44,亚组/二次分析,确认ORR 77%; DLL3高表达88%; mPFS 7.7个月,神经内分泌癌ORR 77%，中位PFS 7.7个月,24_37_p_df26976054c898546c15ac5b05d34b50_1
+early,weak,PAUF-I,胰腺癌,Phase I/II,-,43,首次公布,入组43例; 单药22例; 联合21例,疾病控制仅7例，未给出明确客观缓解率,24_37_p_ae9ddd03e7a860784323f07d4ba37a58_1
+early,keep,,神经内分泌肿瘤,Phase I/II,积极,43,未判定,ORR 69.8%; DCR 95.3%; mPFS 9.4个月; n=43,一线NEC单臂ORR 69.8%，mPFS 9.4个月,24_37_p_f6ac5b1e607cb1fbfe96f54ff40932ee_1
+early,keep,BelaRd,多发性骨髓瘤,Phase I/II,积极,42,未判定,ORR 97.6% (41/42); 18个月PFS 82.9%; 24个月PFS 74.9%,新诊断骨髓瘤ORR 97.6%，PFS率明确,24_37_p_d8d74588b01fec41bc3acc50c60d0a20_1
+early,weak,,黑色素瘤,Phase I,积极,42,更新/长期随访,n=42; 既往CTLA4抑制剂79%,疗效结果未列出数字，摘要仅称有活性,24_37_p_bba8a4d5bd4b95f6fe48d0a80e8bc325_1
+early,weak,,卵巢癌,Phase I,积极,42,更新/长期随访,ORR 5%、28.5%; mOS 8、14个月; 每队列21例,双臂数字明确但未说明随机对照，队列各21例,24_37_p_d5ab86973d1b9ce8a04cd9a0615e7479_1
+early,weak,Debio 0123-GBM-105,高级别胶质瘤; 星形细胞瘤; 胶质母细胞瘤,Phase I/II,积极,41,未判定,n=41; MTD 720 mg,仅称早期活性，关键缓解数字在截断内容中,24_37_p_c26dc1a11744e9ff614e8aa9b7764945_1
+early,weak,MELODY-1,黑色素瘤,Phase I,积极,41,未判定,ORR 14.3% (3例)、10% (2例); DCR 28.6%、20%,两组ORR均低且各仅数例缓解,24_37_p_f7065ab4db87d273b672bcb16cac4ec0_1
+early,weak,Temab-A,非鳞状非小细胞肺癌,Phase I,积极,41,未判定,mOS 13.8、16.2个月; EGFR WT n=48，MUT n=41,仅给OS且缺少对照及客观缓解数据,nr_24_37_p_420461c6a0436de1116d369a860abb0c_1
+early,weak,,非小细胞肺癌; 癌症肝转移; 癌症脑转移,Phase I/II,积极,40,首次公布,确认缓解6/28; 中位随访4.5个月,可评估仅28例，确认缓解6例且随访短,24_37_p_e3ce111241e77cec7b7f73a88c10d90f_1
+early,weak,,胃癌; 胰腺癌,Phase I,积极,40,未判定,GC ORR 25.0%; GC 23例; PC 17例,胃癌ORR 25%，胰腺癌样本较小,24_37_p_5977a08838215eb9f9e2580e5cb70c79_1
+early,weak,INT-101,非鳞状非小细胞肺癌,Phase I,积极,40,未判定,确认ORR 37.8%; DCR 91.9%; mPFS 5.7个月,确认ORR 37.8%略低于门槛，样本仅40例,24_37_p_a626067a83a08be50f2b5430ce604167_1
+early,keep,,去势抵抗前列腺癌,Phase I,积极,40,首次公布,PSA50 64.7%; 6个月rPFS 71.4%; ORR 44.4% (4/9),mCRPC PSA50应答率64.7%，影像ORR 44.4%,24_37_p_1b7bdb22ce53bbe2d783a7047677f82e_1
+early,keep,,食管鳞状细胞癌,Phase I/II,积极,39,未判定,mPFS 7.2个月; 16周PFS率82.2%; ORR 41.2%,晚线食管癌ORR 41.2%，PFS 7.2个月,24_37_p_ad9e089f85a7f0526f0b78b1af01525a_1
+early,weak,,实体瘤; 非霍奇金淋巴瘤,Phase I,积极,38,更新/长期随访,PR 1例/20; DCR 50.0%; 最长PFS 7.4个月,可评估20例仅1例PR，未达明确疗效门槛,24_37_p_1689612adf1ea04dcfaeb7ab98af78ae_1
+early,drop,,实体瘤; PET显像,Phase I/II,积极,38,未判定,n=38; SUVmax范围1.9-13.10,PET显像及影像生物标志物研究，无治疗疗效,24_37_p_076ea84e967677139fb50497e7798883_1
+early,keep,,硬纤维瘤,Phase I/II,积极,38,更新/长期随访,ORR 74% (14/19); CR 1例; DCR 100%,硬纤维瘤单臂ORR 74%，DCR 100%,24_37_p_c917a74e1203762946a92262c357f2d4_1
+early,drop,,实体瘤,Phase I,积极,37,更新/长期随访,n=37; 8 mg/kg组8例,摘要未给具体疗效结果，仅提早期活性,24_37_p_76eeca5055577e85c2f608b592de9114_1
+early,weak,,肝细胞癌,Phase I,积极,36,更新/长期随访,n=36; 中位随访14个月; 既往治疗中位数4线,疗效数字缺失于截断摘要，虽称临床疗效强,24_37_p_61df6c6e16422bb26952ec8dd94268ce_1
+early,keep,Bela-DRd,多发性骨髓瘤,Phase I/II,积极,36,未判定,ORR 91.7%; ≥CR 70%; 18个月PFS 91.7%,新诊断骨髓瘤ORR 91.7%，18个月PFS 91.7%,24_37_p_a443e26e0bd17ed07c9a5a66f2ed075c_1
+early,weak,LuCAB,去势抵抗前列腺癌; 前列腺癌,Phase I/II,-,35,未判定,n=35; RP2D cabazitaxel 20 mg/m2,单臂35例，摘要未提供疗效的具体量化结果,24_37_p_fba1bdcc0c41d5cfac2bc618c811ed49_1
+early,weak,,黑色素瘤,Phase I/II,积极,35,未判定,总体ORR 6.5%; DCR 58%; mPFS 2.66个月; 亚组n=7 ORR 28.6%,总体ORR 6.5%，仅7例亚组ORR 28.6%,nr_24_37_p_4ef2e523b177ce27f15756538a7984df_1
+early,weak,,实体瘤,Phase I,积极,35,亚组/二次分析,入组35例; HER2突变7例,仅7例携带突变且未报告具体疗效指标,24_37_p_c31c3cf56dfe1cdf94bbca0531f62ec6_1
+early,weak,,小细胞肺癌; 神经内分泌肿瘤,Phase I,积极,34,更新/长期随访,12个月OS 67.6%; 18个月OS 53.6%; n=34,仅生存率数字且单臂34例，OS中位数未成熟,24_37_p_c1bec51f62c7f6693cc1584d51ccc6ca_1
+early,keep,,HR阳性乳腺癌; HER2阳性乳腺癌; 乳腺癌,Phase I/II,积极,33,更新/长期随访,ORR 50.0%; DCR 92.3%; mPFS 16.6个月,PIK3CA突变乳腺癌ORR 50%，PFS 16.6个月,24_37_p_2f104f90187b78686db6c1ab0eadfeb2_1
+early,keep,,卵巢癌,Phase I,积极,33,未判定,ORR 64%; DCR 100%; 中位随访6个月,耐铂卵巢癌单臂ORR 64%，DCR 100%,nr_24_37_p_0c1cce6a38c95f67c86a518d768e2f0e_1
+early,keep,IMA203-101,黑色素瘤,Phase I/II,积极,33,亚组/二次分析,确认ORR 56%; mDOR 14.6个月; mPFS 6.1个月; mOS 16.2个月,黑色素瘤单臂确认ORR 56%，中位DOR 14.6个月,24_37_p_3f576d15b4e4afa2f1a14e7d5674a5a7_1
+early,weak,,HR阳性乳腺癌,Phase I,积极,32,更新/长期随访,n=32; 250 mg队列12例,仅称疾病控制有信号，具体疗效数字未出现在摘要,24_37_p_caa6b79ff908c6b6af614a7f04057846_1
+early,drop,,实体瘤,Phase I,积极,32,亚组/二次分析,n=32; 剂量1-9 mg/kg,未提供具体疗效数字，主要为安全性与药代,24_37_p_8c35ed773cac38ac6dd0010d4064c3f1_1
+early,keep,,非小细胞肺癌,Phase I/II,积极,31,首次公布,n=31; ORR 58.1%,单臂ORR明确达58.1%,24_37_p_e228ddeedb73b2f1f00fccbcc2ab0b31_1
+early,weak,,胃癌,Phase I/II,积极,31,未判定,n=31; ORR 37.5% (6/16); DCR 93.8%; mPFS 7.8 months,可评估样本16且ORR未达阈值,24_37_p_8384bd450e437d99108008eeae6b2c3f_1
+early,drop,,实体瘤,Phase I,-,31,首次公布,n=31; IRR 54%; CRS 9.7%,仅安全性与药效学指标,24_37_p_866cd60017c03ef884f9d3fe43016dd6_1
+early,keep,REJOICE-Ovarian02,卵巢癌; 输卵管癌; 腹膜癌,Phase I/II,积极,30,未判定,n=30; ORR 80% (8/10); 53% (8/15),单臂ORR在剂量组达80%,24_37_p_83d94b87b0bed3c75274fa7f6b066e54_1
+early,keep,OrigAMI-4,头颈部鳞状细胞癌,Phase I/II,积极,30,未判定,n=30; ORR 77% (17/22); HPV+ ORR 29% (2/7),单臂ORR明确达77%,24_37_p_bd5daceca6fa5061ef74abe6c6cf832f_1
+early,weak,,实体瘤,Phase I/II,积极,30,未判定,n=30; NSCLC DCR 60% (n=5); MSS-CRC DCR 66.7% (n=3),仅小亚组DCR，未给缓解率,24_37_p_099d2a0e5a781642ed2bb5be178ae89c_1
+early,drop,ARC-27,非小细胞肺癌; 肾细胞癌; 卵巢癌,Phase I,-,29,首次公布,n=29; MTD未达,未提供具体疗效数字,24_37_p_54249dc915b2554a58eecec49e91fe43_1
+early,drop,,林奇综合征; 癌症,Phase I/II,积极,28,首次公布,n=28; T细胞免疫增强93% vs 64%,仅免疫原性与安全性,24_37_p_0b2318266777eccd91908b28ad8bbcb2_1
+early,weak,,结直肠癌,Phase I/II,积极,28,首次公布,n=28; 单药ORR 25% (2/8); DCR 87.5%,有效样本8例且ORR低于阈值,24_37_p_18f1f5e78ec57df45731d1b5c535f29c_1
+early,keep,,胶质瘤,Phase I,积极,28,首次公布,n=28; ORR 40.7% (11/27),单臂ORR达40.7%,24_37_p_f5ea2525587962d94058b47514db904d_1
+early,keep,CALLIOPSIS,结直肠癌,Phase I/II,积极,28,未判定,n=28; ORR 71.4%; 手术转化42.8%; R0 91.7%,单臂ORR达71.4%,24_37_p_e793fe4580aaced93960248bb20402df_1
+early,weak,,胃癌; 结直肠癌; 消化道癌症,Phase I/II,积极,27,亚组/二次分析,n=27; 队列A 1 CR、2 PR; 队列C 1 PR,分散小队列且无总体疗效率,24_37_p_c3ce5a38a93f90bb891c68cff8b93a1d_1
+early,weak,ProTACT,去势抵抗前列腺癌,Phase I,积极,27,首次公布,n=27; PSA50 9/22,PSA反应属替代指标且可评估22例,24_37_p_5163c63d55c9e05e18c6fe3534ebe41b_1
+early,weak,,卵巢癌,Phase I/II,积极,26,首次公布,n=26; ORR 24%; mPFS 4.1 months; DCR 56%,ORR 24%且非随机小样本,24_37_p_73b1ac22769bec2d11b316c9814ef62f_1
+early,keep,,肾细胞癌,Phase I/II,积极,26,首次公布,n=26; ORR 57.1% (12 PR); DCR 95.2%; 12-month PFS 87.9%,单臂ORR明确达57.1%,24_37_p_7a9075b6498cb68e0e2ad0bd43b08554_1
+early,weak,LK101-IIT02,非小细胞肺癌,Phase I,积极,25,未判定,n=25; ORR 19% (4/21); DCR 95.2%; 随访3.8个月,ORR 19%且随访短,24_37_p_16285a76ad70a55f9558890dd7d46cf9_1
+early,weak,STAMINA-01,黑色素瘤,Phase I,积极,25,更新/长期随访,n=25; ORR 21.7% (5/23); 高CD73组33.3% (4/12); mPFS 4.63个月,ORR低于阈值且单臂,24_37_p_f5fe45e9c8acfc9aaad90c5939796490_1
+early,keep,,卵巢癌,Phase I,积极,25,未判定,n=23; ORR 48% (11); DCR 91%; mDOR 5.6个月,单臂ORR达48%,24_37_p_ba6f9724eb73b0836b7f0470d78b2663_1
+early,weak,HCB301-101,实体瘤; 霍奇金淋巴瘤,Phase I,积极,24,未判定,n=24; DCR 33.3% (5/15); 1例3级DLT,仅DCR且有效样本15例,24_37_p_ac7738588a5cee94f54385d70c0e5fae_1
+early,keep,,实体瘤; 黑色素瘤,Phase I,积极,24,未判定,n=24; ORR 41.7% (10/24); DCR 75%,单臂ORR达41.7%,24_37_p_4adeb8a0ffa4b867d6b18519382248a4_1
+early,weak,,非小细胞肺癌; 癌症脑转移,Phase I,积极,23,首次公布,n=23; 疗效数字未完整提供,疗效详情在截断文本未给出,24_37_p_2e4c0afe415223a087836273a3a93303_1
+early,keep,,胶质母细胞瘤,Phase I/II,积极,23,未判定,n=23; ORR 71.4% (15/21); DCR 85.7%; 6-month PFS 84.6%,单臂ORR达71.4%,24_37_p_afe957fd7198380ac441fee7f8979dae_1
+early,drop,AV-380-22-102,癌性恶病质,Phase I,积极,23,亚组/二次分析,n=23; 剂量50-800 mg,仅安全性及体重生物标志信号,24_37_p_31df48a60e5f0fb8fbf119750cf3df71_1
+early,weak,,B细胞淋巴瘤; 弥漫性大B细胞淋巴瘤,Phase I,积极,22,首次公布,n=22; DLBCL疗效评估15例,疗效率数字被截断且疗效样本15例,24_37_p_2d52ef90cae9298cc11ee9e2c6ef3657_1
+early,keep,TheraPb,去势抵抗前列腺癌; 前列腺癌,Phase I,-,22,更新/长期随访,n=22; PSA50 80%; ORR 100% (5例可测量病灶),RP2D队列ORR明确达100%,24_37_p_1c99be25f1db110052f88b792d834cac_1
+early,drop,PETRANHA,前列腺癌,Phase I/II,-,22,首次公布,n=22; Cmax下降21%; AUC下降51%,仅安全性和药代相互作用,24_37_p_8e93cb3a774f92760a63e622122e0bea_1
+early,weak,,结直肠癌,Phase I/II,积极,22,未判定,n=22; ORR 22.2% (18例); mPFS 11.4个月,ORR 22.2%且可测量病灶18例,24_37_p_fb798532a25debc0e49911b4524e1c77_1
+early,keep,SUSTEM-p,胰腺神经内分泌肿瘤,Phase I/II,积极,22,未判定,n=22; ORR 77.3%; DCR 100%; 12-month PFS 90.4%,单臂ORR达77.3%,24_37_p_4c6a12df3b0e04c36bb21aec09e5d704_1
+early,drop,,实体瘤,Phase I,积极,22,未判定,n=22; RP2D 100 mg QD,仅安全性与剂量信息,nr_24_37_p_ad3cf3b9abc2927810b6a8976f86380e_1
+early,weak,TROPHY-U-01 Cohort 7,尿路上皮癌,Phase I,积极,21,未判定,n=21; 12例DLT可评估; 1例DLT,疗效具体数字未显示,24_37_p_53567f09e39d8613bf9b43be0b9d9b4a_1
+early,weak,,实体瘤,Phase I,积极,21,首次公布,n=21; DCR 60% (9/15); 1例确认PR,单例PR且小样本可评估15例,24_37_p_1e546c28f553e209a05600c1562c58e1_1
+early,weak,,胃肠胰神经内分泌肿瘤,Phase I/II,积极,21,未判定,n=21; 可评估15例; 1 CR、8 PR,可评估15例，低于20例门槛,24_37_p_3bc01d7c238f30253d190c78fe9ace7e_1
+early,weak,,小细胞肺癌; 神经内分泌肿瘤,Phase I,-,20,未判定,n=20; ORR 28.6%; DCR 78.6%,ORR低于40%且按剂量亚组,24_37_p_e3da0a2ba627bf5d20fd612f86caf521_1
+early,weak,,实体瘤; 间皮瘤,Phase I,积极,20,未判定,n=20; ORR 28.5% (2/7); DCR 57.1%,可评估7例且ORR低于40%,24_37_p_41a863c447c92fea7b621b36a488d841_1
+early,drop,mRNA-4157-P101,胰腺导管癌,Phase I,-,20,首次公布,n=20; 免疫原性评估19例,仅免疫原性与生物标志物,24_37_p_e5b9fc3985ef3b6de2f3b4d4b69d97a0_1
+early,keep,,胰腺导管癌,Phase I/II,积极,20,未判定,n=20; ORR 46.7% (7/15); DCR 100%,单臂ORR达46.7%,24_37_p_b1bc3491cbbe8c391589733ce1ff7914_1
+early,drop,,去势抵抗前列腺癌,Phase I,积极,20,首次公布,n=20; G3 TEAE 90%; 无G4/G5,该摘要报告安全性未见疗效数字,24_37_p_c9de3353220ab262e52271291b365167_1
+early,weak,,实体瘤,Phase I,积极,20,更新/长期随访,n=20; 至少2例PR,数个小队列PR，无总缓解率,24_37_p_c7db4c5eae4965d0a99a10308410d882_1
+early,keep,TRT-ODC-IL2-001,实体瘤; 黑色素瘤,Phase I,积极,19,未判定,n=19; 黑色素瘤4例; ORR 75%; DCR 100%,黑色素瘤亚组ORR达75%,24_37_p_247b9320219917bfe28c29e2d4de1fe8_1
+early,drop,SERONCO-1,实体瘤; 淋巴瘤,Phase I,积极,19,未判定,n=19; 未达MTD,只有安全性及药代信息,24_37_p_25ca3fcb1dd3fa57a4eb817489d0ff02_1
+early,keep,NEO-GLITIPNI,胶质母细胞瘤,Phase I,积极,18,未判定,n=18; 12 PD; mPFS 11周; mOS 39周,新辅助治疗多数进展且生存有限,24_37_p_bedf7b8c5a1db02c0f1348198d0a02ac_1
+early,weak,ASP-1929-181,头颈部鳞状细胞癌,Phase I/II,积极,18,亚组/二次分析,n=18; ORR 27.8%; mOS 25.6个月; mPFS 2.9个月,ORR 27.8%低于阈值,24_37_p_4238ea7c801cf40434136bbb935ccbdc_1
+early,weak,,肾细胞癌,Phase I,积极,18,未判定,n=18; ORR 33% (6例); mPFS 5.5个月,18例样本且ORR低于阈值,24_37_p_2391bc4f78482819fcdaa5812e3264a3_1
+early,drop,BHV1530-101,实体瘤,Phase I,积极,17,首次公布,n=17; 剂量1-7 mg/kg,仅安全性、药代且未报具体疗效,24_37_p_715538633d180cd2dd57f00e74dfce98_1
+early,weak,,去势抵抗前列腺癌,Phase I,积极,17,未判定,n=17; G≥3 TRAE 59%,报告未见明确疗效数字,24_37_p_32051e13f6b320c94e4fbe1abb4fe9d4_1
+early,drop,,激素敏感性前列腺癌; 前列腺癌,Phase I,-,16,亚组/二次分析,n=16; PIP≤0.23 ng/ml; P=0.011,仅探索性相关性分析,24_37_p_e39e8e287802247f7907a8c2fe772a17_1
+early,weak,,实体瘤,Phase I,积极,16,未判定,n=16; SD 9例; 治疗2-20周期,仅稳定疾病，且样本16例,24_37_p_b20f0a809cdeeef5859e8516ebcf00c2_1
+early,weak,,实体瘤,Phase I,-,16,未判定,n=16; 肿瘤标志物反应5/8,仅肿瘤标志物反应且疗效细节截断,24_37_p_fc69d94e3ffefa7c3560a01b8283cd3c_1
+early,keep,,软组织肉瘤,Phase I,积极,16,未判定,n=16; ORR 56.25%; DCR 100%; mPFS 6.3个月,注射病灶ORR达56.25%,24_37_p_fcf93edfd9f5687addc3aa8fa8df61ea_1
+early,weak,,三阴性乳腺癌; 软脑膜癌病; HER2阳性乳腺癌,Phase I,积极,15,未判定,n=15; mPFS 2.83个月; mOS 16.24个月,仅13例生存分析且OS获益非对照,nr_24_37_p_9f6324b1c8d59bf1a413364a4ddf81c5_1
+early,keep,,结直肠癌; 腹膜转移癌,Phase I,积极,15,未判定,n=15; ORR 57.1%; DCR 100%; mPFS 4.4个月,单臂ORR达57.1%,24_37_p_f93f44129a12a047ce1f0a98b74dea60_1
+early,weak,,实体瘤,Phase I,积极,15,首次公布,n=15; 未确认ORR 20% (3/15); DCR 53%,未确认ORR 20%且样本15例,24_37_p_8df25d2728c676b9781fb610a8631a32_1
+early,keep,SYNC-T,前列腺癌,Phase I,积极,15,更新/长期随访,n=15; 既往ORR 87%; CR 40%; 24-month OS 80%,既往确认ORR 87%且持久生存,24_37_p_5dc9a39e1de319e9f0676d40695628cc_1
+early,keep,Alpha-PS1,去势抵抗前列腺癌,Phase I,积极,15,首次公布,n=15; PSA50 83% (5/6); PSA80 67% (4/6),高剂量组PSA50反应83%,24_37_p_e71348f631c801a3193d6db3117d6fcf_1
+early,keep,,卵巢癌,Phase I,积极,14,未判定,n=14; ORR 44% (4/9); DCR 77%,ORR达44%,24_37_p_94f5a0d2e620de9b6f95e1f2fa325228_1
+early,weak,ALCHEMY-001,实体瘤,Phase I,积极,14,未判定,n=14; SD 2例; PFS 11个月和5个月,仅2例稳定疾病且单臂小样本,24_37_p_03f67a871acf0a217a53306f8e58fede_1
+early,drop,,实体瘤,Phase I,积极,14,未判定,n=14; 中位既往治疗3线,仅机制与安全性，疗效数据未完整,24_37_p_dbbd3d4edc27653789181453859a0af0_1
+early,drop,,HR阳性乳腺癌; 乳腺癌,Phase I/II,-,13,未判定,n=13; 剂量3 mg和5 mg,仅安全性和耐受性结果,24_37_p_4e5cdb7c400e4de41d366df63917ab81_1
+early,weak,BNT323-03,HR阳性乳腺癌; HER2低表达乳腺癌,Phase I/II,积极,13,首次公布,n=13; G3 TRAE 61.5%,小样本剂量爬坡且具体疗效数字不足,24_37_p_aad443b7ee9a4f285b08807e6d84ddf4_1
+early,weak,,非小细胞肺癌,Phase I,积极,13,未判定,n=13; ORR 23%; mPFS 3.4个月; mOS 8个月,ORR 23%低于阈值,24_37_p_98f3ea6c35f94ae768115f6bcde97896_1
+early,weak,,神经内分泌肿瘤,Phase I,积极,13,未判定,n=13; ORR 15%; SD 15%,ORR 15%低于阈值且小样本,24_37_p_8b4f32e852ac75652929800127f55f52_1
+early,keep,,卵巢癌; 生殖细胞肿瘤; 睾丸癌,Phase I,积极,12,首次公布,n=12; ORR 50% (10例); DCR 80%; mDOR 4.5个月,单臂ORR达50%,24_37_p_a0675686494a2cdaf6d51681dcc694e4_1
+early,weak,,实体瘤,Phase I/II,积极,12,首次公布,n=12; 半衰期约11-16小时,疗效率未在已给句子中呈现,24_37_p_cf60828e089be3d2f71bb2e954240ad2_1
+early,keep,,结直肠癌,Phase I,积极,12,未判定,n=12; ORR 42% (5/12); 高剂量队列50%,单臂ORR达42%,24_37_p_07cc20fdd3b01c27d1e9b87579636754_1
+early,weak,,软组织肉瘤; 肉瘤; 横纹肌肉瘤,Phase I,积极,10,未判定,n=10; ORR 10%; DCR 60%; mPFS 4.63个月,样本10例且ORR仅10%,24_37_p_f6d3112dad5f544388aaf98dbcf976b4_1
+early,weak,,胰腺导管癌,Phase I,积极,10,未判定,n=10; DCR 50%; mOS 5.3个月,仅疾病控制率50%且样本10例,nr_24_37_p_223caca7083139ab39ae1238ef4d4393_1
+early,keep,,口腔鳞状细胞癌,Phase I,积极,10,未判定,n=10; MPR 67% (6/9); pCR 56% (5/9),病理缓解率67%且pCR 56%,24_37_p_c03406f9e7da51593be4a6c9a67ef785_1
+early,keep,,实体瘤,Phase I/II,积极,10,未判定,n=10; ORR报告100%; 2 CR; 6 PR; 最长缓解>18个月,报告ORR 100%且有持续缓解,nr_24_37_p_33cb9fd96d3db9df966be79c0bc49e03_1
+early,keep,BaseTIL-03M,黑色素瘤,Phase I,-,10,未判定,n=10; ORR 40%; DCR 90%,单臂ORR达40%,24_37_p_3690dfb4af5c523acfe0eba7396b2ad5_1
+early,drop,BreAK CRC,结直肠癌,Phase I/II,积极,9,未判定,n=9; DCR 100%; ctDNA最多下降97%,仅分子反应与ctDNA变化，无明确临床终点,24_37_p_2fc067d95c5dd7edae87466473ab014a_1
+early,weak,,未分化多形性肉瘤; 去分化脂肪肉瘤,Phase I,积极,8,未判定,n=8; ORR 38% (3/8); DCR 75%,仅8例且ORR 38%低于阈值,24_37_p_b3aee459e29670c61f4d175c738a8cf2_1
+early,weak,,三阴性乳腺癌,Phase I/II,积极,8,未判定,n=8; 客观缓解100%; pCR 62.5%,样本仅8例，pCR率62.5%,24_37_p_359c1f2e812d18b6c5c3a57013698a7c_1
+early,weak,CT041-CG4010,胃癌; 胃食管交界处癌,Phase I,积极,7,更新/长期随访,n=7; M12 DFS 100% (5例); 中位随访12个月,随访5例且时间仅12个月,24_37_p_69fbf7d9baba6bba625ecfbc95c8fe11_1
+early,weak,,头颈部鳞状细胞癌,Phase I/II,积极,6,亚组/二次分析,n=6; ORR 66.7%; DCR 83.3%,仅6例，达缓解阈值但样本极小,24_37_p_c9765d46ca4cf904797eb635dc246803_1
+early,drop,ATTEST,非小细胞肺癌; 尿路上皮癌; 头颈癌,Phase I,积极,4,更新/长期随访,n=4; 剂量1×10^11 vp,仅安全性与药代数据,24_37_p_a5f24f166600e0b682605f09711afb93_1
+early,weak,,胰腺癌,Phase I,积极,3,未判定,n=3; 2例PFS>2年; 1例4个月复发,仅3例，生存观察属极小样本,24_37_p_a98b4119f33a9537de4088798d1f1324_1
+early,drop,,黑色素瘤,Phase I,积极,3,未判定,n=3; D2 IFN-α增加3017%; D16 IL-12p70增加1583%,仅药效学信号，未给可判读疗效数值,24_37_p_4ad6a587cb8ace0a2dd083ce8f5ddc57_1
+early,drop,AMELIA-1,HR阳性乳腺癌; 乳腺癌,Phase I/II,-,,亚组/二次分析,样本数未提供,仅代谢与肿瘤生物标志物,24_37_p_f99f959f0ef49e34cb833e9bde18f05f_1
+early,drop,,结直肠癌,Phase I,积极,,未判定,最高剂量57 mg; PIP4K2C降解>70%,健康志愿者PK/PD及生物标志物结果,24_37_p_48e4938a06af0b45bada948b686e76c4_1
+early,drop,BEHOLD-1,卵巢癌,Phase I,-,,亚组/二次分析,CTSB相关r=0.5-0.63; p<0.00001,仅肿瘤微环境相关性分析,24_37_p_5befee3c3a83b4b2cb767f3ad37f3ed4_1
+failed,keep,FATA-GIM3,HR阳性乳腺癌,Phase III,积极,3697,更新/长期随访,n=3697; DFS HR 0.95; OS HR 0.88; E vs A DFS HR 1.23,随机试验显示方案无差异且药物间DFS有差异,nr_24_37_p_6885d45e998c0de5bece5d5bab98d3f2_1
+pivotal,weak,NATALEE,HR阳性乳腺癌; 乳腺癌,Phase III,-,2526,未判定,n=2526; 6个月HR 1.50; 12个月HR 1.42,二次停药分析，未给主要疗效比较,24_37_p_f59aeb01da72d9a6ed91eca42e8e12e9_1
+pivotal,drop,DESTINY-Breast05,HER2阳性乳腺癌; 乳腺癌,Phase III,-,1635,亚组/二次分析,n=1635; PRO完成率58.4%-93.3%,本摘要仅HRQoL，无疗效终点数字,24_37_p_e6488ee587d5926bb1dbb137e49d7fa3_1
+pivotal,keep,PEARLS/KEYNOTE-091,非小细胞肺癌,Phase III,积极,1177,更新/长期随访,"n=1177; DFS HR 0.76, p=0.0014; 6年OS 68.5% vs 66.4%; OS HR 0.98",随机试验DFS有显著获益,24_37_p_27b5ef7e0002303fbe513306665f38d0_1
+pivotal,keep,PEACE-1,激素敏感性前列腺癌,Phase III,积极,1173,更新/长期随访,n=1173; OS HR 0.75; 中位OS 4.6 vs 5.7/6.4年,随机试验OS获益且HR达0.75,nr_24_37_p_115cdb5ed513425a78e08112271ef126_1
+pivotal,keep,HIMALAYA,肝细胞癌,Phase III,积极,1171,更新/长期随访,n=1171; OS HR 0.76; 7年OS 14% vs 7%,随机试验长期OS获益,nr_24_37_p_68d8112671cc4d0b741189b0be5db6d8_1
+pivotal,weak,FIRST/ENGOT-OV44-OV132,卵巢癌,Phase III,-,1127,亚组/二次分析,n=1127; mPFS 22.0 vs 17.4个月; HR 0.74校正,非随机事后分析，混杂风险较高,24_37_p_218065f710a936da68d80517f344ffb9_1
+pivotal,drop,MARIPOSA,非小细胞肺癌,Phase III,-,1074,亚组/二次分析,n=1074; 皮疹改善80%; 甲沟炎改善77%; 水肿改善82%,此摘要仅不良事件处理与HRQoL关联,24_37_p_1ddba9007670abc67ee7fc44c2375c25_1
+pivotal,drop,CAPTOR,HR阳性乳腺癌,Phase IV,积极,1071,未判定,n=1071; mPFS 30.3 vs 16.4个月,单臂观察研究，未呈现明确疗效判定,24_37_p_de4b3f3a8e54f916490eed98308eac00_1
+pivotal,keep,NIAGARA,膀胱癌; 肌层浸润性膀胱癌,Phase III,积极,1063,亚组/二次分析,n=1063; EFS HR 0.52; OS HR 0.53; pCR 41% vs 33%,随机试验亚组DFS和OS均获益,24_37_p_719a8406d338f14a762d1e753094c266_1
+pivotal,keep,KEYNOTE-564,肾透明细胞癌,Phase III,积极,994,更新/长期随访,n=994; DFS HR 0.68; OS HR 0.70; 7年DFS 57.2% vs 44.6%,随机试验DFS及OS获益明确,nr_24_37_p_9d5971f3b90a198a8bd516fbf2f716b2_1
+pivotal,weak,RATIONALE-305,胃癌; 胃食管癌; 胃食管交界处癌,Phase III,-,894,亚组/二次分析,n=894; OS 16.9 vs 12.7个月; 调整HR 0.77,事后治疗暴露分组比较有混杂,24_37_p_a8ad17bd3f287cd993a982298ab5a15b_1
+pivotal,keep,,胃癌; 胃食管交界处癌,Phase III,积极,753,未判定,"n=753; mOS 8.19 vs 6.26个月; OS HR 0.76, p=0.0005; ORR 26.3% vs 18.6%",随机试验主要OS终点显著达成,24_37_p_2a5b0824de38fc37caaee5450d472739_1
+pivotal,weak,PARADIGM,结直肠癌,Phase III,积极,733,亚组/二次分析,n=733; 左侧HR 0.83至0.76; 右侧HR 1.12至0.82,亚组分层分析且右侧结果不确定,24_37_p_0a4858d7e898501d2ddd6e5a062dc76a_1
+pivotal,drop,CAPItello-291,HR阳性乳腺癌; 乳腺癌,Phase III,积极,705,首次公布,n=705; 安全性人群355 vs 350,本摘要只报告安全性管理数据,24_37_p_6714aa00f640185acaae58248c7a72c0_1
+pivotal,keep,SAMSON-II,非鳞状非小细胞肺癌,Phase III,积极,650,首次公布,n=650; ORR 48.7% vs 46.5%; OS HR 0.94; PFS HR 0.96,随机对照等效性终点达成,24_37_p_52026de9ab89dbca4ddbb1ec1cc9a9d1_1
+pivotal,drop,ASTRUM-002,非小细胞肺癌,Phase III,-,636,未判定,"n=636; GHS/QoL TTD HR 0.65, p=0.026",仅报告HRQoL而非疗效主要终点,24_37_p_537c574c2ff41686b39c431d9440fefc_1
+pivotal,drop,DESTINY-Breast11,HER2阳性乳腺癌; 乳腺癌,Phase III,-,622,亚组/二次分析,n=622; 中期ΔORR 26.5%; ΔCR 10.7%; EOT靶病灶缩小81% vs 74%,本摘要为影像学反应及预测值分析,24_37_p_6663c365b21052e7ab6edb3c2a35c5fb_1
+pivotal,drop,TALAPRO-3,激素敏感性前列腺癌; 前列腺癌,Phase III,-,599,首次公布,n=599; PRO差异均未达临床意义,仅PRO结果，主要疗效另有报告,24_37_p_5255675d573cfb2457ce8c74250a7691_1
+pivotal,drop,ASCENT-03,三阴性乳腺癌,Phase III,-,558,亚组/二次分析,n=558; GHS/QOL变化+2.37; DOR相关+0.030/日,仅PRO与结局关联分析,24_37_p_6fc7a58270e8db42b313160b615a99e5_1
+pivotal,drop,ASTRUM-007,食管鳞状细胞癌,Phase III,-,551,未判定,n=551; HR 0.88; 0.93; 1.19,仅报告HRQoL，无疗效终点数字,24_37_p_1445e2e0646eff46c24d74f0ac1253c1_1
+pivotal,weak,ATHENA-MONO,卵巢癌,Phase III,-,538,未判定,268/427 (63%); 86/111 (78%); HR 0.53,后续治疗描述性分析，核心疗效数字不全,24_37_p_f246c0b3c8a0bb8093f00633bac597f1_1
+pivotal,drop,ASTRUM-004,鳞状非小细胞肺癌,Phase III,-,537,首次公布,n=537; dyspnea HR 0.51; hemoptysis HR 0.37,仅症状及HRQoL结果,24_37_p_7192f604379d98aae2f55d16b099915b_1
+pivotal,keep,DeLLphi-304,小细胞肺癌,Phase III,积极,509,更新/长期随访,n=509; OS 13.6 vs 8.4 mo; HR 0.62; PFS HR 0.69,随机对照且OS显著获益,24_37_p_ed48638358b8c2654be80160e56fa028_1
+pivotal,weak,DG-04,胃癌; 胃食管交界处癌,Phase III,-,494,亚组/二次分析,n=494; prior ICI n=77,亚组探索且疗效关键表格缺失,24_37_p_36ecbdac06dbeb19ed77d04be8c664a2_1
+pivotal,keep,DESTINY-Gastric04,胃癌; 胃食管交界处癌,Phase III,积极,494,亚组/二次分析,n=494; Q-TWiST +3.21 mo; OS relative gain 23.4%,随机对照显示临床意义生存获益,24_37_p_3ec3f6a6b3fedfd8eaf48d124da3599b_1
+pivotal,keep,,宫颈癌,Phase III,积极,492,未判定,n=492; PFS 12.35 vs 7.75 mo; HR 0.64; OS 30.95 vs 21.78 mo; HR 0.73,随机对照PFS及OS均显著改善,24_37_p_d394aab5686978e907888e87ee45227e_1
+pivotal,keep,KN035-CN-005,胆道癌,Phase III,积极,472,更新/长期随访,n=472; OS 10.9 vs 8.6 mo; HR 0.723; ORR 27.6% vs 20.9%,随机对照OS显著获益,24_37_p_6b86a2c6c4318a96fc2bc5e68df41b43_1
+pivotal,drop,PEACE-3,癌症骨转移; 去势抵抗前列腺癌; 前列腺癌,Phase III,-,442,亚组/二次分析,n=442; pain OR 4.10; CVE OR 7.66,仅药物相互作用与不良事件关联,24_37_p_b958e2390dde37cf73d2da1a718cf91c_1
+pivotal,keep,POTOMAC,非肌层浸润性膀胱癌,Phase III,-,437,亚组/二次分析,n=437; cystectomy-free survival HR 0.59,随机对照无复发生存风险下降,24_37_p_2389c73e66b5168c863ac91080605ff2_1
+pivotal,keep,FLAX,非小细胞肺癌,Phase II,积极,420,未判定,n=420; RFS HR 0.60; 2-y RFS 87.5% vs 78.3%,随机对照RFS显著改善,24_37_p_1a06d4da851796621cc6c37be7f2c663_1
+pivotal,keep,FLAMES,卵巢癌,Phase III,积极,403,亚组/二次分析,n=403; PFS 38.7 vs 13.6 mo; HR 0.47,随机对照PFS显著且持续获益,24_37_p_67c971b73681344ad4bd92bd3bdc32cd_1
+pivotal,keep,,黑色素瘤,Phase III,积极,394,未判定,n=394; ORR 28.1% vs 31.3%; difference -3.2%,明确达到预设生物等效性标准,24_37_p_2c191cb981ac7fae41e00ce50918e155_1
+pivotal,keep,ReFocus,实体瘤; 胆管癌,Phase II,-,385,亚组/二次分析,n=385; ORR 51% vs 42%; mPFS 13 vs 11 mo,具体单臂亚组疗效ORR超过40%,24_37_p_c45a06cba4b84b6c1e56187d48b67157_1
+pivotal,keep,RC48-C012,癌症肝转移; HER2低表达乳腺癌; 乳腺癌,Phase III,积极,377,首次公布,n=377; BCLM PFS 5.62 vs 2.60 mo; HR 0.430; ORR 44.4% vs 18.3%,随机对照PFS及ORR明显获益,24_37_p_18eed213838bac7839074348ae2c56c6_1
+pivotal,keep,postMONARCH,HR阳性乳腺癌,Phase III,积极,368,首次公布,n=368; OS 32.1 vs 24.6 mo; HR 0.80; p=0.1145,OS明确未达显著，失败优先,24_37_p_82d1aeb2b0ace2d935a93f51ef67c347_1
+pivotal,keep,PERSEE,非小细胞肺癌,Phase III,积极,321,未判定,n=321; PFS 16.1 vs 6.9 mo; HR 0.56; OS 50.2 vs 29.9 mo,随机对照PFS显著改善且OS差异超3月,24_37_p_2b05a5bd60aed249d143b6528492d68e_1
+pivotal,weak,SUNNIFORECAST,肾细胞癌,Phase II,积极,309,亚组/二次分析,亚组n=30; OS 35.7 vs 24.7 mo; HR 0.46; ORR 42.9% vs 33.3%,探索性小亚组样本仅30人,24_37_p_76932d3adfd4758a5af23f05f955cf82_1
+pivotal,keep,LIBRETTO-531,髓样甲状腺癌,Phase III,积极,291,更新/长期随访,n=291; 3-y PFS 75% vs 25%; HR 0.21; 3-y OS 92% vs 75%; HR 0.34,随机对照PFS和OS显著获益,nr_24_37_p_db61d5a57b493b67660085c39492dbf0_1
+pivotal,keep,MIRASOL,卵巢癌,Phase III,积极,266,未判定,n=266; OS 19.88 vs 14.36 mo; HR 0.49; PFS 5.88 vs 4.37 mo,随机对照OS显著且获益超过3月,24_37_p_842f6d0c4869aed33464b62d832d96d4_1
+pivotal,weak,FOURLIGHT-1,HR阳性乳腺癌; 乳腺癌,Phase II,积极,263,首次公布,n=263; OS未成熟,疗效关键数字只在未给出的表格,24_37_p_06982070693510c853ba507024229bca_1
+pivotal,keep,OptiTROP-Breast01|SKB264-III-03,三阴性乳腺癌,Phase III,积极,263,更新/长期随访,n=263; OS 14.7 vs 9.9 mo; HR 0.60,随机对照OS显著且获益超过3月,24_37_p_b734f109fa1349f91cb6652db2a60add_1
+pivotal,keep,KEYNOTE-905/EV-303,膀胱癌; 肌层浸润性膀胱癌,Phase III,积极,255,亚组/二次分析,n=255分析; EFS HR 0.40; pCR 58.8% vs 10.3%,随机对照EFS HR显著降低,24_37_p_4935618d732b5c1eba7334a2d37cf56d_1
+pivotal,weak,,非小细胞肺癌,Phase III,积极,248,未判定,n=248; ORR 18.6% vs 19.6%,疗效数字低于阈值，属于非劣效性研究,24_37_p_0159e66ad0adf3d57f2b983d3d11cef4_1
+pivotal,keep,FRUSICA-2,肾细胞癌,Phase III,积极,234,亚组/二次分析,n=234; 老年亚组n=75; PFS 24.87 vs 8.31 mo; HR 0.32,随机对照PFS显著改善,24_37_p_f58d3dd487dff1c8f969ef8b8dd8b983_1
+pivotal,keep,UNION,直肠癌,Phase III,积极,231,首次公布,n=231; 3-y EFS 91.3% vs 77.4%; HR 0.33,随机对照EFS显著改善,24_37_p_4255872c41bed1257cbd4201f242585a_1
+pivotal,drop,RAMPART,肾细胞癌,Phase III,-,218,首次公布,n=218; OHQL差异 -7.4,仅报告生活质量,24_37_p_0792fa7bdbe7e6b227e89790f41a89a5_1
+pivotal,drop,NADINA,黑色素瘤,Phase III,-,212,亚组/二次分析,n=212; MPR 50% vs 66%,仅心理因素与疗效/毒性相关性,24_37_p_e56af20af885e79b22ffd7cf265b4de8_1
+early,keep,REJOICE-Ovarian01,卵巢癌,Phase II,积极,210,未判定,n=210; ORR 50.0% (99/198),单臂具体ORR达到50%,24_37_p_c6b11649f0978af13e0b253fd4805a11_1
+pivotal,weak,ASTRIDE,小细胞肺癌,Phase III,积极,201,未判定,n=201; OS 12.4 vs 10.2 mo; 24-mo OS 32.2% vs 17.6%,随机对照但OS获益未达3月且关键表缺失,nr_24_37_p_959027e729881aebc9332fa59f99414d_1
+pivotal,keep,FLIPPER,HR阳性乳腺癌; 乳腺癌,Phase II,积极,189,亚组/二次分析,n=189; PFS 31 vs 23 mo; HR 0.55; OS 65 vs 70 mo; p=0.85,PFS显著，但OS明确无显著差异,24_37_p_d94440a929dd518933479608f2054802_1
+pivotal,drop,,肝细胞癌,Phase III,积极,185,亚组/二次分析,分析n=185; 总TT 42 vs 16天; OS 17.6 vs 10.4 mo,仅治疗时间负担和居家时间分析,24_37_p_97b7720225680a99cb3ede31c4629bde_1
+pivotal,keep,COMPANION-002,胆道癌,Phase II/III,积极,168,未判定,n=168; ORR 17.1% vs 5.3%; PFS 4.7 vs 2.6 mo; HR 0.44,随机对照PFS显著且ORR提升,nr_24_37_p_6c43ef77abc8d15227236034b20f557d_1
+pivotal,keep,RINGSIDE,硬纤维瘤,Phase III,积极,156,未判定,n=156; PFS事件风险降低84%; ORR 56% vs 9%,随机对照ORR 56%且PFS显著,24_37_p_3134d5c64ae782a6ea84c5e0d395adae_1
+early,keep,IMHOTEP,子宫内膜癌; 结直肠癌; 胃食管癌,Phase II,积极,137,更新/长期随访,疗效n=137; pCR 42.7%,单臂研究pCR为42.7%,24_37_p_543caba1bf8f182f2ee3dab985974edc_1
+pivotal,drop,IMGN853-0420,卵巢癌,Phase II,积极,125,首次公布,n=125,仅血液学安全性结果,24_37_p_0558551f76ed189c1f6bef8df5fba03d_1
+early,keep,DAP-HER-02,HR阳性乳腺癌; HER2阳性乳腺癌,Phase II,积极,120,未判定,n=120; ORR 70.7% (29/41); 88.6% (70/79); PFS 23.9; 29.1 mo,单臂研究ORR明确超过40%,24_37_p_7d7d7dc927fe04f9bb767bea184061a6_1
+pivotal,keep,ROXI-CATH,静脉血栓栓塞症; 癌症,Phase II,-,118,未判定,"n=118; VTE 17.5%, 20.0% vs 55.3%",随机对照VTE发生率明显下降,24_37_p_867821e7f8f5e8d4ad90e27a9abb8339_1
+early,keep,,宫颈癌,Phase II,积极,118,未判定,n=118; ORR 91.53%; 3-y DFS 77.87%; 3-y OS 80.10%,单臂研究ORR达91.53%,24_37_p_d54839cf03cda8e16bd802752abd9f3c_1
+pivotal,weak,neoHIP,HER2阳性乳腺癌; 乳腺癌,Phase II,-,116,未判定,n=116; pCR 67% vs 31%,随机对照但关键pCR结果仅在表格,24_37_p_4ab3512cb365a70e873f639c67e8f1ef_1
+early,keep,OptimUM-09,葡萄膜黑色素瘤,Phase II,积极,116,首次公布,n=116; 眼保留资格57.1%; 肿瘤缩小80.2%; 缩小≥20% 57.8%,单臂研究有明确肿瘤缩小及保眼数据,24_37_p_b4e6a1e5c31c80ed6a92d4eb78176a10_1
+pivotal,drop,ARACOG,去势抵抗前列腺癌,Phase II,积极,111,未判定,n=111; 48周FACT-Cog差异10.5,仅认知功能与患者报告结局,nr_24_37_p_29541ce0f5bf8e703875a15a76e164c5_1
+early,weak,,实体瘤,Phase II,-,110,首次公布,入组n=110; 可评估n=67; ORR 36%,总体ORR低于阈值且疗效评估仅67人,24_37_p_3610ff00626143842decb932fa77ff70_1
+pivotal,keep,Combi-TED,非小细胞肺癌,Phase II,积极,106,未判定,n=106; 1-y OS 44% vs 26%,随机对照OS率明确优于对照,24_37_p_7bc4d455b80696b624484018427c424b_1
+early,keep,ARES,前列腺癌,Phase II,积极,103,首次公布,n=103; 12-mo bPFS 100%,单臂中期结果明确无复发且bPFS 100%,24_37_p_1f4cd066f59a43ff4c6bd4ae1401bc64_1
+pivotal,drop,DENALI,卵巢癌; 输卵管癌; 腹膜癌,Phase II,积极,102,首次公布,n=102; OS 15.8 vs 7.5 mo,仅报告OS分层，未报告客观疗效终点,24_37_p_c1a2c38716df65c39367d14fb18dd229_1
+early,keep,,黑色素瘤,Phase II,积极,98,首次公布,n=98; ORR 57%; mPFS 24 mo,单臂研究既往ORR明确57%,24_37_p_ab5ec3e302c158c8b05a6e80c91d12a7_1
+early,weak,START-001,实体瘤,Phase II,积极,97,未判定,n=97; 可评估70; ORR 17%; DCR 58%,应答率17%，低于明确疗效阈值,24_37_p_ffbae60593977dbfde3a8ccb11f281eb_1
+early,keep,,非小细胞肺癌,Phase II,积极,97,未判定,n=97; 可评估n=76; ORR 57.9%; 6-mo PFS 64.8%,单臂研究ORR 57.9%,nr_24_37_p_be970a67ada590ddd297be9e3f0c6d83_1
+early,keep,,HR阳性乳腺癌; HER2低表达乳腺癌; 乳腺癌,Phase II,积极,96,更新/长期随访,n=96; 可评估n=94; ORR 44.7%,单臂研究ORR明确44.7%,24_37_p_f9620b6c4d771a75aac6127ae923e939_1
+early,keep,IFCT-1904,非小细胞肺癌,Phase II,积极,96,未判定,n=96; ORR 68.3%; 61.3%; OS 41.1 mo,单臂研究ORR超过40%且缓解持久,24_37_p_ef3409af11ddcec97408f14146cb46fd_1
+early,weak,FACILE,HR阳性乳腺癌,Phase II,积极,96,未判定,n=96; 6-mo feasibility 78.3%; PFS未达到,可行性而非明确肿瘤疗效数字,24_37_p_b97edfeef5d27ac75a63cc38a1a0b313_1
+early,keep,HH2853-G101 cohort 2,上皮样肉瘤,Phase II,积极,94,未判定,n=94; ORR 40.0%; DoR 15.6 mo; PFS 13.1 mo,单臂研究ORR达到40%,24_37_p_90fa981db898681146bfc9f13d19cc58_1
+pivotal,drop,START,三阴性乳腺癌,Phase II,-,94,未判定,血浆样本n=53; ctDNA检出34%,仅ctDNA生物标志物分析,24_37_p_4d53fc24ed815c24cd200dda4db6ef32_1
+pivotal,weak,IFCT-2103 DIAL,非小细胞肺癌,Phase II/III,-,93,未判定,随机n=93; 18-mo OS 83.3% vs 88.1%,OS率接近且未报告显著获益,24_37_p_2fbf850258d81e35bd698f83a4b7b26e_1
+early,weak,CS2009-101,非小细胞肺癌,Phase II,积极,86,首次公布,n=86; 单药n=46; 联合n=40,疗效数字在截断后的文本中未给出,24_37_p_1cad45fe46e1b5f499d388cc58bb5030_1
+pivotal,drop,ENLIGHTED,上尿路尿路上皮癌,Phase III,积极,82,未判定,n=82,仅描述试验设计，未提供结果,24_37_p_f7e8683c249b3d0f6c35d60fdd6d4b12_1
+early,keep,,慢性淋巴细胞白血病,Phase II,积极,80,更新/长期随访,n=80; ORR 93.8%; CRR 31.3%; mPFS 50.8 mo,单臂研究ORR明确超过40%,24_37_p_5aada433564b5401ad1dc0b0d35bf545_1
+pivotal,weak,,胆道癌,Phase II,积极,80,未判定,n=80; ORR 45.0% vs 27.5%; PFS HR 0.79; OS HR 0.97,随机对照总体OS无显著获益,24_37_p_34d8bd26316f08791f6281c6aa491b96_1
+early,keep,R2810-ONC-1901,皮肤鳞状细胞癌,Phase II,积极,79,更新/长期随访,n=79; 54-mo EFS 76.2%; 54-mo OS 79.4%,单臂长期随访EFS明确,24_37_p_c504782fcdee58adf8ec7c7743f834fd_1
+early,keep,,头颈部鳞状细胞癌,Phase II,-,78,未判定,n=78; ORR 55.3%; cORR 47.4%; mPFS 8.2 mo,单臂研究ORR明确超过40%,24_37_p_0044e2d928b04fad50889ff6b4560f98_1
+early,keep,FAME,非小细胞肺癌,Phase II,积极,75,更新/长期随访,n=75; 1/2-y DFS及OS 100%,单臂随访未见复发或死亡,24_37_p_4ce80e894ec093e1fb954db83aeeef5a_1
+pivotal,keep,AGITG MASTERPLAN,胰腺癌,Phase II,积极,74,未判定,n=74; PFS 11.9 vs 6.3 mo; OS 22 vs 14 mo,随机对照OS获益8个月且显著,24_37_p_d50b98e0f4d34169b0836c3e8222d405_1
+early,keep,TeLuRide-005,非小细胞肺癌,Phase II,积极,72,更新/长期随访,n=72; ORR 63%; 鳞癌ORR 72%,具体ORR达63%,24_37_p_4f7766dfea33422561d86f89d99600b4_1
+pivotal,drop,,非小细胞肺癌,Phase II,积极,70,未判定,n=70; ≥G2 DAEI 34%,仅皮肤不良事件安全性结果,24_37_p_899e006e8b2fdbb8feff88ed3586a8ce_1
+pivotal,drop,DeFi,硬纤维瘤,Phase III,积极,69,亚组/二次分析,n=69; 2-y EFS 75% vs 79%; ORR 48% vs 38%,仅剂量调整亚组分析及PRO结果,24_37_p_aa843fec98680a17e586ae145fccb819_1
+early,keep,INSPIRE,去势抵抗前列腺癌,Phase II,积极,69,首次公布,疗效n=65; MMRd n=21; OS 56 mo; PFS 32.7 mo,单臂MMRd亚组OS超过3月且明确,nr_24_37_p_66aab9c25e1df211ed307d6901ef22e5_1
+early,weak,BioChiP,去势抵抗前列腺癌,Phase II,积极,65,未判定,n=65; 可评估n=56; ORR 25%,总体ORR 25%，未达明确疗效阈值,24_37_p_ed744f69e341d50176bb0bb3c0b10cbc_1
+early,weak,,肝细胞癌,Phase II,积极,63,未判定,n=63; 联合n=35; 单药n=28,疗效结果数字未见于提供文本,24_37_p_da0076cadb96dfb3c455f7a90162652a_1
+early,keep,,非小细胞肺癌,Phase II,积极,63,未判定,n=63; ORR 48.4%两组; 6-mo PFS 68.9%; 77.8%,单臂研究ORR明确48.4%,24_37_p_8fe0d781dd27213330d8215ed30c9e64_1
+pivotal,keep,MANEUVER,腱鞘巨细胞瘤,Phase III,积极,63,未判定,随机起始n=63; RECIST ORR 76.2%; TVS ORR 77.8%,ORR约76%且两年持续,24_37_p_78f2a7d2287bf40039fd62087f9d3eca_1
+pivotal,weak,,胰腺癌,Phase II,积极,62,未判定,n=62; PFS 8.11 vs 5.52 mo; HR 0.393; OS 12.62 vs 9.26 mo,随机对照样本仅62人,24_37_p_39c8e15829e0d0951caa84a0bc712283_1
+early,weak,,三阴性乳腺癌,Phase II,积极,62,未判定,n=62; 可评估n=60; ORR 30.0%; PFS 3.7 mo,单臂小样本ORR仅30%,24_37_p_87c8770691cd22a870cf1cae6aa8f36b_1
+early,weak,,非小细胞肺癌,Phase IV,积极,62,未判定,n=62; 进展7人; 死亡1人; 随访16.27 mo,真实世界单臂且疗效尚需随访,nr_24_37_p_a7cbe029b52852635f92e8c6e86bcfac_1
+early,weak,TUXEDO-3,癌症脑转移; 软脑膜癌病,Phase II,积极,61,更新/长期随访,n=61; OS 7.9; 6.7; 10.5 mo,单臂脑转移队列，疗效关键终点未报告,24_37_p_f5fd6a6760cda043ad867659bc8182e5_1
+pivotal,keep,neoSCORE,非小细胞肺癌,Phase II,-,60,未判定,n=60; 4-y DFS 53.8% vs 55.2%; 4-y OS 76.9% vs 75.9%,随机两组长期生存无显著差异,24_37_p_562d11be3ce071d6c5855be2cef5ed45_1
+early,weak,PLUG-IN GEM 2301,黑色素瘤,Phase II,积极,60,未判定,n=60; 可评估n=53; confirmed ORR 17%; BOR 28%,确认ORR仅17%，未达明确疗效阈值,24_37_p_6e1fb106f195b79d655813e2091e9616_1
+early,weak,REZILIENT2,非小细胞肺癌; 神经系统疾病,Phase II,-,59,未判定,n=59; 可评估n=43; iORR 30.2%; iDoR 9.7 mo,脑内ORR 30.2%，低于明确阈值,24_37_p_3f0150707ace84c35d183e5615037d66_1
+early,keep,DEWI,实体瘤,Phase II,积极,59,首次公布,纳入n=60; 分析n=24; 1-y cCR 62.5%,单臂小样本临床完全缓解率62.5%,24_37_p_c0b6f3f17d6e38404f7ea554b1f193ed_1
+early,drop,ADDC,恶心呕吐; 胃肠道疾病; 乳腺癌,Phase II,积极,57,未判定,n=57; 无恶心84.21%; 无呕吐91.23%,仅恶心呕吐症状控制数据,24_37_p_fb456eae50fd58a141b107de5d5c1710_1
+early,weak,,非小细胞肺癌,Phase II,积极,57,首次公布,n=57; 主要疗效人群n=32; 确认ORR 28.1%,确认ORR 28.1%，低于阈值且有效样本32,24_37_p_ea507c903097a54f38559517186a4c6b_1
+early,keep,,鼻咽癌,Phase II,积极,55,更新/长期随访,n=55; ORR 89.1%; 3-y PFS 78.2%; 3-y OS 94.5%,单臂研究ORR 89.1%,24_37_p_cf462981aac4308bcd33f74163c5ab54_1
+early,keep,BECOME3,结直肠癌,Phase II,积极,53,未判定,n=53; ORR 64.2%; 1-y PFS 73.2%; 1-y OS 79.4%,单臂队列ORR为64.2%,24_37_p_ac6806f87c762d1447fddedce5a309a1_1
+early,keep,,结直肠癌,Phase II,积极,53,更新/长期随访,n=53; 1L ORR 82%; 2L ORR 70%,单臂分线ORR均超过40%,24_37_p_ab82fa24f8661fa81637e4647bde10c7_1
+pivotal,drop,,结直肠癌,Phase II,-,52,亚组/二次分析,n=52; 治疗时长13.0 mo; 再引入组17.5 vs 13.0 mo,二次分析且无新的肿瘤疗效终点,24_37_p_b24951fec6339d4522e1f27d3d126937_1
+early,keep,,胰腺导管癌,Phase II,积极,52,未判定,n=52; 队列1 ORR 76.9%; 队列2 ORR 69.2%; PFS 12.88; 9.95 mo,单臂队列ORR 76.9%,24_37_p_bd83d44f2e53263833e9af0cfd481944_1
+pivotal,keep,AIO-KRK-0220,结直肠癌,Phase II,积极,52,首次公布,n=52; 2-y DFS 86.4%; 2-y OS 93.0%,随机研究2年DFS率明确,24_37_p_16e6ece04a7e6be32e9449bcd6aee798_1
+early,keep,PLUME,葡萄膜黑色素瘤,Phase II,积极,51,更新/长期随访,n=51; C2 n=29; OS 18.7 mo; 12-mo OS 72.4%,单臂治疗OS中位数18.7月,24_37_p_49ad4606efb813dc4a49aad9e16f3f70_1
+early,keep,,食管鳞状细胞癌,Phase II,-,51,更新/长期随访,n=51; 4-y DFS 58.3%; 4-y OS 65.7%,单臂长期DFS及OS明确,24_37_p_0e33a01eafa719d68e9f676b1fd1f68e_1
+early,keep,,涎腺癌,Phase II,积极,50,未判定,分析n=50; ORR 52.0%; MPR 60.9%; pCR 32.6%,单臂研究ORR超过50%,nr_24_37_p_7c9fd60b3da11f6473450cd1dbe7c370_1
+early,weak,24-OBU-JS-PanC-II-015,胰腺导管癌,Phase II,积极,50,未判定,n=50; 队列27/23; PFS 7.1 vs 4.7 mo; OS 11.3 vs 8.0 mo,各队列样本小，非随机比较,24_37_p_eede00a726e49cc4e9b40cc49dc5fd52_1
+early,weak,SCAR,直肠癌,Phase II,积极,50,更新/长期随访,n=50; 已手术n=40; pCR 27.5%; ORR 88.4%,单臂小样本pCR为27.5%,24_37_p_dd2f70e33712093c1487362377da7a66_1
+early,keep,,宫颈癌,Phase II,-,50,未判定,n=50; ORR 40.0%; 6 mg/kg ORR 47.2%; PFS 5.9 mo,单臂研究确认ORR达到40%,24_37_p_ce5d4983e22dec0d11a410281f55d571_1
+early,keep,compass,外周T细胞淋巴瘤,Phase II,积极,50,更新/长期随访,n=50; 可评估n=38; ORR 92.1%; mPFS 11.5 mo,单臂研究ORR 92.1%,24_37_p_9d5ab164d40910806707ecb959e57f84_1
+early,weak,,神经内分泌肿瘤,Phase II,积极,50,更新/长期随访,n=50; ORR 30.0%; mPFS 23.0 mo; 24-mo PFS 46.0%,样本50且ORR 30%，未达阈值,24_37_p_8e2e86113d7850d00712f2f0290dcdb1_1
+pivotal,weak,,肝细胞癌,Phase III,-,50,未判定,n=50; mPFS NR vs 5.6 mo; P=0.071; ORR 79.4% vs 28.6%,随机对照样本仅50且PFS未显著,24_37_p_9717f35c24c0b3ee241957b3e828f35d_1
+pivotal,drop,IDEAL,头颈部鳞状细胞癌,Phase II,-,49,未判定,随机n=49; 首批安全性分析n=20,仅安全性结果，疗效尚未成熟,24_37_p_3508bfa39bbbb22aefa058d713cadb8a_1
+early,weak,Gleam,非小细胞肺癌,Phase II,积极,49,更新/长期随访,n=49; 中位随访9.9 mo,疗效数字只在未提供的表格中,24_37_p_c1c53e80eb483fa176a4469a235ec916_1
+early,weak,SURE-02,肌层浸润性膀胱癌,Phase II,积极,49,未判定,n=49; 24-mo EFS 54.7%; 24-mo OS 74.9%; cCR组EFS 82%,单臂小样本，未提供cCR总体结果,24_37_p_8e319e85f21a6cd572e35f53636c04fe_1
+early,keep,,三阴性乳腺癌,Phase II,积极,49,更新/长期随访,n=49; pCR 55.1%; 3-y EFS 87.0%; 3-y OS 96.2%,单臂研究病理完全缓解率55.1%,24_37_p_cc887dfbd4e9a60a513af5ccbc39b0aa_1
+early,weak,,HR阳性乳腺癌; HER2阳性乳腺癌; 乳腺癌,Phase II,积极,48,未判定,n=48; tpCR 22.9%; ORR 85.4%,单臂样本48人，主要结果低于40%,24_37_p_cc7a1718f6568bfbb7222a3aa7ec8fc0_1
+early,keep,Barossa,非小细胞肺癌,Phase II,-,47,更新/长期随访,n=47; mOS 43.9/12.2 mo; 3-y OS 50.0%/36.8%,单臂研究报告明确长期生存数据,24_37_p_43e795ee3c99eba438ac58bb14cb20f4_1
+pivotal,drop,,胃癌,Phase II,-,46,未判定,n=46; IHH 72%; PFS 7.5 vs 24.6 mo; HR 4.68,仅预后和靶点生物标志物分析,24_37_p_c6a5d9d6678e2f795f78bfeae480f7e6_1
+early,keep,MCLA-158-CL01,头颈部鳞状细胞癌,Phase II,积极,45,首次公布,n=45; evaluable=43; ORR=63%; CR=14%; mPFS=9 mo,单臂研究ORR明确且超过40%,24_37_p_859a4e7abf4df6ad1ea74a20d8f890a8_1
+pivotal,drop,TARZAN,直肠癌; MSI-H或dMMR实体瘤,Phase II,-,44,首次公布,n=44; ctDNA evaluable=42,仅报告免疫和ctDNA关联分析,24_37_p_1f0327e8f0d3fc628b540b6a87b720c6_1
+early,keep,,胃癌; 胃食管交界处癌,Phase II,积极,42,更新/长期随访,n=42; cohorts=21/21; ORR=57.1%/38.1%; mDoR=6.5/5.8 mo,单臂队列ORR明确且超过40%,nr_24_37_p_4ecc65ee18a64dee388b6bf9210b24c5_1
+pivotal,drop,,小细胞肺癌,Phase IV,积极,42,未判定,n=42; grade>=3 neutropenia=4.8% vs 15.0%; ORR=85.0% vs 80.0%,主要为骨髓抑制安全性研究,24_37_p_bce419e8d73d7cd0422322cc25a9f2bc_1
+early,keep,HERTHENA-PanTumor01,黑色素瘤,Phase II,积极,42,首次公布,n=42; cORR=21%; mPFS=5.3 mo; mOS=13.0 mo,单臂研究有明确PFS和OS数字,24_37_p_1d7d52c887aabc6110718edde0b1bf24_1
+failed,keep,LINNET,卵巢癌; 妇科肿瘤,Phase II,,41,未判定,n=41; PROC ORR=4.5% (1/22); CCGC ORR=25% (4/16),卵巢癌队列因无效停止入组,24_37_p_2e5eb23dd88ebee65c25e0bac9976acc_1
+early,keep,GETNE-CABOTHYROID,分化型甲状腺癌,Phase II,积极,41,未判定,n=41; confirmed ORR=25.6%; mDoR=18.4 mo; mPFS=16.1 mo,单臂研究有明确持久PFS获益,24_37_p_e041ae38e13440b6dd421bdc696fda1a_1
+early,keep,SPRING,胆道癌,Phase II,积极,41,未判定,n=41; evaluable=36; ORR=52.8%; DCR=100%,单臂研究ORR明确且超过40%,24_37_p_e8d6b6b29e83a929dff40964d6aca2d9_1
+early,keep,THRIVE,胸腺癌; 胸腺瘤,Phase II,-,40,更新/长期随访,n=40; ORR=35.0%; DCR=85.0%; mPFS=11.8 mo,单臂研究有具体缓解和PFS数据,24_37_p_7a89d804cb01f8d04ab25ad4eae9d6b1_1
+pivotal,drop,EFTISARC-NEO,软组织肉瘤,Phase II,-,40,未判定,n=40; role function +12.7; fatigue -14.2,仅报告HRQoL次要终点,24_37_p_923eb12dadf946604cb2f1f993c23b34_1
+early,keep,SKB264-II-06,子宫内膜癌,Phase II,积极,40,未判定,n=40; confirmed ORR=38%; confirmed+unconfirmed ORR=48%,单臂研究有明确ORR数字,24_37_p_f43712072faf944d2506ab7860c68d92_1
+early,keep,,头颈部鳞状细胞癌,Phase II,积极,40,未判定,n=40; ORR=42.5%; mOS=14.8 mo,单臂研究ORR超过40%,24_37_p_fabb7bdc0917e47459ec34be7e59c058_1
+early,keep,,癌症,Phase II,积极,40,未判定,n=40; ORR=30.0%; DCR=47.5%; mPFS=2.76 mo; mOS=9.33 mo,单臂研究有明确疗效数字,24_37_p_4d765951fe53ff16fe5beba1fc0b44b1_1
+early,keep,NEOS,肺腺癌,Phase II,积极,40,亚组/二次分析,n=40; surgery=32; ORR=75.0%; R0=93.8%; 3-y OS=92.4%,单臂研究ORR明确且超过40%,24_37_p_8bfabb1137df8891bfb0576dba196cb6_1
+early,keep,2870-002/SKB264-II-06,尿路上皮癌,Phase II,积极,40,更新/长期随访,n=40; ORR=68%; mDoR=19.4 mo; mPFS=11.2 mo,单臂研究ORR明确且超过40%,24_37_p_b8e12e1dab879335606def8ed1916e90_1
+early,keep,,HR阳性乳腺癌; HER2阳性乳腺癌; 乳腺癌,Phase II,积极,39,未判定,n=39; evaluable=34; ORR=76.5%; DCR=100%; pCR=0%,单臂研究ORR明确且超过40%,24_37_p_71ec1b3f454b46990ce1fa58ce25250e_1
+early,keep,REACtiVe-1,胰腺癌,Phase II,积极,38,更新/长期随访,n=38; mRFS=33.9 mo; mOS=45.3 mo; 5-y OS=41.8%,单臂研究报告长期RFS和OS,nr_24_37_p_732492358c950fde638c85b98532aea8_1
+early,keep,SETHY,未分化型甲状腺癌; 分化型甲状腺癌,Phase II,积极,37,未判定,n=37; DTC ORR=4.4%; DTC mPFS=5.5 mo; ATC ORR=16.7%,单臂研究有具体ORR和PFS数据,24_37_p_c286f5901bd2894feaf5046ec85c8948_1
+early,keep,,非小细胞肺癌,Phase II,积极,37,未判定,n=37; unconfirmed ORR=42.4%; DCR=87.9%,单臂研究ORR超过40%,24_37_p_a6a7c085fc8a0f0c4cb0c03d569ab36b_1
+early,keep,UTILIZABLE,三阴性乳腺癌,Phase II,-,37,未判定,n=37; ORR=56.8%; DCR=86.5%; mPFS=5.40 mo,单臂研究ORR明确且超过40%,24_37_p_f8c4208b3d9f8b99d92ea82075aa54b6_1
+early,weak,QUILT-3.078,胶质母细胞瘤,Phase II,-,36,未判定,n=36; phase 2A n=14; DCR=86%; ORR=14%; mPFS=3.4 mo,有效性队列仅14例,24_37_p_ebb678ee2f1e549ce73ff2f2d4e72923_1
+early,keep,,小细胞肺癌,Phase II,积极,36,更新/长期随访,n=36; evaluable=27; ORR=59.3%; DCR=85.2%; mPFS=7.4 mo,单臂研究ORR明确且超过40%,24_37_p_47da9afc51f47dd74b0b337bbe9ae8fd_1
+early,keep,,黑色素瘤,Phase II,积极,35,未判定,n=35; ORR=66%; mPFS=38.4 mo; grade>=3 irAE reduction=15/19 points,单臂队列ORR明确且超过40%,24_37_p_690f84aa63b84b528cda72f12a1edddb_1
+pivotal,drop,SHARED,胃癌; 胃食管交界处癌,Phase II,积极,34,未判定,n=34; mOS=51.4 mo; pCR association P=0.01,仅生物标志物及免疫谱分析,24_37_p_388958d1f22445103975b959c49d270d_1
+early,keep,,肝细胞癌,Phase II,-,33,未判定,n=33; completed=25; ORR=52%; MPR=43% (6/14); pCR=29% (4/14),单臂研究ORR明确且超过40%,24_37_p_747cf6b6cc8b38cda560b5b81397d23e_1
+pivotal,drop,INNWOP01,非小细胞肺癌,Phase II,-,33,未判定,n=33,仅肿瘤微环境机制分析,24_37_p_29ffac36c7201f8dcddad7dde00072d0_1
+early,keep,,三阴性乳腺癌,Phase II,积极,32,未判定,n=32; evaluable=29; ORR=44.8%; mPFS=7.7 mo,单臂研究ORR明确且达到40%,24_37_p_ea82d0a71477c0ac325c868e827e5b09_1
+early,keep,,食管鳞状细胞癌,Phase II,积极,32,未判定,n=32; evaluable=30; ORR=73.3%; DCR=100%,单臂研究ORR明确且超过40%,24_37_p_6f7423a820e93a7396d73c31cc66ff90_1
+early,weak,,肝内胆管癌,Phase IV,积极,32,未判定,n=32; evaluable=12; ORR=83.3%; DCR=91.7%,仅12例完成首次影像评估,24_37_p_be329f06e8c89c9ba5f17da19a79f7b6_1
+early,weak,ZOOM,边缘区淋巴瘤,Phase II,-,32,未判定,n=32; EOT evaluable=19; ORR=89.5%; CR=73.7%; 24-mo PFS=79.4%,疗效评估样本仅19例,24_37_p_6a868e55b34a6099e20c9f8de98c0442_1
+early,keep,,神经内分泌肿瘤,Phase II,积极,31,未判定,n=31; cORR=40.0%; DCR=86.7%; mPFS=5.5 mo,单臂研究ORR达到40%,24_37_p_d50944d0cca92ea960c8af4e878cc39d_1
+early,weak,Crucial,结直肠癌,Phase II,积极,31,未判定,n=31; cohort A evaluable=10 ORR=90.0%; cohort B evaluable=14 ORR=78.6%,各队列疗效评估样本不足20例,24_37_p_1f4fdbde2f00d4e68a0141ef891c4443_1
+early,keep,GDFather-NEO,肌层浸润性膀胱癌,Phase II,积极,31,未判定,n=31; evaluable=28; pCR=33.3% vs 7.7%; ORR=60.0% vs 15.4%,非随机双队列有明确疗效差异,24_37_p_41780f3b787708df0fffd1c4f16287df_1
+early,keep,,结直肠癌,Phase II,积极,31,未判定,n=31; evaluable=23; ORR=87.0%; DCR=100%,单臂研究ORR明确且超过40%,24_37_p_21d6d1f988f737f1c32c980dbe4cdaf9_1
+early,keep,,肝细胞癌; 肿瘤,Phase II,积极,30,更新/长期随访,n=30; ORR=76.67% mRECIST/60% RECIST; pCR=25.9%; MPR=55.6%,单臂研究ORR明确且超过40%,24_37_p_400b2c879dd34affb05321b4fd44e268_1
+early,keep,,尿路上皮癌; 肌层浸润性膀胱癌,Phase II,积极,30,未判定,n=30; surgery=24; pCR=62.5%; 2-y EFS=88.0%,单臂研究病理完全缓解明确,24_37_p_25cb895df78babd61c90fd65018abebb_1
+early,keep,,未分化型甲状腺癌; 低分化型甲状腺癌,Phase II,积极,30,未判定,n=30; evaluable=25; ORR=44.0%; DCR=84%,单臂研究ORR明确且超过40%,24_37_p_93457bf6b3ac808f0a7536fb5a9dcfe2_1
+early,keep,,胃癌; 胃食管交界处癌,Phase II,积极,30,未判定,n=30; evaluable=20; ORR=65.0%; mPFS=8.4 mo,单臂研究ORR明确且超过40%,24_37_p_9887bbc30c780ea8d5c4cbdc0654900d_1
+early,weak,,卵巢癌,Phase II,积极,30,首次公布,n=30; evaluable=19; ORR=26.3%; mPFS=5.6 mo,疗效评估样本仅19例且ORR较低,24_37_p_bcfd5428284caaf85fbb4bdf6bd552f4_1
+early,keep,BAYONET,结直肠癌,Phase II,积极,30,未判定,n=30; 12-w PFS=33.3%; mPFS=2.0 mo; mOS=14.7 mo,单臂研究报告明确阴性低PFS,24_37_p_aa65febcfccacc12abc0f43f8d511673_1
+pivotal,drop,AGO OVAR 27,卵巢癌,Phase II,积极,30,未判定,n=30; feasibility=28/29; grade>=3 AE=6.6%,仅可行性和安全性结果,24_37_p_45c75c8881cf65caf22ba7b70799c13b_1
+early,keep,,非肌层浸润性膀胱癌,Phase II,积极,29,未判定,n=29; 12-mo DFS=84.5%; grade>=3 AE=0%,单臂研究有明确12月DFS数据,24_37_p_7b9b2ba3ec9561ee0cbf825ba025a284_1
+early,keep,,非小细胞肺癌,Phase II,积极,29,更新/长期随访,n=29; evaluable=28; ORR=78.6%; mPFS=23.0 mo,单臂研究ORR明确且超过40%,24_37_p_a14ceeb54359d508925bcb2068a90be6_1
+failed,keep,,软组织肉瘤,Phase II,积极,29,未判定,n=29; ORR=0%; SD=65.5%; PD=34.5%; 3-mo PFS=50%,无客观缓解且多数进展,24_37_p_e1430dc38836cb522e6009e37a424e37_1
+early,keep,,胆道癌,Phase II,积极,28,未判定,n=28; evaluable=26; ORR=57.7%; DCR=88.5%,单臂研究ORR明确且超过40%,24_37_p_4040e40b1a3c5b72fcfd6657ac4ff78d_1
+early,keep,CLEAR-IT,肾透明细胞癌,Phase II,积极,28,未判定,n=28; ORR=39.3%; mPFS=16.2 mo; mDoR=14.6 mo,单臂研究接近40% ORR且PFS持久,24_37_p_0b7b0fcd5847676ed2f9c9b13498af34_1
+early,keep,,非小细胞肺癌,Phase II,积极,28,更新/长期随访,n=28; evaluable=26; ORR=38.5%; mPFS=6.5 mo,单臂研究有明确疗效数字,24_37_p_37e9dbbce28201f6ae0dc792f2865249_1
+early,keep,,胰腺导管癌,Phase II,积极,28,未判定,n=28; PR=4; mPFS=4.1 mo; 4-mo PFS=39.3%,单臂研究有具体PFS和缓解数据,24_37_p_dafe4ff8ef06893146c268dd4163c95a_1
+early,keep,,胃癌; 胃食管交界处癌,Phase II,积极,27,未判定,n=27; surgery=23; pCR=39.1%; MPR=60.9%; R0=100%,单臂研究病理完全缓解明确,24_37_p_129345b6d61f7e97538e15de7fb0a829_1
+early,keep,,尿路上皮癌,Phase II,积极,27,未判定,n=27; 1-y BI-EFS=65.8%; bladder preservation=92.6%,单臂研究有明确1年EFS数据,nr_24_37_p_83c5f5472a8f887ae864617cb616a131_1
+early,keep,FRUTD,卵巢癌; 输卵管癌; 腹膜癌,Phase II,积极,26,未判定,n=26; evaluable=22; ORR=50.0%; DCR=95.5%; mPFS=5.5 mo,单臂研究ORR明确且达到40%,24_37_p_17d4355c17b42bcf26edb6c9b5511a26_1
+early,keep,,癌症肝转移; 鼻咽癌,Phase II,积极,26,首次公布,n=26; evaluable=23; ORR=73.91%; DCR=95.65%; hepatic CMR=86.67%,单臂研究ORR明确且超过40%,24_37_p_131dc4828c26a754e85817c4e53e4cc1_1
+pivotal,weak,,胃癌; 胃食管交界处癌,Phase II,积极,26,未判定,n=26; arms=9/9/8; overall ORR=34.8%; 3mg ORR=62.5%,随机分组但各剂量队列样本不足10例,24_37_p_bda8cfb50a55dd8b4d60a0eda666af1e_1
+early,keep,,胆道癌,Phase II,积极,26,未判定,n=26; evaluable=20; ORR=40.0%; DCR=90.0%; mPFS=7.3 mo,单臂研究ORR达到40%,24_37_p_7795e622e761576cf1974ce1f8479f34_1
+early,keep,SaINT-ov02,卵巢癌,Phase II,积极,26,未判定,n=26; ORR=86.4%; CR=19.2%; mPFS=20.2 mo; 24-mo PFS=42.0%,单臂研究ORR明确且超过40%,24_37_p_f30b0f3a54873c420f0ef5d0114dab7d_1
+early,weak,,胃癌; 胃食管交界处癌,Phase II,积极,25,首次公布,n=25; cohorts=7/14/4; ORR=71.4%/100%/50%,分组样本均不足20例,24_37_p_786db0ba31130f250eb069cf6510ba32_1
+early,keep,TEPMEETCET,头颈部鳞状细胞癌,Phase II,积极,25,未判定,n=25; ORR=44%; DCR=88%; mPFS=3 mo; mOS=8 mo,单臂研究ORR明确且达到40%,24_37_p_a1f7834ddf1abb99070f976e447744cf_1
+early,keep,DEDALUS,非小细胞肺癌,Phase II,-,25,未判定,n=25; mPFS=13.2 mo; mOS=17.5 mo,单臂研究有具体PFS和OS数据,24_37_p_73512fa644dfd37e94ecefd0f23fdce0_1
+pivotal,drop,CIRES,癌症,Phase II,积极,25,首次公布,n=25; severe irAE=4%; disease control=65%,主要为再挑战免疫毒性安全性分析,24_37_p_f1beb5cdc66987b6fa3f1c6fa63b2924_1
+early,keep,ECLYPse,结直肠癌,Phase II,积极,25,未判定,n=25; 6-mo PFS=69.5%; mPFS=7.1 mo; 12-mo OS=83.7%,单臂研究主要终点达成且PFS明确,24_37_p_519f611c25c3a5026de3b04962aab6b0_1
+early,keep,,头颈部鳞状细胞癌,Phase II,积极,24,亚组/二次分析,n=24; 3-y OS=75.63%; 3-y PFS=52.38%,单臂研究报告长期生存率,24_37_p_a01b7db4879f3a6d435aa53e6d445316_1
+early,keep,,横纹肌肉瘤,Phase II,-,24,未判定,n=24; evaluable=20; ORR=45%; DCR=85%; mPFS=4.9 mo,单臂研究ORR明确且超过40%,24_37_p_a5a6c56a60c63e7285a76621a5891679_1
+early,keep,CAP 02,食管鳞状细胞癌,Phase II,积极,24,首次公布,n=24; evaluable=23; ORR=20.8%; mPFS=5.6 mo; mOS=11.0 mo,单臂研究有明确PFS和OS数字,24_37_p_5667a1a64a9cb4c1370aa2fee70346f0_1
+early,keep,,直肠癌,Phase II,积极,24,未判定,n=24; CR=50.0%; pCR=52.9% (9/17); cCR=42.9% (3/7),单臂研究完全缓解达到50%,24_37_p_6098f20fb1f07ae835f6b2140a858793_1
+early,keep,NEODETECT,食管鳞状细胞癌,Phase II,积极,24,未判定,n=24; ORR=70.8%; MPR=54.2%; pCR=41.7%,单臂研究病理完全缓解明确,24_37_p_87b295fbba9cd0fee55b647cc1a48536_1
+early,keep,NEOSTART,头颈部鳞状细胞癌,Phase II,积极,24,未判定,n=24; evaluable=23; MPR=61%; pCR=52%,单臂研究病理缓解率明确,24_37_p_8aace16c50e64c05a37f56ac42660ed5_1
+early,keep,FHJLU-003,未分化多形性肉瘤,Phase II,积极,23,未判定,n=23; PPS=22; ORR=40.91%; mPFS=7.89 mo,单臂研究ORR达到40%,24_37_p_7bacbafada000ec69292b23ee4cbb7ac_1
+pivotal,weak,iNATURE,实体瘤,Phase II,积极,22,未判定,n=22; vaccine=10; placebo=11; PFS vaccine=10.3/11.9 mo; placebo=3.3/2.1 mo,随机对照但各治疗臂样本极小,nr_24_37_p_cd37b9d3bd1cff154b685d0d6cb0aee6_1
+early,weak,,肾透明细胞癌,Phase II,-,22,未判定,n=22; combo evaluable=14 ORR=28.6%; control evaluable=5 ORR=0%,随机对照但对照疗效仅5例可评估,24_37_p_6723d5cb65d8d101395847b94fe3e434_1
+early,weak,TRIUMPH-B01,肌层浸润性膀胱癌,Phase II,积极,22,未判定,n=22; evaluable=10; CR=80%; maintenance=6,仅10例完成诱导疗效评估,24_37_p_0b9d962aef8aff53c251d5a6b50d329c_1
+early,keep,TRIDENTE,结直肠癌,Phase II,积极,21,亚组/二次分析,n=21; ORR=19.0%; mPFS=2.8 mo; mOS=9.6 mo,单臂研究主要终点达成且有阴性疗效数字,24_37_p_57760d3e61d93d24e72e00b844b10213_1
+early,keep,,胆管癌,Phase II,积极,21,未判定,n=21; evaluable=15; ORR=26.67%; mPFS=2.56 mo; mOS=8.90 mo,单臂研究报告明确低PFS和OS,24_37_p_2a64e04c9d98ae34dbd0e4b25d68987a_1
+early,keep,,胆道癌,Phase II,积极,21,未判定,n=21; ORR=37.5%; DCR=87.5%; mPFS=5.1 mo; mOS=9.8 mo,单臂研究有具体PFS和疗效数字,24_37_p_291df1df94a6753fab4bb754313e7157_1
+early,keep,,头颈部鳞状细胞癌,Phase II,积极,21,未判定,n=21; 2-year PFS 81.34%; 2-year OS 85.56%; PFS p=0.026,单臂但两年生存数字明确,24_37_p_b6b28ab67be600bff5a5d53662dd12c5_1
+early,weak,,软组织肉瘤,Phase IV,积极,21,未判定,n=21; evaluable n=20; target ORR 25%; irradiated ORR 45%; DCR 95%; 6-month PFS 60%,单臂小样本，局部疗效达标,24_37_p_5b75aecb3806a1634c2c62cf6d788138_1
+pivotal,drop,,单纯收缩期高血压; HER2阳性乳腺癌; 乳腺癌,Phase II,-,20,首次公布,n=20; TEAEs 100%; grade 3 TEAE 5%,仅报告安全性，疗效数字未披露,24_37_p_ef7e10fbacf9d1277c11e9d9e0f0ac0a_1
+early,weak,DUALTRANSFORM,结直肠癌; 癌症肝转移,Phase II,积极,20,未判定,n=20; ORR 75.00%; DCR 100%; tumor shrinkage 37.50%; conversion 40.00% (8/20),单臂小样本，虽有高ORR,24_37_p_b266bcae274a6ea4b3c9a1b41442a290_1
+early,weak,,胆道癌,Phase II,积极,20,未判定,n=20; ORR 55.0%; DCR 100.0%; grade >=3 TEAEs 75.0%,单臂小样本，疗效数据初步,24_37_p_38cef9e66960027b20acd2e6ccf29129_1
+early,drop,,胰腺导管癌,Phase II,积极,20,未判定,n=20; stable disease >30%; 35% remained on therapy,仅稳定病情且疗效分析仍在进行,24_37_p_ce7b8d18c84f07f6d663cf42692fb4e7_1
+early,drop,,小细胞肺癌,Phase II,-,20,未判定,n=20; median follow-up 9.2 months; grade >=3 AEs 20%,仅报告安全性，关键疗效尚未成熟,24_37_p_97915233860924f6228199ec9a8c9e4f_1
+early,weak,ChromoKey,肾细胞癌,Phase II,积极,20,首次公布,n=20; ORR 35% (7/20); median follow-up 8.0 months; grade 3 TRAEs 30%,非随机小样本，ORR低于强疗效阈值,24_37_p_ac0be857ef864544f327f1bb41a87d0f_1
+early,weak,,肌层浸润性膀胱癌,Phase IV,积极,19,未判定,n=19; CR 94.7% (18/19); bladder preservation 94.7%; follow-up 12.6 months,非随机小样本但CR数字明确,24_37_p_b09f20d4c2186d98bfc27789d564c7ff_1
+early,weak,CONVERGE-01,前列腺癌,Phase II,积极,19,首次公布,n=19; evaluable n=12; PSA50 83% (10/12); PSA90 25% (3/12),非随机小样本，疗效来自可评估子集,24_37_p_0857d94c5e56ad5886928dfd944068b3_1
+early,weak,TAPISTRY,甲状腺癌,Phase II,积极,18,首次公布,n=18; response-evaluable n=16; ORR 81.3%; DOR 26.7 months; median PFS 30.3 months,非随机小样本，ORR虽高仍需验证,24_37_p_ff198442dcdbf3f584c4a6f1633204f3_1
+early,weak,NEOASIS,结直肠癌,Phase II,积极,18,首次公布,n=18; pathologic response 17; MPR 83% (15); pCR 72% (13),非随机小样本，病理缓解数字明确,24_37_p_9bc571d1bf9ff1b4e2b94e34160057ef_1
+early,weak,,非肌层浸润性膀胱癌,Phase II,积极,18,更新/长期随访,n=18; evaluable n=16; 6-month CRR 75% vs 100%; 12-month CRR 42.9% vs 50%; anytime CRR 66.7% vs 100%,单臂小样本，缓解持久性尚成熟中,24_37_p_9a0dc94ecdc6ab1eb99377da70126efc_1
+early,weak,,胃癌; 结肠癌,Phase II,积极,17,未判定,n=17; completed n=13; cCR/cCR-near-cCR 69.2% (9/13); W&W no progression 8.1 months,非随机小样本，器官保存数据初步,24_37_p_04bbb2b446809156ce5d1a4e3eeb1848_1
+early,weak,MVR-T3011-006,非肌层浸润性膀胱癌,Phase II,积极,17,未判定,n=17; 3-month RFS 87.5%; 6-month RFS 80.8%; 12-month RFS 74.0%; 21-month RFS 65.8%,单臂小样本，RFS尚未成熟,24_37_p_33a5ec2c6c76a562e8f9e6879f0e9fad_1
+early,weak,,HR阳性乳腺癌,Phase II,积极,17,未判定,n=17; lymph nodes 100.0%; bone 76.5%; liver 52.9%; lung 47.1%; brain 23.5%,关键疗效数字未完整披露,24_37_p_853bf8ecd30b683d426dbc6408b8363c_1
+early,weak,,黑色素瘤,Phase II,-,16,更新/长期随访,n=16; PR 8; CR 4; responders 75% (12); no relapse among responders,单臂小样本，疗效数字需更大样本验证,24_37_p_c749ef15b609e3821641766e21f29eba_1
+early,weak,,胶质瘤,Phase II,-,16,未判定,n=16; evaluable n=12; ORR 50.0% (6/12); DCR 100% (12/12),单臂小样本，疗效仍为初步结果,24_37_p_8edd9ecea4cce151c6305eebcafece31_1
+early,drop,BELLINI,HR阳性乳腺癌; 乳腺癌,Phase II,积极,15,未判定,n=15; immune activation 67% (10/15); pCR 1 patient; ctDNA decrease 50% (3/6),仅免疫激活及生物标志物结果,24_37_p_45650ed9dc45e29bab342c1a7d94e5f1_1
+early,weak,MVR-T3011-ES09,非肌层浸润性膀胱癌,Phase II,积极,15,首次公布,n=15; evaluable n=14; 3-month RFS 92.9%; 6-month RFS 74.3%,单臂小样本，RFS数字有限,24_37_p_68fa078b79d52317912668e6f560614d_1
+early,weak,CP-AU-007-01,非小细胞肺癌,Phase II,积极,14,未判定,n=14; PR 21% (3/14); DCR 79% (11/14); CD8/Treg ratio 2–3x,非随机小样本，ORR低于强疗效阈值,24_37_p_c96743a599bdfe7ffa90ae33455e5fcc_1
+early,weak,,小细胞肺癌,Phase II,-,13,未判定,n=13; ORR 100%; grade >=3 AEs 76.9% (10/13),单臂小样本，虽ORR全为缓解,24_37_p_425295a471ed6370a278e2862c7d0bb4_1
+early,weak,ProvIDHe,胆管癌,Phase III,积极,13,未判定,n=13; median prior regimens 2; treatment duration 1.6 months; discontinued 12/13,单臂小样本，疗效有限且随访短,24_37_p_dcd36163e4dd6c7ec7aaf63b14d1b18e_1
+early,weak,,胃癌; 胃食管交界处癌,Phase II,积极,12,未判定,n=12; evaluable n=8; confirmed ORR 87.5% (7/8); DCR 100% (8/8),单臂小样本，ORR来自可评估子集,24_37_p_821687877cb9f9b8dba28b321ab2efc2_1
+early,weak,,头颈部鳞状细胞癌,Phase IV,积极,12,未判定,n=12; ORR 100% (12/12); CR 50% (6/12); pCR 55.6% (5/9),单臂小样本，疗效需进一步验证,24_37_p_310f69913bcea24086ed9c2f77951efa_1
+early,weak,,黑色素瘤,Phase II,积极,11,未判定,n=11; evaluable n=10; ORR 40.0% (4/10); DCR 50.0% (5/10),单臂小样本且仅一期达标,24_37_p_a2c78ae97d80a864eeeeb3ec7756825d_1
+early,weak,,血管免疫母细胞性T细胞淋巴瘤,Phase II,积极,11,未判定,n=11; ORR 90.9%; PR 5; CR 5; median PFS 8.9 months; progression 4 patients,单臂小样本，早期高缓解但已有进展,24_37_p_1a3af9e5cf950cee4758b702f9ea569a_1
+early,weak,AF19-200,卵巢癌; 肉瘤; 胰腺导管癌,Phase II,积极,10,未判定,n=10; PR 50% (5/10); clinical benefit 90% (9/10); sarcoma median PFS 6.7 months,单臂极小样本，疗效信号需验证,nr_24_37_p_c8ed5d497ffd14ada7b063e48d8de850_1
+early,weak,DETERMINE,罕见癌症,Phase II/III,积极,10,首次公布,n=10; OR 9/10; CR 3; PR 6; DCB 9/10; DOR 22 months,单臂极小样本，篮式研究初步结果,24_37_p_33ea301814176981d02cea733ce3e96c_1
+early,weak,TRUST-II,非小细胞肺癌,Phase II,积极,10,亚组/二次分析,n=10; ORR 80.0%; DOR 10.7 months; PFS 9.8 months; intracranial PFS 13.7 months,单臂极小样本，虽ORR较高,24_37_p_5d1680241b3cc4b6a6454d72c5e5b706_1
+early,weak,ClarIDHy,胆管癌,Phase II,积极,10,未判定,n=10; ORR 50%; DCR 60%; PFS 9.2 months; 12-month PFS 45%; 12-month OS 64%,单臂极小样本，疗效数字尚需验证,24_37_p_5299b44b3a8a4965fddb609dcf935911_1
+early,weak,,非小细胞肺癌,Phase II,积极,9,亚组/二次分析,n=9; R0 resection 100%; pCR 55.6% (5/9); MPR 100% (9/9),单臂极小样本，病理缓解结果初步,24_37_p_3d32623cdb4f5ac3c21d4615016af6a6_1
+early,weak,,胸腺癌,Phase II,积极,7,亚组/二次分析,n=7; ORR 85.7% (6/7); DCR 100%; 6-month PFS 85.7%; grade >=3 TRAEs 57.1%,单臂极小样本，ORR虽高仍属初步,24_37_p_cfc5f160499138fb9a56450aa8f8c40e_1
+early,drop,,非肌层浸润性膀胱癌,Phase II,积极,6,未判定,n=6,condensed未提供疗效或安全性结果,24_37_p_c703e7a13751383257d62fadd44439df_1
+early,drop,,MSI-H或dMMR实体瘤,Phase II,积极,4,未判定,n=4,condensed未提供实际结果数字,nr_24_37_p_8f793a066a9cbdf8340d7f0e2fcf422b_1
+pivotal,keep,COMRADE,癌症骨转移; 去势抵抗前列腺癌; 前列腺癌,Phase II,-,,未判定,ctDNA evaluable 90/94/57; baseline TF threshold 15%; 6-month event rate 14.3% vs 52.9%; HR 0.25; p=0.001,随机对照显示明确PFS获益,24_37_p_08e2ada272b061b6bbd086068b365559_1
+pivotal,drop,KEYNOTE-B15,膀胱癌; 肌层浸润性膀胱癌,Phase III,积极,,亚组/二次分析,GHS/QoL HR 0.84; PF HR 0.88; RF HR 0.80,仅HRQoL且两组无临床差异,24_37_p_6584837d6a78bf83a28a7c6dec2d11c3_1
+pivotal,drop,HER2CLIMB-05,HER2阳性乳腺癌; 乳腺癌,Phase III,积极,,亚组/二次分析,GHS/QoL TTD 11.8 vs 18.7 months; PF TTFD HR 0.79; GHS/QoL TTCD HR 0.81; PF TTCD HR 0.73,仅患者报告结局，未给核心疗效结果,24_37_p_264f4a9a4f292a674406182d1148ebfe_1
+pivotal,keep,CR-SEQUENCE,结直肠癌; 癌症肝转移,Phase III,积极,,亚组/二次分析,LMR n=41; PFS 35.61 vs 21.39 months; PFS HR 0.48; OS 64.69 vs 32.26 months; OS HR 0.37; p<0.001,随机研究中肝切除组生存获益明确,24_37_p_e3e4328becffb138d3933429ebd57573_1
+pivotal,drop,RINGSIDE Part B,硬纤维瘤,Phase II/III,积极,,亚组/二次分析,Week 48 pain -2.48 vs 0.22; TSS-5 -1.50 vs 0.59,仅症状和生活质量结局,24_37_p_5cd8de98b63d6a4d67181e604343fe06_1
+pivotal,drop,RELATIVITY-047,黑色素瘤,Phase II/III,积极,,首次公布,minimum follow-up 57.3 months; PD-L1 subgroup analysis,仅机制/生物标志物解释，疗效数字缺失,24_37_p_0fa8a377dd50145bc16025d38b25ef5a_1
+pivotal,drop,NeoTRIP,三阴性乳腺癌,Phase III,-,,未判定,OR 0.85; p=0.002; p-interaction <0.01,仅生物标志物和机制分析,24_37_p_4c3abee319c88c4c754dfb61ab92268c_1
+failed,keep,LITESPARK-012,肾透明细胞癌,Phase III,不佳,1688,未判定,n=1688; follow-up 43.6 months; discontinuation 51.6%/51.4%/36.2%; grade >=3 AEs 87.2%/88.7%/84.8%,随机对照明确未改善疗效,24_37_p_0026c5483058b444195be3eefd87cc17_1
+failed,keep,KEYNOTE-866,膀胱癌; 肌层浸润性膀胱癌,Phase III,不佳,907,首次公布,n=907; EFS HR 0.88; P=.1366; pCR 44.4% vs 35.8%; OS HR 1.00,主要EFS未显著，OS无获益,24_37_p_20e2e6f20add425cc529c95af671cfe3_1
+failed,keep,,肌层浸润性膀胱癌,Phase III,不佳,653,更新/长期随访,n=653; EFS HR 0.94; P=0.67; pCR 39.1% vs 29.6%; OS HR 0.88,随机研究主要终点均未显著改善,24_37_p_f51b67fa3bb94462ff44cc647f622278_1
+failed,keep,LEAP-012,肝细胞癌,Phase III,不佳,480,更新/长期随访,n=480; PFS HR 0.66; PFS p=0.0002; OS 40.4 vs 40.8 months; OS HR 0.98,PFS获益但OS明确无获益,24_37_p_2e2014cad93b5d15f5ecabb1c5875bea_1
+failed,keep,KEYNOTE-630,皮肤鳞状细胞癌,Phase III,不佳,450,更新/长期随访,n=450; 36-month RFS 71.6% vs 66.5%; RFS HR 0.81; 36-month OS 80.7% vs 88.0%; OS HR 1.70,RFS未显著且OS反向不利,nr_24_37_p_0ef490d05e002a599cb113ff1e4d9718_1
+failed,keep,LEAP-009,头颈部鳞状细胞癌,Phase II,不佳,404,更新/长期随访,n=404; OS HR 1.48; follow-up 32.5 months; grade 3-5 AEs 73.5% vs 62.1%,OS未改善且研究提前停止,24_37_p_628fb0c2ce10f0e0e7a63c2f7030fa50_1
+failed,keep,MOST,实体瘤,Phase II,不佳,255,未判定,n=255; objective response 9% (23); treatment failure 74% (189); randomized 17% (43),随机继续治疗未带来获益,24_37_p_6b6234aeb85c777bae9422c0cee844f2_1
+failed,keep,,胶质母细胞瘤,Phase II,不佳,184,未判定,n=184; mPFS 7.9 vs 8.2 months; 12-month PFS 22.2% vs 38.9%; P=0.048; mOS 16.9 vs 16.7 months; OS P=0.898,PFS无改善且实验组更差,24_37_p_f97e69beae532d3fc65d8eb903e0c484_1
+failed,keep,NRG-GY020,子宫内膜癌,Phase III,不佳,168,亚组/二次分析,n=168; RFS3 73% vs 70%; RFS HR 0.72; P=0.21; grade 3/4 toxicity 43% vs 15%,主要RFS终点未达预设优效标准,24_37_p_1a15b0c95907c2cd1b11c430e4776c44_1
+failed,keep,,肝细胞癌,Phase II,不佳,161,未判定,n=161; mRFS 44.7 vs 30.0 months; HR 0.91; 95% CI 0.58–1.43; OS immature,随机对照RFS无显著差异,24_37_p_047f1b31b5f7146c47d8abfb399ba0a8_1
+failed,keep,ASPIK-PRODIGE 50,结肠癌,Phase III,不佳,134,未判定,n=134; 3-year DFS 67.1% vs 75.1%; HR 1.28; p=0.45; 5-year OS 78.9% vs 89.7%,随机对照未改善DFS或OS,24_37_p_c1d3a0914cd04e330fe1b9441d7a73bd_1
+failed,drop,MaGPiE,壶腹周围癌; 胰腺癌,Phase III,不佳,122,首次公布,n=122; grade 3-4 toxicity 54.2% vs 27.1%; p<0.001,仅报告毒性与住院负担,24_37_p_3605139ac3c7ef3205af8c13f5b517e6_1
+failed,keep,ARION PRODIGE 67,食管癌,Phase II,不佳,112,未判定,n=112; cPFS HR 0.91; PFS HR 0.92; p=0.351,随机试验PFS无显著改善,24_37_p_459dc4220fb1bd1c73a5a111e43776e9_1
+failed,keep,,肾透明细胞癌,Phase III,不佳,106,亚组/二次分析,n=106; median PFS 18 vs 16 months; HR 0.90; p=0.712,倾向评分后生存无显著差异,24_37_p_6c1d60a9174a8d88d0a08519bd5a6cd8_1
+failed,keep,,非小细胞肺癌,Phase II,不佳,105,未判定,n=105; PFS 7.7 vs 6.8 months; HR 0.78; p=0.14; OS 17.3 vs 15.1 months,随机试验未显著改善PFS或OS,24_37_p_7f43e1aa9e4303c266f60451f5641b12_1
+failed,drop,,非小细胞肺癌; 实体瘤,Phase I,终止,87,未判定,n=87; RD 9 mg; G3+ CPK 13%; G3+ ALT 9%,主要为安全性、PK和靶点结合,24_37_p_a26aee6538ade5ff399a09a530bc4fb5_1
+failed,keep,JCOG2006,结肠癌,Phase II,不佳,86,未判定,n=86; 2-year OS 94.9% vs 89.3%; PFS 76.0% vs 76.9%; ORR 61.5% vs 81.4%,疗效和生存无有意义差异,24_37_p_4c1a3c41bdf564b4e283b152205fcbb8_1
+failed,keep,,去势抵抗前列腺癌; 前列腺癌,Phase I,不佳,78,未判定,n=78; PSA50 43%; median benefit 46 weeks; rPFS 12.1 months,单臂显示PSA缓解及持久获益,24_37_p_cce522b1d85909d1097ef27de7ac59c0_1
+failed,keep,DRUP,肿瘤,Phase II,不佳,72,未判定,n=72; CBR 16.4%; ORR 3.0%; PFS 1.7 months; OS 5.5 months,客观缓解和临床获益均有限,24_37_p_829e70e914db91f861a475c9d81aa4e5_1
+failed,keep,MITO 32,卵巢癌,Phase III,终止,68,未判定,n=68; 12-month OS 41.8% vs 52.2%; p=0.378; G3-4 AE 14.3% vs 56.8%,OS无统计学差异且样本未达标,24_37_p_d6ad29a1b451ed05b9f33babcfc4de39_1
+failed,keep,GEMCAD-1802,结直肠癌,Phase II,不佳,67,未判定,n=67; 6-month ORR 51.5% vs 62.5%; p=0.41; PFS HR 1.33; p=0.31,主要终点未达且PFS无获益,24_37_p_b52089fe225b14fbe4557fa6d1e522fc_1
+failed,keep,Debio 0123-102,实体瘤; 卵巢癌; 子宫浆液性癌,Phase I,不佳,66,未判定,n=66; ORR 9.5% and 10.3%; DCR 57.1% and 53.8%; PFS 2.5 and 2.4 months,单臂疗效有限且缓解率低,24_37_p_40e6919b6e49adbc491d5d7bef34eecb_1
+failed,keep,,非小细胞肺癌; 实体瘤; 胃癌,Phase I,不佳,64,首次公布,"n=64; G3 AE 11%, 18%, 0%; G4-5 TRAE 0%",未观察到临床意义的抗肿瘤活性,24_37_p_01180c79b45bbbf1d1ed3a36f2302e60_1
+failed,weak,VHIO17002,实体瘤,Phase II,终止,51,未判定,n=51; ongoing response 531 days; median lines 3,表格疗效数字缺失且研究终止,24_37_p_f2bb3639a96c96a96c00a99f07bfb305_1
+early,weak,ACROPOLI,实体瘤,Phase II,终止,48,首次公布,n=48; ORR 25%; CBR 37.5%; median PFS 2.2 months; median OS 16.2 months,单臂样本小且ORR低于明确阈值,24_37_p_0af3842d45c353c1018c02a3b1fbd733_1
+failed,drop,,卵巢癌,Phase II,不佳,48,未判定,"n=48; tumor platinum 7.5 vs 5.3 μg/g; p=0.40; AUC 880 vs 1,252 mg·min/L; p<0.001",仅比较药代动力学与毒性,24_37_p_ee5b448c1f58268580e440cc91a49016_1
+failed,keep,PEMBROLA,结直肠癌,Phase II,不佳,40,未判定,n=40; ORR 2.9%; DCR 20.6%; PFS 2.1 months; OS 8.6 months,客观缓解率极低且结论为活性有限,24_37_p_97a53e6e9b33c33e95fa0ad44e3631d4_1
+failed,keep,,非小细胞肺癌; 胃肠道间质瘤; HER2阳性乳腺癌,Phase II,不佳,36,更新/长期随访,n=36; CBR 27.8%; median PFS 1.9 months; ≥G3 AE 9.1%,未达到疗效目标且PFS极短,24_37_p_51f2c5cfa8342447b01701b0b864dfe8_1
+failed,keep,TAPUR,胰腺癌; 结直肠癌; 乳腺癌,Phase II,不佳,35,未判定,n=35; BC DC rate 20%; PC DC rate 20%; CRC DC rate 9%; combined DC rate 15%,各队列疾病控制率不足且提前关闭,24_37_p_230743da8f5e211554b5214d426694f5_1
+failed,weak,SWOG S2200,乳头状肾细胞癌,Phase II,终止,33,未判定,n=33; PFS HR 0.46; p=0.043; OS HR 1.67; p=0.79,小样本随机试验虽改善PFS但研究终止,24_37_p_2d0184ac25711e7095af8e8fe986ac86_1
+failed,keep,,肾透明细胞癌,Phase I,不佳,31,首次公布,n=31; PFS 16.4 vs 5.4 months; HR 0.39; p=0.051; ORR 38.1% vs 10.0%; p=0.13,PFS显著改善但OS和ORR未显著,24_37_p_d21c0d6816f0b324fa79cd8c270411b7_1
+failed,keep,NICHE,结肠癌,Phase II,不佳,31,首次公布,n=31; response 1/12 (8%); response 1/17; 58% and 72% grade 1-2 irAEs,两队列均未达到继续入组标准,24_37_p_03a125f883f1ce6725283425b0ea4b3d_1
+failed,drop,POWERRANGER,实体瘤; 食管腺癌,Phase II/III,不佳,29,未判定,n=29 randomized; CT 12; CRT 17; pCR 0/8 vs 2/12; p=0.24,主要为可行性和入组障碍,24_37_p_fc283b6c457da8307b763cf144279f7d_1
+failed,keep,EPOC2003,胃癌; 胃食管交界处癌,Phase II,不佳,27,未判定,n=27; MPR 25.9% (7/27); pCR 18.5% (5/27),主要病理终点未达预设统计阈值,24_37_p_941ed1cd711a00121670e9963639fcd9_1
+failed,keep,,口腔鳞状细胞癌,Phase II,不佳,25,未判定,n=25; MPR 11% (2/18); pCR 1/18; 18-month OS 72.6%,MPR主要终点未达预设标准,24_37_p_2411fa6a4f235d0a3f4c3a33a960f836_1
+failed,drop,EOCRC2-22,结直肠癌,Phase I/II,终止,25,未判定,n=25; EO-specific CD8 expansion 100%; TAA-specific expansion 84%; median survival 11.3 months,仅为免疫学扩增和继续评估信号,24_37_p_ff1d3fd83806dda879dad75dc1cd1c0d_1
+failed,weak,OvarianSPORE,卵巢癌,Phase II,不佳,24,未判定,n=24; median PFS 6.3 months; median OS 31.3 months; G3-4 TRAE 17%,单臂小样本且疗效信号 modest,24_37_p_4f6e0e3b7fd74d1c173b89c5c0619152_1
+failed,weak,,直肠癌,Phase II,不佳,23,未判定,n=23; pCR 8.7% (2/23); R0 resection 18/18; G3+ TRAE 34.8%,单臂小样本且病理缓解有限,24_37_p_2eee96ea011e20ed9d533572d05af22b_1
+failed,weak,MEPANC,胰腺导管癌,Phase I/II,不佳,22,未判定,n=22; 1-year PFS 20%; median PFS 3.7 months; 11 grade ≥3 AEs,单臂小样本且疗效有限,24_37_p_cd0a55004dfea54d943f7b86c3dff4d9_1
+failed,weak,KOSMOS-II,实体瘤,Phase II,不佳,20,未判定,n=20; 16-week DCR 35.0%; ORR 30%; PFS 3.9 months; OS 7.3 months,单臂小样本且未达预设疾病控制阈值,24_37_p_be9d318f6dea9d487015fcc7e8d98928_1
+failed,weak,CheckVAC,胰腺癌,Phase I,不佳,20,未判定,n=20; ORR 8% (1/12 evaluable); SD 50% (6/12); PFS 2.2 months; OS 3.5 months,小样本单臂且临床获益有限,24_37_p_01895e2cf48d03160172dc2fb2140504_1
+failed,weak,PULSE-UM,癌症肝转移; 葡萄膜黑色素瘤,Phase I/II,不佳,16,更新/长期随访,n=16; ORR 6.3%; DCR 25%; PFS 2.77 months; OS 5.0 months,样本少且主要终点未达,24_37_p_0f48dc8607d5af179d418b64bc258654_1
+failed,weak,BRICKET,结直肠癌,Phase II,不佳,16,未判定,n=16; ORR 0%; SD 37.5%; PFS 2.9 months; OS 9.1 months,样本少且无客观缓解,24_37_p_507f9a5f33d8b66c6d811128b34dacbb_1
+failed,drop,DS1471-079,实体瘤,Phase I,终止,16,更新/长期随访,n=16; TRAEs 56.3%; G3+ TRAE 0%; DLT 0,仅报告耐受性、PK和受体占有率,24_37_p_07cfcfa8f2ee901498bedf57f56de598_1
+failed,weak,,软组织肉瘤,Phase II,不佳,12,未判定,n=12; ORR 0%; DCR 66.7%; median PFS 8.05 months,样本极小且无客观缓解,24_37_p_743f3831beb4f18197ced574ac7cc66b_1
+failed,drop,,去势抵抗前列腺癌; 前列腺癌,Phase II,不佳,11,未判定,n=11 started EVO; PCPro modulation 1/6 evaluable; cholesterol decrease 40%; triglycerides decrease 15%,主要为生物标志物调控和可行性,24_37_p_4b0df0e011a7944a64e6de04805e35fb_1
+failed,weak,NACEA,食管腺癌; 胃食管交界处癌,Phase I/II,终止,7,亚组/二次分析,n=7; pCR 28.6% (2/7); MPR 71.4%; G3 acute toxicity 28.6%,研究提前终止且样本极小,24_37_p_4e1ac2b13f9495557070e20d8fb73ec0_1
+failed,weak,INVINCIBLE-4-SAKK 66/22,三阴性乳腺癌,Phase II,不佳,7,首次公布,n=7; pCR 71% (5/7); axillary pCR 6/7; G3 toxicity 86%,样本极小且局部毒性较高,24_37_p_bcf5be50de042c7e28737ceb5675aed2_1
+failed,keep,ENGOT-en9/LEAP-001,子宫内膜癌,Phase III,不佳,,亚组/二次分析,Phase III; PFS comparable; OS comparable; no meaningful predictive biomarkers,随机三期各分子亚组疗效相当,24_37_p_b2367e4e34cb6f8007b56069207def1f_1

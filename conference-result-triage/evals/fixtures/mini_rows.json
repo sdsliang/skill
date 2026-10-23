@@ -1,0 +1,166 @@
+[
+ {
+  "_id": "e1",
+  "trial_abbreviation": "FIXTURE-ADC-101",
+  "paper_title": "Phase I ADC",
+  "abstract_text": "Background: FIXTURE-ADC-101 is a phase 1 study of a novel ADC in SCLC. Methods: dose escalation. Results: Among 45 patients, confirmed ORR was 51.1% and median PFS was 6.8 months. Grade >=3 TEAE occurred in 44.6%. Conclusion: Encouraging activity.",
+  "summary": "ORR 51.1% in 45 patients with SCLC.",
+  "key_evidence": "是",
+  "evaluation": "积极",
+  "evidence_source": "Phase I",
+  "group_count": 45,
+  "randomized": "否",
+  "blinded": null,
+  "trial_control": null,
+  "indication_name": [
+   {
+    "text": [
+     "小细胞肺癌"
+    ]
+   }
+  ],
+  "primary_endpoint_cn": [
+   {
+    "text": [
+     "ORR"
+    ]
+   }
+  ],
+  "study_results": [
+   {
+    "endpoint_attribute": "安全性",
+    "endpoint_label": "Grade >=3 TEAE",
+    "result": "44.6",
+    "result_unit": "%",
+    "endpoint_type": "主要终点",
+    "arm_type": "experimental"
+   },
+   {
+    "endpoint_attribute": "有效性",
+    "endpoint_label": "ORR",
+    "result": "51.1",
+    "result_unit": "%",
+    "endpoint_type": "次要终点",
+    "arm_type": "experimental"
+   },
+   {
+    "endpoint_attribute": "有效性",
+    "endpoint_label": "median PFS",
+    "result": "6.8",
+    "result_unit": "months",
+    "endpoint_type": "次要终点",
+    "arm_type": "experimental"
+   }
+  ]
+ },
+ {
+  "_id": "e2",
+  "trial_abbreviation": "FIXTURE-III-201",
+  "paper_title": "Phase III positive",
+  "abstract_text": "Background: randomised phase 3 trial in 1L NSCLC. Results: PFS was 16.1 vs 6.9 months (HR 0.56, p<0.001); OS 50.2 vs 29.9 months. Conclusion: met primary endpoint.",
+  "summary": "PFS HR 0.56; OS 50.2 vs 29.9 mo.",
+  "key_evidence": "是",
+  "evaluation": "积极",
+  "evidence_source": "Phase III",
+  "group_count": 321,
+  "randomized": "是",
+  "blinded": "开放",
+  "trial_control": "化疗",
+  "indication_name": [
+   {
+    "text": [
+     "非小细胞肺癌"
+    ]
+   }
+  ],
+  "primary_endpoint_cn": [
+   {
+    "text": [
+     "PFS"
+    ]
+   }
+  ],
+  "study_results": [
+   {
+    "endpoint_attribute": "有效性",
+    "endpoint_label": "PFS",
+    "result": "16.1",
+    "compare_result": "6.9",
+    "result_unit": "months",
+    "hazard_ratio": "0.56",
+    "p_value": "<0.001",
+    "endpoint_type": "主要终点",
+    "arm_type": "experimental"
+   }
+  ]
+ },
+ {
+  "_id": "e3",
+  "trial_abbreviation": "FIXTURE-III-301",
+  "paper_title": "Phase III negative",
+  "abstract_text": "Background: randomised phase 3 trial in MIBC. Results: EFS HR 0.88 (p=0.1366), not significant. OS HR 1.00. Conclusion: primary endpoint not met.",
+  "summary": "EFS HR 0.88, p=0.1366, not met.",
+  "key_evidence": "否",
+  "evaluation": "不佳",
+  "evidence_source": "Phase III",
+  "group_count": 907,
+  "randomized": "是",
+  "blinded": "双盲",
+  "trial_control": "化疗",
+  "indication_name": [
+   {
+    "text": [
+     "膀胱癌"
+    ]
+   }
+  ],
+  "primary_endpoint_cn": [
+   {
+    "text": [
+     "EFS"
+    ]
+   }
+  ],
+  "study_results": [
+   {
+    "endpoint_attribute": "有效性",
+    "endpoint_label": "EFS",
+    "result": "",
+    "result_unit": "",
+    "hazard_ratio": "0.88",
+    "p_value": "0.1366",
+    "endpoint_type": "主要终点",
+    "arm_type": "relative"
+   }
+  ]
+ },
+ {
+  "_id": "e4",
+  "trial_abbreviation": "FIXTURE-RWE-401",
+  "paper_title": "Real world study",
+  "abstract_text": "Background: real-world retrospective cohort. Results: ORR 60%. Conclusion: consistent with trials.",
+  "summary": "Real-world ORR 60%.",
+  "key_evidence": "否",
+  "evaluation": "积极",
+  "evidence_source": "真实世界研究",
+  "group_count": 500,
+  "randomized": null,
+  "blinded": null,
+  "trial_control": null,
+  "indication_name": [
+   {
+    "text": [
+     "胃癌"
+    ]
+   }
+  ],
+  "primary_endpoint_cn": [
+   {
+    "text": [
+     "ORR"
+    ]
+   }
+  ],
+  "study_results": []
+ }
+]

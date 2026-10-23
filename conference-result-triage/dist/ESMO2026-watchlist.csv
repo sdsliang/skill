@@ -1,0 +1,31 @@
+﻿bucket,trial,drug,target,indication,phase,n,data_type,key_numbers,why
+early,ABBV-706,ABBV-706,SEZ6 ADC,R/R SCLC,Phase I,124,首次,2L+ RP3D n=41 ORR 56%/mOS 12.4mo; 2L n=17 ORR 82%/mOS 14.3mo,SCLC 二线 ORR 与 OS 双高，SEZ6 为新靶点
+early,ZL-1310,ZL-1310 + atezolizumab,DLL3 ADC,1L ES-SCLC,Phase I,58,更新,双联 n=15 确认ORR 80%; 三联 n=13 ORR 91%; 全剂量双联 65.9%,一线 SCLC 联合 ORR 80/91%
+early,IBI363A103 / 胃癌队列,IBI363 (TAK-928),PD-1/IL-2a-bias 双抗,1L NSCLC; 胃癌,Phase I,80,更新,"NSCLC 三剂量 ORR 47.4/61.9/86.4%; 胃癌 ORR 80%, cORR 60%",双适应症单臂高 ORR
+early,TJ033721STM101,givastomig (ABL111) + nivo + mFOLFOX,CLDN18.2 x 4-1BB,1L 胃食管腺癌,Phase I,64,首次,ORR 77%/75%; DCR 96%/100%; mPFS 16.9/14.5mo,一线胃癌 PFS 15+ 月
+early,SHR-4849 Ph1,SHR-4849 (IDE849),DLL3 ADC,R/R SCLC + NEC,Phase I,122,更新,ORR 68.3%(确认55.4%); 2L 72.5%; 脑转移 n=26 ORR 76.9%; mPFS 6.8mo,SCLC 与脑转移双达标
+early,ZG005-003,nilvanstomig (ZG005) + 化疗±贝伐,PD-1 x TIGIT,1L 宫颈癌,Phase I/II,96,更新,20mg/kg uORR 81.4%; 随访 9.0mo,一线宫颈癌 ORR 81%
+early,SHR-A1811 BC,SHR-A1811 (trastuzumab rezetecan),HER2 ADC,HER2+ 乳腺癌,Phase I/II,75,更新,Ph2 ORR 83.1%(4.8mg/kg 86.4%); 24/36mo PFS率 73.4%/61.1%,强效且无 ILD
+early,obrixtamig NEC,obrixtamig (BI 764532),DLL3 x CD3 TCE,NEC,Phase I,44,亚组/二次分析,确认ORR 77%(DLL3高表达88%); mPFS 7.7mo,NEC 首次出现 77% 确认 ORR
+early,FMC-376,FMC-376,口服 KRAS G12C (ON/OFF),NSCLC 为主,Phase I,62,首次,NSCLC n=42 ORR 52%; 65% 用过前代 G12Ci,对前代 G12Ci 耐药仍 52%
+early,SYS6043,SYS6043,B7-H3 ADC,乳腺癌,Phase I/II,137,首次,HR+/HER2- 45.7%; TNBC 70.6%; HER2+ 71.4%; G>=3 TRAE 24.1%,三队列均高 ORR，毒性低
+pivotal,PERSEE,pembro ± 铂类化疗,PD-1 + 化疗,PD-L1>=50% NSCLC 1L,Phase III,321,首次,PFS 16.1 vs 6.9mo HR 0.56; OS 50.2 vs 29.9mo,首次 III 期证实 PFS/OS 双获益
+pivotal,UNION,卡瑞利珠 + SCRT + CAPOX,PD-1 + 放疗,局部晚期直肠癌新辅助,Phase III,231,首次,"3y EFS 91.3% vs 77.4%, HR 0.33, p=0.0029",首个 LARC 新辅助免疫 III 期阳性
+pivotal,OptiTROP-Breast01,sac-TMT (SKB264),TROP2 ADC,晚期 TNBC >=2L,Phase III,263,更新,OS 14.7 vs 9.9mo HR 0.60; 校正后 0.55,最终 OS 维持获益
+pivotal,RC48-C012,维迪西妥单抗 (DV),HER2 ADC,HER2 低表达乳腺癌含肝转移,Phase III,377,首次,总体PFS 4.67 vs 2.86 HR 0.718; BCLM PFS 5.62 vs 2.60 HR 0.430; OS 20.47 vs 15.84 HR 0.744,HER2 低表达+肝转移双阳性
+pivotal,DeLLphi-304,tarlatamab,DLL3 x CD3 BiTE,2L SCLC,Phase III,509,更新,OS 13.6 vs 8.4mo HR 0.62; 18mo OS 42% vs 24%,长期随访结论更硬
+pivotal,LIBRETTO-531,selpercatinib,RET 抑制剂,1L RET 突变 MTC,Phase III,291,更新,3y PFS 75% vs 25% HR 0.21; 3y OS 92% vs 75% HR 0.34,PFS/OS/PFS2 三终点一致
+pivotal,FLAMES,senaparib 维持,PARP 抑制剂,1L 卵巢癌维持,Phase III,403,更新,mPFS 38.7 vs 13.6mo HR 0.47; BRCA 野生型 HR 0.49,BRCA 野生型同样获益
+pivotal,COMPANION-002,tovecimig + 紫杉醇,DLL4 x VEGF-A 双抗,2L 胆道癌,Phase II/III,168,首次,ORR 17.1% vs 5.3%; PFS 4.7 vs 2.6mo HR 0.44,难治胆道癌随机阳性
+pivotal,RINGSIDE,gamma-secretase 抑制剂,Notch 通路,硬纤维瘤,Phase III,156,更新,"ORR 56% vs 9%(既往); 本次 G>=3 AE 57% vs 17%, 80% 减量",疗效强但耐受性代价明确
+pivotal,MANEUVER,pimicotinib,CSF-1R,腱鞘巨细胞瘤,Phase III,63,更新,ORR 76.2%(RECIST)/77.8%(TVS); 中位 DOR 未达,2 年持续缓解
+failed,LITESPARK-012,pembro + lenvatinib ± belzutifan,PD-1+VEGFR+TKI/HIF2a,1L 晚期 ccRCC,Phase III,1688,首次,三联/双联均未改善疗效; 停药率 51.6%/51.4% vs 36.2%; G>=3 AE 87-89% vs 84.8%,大型 III 期明确阴性
+failed,KEYNOTE-866,围手术期 pembro + 化疗,PD-1 + 化疗,肌层浸润性膀胱癌,Phase III,907,未判定,EFS HR 0.88 p=0.1366; pCR 44.4% vs 35.8%; OS HR 1.00,围手术期免疫阴性
+failed,CA017-078,新辅助 nivo + GC → 辅助 nivo,PD-1 + 化疗,肌层浸润性膀胱癌,Phase III,653,更新/长期随访,EFS HR 0.94 p=0.67; OS HR 0.88,与 NIAGARA 结论相反
+failed,KEYNOTE-630,辅助 pembro,PD-1,高危皮肤鳞癌,Phase III,450,更新,RFS HR 0.81(NS); OS HR 1.70 (95%CI 1.11-2.60),OS 反向不利
+failed,LEAP-012,lenva + pembro + TACE,VEGFR+PD-1,不可切除 HCC,Phase III,480,更新,PFS 阳性; OS 40.4 vs 40.8mo HR 0.98; G>=3 TRAE 72.2% vs 32.0%,PFS 阳性未转化 OS
+failed,LEAP-009,lenva + pembro,VEGFR+PD-1,R/M 头颈鳞癌,Phase II,404,更新,"OS HR 1.48 (1.11-1.97), 提前停止",OS 劣于对照
+failed,postMONARCH,abemaciclib + 氟维司群,CDK4/6,HR+ HER2- 乳腺癌 CDK4/6i 后,Phase III,368,更新,OS 32.1 vs 24.6mo HR 0.80 p=0.1145,最终 OS 未达显著
+failed,NRG-GY020,放疗 ± pembro,PD-1 + 放疗,高中危子宫内膜癌,Phase III,168,首次,3y RFS 73% vs 70% p=0.68; G3/4 毒性 43% vs 15%,获益未现毒性翻倍
+failed,ASPIK-PRODIGE 50,阿司匹林辅助,COX,PIK3CA 突变结肠癌,Phase III,134,首次,3y DFS 67.1% vs 75.1% HR 1.28; 5y OS 78.9% vs 89.7%,辅助治疗方向不利
+failed,MITO 32,-,-,复发卵巢癌,Phase III,68,未判定,提前终止; 12mo OS 41.8% vs 52.2% p=0.378,样本不足提前终止
