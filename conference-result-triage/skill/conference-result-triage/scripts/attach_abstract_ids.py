@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
-"""Attach conference abstract numbers to pool items.
+"""Attach conference abstract numbers to pool items -- **optional, off-platform only**.
 
 The TS result table exposes ``lba`` as a boolean flag but **no abstract number**
 (``abstract_id`` lives only in the meeting book). Without the number a card can
 say "late-breaking" but not "LBA3", and ``presentation_of`` cannot decode the
 slot at all.
+
+**This does not run inside Tool Smith.** The platform has no meeting-book tool
+(35 tools, none matching meeting/conference) and cannot reach
+``mcp-openapi.pharmcube.com``, so on-platform ``abstract_id`` is always ``null``
+and the presentation tier comes from ``lba`` + ``featured`` instead -- see
+``triage.presentation_of`` and ``references/pitfalls.md`` §20. Run this only on a
+machine that can reach the public openapi host with a valid appkey.
 
 So: pull the meeting book once (``scripts/meeting_pull.py``), then join it onto
 the pool by normalized title. This script only *labels* rows -- it never adds,

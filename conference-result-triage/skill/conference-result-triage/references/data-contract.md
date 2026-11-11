@@ -133,7 +133,9 @@ p_value, outcome_p_value, hazard_ratio, hazard_ratio_ci, odd_ratio, relative_ris
 | `dist/ESMO2026-watchlist.csv` | 30 条定榜 |
 | `dist/ESMO2026-watchlist.md` | 三桶报告 |
 
-## 7. 会议摘要库（`medicalMeeting`）—— 并列第二入口
+## 7. 会议摘要库（`medicalMeeting`）—— **仅限本地/有外网，平台内不可用**
+
+> **平台内（v0.3 主运行时）这条路走不通**：Tool Smith 的 35 个工具里没有会议摘要库，`mcp-openapi.pharmcube.com` 不在容器网络内，23 张可查表里也没有会议表。所以平台内**拿不到摘要号**，`abstract_id` 恒为 `null`，报告形式由 `clinical_result.lba` + `clinical_result.featured` 合成（见 `screening-rules.md` §3.1）。下面这节只在本地跑或容器能出网时适用。
 
 结构化结果表不是会议全本。ESMO 2026 实测：
 
@@ -143,7 +145,7 @@ p_value, outcome_p_value, hazard_ratio, hazard_ratio_ci, odd_ratio, relative_ris
 | 可用摘要（有 abstract_id + 全文 + 非 TiP） | 646 | **4103** |
 | 覆盖关系 | — | 646 条全部能匹配上（title 归一后 646/646，零损失） |
 
-调用形态：
+调用形态（endpoint `https://mcp-openapi.pharmcube.com/mcp`，Bearer appkey）：
 
 ```json
 {"name":"pharmcube-mcp-medicalMeeting",

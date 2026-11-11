@@ -40,27 +40,22 @@ python3 $S/pull_results.py --conference "ESMO 2026" --out /workspace/work/rows.j
 
 它走 Tool Smith 数据服务器的 MCP 工具 `query-clinical-result-with-params`，**禁止**改去查 Elasticsearch：平台工作区读不到结果表，而 ES 侧的 `np_clinical` 没有 `lba` 列，一旦绕路就会把整个 late-breaking 层静默丢掉。
 
-脚本内部做两件事，都是防静默失败的：先只取 id（一次回全量），再用 `esids` 切片取全字段（响应体约 6 MB 上限，35 字段的整场调用只会回 ~500 行且 `ok: true`）。成功输出形如：
+脚本内部做三件事，都是防静默失败的：
+
+1. 先只取 id（一次回全量），再用 `esids` 切片取全字段（响应体约 6 MB 上限，35 字段的整场调用只会回 ~500 行且 `ok: true`）。
+2. `clinical_result.lba` 必须显式写进 `selected_fields`，否则键直接消失。
+3. `featured`（`是`/`否`，策展编辑的头条标记）**不在** `with-params` 的可选字段白名单里，只能用平台自带的 `TEST_execute-sql` 拉一个 `extra_esid, featured, lba` 的三列旁表（整场约 100 KB），再按 esid 合回主表。这一步失败只降级、不中断（会有 `WARNING: featured sidecar unavailable`）。
+
+成功输出形如：
 
 ```
-rows=1097 requested=1097 missing=0 lba=73 with_abstract_text=1097 -> /workspace/work/rows.json
+flags: sidecar=1100 matched=1097 featured=97
+rows=1097 requested=1097 missing=0 lba=73 featured=97 with_abstract_text=1097 -> /workspace/work/rows.json
 ```
 
 `missing>0` 说明有 id 没回记录：把那些 id 单独再查一次，不要带着缺口建池。
 
-### Step 2 — 补摘要号与报告形式（可选但强烈建议）
-
-结构化结果表只有布尔 `lba` 标记，**没有摘要号**。摘要号（`LBA3`、`1040O`、`2567P`）是"这是不是头条"最强的单一先验，所以在会议摘要库里按标题 join 补回来：
-
-```bash
-python3 $S/meeting_pull.py --conference "ESMO 2026" --out /workspace/work/meeting.json
-python3 $S/attach_abstract_ids.py --pool /workspace/work/pool.json \
-    --meeting /workspace/work/meeting.json --out /workspace/work/pool_labeled.json
-```
-
-ESMO 2026 实测 551/551 命中，池内 57 条 LBA 全部拿回编号。没有会议库（无外网/无 appkey）就跳过 —— 卡片里 `abstract_id` 留 `null`，`lba` 标记仍然有效，分类不受影响。
-
-### Step 3 — 机械筛（无判断）
+### Step 2 — 机械筛（无判断）
 
 ```bash
 python3 $S/triage.py /workspace/work/rows.json --out-dir /workspace/work/pool --top 0
@@ -73,6 +68,33 @@ python3 $S/triage.py /workspace/work/rows.json --out-dir /workspace/work/pool --
 - **n 不作入榜门槛**，只做展示与并列次级排序。
 - **真实世界 / 回顾性 / 汇总分析 / 试验进行中不进三桶**，单独计入 `excluded`。
 - **试验分期取 `evidence_source`**，不是疾病分期 `clinical_stage`。
+
+### Step 3 — 报告形式信号（平台内**没有**摘要号）
+
+先说清一件事，避免重复踩坑：**Tool Smith 平台上拿不到摘要号。**
+
+- 结果表 `clinical_trial_result_structured` 111 列里**没有 `abstract_id`**（只有 `lba` / `abstract_text` / `journal` / `featured` / `listing_display`）。
+- 平台 35 个工具里**没有**会议摘要库（`medicalMeeting`），23 张可查表里也没有会议表。
+- `abstract_text` 全部以 `#### Background` 开头，编号不在正文里；`paper_title` 也不带 `LBA` 前缀。
+
+所以平台内的“头条”先验只由两个字段构成，`triage.py` 直接吃：
+
+| 信号 | 来源 | ESMO 2026 | 含义 |
+|---|---|---|---|
+| `lba` | `clinical_result.lba`（白名单内） | 73 行 | late-breaking，无编号 |
+| `featured` | `TEST_execute-sql` 旁表 | 100 行 | 编辑精选 / 头条，前段几乎全是 Presidential LBA |
+
+合成的 `presentation` 层级（rank 越小越先读）：`Featured Late-breaking 0` → `Late-breaking Oral 1` → `Featured 2` → `Oral 3` → `Rapid Oral 4` → `Poster 5` → `ePoster 6` → `Unknown 9`。ESMO 2026 实测：551 候选里 131 条（24%）拿到了这个层级信号，其中 Featured Late-breaking 19 条、Featured 74 条、Late-breaking Oral 38 条。
+
+`abstract_id` 在平台内**恒为 `null`**，卡片照常输出该字段（schema 固定）；有外网且配了 `PHARMCUBE_MCP_APP_KEY` 时才可选用会议库补号：
+
+```bash
+python3 $S/meeting_pull.py --conference "ESMO 2026" --out /workspace/work/meeting.json
+python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
+    --meeting /workspace/work/meeting.json --out /workspace/work/pool/pool_labeled.json
+```
+
+这一步是**纯标注**：只写 `abstract_id` / `presentation` / `presentation_rank`，不增删、不重排、不改判定。平台内跑不了就跳过 —— 分类与排序不受影响。
 
 ### Step 4 — 逐条复核（模型，核心步骤）
 
@@ -140,7 +162,7 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 
 ```json
 {"conference": "ESMO 2026", "count": 30, "cards": [
-  {"esid": "24_37_p_...", "abstract_id": "LBA3", "lba": true,
+  {"esid": "24_37_p_...", "abstract_id": null, "lba": true, "featured": true,
    "bucket": "pivotal", "tag": "LBA",
    "title": "…", "summary": "…", "why": "…",
    "drug": "…", "target": "…", "indication": "…",
@@ -149,7 +171,7 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 ]}
 ```
 
-- `esid` 是结果记录 id（用户要的"对应的结果id"）；`abstract_id` 是会议摘要号，可能为 `null`。
+- `esid` 是结果记录 id（用户要的"对应的结果id"）；`abstract_id` 是会议摘要号，平台内**恒为 `null`**（见 Step 2），有外网补库时才有值。
 - 路径固定为 `/workspace/output/watchlist.json`：后端硬编码读取，改名即断链。同一工作区复跑就覆盖。
 - `write_file` 一律带 `overwrite=True`，包括首次写入。
 
@@ -186,8 +208,8 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 |---|---|---|
 | `scripts/pull_results.py` | 拉整场结果行（MCP `query-clinical-result-with-params`，自动切片） | 仅 urllib |
 | `scripts/mcp_client.py` | 最小 MCP streamable-HTTP 客户端（工具名自动发现） | 仅 urllib |
-| `scripts/meeting_pull.py` | 拉会议摘要全本（MCP `medicalMeeting`） | 仅 urllib |
-| `scripts/attach_abstract_ids.py` | 按标题 join 补 `abstract_id` / `presentation` | 需 triage.py |
+| `scripts/meeting_pull.py` | 拉会议摘要全本（MCP `medicalMeeting`，**需外网，平台内不可用**） | 仅 urllib |
+| `scripts/attach_abstract_ids.py` | 按标题 join 补 `abstract_id` / `presentation`（纯标注） | 需 triage.py |
 | `scripts/triage.py` | 机械筛：去重 / 排除 / 分桶 / 机器信号 / 切批 / `--self-test` | 零依赖 |
 | `scripts/make_cards.py` | 按 plan 顺序渲染卡片 JSON（**只渲染不排序**） | 零依赖 |
 | `scripts/check_cards.py` | 交付前 fail-closed 校验（exit 3 = 有问题） | 零依赖 |

@@ -41,6 +41,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from mcp_client import Mcp  # noqa: E402
 
 TOOL_NEEDLE = "query-clinical-result"
+SQL_TOOL_NEEDLE = "execute-sql"
 DEFAULT_SLICE = 120
 
 # Copy these names verbatim from the tool's own ``selected_fields`` description
@@ -140,6 +141,65 @@ def pull(client: Mcp, tool: str, conference: str, fields: List[str],
             "missing": missing}
 
 
+def pull_flags(client: Mcp, conference: str) -> Dict[str, Any]:
+    """Fetch the curation flags that ``query-clinical-result-with-params`` cannot expose.
+
+    ``clinical_result.featured`` (是/否) is **not** in the tool's selectable field
+    whitelist, so a with-params pull silently returns rows without the key -- the
+    same failure mode that lost ``lba`` in v0.2. It is the closest in-platform
+    substitute for the abstract-number tier: on ESMO 2026 it marks 100 of 1100
+    rows, and that slice is dominated by Presidential late-breaking readouts.
+
+    ``TEST_execute-sql`` is used only for this narrow three-column sidecar. It is
+    the platform's own SQL tool, not a direct Elasticsearch connection, and the
+    payload is ~100 KB for a whole conference, so no truncation risk. The primary
+    row data still comes through ``query-clinical-result-with-params``.
+    """
+    safe = conference.replace("'", "''")
+    sql = ("SELECT extra_esid, featured, lba FROM clinical_trial_result_structured "
+           f"WHERE journal = '{safe}'")
+    resp = client.call(client.find_tool(SQL_TOOL_NEEDLE), {"sql": sql})
+    rows = _rows_of(resp)
+    flags = {}
+    for row in rows:
+        esid = row.get("extra_esid")
+        if esid:
+            flags[str(esid)] = {"featured": row.get("featured"), "lba": row.get("lba")}
+    return flags
+
+
+def _norm_esid(value: Any) -> str:
+    """Strip the ``nr_`` prefix that the result table adds to ``np_result_conf`` rows.
+
+    The same record is keyed ``24_37_p_<hash>_1`` in ``clinical_trial_result_structured``
+    but ``nr_24_37_p_<hash>_1`` in the ``with-params`` payload (~100 of ESMO 2026's
+    1100 rows, exactly the ``source='np_result_conf'`` slice). Without normalising,
+    those 97 rows silently get ``featured=null`` and drop out of the headline tier --
+    a full 100% of the sidecar matches only after the prefix is stripped.
+    """
+    s = str(value or "")
+    return s[3:] if s.startswith("nr_") else s
+
+
+def merge_flags(rows: List[Dict[str, Any]], flags: Dict[str, Any]) -> int:
+    """Attach ``clinical_result_featured`` to each row; return how many matched."""
+    index = {_norm_esid(k): v for k, v in flags.items()}
+    hit = 0
+    for row in rows:
+        esid = row.get("clinical_result__id") or row.get("clinical_result_extra_esid") or ""
+        f = index.get(_norm_esid(esid))
+        if not f:
+            continue
+        hit += 1
+        row["clinical_result_featured"] = f.get("featured")
+        # The sidecar carries `lba` too; use it as a cross-check, never to overwrite
+        # the value from the primary pull (with-params is authoritative for fields
+        # it *does* expose).
+        if f.get("lba") and not row.get("clinical_result_lba"):
+            row["clinical_result_lba"] = f.get("lba")
+    return hit
+
+
 def main(argv: List[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--conference", required=True, help='e.g. "ESMO 2026"')
@@ -151,6 +211,8 @@ def main(argv: List[str] | None = None) -> int:
     ap.add_argument("--slice-size", type=int, default=DEFAULT_SLICE)
     ap.add_argument("--timeout", type=int, default=180)
     ap.add_argument("--list-fields", action="store_true")
+    ap.add_argument("--no-flags", action="store_true",
+                    help="skip the featured/lba SQL sidecar")
     args = ap.parse_args(argv)
 
     fields = (args.fields or DEFAULT_FIELDS) + list(args.extra or [])
@@ -164,6 +226,23 @@ def main(argv: List[str] | None = None) -> int:
     print(f"tool={tool} endpoint={client.url}", file=sys.stderr)
     payload = pull(client, tool, args.conference, fields, args.slice_size, args.timeout)
 
+    featured = 0
+    if not args.no_flags:
+        try:
+            flags = pull_flags(client, args.conference)
+            matched = merge_flags(payload["rows"], flags)
+            featured = sum(1 for r in payload["rows"]
+                           if str(r.get("clinical_result_featured") or "").strip() == "是")
+            print(f"flags: sidecar={len(flags)} matched={matched} featured={featured}",
+                  file=sys.stderr)
+            if matched == 0:
+                print("WARNING: featured sidecar matched 0 rows -- the esid keys differ "
+                      "between SQL and with-params; cards will render featured=false",
+                      file=sys.stderr)
+        except Exception as exc:  # noqa: BLE001 - sidecar is an enhancement, not a gate
+            print(f"WARNING: featured sidecar unavailable ({exc}); continuing without it",
+                  file=sys.stderr)
+
     out_dir = os.path.dirname(os.path.abspath(args.out))
     os.makedirs(out_dir, exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as fh:
@@ -172,8 +251,8 @@ def main(argv: List[str] | None = None) -> int:
     lba = sum(1 for r in payload["rows"] if r.get("clinical_result_lba"))
     with_abs = sum(1 for r in payload["rows"] if r.get("clinical_result_abstract_text"))
     print(f"rows={len(payload['rows'])} requested={payload['requested']} "
-          f"missing={len(payload['missing'])} lba={lba} with_abstract_text={with_abs} "
-          f"-> {args.out}")
+          f"missing={len(payload['missing'])} lba={lba} featured={featured} "
+          f"with_abstract_text={with_abs} -> {args.out}")
     if payload["missing"]:
         print(f"WARNING: {len(payload['missing'])} ids returned no row; "
               "re-run those ids in one further call before building the pool",

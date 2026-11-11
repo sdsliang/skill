@@ -165,3 +165,27 @@
 **后果**：池内顺序决定读的顺序，也影响定榜时"同等证据、谁先上"的判断。DeLLphi-305 / SAFFRON 这类会议头条因此在 v0.2 里根本没进候选池（叠加了 §1 的字段漏选），复盘时表现为"专家挑的 7 条里有 4 条我们没进榜"。
 
 **处置**：层级改为 `Late-breaking Oral: 0` → `Oral / Late-breaking: 1` → `Rapid Oral: 2` → `Poster: 4` → `ePoster: 5` → `Unknown: 9`；纯 `LBA<n>` 与 `LBA<n>O` 都按 `Late-breaking Oral` 处理。`triage.py --self-test` 里有对应断言（`presentation_of("2041P")[1] > presentation_of("LBA3")[1]`）。
+
+## 20. 平台内**没有摘要号**：`abstract_id` 必须整条设计都假设它是 `null`
+
+**现象**：v0.2 把"摘要号后缀"当成最强先验写进规则、脚本和系统提示词，`attach_abstract_ids.py` 也照此实现。但真到平台内执行时，三个来源全都断：
+
+| 想用的来源 | 平台实际 |
+|---|---|
+| `clinical_trial_result_structured.abstract_id` | **无此列**（111 列里只有 `lba` / `abstract_text` / `journal` / `featured` / `listing_display`） |
+| 工具目录里的会议摘要库 | **无此工具**（35 个工具：pharmcube 12 / report 7 / sales-mcp 8 + TEST 4，没有一个含 meeting/conference） |
+| `abstract_text` / `paper_title` 自带编号 | `abstract_text` 全部以 `#### Background` 开头；`paper_title` 无一以 `LBA` 开头 |
+| 23 张可查表 | 无会议表，只有 `clinical_trial_result_structured` 与结果相关 |
+
+**后果**：平台上跑 `meeting_pull.py` 会连不上（`mcp-openapi.pharmcube.com` 不在容器网络内），整条补号步骤变成死路；如果 SKILL.md 还写着"强烈建议补号"，执行者会卡在第一步然后开始自创（改去查 ES、手抄标题猜号）。
+
+**处置**：
+
+1. **报告形式改用平台自带的两字段合成**：
+   - `clinical_result.lba`（白名单内，73/1097）；
+   - `clinical_result.featured`（`是`/`否`，100/1100）——**不在** `with-params` 的可选字段白名单里，必须用平台自己的 `TEST_execute-sql` 拉 `extra_esid, featured, lba` 三列旁表（整场约 100 KB）再按 esid 合回。它虽然不是"摘要号"，但语义更贴近需求：ESMO 2026 的 100 条 featured 前段几乎全是 Presidential LBA（PACE-LUNG / BEATcc / HERON-Lung01 / OptiTROP-Lung06 / TALENT / RASolute 302）。
+2. `presentation` 层级改为 `Featured Late-breaking 0 → Late-breaking Oral 1 → Featured 2 → Oral 3 → Rapid Oral 4 → Poster 5 → ePoster 6 → Unknown 9`（见 §19 的旧层级已作废）。
+3. 卡片 schema 保留 `abstract_id`，平台内恒为 `null`；`attach_abstract_ids.py` 降级为**可选标注**，只在本地/有外网时跑。
+4. **别把 `featured` 漏掉**：漏了不会报错，只会让 24% 的候选丢失层级信号，池内排序退回纯 n 排序——表现和 §1 的 `lba` 漏选一模一样。
+
+**顺带一个 join 陷阱**：同一记录在 SQL 侧键是 `24_37_p_<hash>_1`，在 `with-params` 侧是 `nr_24_37_p_<hash>_1`（`source='np_result_conf'` 的那 97 条，正好 100 条里差 3 条）。不剥 `nr_` 前缀，旁表只能匹配 1003/1097，剩下 97 条静默拿到 `featured=null`。剥了之后 1100/1100 全中。

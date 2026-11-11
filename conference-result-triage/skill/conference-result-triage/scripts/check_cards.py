@@ -12,7 +12,7 @@ Checks
   2. every card has a non-empty ``title`` / ``summary`` / ``why``
   3. ``esid`` exists in the pool (no invented records)
   4. ``bucket`` is one of early|pivotal|failed
-  5. ``lba`` is a real boolean and matches the pool row
+  5. ``lba`` / ``featured`` are real booleans and match the pool row
   6. no placeholder text leaked (TODO/XXX/None/nan/{}/$VAR)
   7. ``summary`` carries at least one unit-bearing number
   8. every ``%`` / ``mo`` / ``HR`` / ``ORR`` figure in summary+why appears in that
@@ -31,6 +31,23 @@ from typing import Any, Dict, List, Tuple
 
 BUCKETS = ("early", "pivotal", "failed")
 PLACEHOLDERS = ("TODO", "TBD", "XXX", "FIXME", "None", "nan", "{{", "}}", "占位")
+
+# Word-like placeholders must match as whole tokens. Substring matching flagged
+# "mainte**nan**ce" and "fi**nan**ce" as leaked "nan", which would fail a perfectly
+# good card -- a false positive here is worse than a missed one, because the gate
+# is fail-closed and stops the whole run.
+_WORD_PLACEHOLDERS = {ph for ph in PLACEHOLDERS if ph.replace("_", "").isalnum()}
+
+
+def placeholder_hits(text: str) -> List[str]:
+    hits = []
+    for ph in PLACEHOLDERS:
+        if ph in _WORD_PLACEHOLDERS:
+            if re.search(rf"(?<![A-Za-z]){re.escape(ph)}(?![A-Za-z])", text):
+                hits.append(ph)
+        elif ph in text:
+            hits.append(ph)
+    return hits
 UNIT_NUM = re.compile(r"\d+(?:\.\d+)?\s*(?:%|个月|月|mo|months?|年|HR|OR|CI)", re.I)
 FIGURE = re.compile(r"\d+(?:\.\d+)?\s*(?:%|mo|months?|个月)", re.I)
 
@@ -98,10 +115,19 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]]) -> Tuple[
             fails.append(f"{tag}: lba must be boolean")
         elif card["lba"] != bool(item.get("lba")):
             fails.append(f"{tag}: lba={card['lba']} but pool row says {bool(item.get('lba'))}")
+        # `featured` is the platform's stand-in for the abstract-number tier, so a
+        # card that flips it is claiming a headline slot the record does not have.
+        # Optional key: older plans predate it, and a missing key must not fail --
+        # but a present key must agree with the pool.
+        if "featured" in card:
+            if not isinstance(card["featured"], bool):
+                fails.append(f"{tag}: featured must be boolean")
+            elif card["featured"] != bool(item.get("featured")):
+                fails.append(f"{tag}: featured={card['featured']} but pool row says "
+                             f"{bool(item.get('featured'))}")
         body = json.dumps(card, ensure_ascii=False)
-        for ph in PLACEHOLDERS:
-            if ph in body:
-                fails.append(f"{tag}: placeholder {ph!r} leaked into the card")
+        for ph in placeholder_hits(body):
+            fails.append(f"{tag}: placeholder {ph!r} leaked into the card")
         if not UNIT_NUM.search(str(card.get("summary") or "")):
             fails.append(f"{tag}: summary has no unit-bearing number")
         text = record_text(item)

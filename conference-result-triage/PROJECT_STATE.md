@@ -22,7 +22,8 @@ tools/pack-dist.py     -> dist/conference-result-triage-v0.3.zip (16 entries)
 | 大响应 | 一次取全字段，静默只回 ~500 行 | 两阶段：先 id 全量，再 `esids` 切片 120/次（1097/1097） |
 | LBA 排序 | 纯 `LBA<n>` rank 3，被压到普通口头下 | `Late-breaking Oral: 0`，高于 `Oral: 1` |
 | LBA 分桶 | 「只在会议库 ⇒ 只进 early」把 LBA 一并误伤 | LBA 行豁免，可进 pivotal/failed |
-| 摘要号 | 池内 LBA 无编号 | `attach_abstract_ids.py` 标题 join，57/57 补回 `LBA<n>` |
+| 摘要号 | 平台内**拿不到**（无 `abstract_id` 列、无会议库工具） | `abstract_id` 恒 `null`；报告形式改由 `lba` + `featured` 合成（131/551 有层级） |
+| 头条先验 | 只有 `lba` | `clinical_result.featured`（`TEST_execute-sql` 旁表，97/1097），层级 `Featured Late-breaking 0 → Late-breaking 1 → Featured 2 → …` |
 | 交付物 | `watchlist.md` + 两个 csv | `/workspace/output/watchlist.json` 卡片清单（固定路径） |
 | 闸门 | 无 | `check_cards.py` fail-closed（exit 3） |
 | 候选池 | 532 | **551**（early 200 / pivotal 292 / failed 59），37 批 |
@@ -65,7 +66,7 @@ NATALEE / NSABP B-42 / INTerpath-001 / DASL-HiCaP / LOMAC / CAPItello-281 / DUO-
 8. **索引用显式顺序 `i`**，不用 esid 下标。此前一次 6 路并行复核因为 esid 与顺序错位，合并结果不可用。
 9. **两条数据源是并联关系，不是主备**（v0.2 新增）。`drugClinicalResult`（结构化结果表）只有 646 条 ESMO 2026 记录；`medicalMeeting`（会议库）有 5810 条、可用 4103 条。只走前者会漏掉 3638 篇没进结果库的摘要，其中 141 篇是口头档、358 篇带药名+数字+期别。
 10. **会议库独有记录硬性只进 early 桶**（v0.2 新增，在 `build_pools` 层强制）。因为它们的期别是从正文正则出来的，撑不起"重磅"或"失败"两种断言。ESMO 2026：补录 305 条 → 68 条进 early，235 条被这条闸门挡在桶外。
-11. **报告形式（摘要号后缀）是最被忽略的强先验**（v0.2 新增）。Oral/Rapid Oral 在全部 532 条候选里占 129（约 25%），但用户给的 7 条专家选择里有 6 条（57%）落在 oral 档，约 2.3 倍富集。用法：排序权重 + 每条必须标注，**绝不当准入门槛**。
+11. **报告形式是最被忽略的强先验**（v0.2）。平台内没有摘要号，v0.3 起改为 `lba` + `featured` 合成层级（`Featured Late-breaking` > `Late-breaking` > `Featured` > `Oral` > …）。专家 7 条里 4 条口头级（57% vs 池内 25%）。用法：排序权重 + 每条必须标注，**绝不当准入门槛**。v0.2 的"摘要号后缀"口径已作废（见 `references/pitfalls.md` §20）。
 12. **ORR 门槛按人群难度分档**（v0.2 新增）：一线/非耐药 ≥40%，后线≥2 线/明确耐药 ≥25%，**降档必须在理由里写明人群**。用例：9MW2821 在 TOP1i-ADC 耐药 TNBC 里 30.0%。
 13. **机器排序 ≠ 推荐排序**。池子按 `(presentation_rank, -n)` 排只为决定"读的顺序"；定榜顺序由读完 keep 的人给。实证：7 条专家选择在机器序里排 2/19/27/72/101，两条壁报被 n 大的平庸研究压到 72、101 名。`make_watchlist.py` 只按给定顺序渲染，不做排序。
 
