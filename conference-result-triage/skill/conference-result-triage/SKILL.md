@@ -102,12 +102,14 @@ coverage: 1097/1097 ids present
 python3 $S/triage.py /workspace/work/rows.json --out-dir /workspace/work/pool --top 0
 ```
 
-产出 `pool/pool.json`（三桶 + excluded）、`pool/pool.md`（人眼速览）、`pool/review.jsonl`（复核批次）。ESMO 2026 基准：1097 行 → **551 候选**（early 200 / pivotal 292 / failed 59）+ excluded 538，37 批。
+产出 `pool/pool.json`（三桶 + excluded）、`pool/pool.md`（人眼速览）、`pool/review.jsonl`（复核批次）。ESMO 2026 基准（v0.6）：1097 行 → **592 候选**（early 200 / pivotal 306 / failed 86）+ excluded 505，40 批。
+
+> **`--top 0` 就是「不截断」。** 这个参数只用于压 token 试跑：ESMO 2026 设 `--top 60` 会把 pivotal 第 64 名的 SAFFRON（LBA2）切掉，而榜上照样显示"已覆盖"。正式出榜必须全量判读，`--top N` 只写进试跑记录。
 
 脚本不打临床分、不排序推荐。池内顺序按 `(报告形式, n)`，仅供阅读。规则见 `references/screening-rules.md`，三条不可改：
 
 - **n 不作入榜门槛**，只做展示与并列次级排序。
-- **真实世界 / 回顾性 / 汇总分析 / 试验进行中不进三桶**，单独计入 `excluded`。
+- **真实世界 / 回顾性 / 汇总分析 / 试验进行中不进三桶**，单独计入 `excluded`。但 **`前瞻性研究` 不是排除理由**——它是「真试验、分期没填」，73 条 ESMO 2026 LBA 里 16 条都是这个值，`lba` 为真仍进 pivotal（见 `references/screening-rules.md` §1.1.1）。
 - **试验分期取 `evidence_source`**，不是疾病分期 `clinical_stage`。
 
 ### Step 3 — 报告形式信号（平台内只剩 `lba`）
@@ -289,5 +291,6 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 - **v0.1** — 首版，ESMO 2026 全量实跑（467 候选 → 30 条）。
 - **v0.2** — Results 不截断 + 会议摘要库并列数据源 + 报告形式加权 + 人群难度分档；候选 532，evidence 逐字 100%，专家 7 条 keep 3/7 → 5/7。
 - **v0.3** — 改为平台内执行：取数唯一走 MCP（`pull_results.py` 两阶段切片），补 `clinical_result.lba`（v0.2 漏选导致整类 LBA 丢失），`PRESENTATION_RANK` 修正（Presidential/LBA 不再被压到普通口头之下），会议库标题 join 补回 LBA 编号（57/57），交付物改为 `/workspace/output/watchlist.json` 卡片清单。候选 551（early 200 / pivotal 292 / failed 59）。
+- **v0.6** — 修一个会静默删数据的排除规则：`前瞻性研究` 原先在 `NON_TRIAL_SOURCES` 里，但平台没有独立分期列、`evidence_source` 就是分期来源，73 条 ESMO 2026 LBA 中 **16 条**该字段填的是研究设计 → VOLGA / KRASCENDO-1 / CLARITY-Gastric01 三场 Presidential 整类消失，而 `coverage: 1097/1097` 照样报满（覆盖按已取行算）。改为：只排除真实世界/回顾性/汇总分析/Not Applicable；分期缺失的行交 `bucket_of`，`lba` 为真进 pivotal，期别照实标「未声明」。候选 551 → **592**（pivotal 306 / early 200 / failed 86）。同时 `--limit-per-bucket` 降级为**试跑专用**（ESMO 2026 设 60 会切掉 SAFFRON 第 64 名），正式出榜必须全量判读。事实层加 `A-D4-lba-not-dropped`（19 条 fail 项 / 19 个 mutation）。
 - **v0.5** — 判读评分卡：每条由模型给出 `score`(0–100) + 五维 `score_parts`，脚本只校验自洽（各维不超上限、相加等于总分），不做任何规则算分（`triage.py` 仍然是「mechanical shortlisting only」）。**每桶硬上限 15 条 / 全场 45 条**，超了 `check_cards.py` 直接 exit 3；定榜以判读分排序、可编辑覆盖但要在 `why` 说明。
 - **v0.4** — 平台内实跑打通数据层。两条硬事实：①**工作区无网络**（in-cluster `Network is unreachable`、公网 DNS 全灭），取数改为「你调工具 → 结果落 `/workspace/tool_results/*.jsonl` → `pull_results.py --from-tool-results` 解析」；②**宽字段一次拉静默截断**（32 字段 + `meeting_tags` 只回 458/1097 且 `ok: true`），改为四阶段：id-only → `plan_slices.py` 切 150/片 → `esids` 逐片 → 合并 + `--expect-ids` 校验。实跑结果 `rows=1097 lba=73 coverage 1097/1097 candidates 551`（early 200 / pivotal 292 / failed 59），零网络、31 次工具调用、9 次落盘 18.4 MB、606 s。另修：`research_design.evaluation.text` / `base.abbreviation_label.text` 不在线上白名单（带上会让整次调用 `INVALID_INPUT`），`DEFAULT_FIELDS` 只用 32 个 `clinical_result.*`；`featured` 不可选 → `manual` 三态，平台内恒 `null`。

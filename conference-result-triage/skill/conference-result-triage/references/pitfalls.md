@@ -104,7 +104,17 @@
 
 **后果**：不过滤的话，榜单会被大量真实世界疗效对比占满，且这些研究的"ORR"与注册试验不可比。
 
-**处置**：全部排除，单独计数，明示在交付物里。
+**处置**：真实世界与回顾性**全部排除**，单独计数，明示在交付物里。但 `前瞻性研究` 这一档 **v0.6 起不再排除**——它是「真试验、分期没填」，详见 §11.1。
+
+## 11.1 把「前瞻性研究」当非试验证据，整类删掉 16 条 LBA（v0.6 修复）
+
+**现象**：`excluded_reason()` 的 `NON_TRIAL_SOURCES` 里有 `前瞻性研究`，理由是「非注册试验」。但平台没有独立的分期列，`evidence_source` 就是期别来源；**73 条 ESMO 2026 LBA 里有 16 条的该字段填的是研究设计**。
+
+**后果**：VOLGA（LBA2）、KRASCENDO-1（LBA5）、CLARITY-Gastric01（LBA7）三场 Presidential 直接不进池，而 `coverage: 1097/1097` 依然报满——覆盖是按**取到的行**算的，不是按**该到榜上的研究**算的。外部热度对照里这 12 个 LBA 有 4 个查无此项，根因就在这里。
+
+**处置**：黑名单只留「回顾性 / 真实世界 / 汇总分析 / Not Applicable / 其他」；分期缺失的行交 `bucket_of`，`lba` 为真则进 pivotal。回归断言在 `triage.py --self-test`（`unstated phase is not an exclusion` / `unstated-phase LBA is still pivotal`），事实层在 `evals/fact-check` 的 `A-D4-lba-not-dropped`（19 条 fail 项之一，带 mutation）。
+
+**教训**：覆盖率的分子分母都来自同一份已取数据，所以它能自证一致却证明不了完整。**凡是「按值排除」的规则，都要拿会议自己的议程（LBA 名单）反查一遍。**
 
 ## 12. `Results` 截断（v0.1 的主要缺陷，已修）
 

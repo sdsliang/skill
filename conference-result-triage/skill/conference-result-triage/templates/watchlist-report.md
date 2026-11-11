@@ -20,14 +20,14 @@
 | 会议文献（np_clinical） | {{n_docs}} | `base.journal.text = {{conference}}` |
 | MCP structured 原始行 | {{n_raw}} | 同一 esid 多行（按 arms/endpoint 拆行） |
 | 去重后 esid | {{n_esid}} | |
-| 排除非试验证据源 | -{{n_excluded}} | 前瞻性 {{c_prosp}}、真实世界 {{c_rw}}、回顾性 {{c_retro}}、其它 {{c_other}} |
+| 排除非试验证据源 | -{{n_excluded}} | 真实世界 {{c_rw}}、回顾性 {{c_retro}}、其它 {{c_other}}（`前瞻性研究` 不再排除，见 screening-rules §1.1.1） |
 | 进入三桶候选 | {{n_pool}} | 早期 {{c_early}} / 重磅 {{c_pivotal}} / 失败 {{c_failed}} |
 | 逐条复核 keep | {{n_keep}} | 其余 {{n_weak}} weak / {{n_drop}} drop |
 | 定榜 | {{n_listed}} | 每桶 {{per_bucket}} 条 |
 
 **硬规则**：
 
-1. 真实世界 / 回顾性 / 汇总分析不进任何桶，单独计为 excluded。
+1. 真实世界 / 回顾性 / 汇总分析不进任何桶，单独计为 excluded；**`前瞻性研究` 不算非试验证据**——它是「真试验、分期未填」，73 条 ESMO 2026 LBA 里 16 条都是这个值。
 2. n 不作入榜门槛，只做展示与并列次级排序。
 3. 试验分期取自 `evidence_source`，不是 `clinical_stage_new`。
 4. 失败首先由 `evaluation ∈ {不佳, 终止}` 驱动，p/HR 只作佐证。

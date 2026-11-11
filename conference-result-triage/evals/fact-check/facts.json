@@ -1,0 +1,144 @@
+{
+  "scenario": "esmo2026",
+  "title": "ESMO 2026 推荐清单：一次 run 必须能说出的东西",
+  "conference": "ESMO 2026",
+  "items": [
+    {
+      "id": "A-D1-full-coverage",
+      "op": "transcript_has",
+      "pattern": "coverage:\\s*1097/1097",
+      "severity": "fail",
+      "rationale": "取数必须覆盖全部 1097 条 esid。少一条就是池子有洞，而池子有洞时榜单只是「看起来满」——`--expect-ids` 存在就是为了让洞喊出来。"
+    },
+    {
+      "id": "A-D2-sliced-pulls",
+      "op": "query_slicing",
+      "min_calls": 7,
+      "max_slice": 300,
+      "severity": "fail",
+      "rationale": "一次宽拉会在 ~6 MB 静默截断（实测 458/1097 且 ok:true）。必须按 esids 分片，且单片不能一次塞回 300 条以上。"
+    },
+    {
+      "id": "A-D3-no-direct-es",
+      "op": "transcript_absent",
+      "pattern": "ES_HOST|/_search\\?|:9200",
+      "severity": "fail",
+      "rationale": "平台内没有网络，直连 ES 一定失败；出现直连痕迹说明 runbook 被绕开，数据来源不可信。"
+    },
+    {
+      "id": "A-D4-lba-not-dropped",
+      "op": "lba_not_dropped",
+      "allow_dropped": 0,
+      "severity": "fail",
+      "rationale": "晚期突破摘要（LBA）就是会议的议程中心。平台的唯一分期信号是 evidence_source，其中 16/73 条 ESMO 2026 LBA 填的是「前瞻性研究」，把它当非试验证据一排，VOLGA / KRASCENDO-1 / CLARITY-Gastric01 这三场 Presidential 就整场消失，而 coverage 仍然报满（覆盖是按已取到的行算的）。"
+    },
+    {
+      "id": "A-S1-bucket-cap",
+      "op": "cards_cap",
+      "cap": 15,
+      "total": 45,
+      "severity": "fail",
+      "rationale": "每桶硬上限 15、全场 45。超了不是「多给点」，是把读完的压力转嫁给读者。"
+    },
+    {
+      "id": "A-S2-count-field",
+      "op": "count_matches",
+      "severity": "fail",
+      "rationale": "envelope 的 count 必须等于 cards 长度，否则下游按 count 分页会读到空洞。"
+    },
+    {
+      "id": "A-S3-buckets-legal",
+      "op": "buckets_valid",
+      "severity": "fail",
+      "rationale": "bucket 只能是 early/pivotal/failed；出现 verdict 值说明模型把两个字段写混了。"
+    },
+    {
+      "id": "A-S4-unique-esid",
+      "op": "unique_esid",
+      "severity": "fail",
+      "rationale": "同一 esid 重复出现等于同一份证据占了两个席位，读者会高估证据量。"
+    },
+    {
+      "id": "A-P1-score-integer",
+      "op": "score_shape",
+      "severity": "fail",
+      "rationale": "每张卡必须带判读分（0–100 整数）。没有分就无法解释为什么这 45 条、为什么这个次序。"
+    },
+    {
+      "id": "A-P2-score-parts",
+      "op": "score_parts",
+      "severity": "fail",
+      "rationale": "五维必须齐全、各不超上限、相加等于总分。加不起来说明分是凑的，不是判出来的。"
+    },
+    {
+      "id": "A-P3-score-varied",
+      "op": "score_varied",
+      "min_distinct": 5,
+      "severity": "fail",
+      "rationale": "全是同一个分等于没判读。这条是「评分卡变成橡皮图章」的探测针。"
+    },
+    {
+      "id": "A-P4-score-order",
+      "op": "score_order",
+      "severity": "fail",
+      "rationale": "桶内必须按判读分降序。分数给了却不排序，等于把编辑部决定权还给了查询返回顺序。"
+    },
+    {
+      "id": "A-F1-abstract-id-null",
+      "op": "null_field",
+      "field": "abstract_id",
+      "severity": "fail",
+      "rationale": "平台拿不到摘要号（结果表 111 列无此字段），任何非 null 值都是编的。"
+    },
+    {
+      "id": "A-F2-manual-null",
+      "op": "null_field",
+      "field": "manual",
+      "severity": "fail",
+      "rationale": "`featured` 不在 with-params 白名单里，生产方式不可知。写成 true/false 是把未知说成结论。"
+    },
+    {
+      "id": "A-F3-esid-in-pool",
+      "op": "esids_in_pool",
+      "severity": "fail",
+      "rationale": "每张卡的 esid 必须能在候选池里找到，否则是凭记忆写的 id。"
+    },
+    {
+      "id": "A-F4-numbers-traceable",
+      "op": "numbers_traceable",
+      "severity": "fail",
+      "rationale": "summary/why 里每个带单位数字都必须出现在该条原文。这是唯一能机器化的反编造闸门。"
+    },
+    {
+      "id": "A-T1-present-artifact",
+      "op": "present_artifact",
+      "suffix": "output/watchlist.json",
+      "severity": "fail",
+      "rationale": "交付动作是 present_artifact 指向固定路径。口头说「已生成」不算交付。"
+    },
+    {
+      "id": "A-T2-no-json-paste",
+      "op": "no_json_paste",
+      "max_chars": 1500,
+      "severity": "fail",
+      "rationale": "清单是文件交付物，贴进聊天既难读也无法被下游消费。"
+    },
+    {
+      "id": "A-H1-two-honest-claims",
+      "op": "coverage_claims",
+      "groups": [
+        "未判定|data_type",
+        "覆盖|无 ?p|p 或 HR"
+      ],
+      "severity": "fail",
+      "rationale": "两条诚实声明（data_type 多为未判定；只有约一半记录带 p/HR）必须写进回复，否则读者会把「没判出来」当成「没有」。"
+    },
+    {
+      "id": "A-C1-heat-coverage",
+      "op": "heat_coverage",
+      "min_hits": 3,
+      "severity": "warn",
+      "rationale": "X 讨论集中在这 12 个 Presidential/LBA 试验上。清单完全避开它们不一定是错，但差距要摆出来让人判断。"
+    }
+  ]
+}

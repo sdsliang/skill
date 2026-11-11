@@ -9,8 +9,10 @@ left to the model, which reads ``abstract_text`` / ``summary``.
 
 What this script does (all deterministic, no domain guessing):
   1. collapse duplicate rows to one record per esid;
-  2. exclude non-trial evidence sources (前瞻性研究 / 回顾性研究 /
-     真实世界研究 / 汇总分析 / Not Applicable / unknown);
+  2. exclude non-trial evidence sources (回顾性研究 / 真实世界研究 /
+     汇总分析 / Not Applicable); "前瞻性研究" is *not* an exclusion -- it is what
+     a prospective trial with an unstated phase looks like, and 16 of the 73
+     ESMO 2026 late-breaking abstracts use exactly that value;
   3. split the remainder into early / pivotal / failed pools;
   4. attach a machine-read evidence digest (best efficacy line, endpoint calls)
      so the model does not have to re-parse study_results by hand;
@@ -40,8 +42,14 @@ LATE_PHASES = {"Phase II", "Phase II/III", "Phase III", "Phase IV"}
 TRIAL_PHASES = EARLY_PHASES | LATE_PHASES
 FAIL_EVALUATIONS = {"不佳", "终止"}
 
+# `evidence_source` is the only phase signal on the platform, and for some
+# late-breaking abstracts it is filled with the study design ("前瞻性研究")
+# instead of a phase. Treating that as non-trial evidence silently deleted 16 of
+# the 73 ESMO 2026 LBAs -- VOLGA, KRASCENDO-1 and CLARITY-Gastric01 among them,
+# i.e. exactly the talks the meeting was organised around. Only sources that
+# positively describe non-trial evidence belong here.
 NON_TRIAL_SOURCES = {
-    "前瞻性研究", "回顾性研究", "真实世界研究", "汇总分析", "Not Applicable", "其他",
+    "回顾性研究", "真实世界研究", "汇总分析", "Not Applicable", "其他",
 }
 
 PREFIXES = ("clinical_result.", "clinical_result_")
@@ -630,12 +638,16 @@ def endpoint_call(row: Dict[str, Any]) -> Dict[str, Any]:
 # pools
 # --------------------------------------------------------------------------- #
 def excluded_reason(row: Dict[str, Any]) -> Optional[str]:
+    """Only an explicit non-trial label excludes a row.
+
+    An *absent* phase is not evidence of absence: the row may still be a real
+    trial whose phase the curator left blank. Those fall through to
+    ``bucket_of``, which can still place them by the late-breaking flag.
+    """
     phase = phase_of(row)
-    if phase in TRIAL_PHASES:
-        return None
     if phase in NON_TRIAL_SOURCES:
         return phase
-    return "未知证据类型" if phase is None else phase
+    return None
 
 
 def bucket_of(row: Dict[str, Any]) -> Optional[str]:
@@ -649,6 +661,13 @@ def bucket_of(row: Dict[str, Any]) -> Optional[str]:
         return "pivotal"
     if phase in EARLY_PHASES:
         return "early"
+    # A late-breaking slot is the meeting's own statement that the data matters;
+    # ESMO reserves LBAs for maturer readouts, not first-in-human posters. Rows
+    # whose phase text is a study-design value still carry that flag, so the flag
+    # -- not a guess about the phase -- decides the bucket. `phase` stays as
+    # reported (usually None) and the card says so.
+    if row.get("lba"):
+        return "pivotal"
     return None
 
 
@@ -1061,6 +1080,22 @@ def _self_test() -> int:
     check(is_tip_abstract_id("2041eTiP") is True, "eTiP detected as trial-in-progress")
     check(is_tip_abstract_id("2567P") is False, "poster is not TiP")
     check(presentation_of(None)[1] == 9, "missing id -> unknown")
+
+    # -- unstated phase is not non-trial evidence ---------------------------
+    # Regression: 16 of 73 ESMO 2026 LBAs carry evidence_source="前瞻性研究".
+    # They were counted as non-trial evidence and dropped from the pool.
+    lbau = flat_row({"clinical_result__id": "lbau1",
+                     "clinical_result_evidence_source": ["前瞻性研究"],
+                     "clinical_result_lba": "LBA",
+                     "clinical_result_paper_title": "VOLGA: perioperative durvalumab"})
+    check(excluded_reason(lbau) is None, "unstated phase is not an exclusion")
+    check(bucket_of(lbau) == "pivotal", "unstated-phase LBA is still pivotal")
+    retro = flat_row({"clinical_result__id": "r1",
+                      "clinical_result_evidence_source": ["回顾性研究"]})
+    check(excluded_reason(retro) == "回顾性研究", "retrospective still excluded")
+    unk = flat_row({"clinical_result__id": "u1"})
+    check(excluded_reason(unk) is None and bucket_of(unk) is None,
+          "unknown and un-flagged row is neither excluded nor bucketed")
 
     # -- table-only detection ----------------------------------------------
     check(table_only("ORR was 56.0% (Table).") is False, "body pct is not table-only")

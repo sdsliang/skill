@@ -66,7 +66,7 @@ study_results
 | `summary` | ~300–400 字符英文摘要（无中文） | 缺失率极低（467/467 命中），作降级输入 |
 | `key_evidence` | 「是/否」类枚举 | 不是 LBA 标记，别误用 |
 | `evaluation` | `积极` / `-` / `不佳` / `终止` | **记录级**，同试验不同摘要可能不同 |
-| `evidence_source` | `Phase I` / `Phase I/II` / `Phase II` / `Phase II/III` / `Phase III` / `Phase IV` / `前瞻性研究` / `回顾性研究` / `真实世界研究` / `Not Applicable` / `汇总分析` | **这是试验期别的正确来源** |
+| `evidence_source` | `Phase I` / `Phase I/II` / `Phase II` / `Phase II/III` / `Phase III` / `Phase IV` / `前瞻性研究` / `回顾性研究` / `真实世界研究` / `Not Applicable` / `汇总分析` | **这是试验期别的唯一来源**；注意它偶尔填的是研究设计而非期别（73 条 LBA 里 16 条如此），缺期别**不等于**非试验，见 `screening-rules.md` §1.1.1 |
 | `group_count` | 样本量 | 展示用，不作门槛 |
 | `randomized` / `blinded` / `trial_control` | 设计属性 | 缺失较多，只能作佐证 |
 | `indication_name` | 适应症列表 | 列表，不是字符串 |
