@@ -2,26 +2,22 @@
 
 ## 0. 在 TS 上唯一允许的取数方式
 
-**平台工作区没有网络**（见 `pitfalls.md` §21：in-cluster 端点 `Network is unreachable`、公网 DNS 全灭、`env` 里无 MCP 端点）。所以平台内**不允许**让脚本自己联网，两条命令代替原来的直连：
+**平台工作区没有网络**（`pitfalls.md` §21：in-cluster 端点 `Network is unreachable`、公网 DNS 全灭、`env` 无 MCP 端点），**且宽字段一次拉会静默截断**（32 字段 + `meeting_tags` 实测只回 458/1097 行，`ok: true` 无报错）。所以平台内是四阶段：
 
-```bash
-# 1) 你先调用工具（结果会被平台强制落盘，模型只看到 5 行预览）
-#    pharmcube-query-clinical-result-with-params
-#      meeting_tags = "ESMO 2026"
-#      selected_fields = pull_results.py --list-fields 的输出，逐字复制
-#    → /workspace/tool_results/pharmcube-query-clinical-result-with-params/<call-id>.jsonl
-
-# 2) 脚本解析 dump（跨多次调用去重合并）
-python3 /workspace/skills/conference-result-triage/scripts/pull_results.py \
-    --from-tool-results /workspace/tool_results \
-    --out /workspace/work/rows.json
-```
+| 阶段 | 谁做 | 动作 | 产出 |
+|---|---|---|---|
+| A | 模型 | 调工具：`meeting_tags="ESMO 2026"` + `selected_fields=["clinical_result.extra_esid"]` | 全量 id（≈50 KB，不截断） |
+| B | 脚本 | `plan_slices.py --ids-from /workspace/tool_results --size 150 --out-dir /workspace/work/slices` | `slice_NN.json` + `_all_ids.txt` |
+| C | 模型 | 每片调一次工具：`esids=<该片数组>` + `selected_fields` = `--list-fields` 输出 | 每片一个 dump |
+| D | 脚本 | `pull_results.py --from-tool-results /workspace/tool_results --expect-ids …/_all_ids.txt --out /workspace/work/rows.json` | `rows.json` + 覆盖率 |
 
 落盘格式：`data` 是 list 时一行一个 row（JSONL），键就是 `clinical_result__id` / `clinical_result_lba` 等返回键，**无需映射**。dump 在 **turn 结束时清除**，必须同 turn 解析。
 
-`featured` / `lba` 旁表同理：一次 `TEST_execute-sql`（`SELECT extra_esid, featured, lba FROM clinical_trial_result_structured WHERE journal='ESMO 2026'`），再 `--flags-from /workspace/tool_results/pharmcube-TEST_execute-sql`。
+**字段名纪律**：只允许 `clinical_result.*`。线上白名单**没有** `research_design.evaluation.text` / `base.abbreviation_label.text`，带上任一个都会让整次调用 `INVALID_INPUT: Invalid fields selected`（一个坏名字废掉整片，不是只废一列）。对应值已由 `clinical_result.evaluation` / `clinical_result.abbreviation_label` 提供。
 
-直连模式（不带 `--from-tool-results`）只在本地/有外网时可用：`--conference "ESMO 2026"`，走 `MCP_PHARMCUBE_ENDPOINT_URL`（默认 `http://172.17.26.74:30080/mcp/`）+ `PHARMCUBE_MCP_APP_KEY`，工具名用 `tools/list` 自动发现（匹配 `query-clinical-result`），固定两阶段：先只取 id、再按 `esids` 切片取全字段。
+**两个必然为 `null` 的字段**：`featured` 不在白名单（且 `TEST_execute-sql` 无法绑定项目）→ `manual=null`；`abstract_id` 平台内不存在 → `null`。
+
+直连模式（不带 `--from-tool-results`）只在本地/有外网时可用：`--conference "ESMO 2026"`，走 `MCP_PHARMCUBE_ENDPOINT_URL`（默认 `http://172.17.26.74:30080/mcp/`）+ `PHARMCUBE_MCP_APP_KEY`，内部自己完成 A/B/C/D（`esids` 切片，`DEFAULT_SLICE=120`）。
 
 ## 1. 直连调试入口（仅排查，不是 skill 的数据路径）
 

@@ -54,12 +54,6 @@ from typing import Any, Dict, List
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from mcp_client import Mcp  # noqa: E402
 
-# Fields this Skill asks for that the tool provably never returns: `extra_esid` comes
-# back as `clinical_result__id` (the table's own key) and `layer_factor` is dropped by
-# the SQL projection. Warning about them would send a reader chasing a field that cannot
-# arrive, so they are filtered out of the completeness check on purpose.
-KNOWN_ABSENT = {"clinical_result.extra_esid", "clinical_result.layer_factor"}
-
 TOOL_NEEDLE = "query-clinical-result"
 SQL_TOOL_NEEDLE = "execute-sql"
 DEFAULT_SLICE = 120
@@ -68,6 +62,16 @@ DEFAULT_SLICE = 120
 # (ALLOWED_FIELD_NAMES runtime authority). A name that is merely similar is rejected
 # with INVALID_INPUT, and a *missing* name is not rejected -- it is just absent, which
 # is how ``lba`` went unnoticed in v0.2.
+#
+# Only ``clinical_result.*`` names appear here on purpose. The joined-table names that
+# older notes carried (``research_design.evaluation.text`` and
+# ``base.abbreviation_label.text``) are **not** in the deployed server's whitelist and
+# come back as ``INVALID_INPUT: Invalid fields selected`` for the *whole* call -- one
+# stale name costs every row, not just that column. Both values are already available
+# under their own ``clinical_result.*`` names (``evaluation``, ``abbreviation_label``).
+#
+# ``featured`` is not selectable at all: it is absent from the whitelist, so on the
+# platform every card reports ``manual: null`` instead of a production method.
 DEFAULT_FIELDS: List[str] = [
     "clinical_result.extra_esid",
     "clinical_result.lba",
@@ -101,8 +105,6 @@ DEFAULT_FIELDS: List[str] = [
     "clinical_result.full_article_link",
     "clinical_result.doi",
     "clinical_result.pm_id",
-    "research_design.evaluation.text",
-    "base.abbreviation_label.text",
 ]
 
 
@@ -327,6 +329,8 @@ def main(argv: List[str] | None = None) -> int:
     ap.add_argument("--from-tool-results", nargs="*", default=None, metavar="PATH",
                     help="platform path: read the offload dumps instead of calling MCP "
                          "(dir, glob or jsonl file)")
+    ap.add_argument("--expect-ids", default=None, metavar="PATH",
+                    help="file of ids (one per line) the dump must cover; reports gaps")
     ap.add_argument("--flags-from", nargs="*", default=None, metavar="PATH",
                     help="platform path: the TEST_execute-sql dump for featured/lba")
     ap.add_argument("--out", default="/workspace/work/rows.json")
@@ -399,12 +403,11 @@ def _main_from_dumps(args: argparse.Namespace, fields: List[str]) -> int:
         print(f"ERROR: no rows parsed from {args.from_tool_results}", file=sys.stderr)
         return 2
 
-    # Only `clinical_result.*` names map 1:1 onto a `clinical_result_<last>` return key;
-    # the joined tables (`research_design.evaluation.text`, `base.abbreviation_label.text`)
-    # land under their own prefixes, so checking them here would only produce noise.
+    # Only `clinical_result.*` names map 1:1 onto a `clinical_result_<last>` return key,
+    # so anything else here would only produce noise.
     missing = sorted({
         f for f in fields
-        if f.startswith("clinical_result.") and f not in KNOWN_ABSENT
+        if f.startswith("clinical_result.")
         and f"clinical_result_{f.split('.')[-1]}" not in rows[0]
     })
     conference = args.conference or next(
@@ -439,6 +442,19 @@ def _main_from_dumps(args: argparse.Namespace, fields: List[str]) -> int:
         print(f"WARNING: {len(missing)} requested fields are absent from the dump: "
               f"{', '.join(missing[:8])} -- re-run the tool with those names",
               file=sys.stderr)
+    if args.expect_ids:
+        want = [ln.strip() for ln in open(args.expect_ids, encoding="utf-8")
+                if ln.strip() and not ln.startswith("#")]
+        have = {str(r.get("clinical_result__id") or r.get("clinical_result_extra_esid") or "")
+                for r in rows}
+        gaps = [i for i in want if i not in have]
+        if gaps:
+            print(f"WARNING: dump covers {len(want) - len(gaps)}/{len(want)} ids; "
+                  f"{len(gaps)} missing -- re-pull those slices before building the pool",
+                  file=sys.stderr)
+            print("MISSING_IDS " + " ".join(gaps[:20]), file=sys.stderr)
+        else:
+            print(f"coverage: {len(want)}/{len(want)} ids present")
     if "clinical_result_lba" not in rows[0]:
         print("WARNING: clinical_result.lba is missing -- the late-breaking tier will be "
               "lost (pitfall #1). Re-run the tool with that field selected.", file=sys.stderr)

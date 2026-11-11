@@ -230,3 +230,7 @@ WHERE journal='ESMO 2026' GROUP BY source, featured;
 4. `KNOWN_ABSENT` 里钉住两个「要了但永远不返回」的字段（`clinical_result.extra_esid` 实际以 `clinical_result__id` 回来、`clinical_result.layer_factor` 被 SQL projection 丢掉），否则完整性检查会误报「请重跑」。
 
 **教训**：脚本报「网络不可达」时，先分清是**这个环境没有网**还是**地址写错**。在平台里一律是前者；再去改 endpoint、加重试、换库都是白费一轮。反过来，`getent`/`socket` 三连探针 10 秒就能定性，比猜快得多。
+
+**补记（同日实跑）**：落盘这条路走通后，**一次宽字段调用仍然拉不全** —— 32 字段 + `meeting_tags` 只落 458 行 / 6.4 MB，工具在服务端就截断了，且 `ok: true`。id-only 调用（`selected_fields=["clinical_result.extra_esid"]`）回全 1097，不受限。所以正解是**四阶段**：id → `plan_slices.py` 切 150/片 → 每片 `esids` 调用 → 合并 + `--expect-ids` 校验覆盖。
+
+**第二个静默杀手**：`selected_fields` 里混进一个线上白名单没有的名字（`research_design.evaluation.text`、`base.abbreviation_label.text`），整次调用返回 `INVALID_INPUT: Invalid fields selected`、`data=null`，**一行都没有**——不是丢一列。判断法：`INVALID_INPUT` 里直接点名列出来，别猜；`clinical_result.evaluation` / `clinical_result.abbreviation_label` 才是线上名字。

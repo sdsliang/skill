@@ -32,49 +32,69 @@ mkdir -p /workspace/work /workspace/output
 
 按顺序执行，每一步都检查退出码。统一用 `… 2>&1 | tail -30; echo "EXIT=${PIPESTATUS[0]}"` 拿到真实状态（裸 `| tail` 会显示 tail 的 0）。
 
-### Step 1 — 拉全量结果行（唯一允许取数通道）
+### Step 1 — 拉全量结果行（三阶段，唯一允许取数通道）
 
-**先记住一条硬事实：平台工作区没有任何网络。** 在 chat 里实测过：in-cluster 数据服务器 `172.17.26.74:30080` 报 `Network is unreachable`，公网域名全部 `Temporary failure in name resolution`，`env` 里也没有任何 MCP 端点变量。所以**脚本不可能自己去连 MCP**——数据必须由「你调用平台工具」进来，再由脚本解析。
+**两条硬事实先记住：**
 
-好在平台自己会把工具结果落盘：MCP 工具的返回值只要是列表，就会被写到 `/workspace/tool_results/<工具名>/<call-id>.jsonl`（每行一个 JSON row，强制落盘，不看大小），你在上下文里只看到前 5 + 后 5 行预览。**这意味着整场 1097 行可以用一次工具调用取全，而且不花上下文。** 正确姿势就两步：
+1. **平台工作区没有任何网络。** 实测：in-cluster `172.17.26.74:30080` → `Network is unreachable`；公网 → `Temporary failure in name resolution`；`env` 里没有 MCP 端点变量。脚本不可能自己连数据服务，所以 `pull_results.py` 不带 `--from-tool-results` 时必然失败（那是本地/有外网用的直连模式）。
+2. **宽字段一次拉会被静默截断。** 工具响应上限约 6 MB / ~500 行，超了照样回 `ok: true`。实测 `meeting_tags="ESMO 2026"` + 32 字段只回来 **458 行**（全场 1097），模型当时看到的是「500/1434」——没有任何报错。**所以必须切片，不能图省事一次拉完。**
 
-1. **你调用工具** `pharmcube-query-clinical-result-with-params`，参数 `meeting_tags="ESMO 2026"`（或对应会议名）、`selected_fields` 用 `pull_results.py --list-fields` 打出来的那份清单（**逐字复制，别改名**）。工具回一句 "too large … saved to /workspace/tool_results/…"，把那个路径记下来。
-2. **脚本解析落盘文件**：
+数据进得来的唯一通道是「你调工具 → 平台把结果落盘 → 脚本解析」。MCP 工具返回 `data` 为列表时，平台**强制**把它写成 `/workspace/tool_results/<工具名>/<call-id>.jsonl`（一行一个 row），你在上下文里只看到 5 头 5 尾的预览。**所以整场 1097 行一次拉全也不占上下文**——但受限于上面第 2 条，仍要分片。
+
+**阶段 A：只拉 id（一次就全）**
+
+调 `pharmcube-query-clinical-result-with-params`：
+
+- `meeting_tags = "ESMO 2026"`（会议名精确匹配，写错就是空集）
+- `selected_fields = ["clinical_result.extra_esid"]`（**只这一个**）
+
+1097 行 id ≈ 50 KB，不会截断。工具会告诉你落盘路径。
+
+**阶段 B：切片**
 
 ```bash
 S=/workspace/skills/conference-result-triage/scripts
 mkdir -p /workspace/work /workspace/output
-python3 $S/pull_results.py --from-tool-results /workspace/tool_results --out /workspace/work/rows.json
+python3 $S/plan_slices.py --ids-from /workspace/tool_results --size 150 \
+    --out-dir /workspace/work/slices
 ```
 
-`--from-tool-results` 接受目录、glob 或单个文件，会跨多个 dump 去重合并，所以工具被切成几次调用也没关系。
+它会打印 `ids=1097 slices=8` 和每片的 id 数组，同时写出 `slice_01.json … slice_08.json` 与 `_all_ids.txt`。
 
-> **这些 dump 在 turn 结束时会被清空。** 必须在**同一个 turn 内**解析完，`rows.json` 才是持久的落点。
+**阶段 C：逐片拉全字段**
 
-`featured`（`是`= 人工生产 / `否`= 流水线抽取，**不是头条**）不在 `with-params` 的白名单里，需要另一次 `TEST_execute-sql` 调用：
+对每一片调一次同一个工具：
 
-```sql
-SELECT extra_esid, featured, lba FROM clinical_trial_result_structured WHERE journal='ESMO 2026'
+- `esids = <该片的数组，原样粘贴>`
+- `selected_fields = pull_results.py --list-fields 的输出，逐字复制`
+
+> ⚠️ **字段名只能取 `clinical_result.*`**。老笔记里的 `research_design.evaluation.text`、`base.abbreviation_label.text` **在线上白名单里不存在**，带上就会整次调用 `INVALID_INPUT: Invalid fields selected`，一行都不回（一个坏名字废掉整片，不是只废一列）。这两个值已分别由 `clinical_result.evaluation` / `clinical_result.abbreviation_label` 提供。
+
+8 片就是 8 次工具调用、8 个 dump。
+
+**阶段 D：合并**
+
+```bash
+python3 $S/pull_results.py --from-tool-results /workspace/tool_results \
+    --expect-ids /workspace/work/slices/_all_ids.txt \
+    --out /workspace/work/rows.json
 ```
 
-同样会落成一个 jsonl，然后加 `--flags-from /workspace/tool_results/pharmcube-TEST_execute-sql` 合回主表。它只用于卡片上的生产方式标注、**不参与排序**；这一步失败只降级不中断（会打 `WARNING: featured sidecar matched 0 rows`）。
-
-成功输出形如：
+`--from-tool-results` 接受目录 / glob / 单文件，跨多次调用去重合并（一个 esid 可能对应多行，脚本按 `clinical_result__id` 合并）。`--expect-ids` 会报覆盖缺口，正常输出：
 
 ```
-flags: sidecar=1100 matched=1097 featured=97
-rows=1097 lba=73 featured=97 with_abstract_text=1097 -> /workspace/work/rows.json
+rows=1097 lba=73 featured=0 with_abstract_text=1097 -> /workspace/work/rows.json
+coverage: 1097/1097 ids present
 ```
 
-`missing>0` 或 `WARNING: … requested fields are absent` 说明有 id/字段没回：把那些 id 单独再查一次，不要带着缺口建池。
+若出现 `WARNING: … N missing`，把 `MISSING_IDS` 那批单独再查一次，**不要带着缺口建池**。
 
-有三件事容易静默出错，脚本已经内置防线：
+**两个已知拿不到的东西，别浪费时间：**
 
-1. `clinical_result.lba` 必须显式写进 `selected_fields`，否则这个键直接消失 —— 整层 late-breaking 变哑。
-2. 宽字段一次性拉会被工具截断在 ~6 MB 且仍 `ok: true`；走落盘 dump 就没有这个问题，若你改成自己分片拉，先只取 id 再按 `esids` 切片。
-3. `featured`/`lba` 旁表的 esid 在 SQL 侧是 `24_37_p_…`、在 `with-params` 侧是 `nr_24_37_p_…`，脚本会剥 `nr_` 前缀（不剥会静默丢 97 条正是人工核对的行）。
+- **`featured`（人工/AI 生产标记）不在白名单**，`with-params` 选不出来；`TEST_execute-sql` 又**不能绑定到项目**（`400 MCP tools unavailable for pharmcube: pharmcube-TEST_execute-sql`）。所以平台内 `manual` 恒为 `null`，卡片上写「生产方式未知」，不要猜。
+- **`abstract_id` 恒为 `null`**：结果表 111 列里没有摘要号，35 个工具里没有会议摘要库工具。输出这个键并置 `null`，**绝不编造编号**。
 
-**不要**用 `pull_results.py` 的直连模式（不带 `--from-tool-results`）：那是给本地/有外网环境用的，在平台里必然 `Network is unreachable`。
+> dump 在 **turn 结束时清除**，必须同 turn 解析完，`rows.json` 才是持久的落点。
 
 ### Step 2 — 机械筛（无判断）
 
@@ -217,7 +237,8 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 
 ## Anti-patterns
 
-- ❌ 在本地/工作区直连 Elasticsearch 拉表。ES 侧没有 `lba` 列，v0.2 因此整类漏掉 12 条 Presidential LBA。取数只走 `pull_results.py`。
+- ❌ 在本地/工作区直连 Elasticsearch 拉表。ES 侧没有 `lba` 列，v0.2 因此整类漏掉 12 条 Presidential LBA。
+- ❌ 用一次宽字段调用拉全场。超过 ~6 MB 会静默截断成 458/1097 且 `ok: true`，必须走 `plan_slices.py` 分片。
 - ❌ 一次调用取全字段整场数据。响应体约 6 MB 上限，超出部分被静默截断成 ~500 行且返回 `ok: true`。
 - ❌ 用规则给"重磅程度"打分：会把 `Grade≥3 TEAE 44.6%` 当疗效信号、`PR = 3 subjects` 当 3% 缓解率。只判不评。
 - ❌ 让模型自己算 ORR 变化率/HR 差值。只抄不算。
