@@ -1,5 +1,32 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.6（2026-11-11）：排除规则的静默删除 + 事实层首次落地
+
+**被外部热度对照逼出来的真缺陷**：`excluded_reason()` 用 `evidence_source` 判断研究类型，
+而平台没有独立分期列——`evidence_source` 就是分期来源，**73 条 ESMO 2026 LBA 里有 16 条该字段填的是研究设计「前瞻性研究」**。
+把它放进 `NON_TRIAL_SOURCES` 黑名单的后果是 VOLGA（LBA2）/ KRASCENDO-1（LBA5）/ CLARITY-Gastric01（LBA7）
+三场 Presidential 整类消失，而交付物仍报 `coverage: 1097/1097`（分子分母都取自同一份已取数据，能自证一致，证明不了完整）。
+
+| | 修前 | 修后 |
+|---|---:|---:|
+| 候选 | 551 | **592** |
+| pivotal / early / failed | 292 / 200 / 59 | **306 / 200 / 86** |
+| excluded 中 `前瞻性研究` | 252 | **0** |
+
+修法：黑名单只留 回顾性/真实世界/汇总分析/Not Applicable/其他；分期缺失的行交 `bucket_of`，`lba` 为真进 pivotal，
+**期别字段不改不猜**，卡片照实写「未声明」。`--top/--limit-per-bucket` 降级为**试跑专用**（ESMO 2026 设 60 会切掉 pivotal 第 64 名 SAFFRON）。
+
+**质量层从布尔门升级成标量**：新建 `evals/fact-check/{check.py,facts.json,mutations.py}`（移植 `clinical-result-comparison` 的范式）：
+`EVALUATOR_REVISION = 2026-11-11-r1`，**20 项 = 19 fail + 1 warn**，**19 个 mutation + 2 个合法变体负对照**全部有牙（`mutations.py` exit 0）。
+对真实跑批 `cards-e2e2`（41 卡）实测 **18/19**，唯一失败项 `A-D4-lba-not-dropped` 报的就是上面那个缺陷
+（`73 lba rows in the corpus, 37 in the pool, 50 dropped, phase-as-design exclusions=['前瞻性研究']`）。
+
+**外部热度对照**：同一份 X 检索（23 帖 / 112 提及），12 个 Presidential LBA 命中 v0.2 **0/12** → v0.5 **7/12** → v0.6 池内 **12/12**。
+5 个漏项分三层：上限（SAFFRON，`--top 60` 切掉）/ 分组（HERON-Lung01，keep 86 分 vs 榜尾 87 分）/ 分类（三场 Presidential，即上述缺陷）。
+详见 `dist/v06/heat-check-v06.md`、`evals/EVALUATION_RESULTS.md`。
+
+**未做**：v0.6 尚未发布 TS、尚未重跑 E2E（12/12 是**池内**结论，不是榜单结论；目标 `facts 19/19`）。
+
 ## 平台内实跑验证（2026-11-11，v0.4）
 
 **数据层已在 ToolSmith 真跑打通**（标签 `slice-e2e`，模型 `GPT 6.1 Sol`，606 s，31 次工具调用，9 次落盘 18.4 MB）：
