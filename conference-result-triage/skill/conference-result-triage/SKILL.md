@@ -32,7 +32,7 @@ mkdir -p /workspace/work /workspace/output
 
 按顺序执行，每一步都检查退出码。统一用 `… 2>&1 | tail -30; echo "EXIT=${PIPESTATUS[0]}"` 拿到真实状态（裸 `| tail` 会显示 tail 的 0）。
 
-### Step 1 — 拉全量结果行（三阶段，唯一允许取数通道）
+### Step 1 — 拉全量结果行（四阶段，唯一允许取数通道）
 
 **两条硬事实先记住：**
 
@@ -156,16 +156,20 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
 
 候选超过 40 条时用 `task` 委派，把批文件分给子代理：一个 `task` 吃 2–3 个批文件，输出一个 `judged_<n>.json` 数组。子代理**不继承本 Skill 的 prompt**，所以它的 `description` 必须自带完整契约（`references/review-protocol.md` §2–§4 的内容），并明确要求写文件后回读校验。
 
-每条输出六个键：
+每条输出八个键：
 
 | 键 | 约束 |
 |---|---|
 | `i` | 原样抄，不得改动；**不要用 esid 索引** |
 | `bucket` | `early` / `pivotal` / `failed`，按证据强度重判，可覆盖机器桶 |
 | `verdict` | `keep` / `weak` / `drop`，见下表 |
+| `score` | **你判读出来的** 0–100 整数（评分卡见 `review-protocol.md` §2.5） |
+| `score_parts` | 五维 `evidence_strength≤30` / `effect_size≤25` / `clinical_impact≤25` / `novelty≤10` / `readout_maturity≤10`，**相加必须等于 `score`** |
 | `reason` | ≤40 个汉字，必须点出人群难度档 |
 | `evidence` | 该条 `results` 或 `background` 的**连续原文子串**，≤120 字符；不拼接、不改写、不去表格符号 |
 | `key_numbers` | 只列带单位数字（%、月、HR、OR/CI、p），不列纯计数 |
+
+**分数只能由判读产生，不能由脚本算。** 试过按 `phase` + `n` + 正则抓 HR/p 加权：安全性摘要被排到疗效摘要前面，`PR count = 3 subjects` 被读成缓解率。那种分是假精确。所以：你读完给分，脚本只查「五维相加 == 总分、各维不超上限」。
 
 | verdict | 条件 |
 |---|---|
@@ -179,21 +183,26 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
 
 ### Step 5 — 定榜（编辑决策，不在脚本里）
 
-从 `keep` 里挑，**不要为了凑数把 `weak` 提上来**，不足就写不足。默认每桶 10 条：
+**每桶最多 15 条，全场最多 45 条。** 从 `keep` 里挑，**不要为了凑数把 `weak` 提上来**；不足就写不足（只交 8 条也算完成）。
 
-1. 早期机会 10 条：新机制/新靶点，数字超出该适应症历史水位。
-2. 重磅 II/III 期 10 条：随机对照、主要终点达成且有临床意义；late-breaking / 口头优先。
-3. 失败 10 条：III 期或大型随机研究的主要终点未达 / 提前终止 / OS 反向。
+1. 早期机会（≤15）：新机制/新靶点，数字超出该适应症历史水位。
+2. 重磅 II/III 期（≤15）：随机对照、主要终点达成且有临床意义；late-breaking / 口头优先。
+3. 失败（≤15）：III 期或大型随机研究的主要终点未达 / 提前终止 / OS 反向。
+
+排序：**以判读 `score` 为主序**，再做编辑取舍（压同质、同机制最多留 2 条）。你可以推翻分数，但要在 `why` 里说清原因。超过 15 条就按分从高往低砍，`check_cards.py` 会拦。
 
 写 `plan.json`：
 
 ```json
 {"conference": "ESMO 2026", "cards": [
-  {"esid": "...", "bucket": "pivotal", "title": "…", "summary": "…", "why": "…"}
+  {"esid": "...", "bucket": "pivotal", "score": 78,
+   "score_parts": {"evidence_strength": 26, "effect_size": 22,
+                   "clinical_impact": 20, "novelty": 4, "readout_maturity": 6},
+   "title": "…", "summary": "…", "why": "…"}
 ]}
 ```
 
-`title` / `summary` / `why` 三条必填，缺一条脚本直接停。`summary` 写报告了什么（带数字），`why` 写为什么值得读（自然语言，一句话，点出人群或对照）。
+`title` / `summary` / `why` / `score` 四条必填，缺一条脚本直接停（`score_parts` 没给就沿用判读阶段的值）。`summary` 写报告了什么（带数字），`why` 写为什么值得读（自然语言，一句话，点出人群或对照）。
 
 ### Step 6 — 渲染交付物
 
@@ -204,7 +213,7 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
     --pool /workspace/work/pool_labeled.json
 ```
 
-`check_cards.py` **必须 exit 0** 才能交付。它拦的是：编造的 esid、空字段、`lba` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、以及 `summary`/`why` 里出现原文查不到的数字。
+`check_cards.py` **必须 exit 0** 才能交付。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字、**每桶超过 15 条**、**`score` 不是 0–100 整数或五维相加不等于总分**。
 
 股票涨跌是同一天的市场数据，结果库里没有。给了 `--quotes`（`{"<esid>": {"ticker": "…", "change_pct": 5.2, "date": "2026-10-19"}}`）就附在对应卡片上；没给就留 `null`，**绝不用其它日期的涨跌顶替**。
 
@@ -216,8 +225,11 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 
 ```json
 {"conference": "ESMO 2026", "count": 30, "cards": [
-  {"esid": "24_37_p_...", "abstract_id": null, "lba": true, "manual": true,
+  {"esid": "24_37_p_...", "abstract_id": null, "lba": true, "manual": null,
    "bucket": "pivotal", "tag": "LBA",
+   "score": 78,
+   "score_parts": {"evidence_strength": 26, "effect_size": 22,
+                   "clinical_impact": 20, "novelty": 4, "readout_maturity": 6},
    "title": "…", "summary": "…", "why": "…",
    "drug": "…", "target": "…", "indication": "…",
    "phase": "Phase III", "presentation": "Late-breaking Oral",
@@ -226,6 +238,7 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 ```
 
 - `esid` 是结果记录 id（用户要的"对应的结果id"）；`abstract_id` 是会议摘要号，平台内**恒为 `null`**（见 Step 3），有外网补库时才有值。
+- `score` / `score_parts` 是判读结论（Step 4 给的分），不是脚本算的；总分只用来决定阅读顺序，`why` 里不出现分数。
 - `manual` 是生产方式标记（人工核对 / 流水线抽取），**不是**推荐等级。平台内**恒为 `null`**（`featured` 不可选），`check_cards.py` 会拒绝把它改成 `true`/`false`。
 - 路径固定为 `/workspace/output/watchlist.json`：后端硬编码读取，改名即断链。同一工作区复跑就覆盖。
 - `write_file` 一律带 `overwrite=True`，包括首次写入。
@@ -276,4 +289,5 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 - **v0.1** — 首版，ESMO 2026 全量实跑（467 候选 → 30 条）。
 - **v0.2** — Results 不截断 + 会议摘要库并列数据源 + 报告形式加权 + 人群难度分档；候选 532，evidence 逐字 100%，专家 7 条 keep 3/7 → 5/7。
 - **v0.3** — 改为平台内执行：取数唯一走 MCP（`pull_results.py` 两阶段切片），补 `clinical_result.lba`（v0.2 漏选导致整类 LBA 丢失），`PRESENTATION_RANK` 修正（Presidential/LBA 不再被压到普通口头之下），会议库标题 join 补回 LBA 编号（57/57），交付物改为 `/workspace/output/watchlist.json` 卡片清单。候选 551（early 200 / pivotal 292 / failed 59）。
+- **v0.5** — 判读评分卡：每条由模型给出 `score`(0–100) + 五维 `score_parts`，脚本只校验自洽（各维不超上限、相加等于总分），不做任何规则算分（`triage.py` 仍然是「mechanical shortlisting only」）。**每桶硬上限 15 条 / 全场 45 条**，超了 `check_cards.py` 直接 exit 3；定榜以判读分排序、可编辑覆盖但要在 `why` 说明。
 - **v0.4** — 平台内实跑打通数据层。两条硬事实：①**工作区无网络**（in-cluster `Network is unreachable`、公网 DNS 全灭），取数改为「你调工具 → 结果落 `/workspace/tool_results/*.jsonl` → `pull_results.py --from-tool-results` 解析」；②**宽字段一次拉静默截断**（32 字段 + `meeting_tags` 只回 458/1097 且 `ok: true`），改为四阶段：id-only → `plan_slices.py` 切 150/片 → `esids` 逐片 → 合并 + `--expect-ids` 校验。实跑结果 `rows=1097 lba=73 coverage 1097/1097 candidates 551`（early 200 / pivotal 292 / failed 59），零网络、31 次工具调用、9 次落盘 18.4 MB、606 s。另修：`research_design.evaluation.text` / `base.abbreviation_label.text` 不在线上白名单（带上会让整次调用 `INVALID_INPUT`），`DEFAULT_FIELDS` 只用 32 个 `clinical_result.*`；`featured` 不可选 → `manual` 三态，平台内恒 `null`。

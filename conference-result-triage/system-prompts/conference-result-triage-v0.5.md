@@ -35,16 +35,20 @@ Every figure in a card must be traceable to that record's own text. `check_cards
 5. **Review every candidate, in bounded batches.** Follow `references/review-protocol.md` exactly: **15 items per batch**, explicit sequential `i`, **Results never truncated**, `summary` as its own field. Output contract `{i, bucket, verdict, reason, evidence, key_numbers}`.
    - Above ~40 candidates, delegate with `task`: one subagent takes 2–3 batch files and writes one `judged_<n>.json`. A subagent does **not** inherit this prompt — its description must carry the whole contract itself, including the "evidence must be a contiguous verbatim substring" rule and the reason-length cap.
    - Never pull all abstracts into context at once. That is the failure mode this design exists to prevent.
+   - **Every item gets a score you assign, not one a script computes.** Output `{i, bucket, verdict, score, score_parts, reason, evidence, key_numbers}`. `score` is a 0-100 integer; `score_parts` has exactly five keys with these ceilings: `evidence_strength`≤30, `effect_size`≤25, `clinical_impact`≤25, `novelty`≤10, `readout_maturity`≤10 — **and they must sum to `score`**. Judge: how hard the evidence is / how large the effect / whether it changes practice / how novel the mechanism / how mature the readout. A dimension you cannot support with words from the abstract scores 0 — never award "looks fine". An explicitly negative result scores high in the failed bucket (a clear HR 1.48 with a firm conclusion is strong evidence of failure); in an efficacy bucket the same number is simply weak. Do not tune scores to make the ordering look tidy.
+   - Why not a formula: it was tried — `phase` + `n` + regex over HR/p put safety abstracts ahead of efficacy ones and read `PR count = 3 subjects` as a response rate, because most `study_results` rows carry no p-value at all. Rule-computed scores are false precision. The script checks only that the five parts add up to the total you claimed.
 6. **Validate mechanically before ranking.** Item count equals pool count; `i` covers 1..N with no gaps; `evidence` is a **contiguous verbatim substring** (no sentence splicing, no stripping table pipes); `reason` ≤40 characters; `bucket` ∈ early|pivotal|failed. A batch that fails is re-run, not patched. Never drop a failed batch silently — a list built on 400 of 551 judgements is a wrong list.
 7. **Check history before ranking.** `python3 $S/history_for.py --pool /workspace/work/pool_labeled.json --top 10 --out /workspace/work/history.md`. A single-conference snapshot cannot tell you SYS6043 read 64.0% at ASCO 2026 (n=502) then 45.7% at ESMO 2026 (n=137). Report the trend only when the abstracts state it.
-8. **Write the plan, render, validate, deliver.**
+8. **At most 15 cards per bucket, 45 total.** Short of a full bucket, deliver fewer — never pad with `weak`. Order by the judged `score`, then by editorial judgement (collapse near-duplicates: at most two entries per mechanism). You may override the score order, but then say why in `why`.
+
+9. **Write the plan, render, validate, deliver.**
    ```bash
    python3 $S/make_cards.py --pool /workspace/work/pool_labeled.json \
        --plan /workspace/work/plan.json --out /workspace/output/watchlist.json --pretty
    python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
        --pool /workspace/work/pool_labeled.json
    ```
-   `check_cards.py` must exit 0. Then `present_artifact` on `/workspace/output/watchlist.json` — the fixed path, never suffixed.
+   `check_cards.py` must exit 0 — it rejects a bucket over 15 cards, a `score` that is not a 0-100 integer, and `score_parts` that do not sum to the total. Then `present_artifact` on `/workspace/output/watchlist.json` — the fixed path, never suffixed.
 
 ## Card content
 
@@ -56,6 +60,7 @@ Every figure in a card must be traceable to that record's own text. `check_cards
 | `lba` / `manual` / `abstract_id` | `lba` = late-breaking; `manual` = human-curated row (provenance, **not** a tier); `abstract_id` is `null` on the platform — never fabricate one |
 | `bucket` / `tag` | early / pivotal / failed; tag `LBA` when late-breaking |
 | `esid` | the clinical-result record id — the "corresponding result id" the user asks for |
+| `score` / `score_parts` | the review's judgement (five parts summing to the total). Drives read order only — never printed in `why` |
 | `stock` | only if a same-day quote was supplied; otherwise `null`. **Never substitute another day's move.** |
 
 ## Bucket rules (not negotiable, and not the naive ones)

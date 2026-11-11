@@ -8,7 +8,7 @@ plan, so a card cannot be self-consistent and still fabricated.
 Exit codes: 0 = clean, 3 = at least one FAIL (details on stdout).
 
 Checks
-  1. envelope shape, ``count`` == len(cards)
+  1. envelope shape, ``count`` == len(cards), **at most 15 cards per bucket**
   2. every card has a non-empty ``title`` / ``summary`` / ``why``
   3. ``esid`` exists in the pool (no invented records)
   4. ``bucket`` is one of early|pivotal|failed
@@ -21,9 +21,21 @@ Checks
      record's own text -- the anti-fabrication gate
   9. ``stock``, when present, has ticker+change_pct+date
  10. list size is within a sane band for a reading list
+ 11. ``score`` is a real 0-100 integer and ``score_parts`` sums to it -- the score
+     is the reviewer's judgement, so this gate checks self-consistency, not merit
 """
 
 from __future__ import annotations
+
+from collections import Counter
+
+# The rubric from references/review-protocol.md §2.5. These are *ceilings*, not
+# weights: the reviewer decides how much of each to award, and the only thing
+# checked mechanically is that the parts add up to the total they claimed.
+PER_BUCKET_CAP = 15
+BUCKETS = ("early", "pivotal", "failed")
+SCORE_CAPS = {"evidence_strength": 30, "effect_size": 25, "clinical_impact": 25,
+              "novelty": 10, "readout_maturity": 10}
 
 import argparse
 import json
@@ -89,8 +101,15 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]]) -> Tuple[
         fails.append(f"envelope: count={payload.get('count')} != len(cards)={len(cards)}")
     if not payload.get("conference"):
         fails.append("envelope: missing conference")
-    if not 10 <= len(cards) <= 60:
-        fails.append(f"size: {len(cards)} cards (expected a 10-60 item reading list)")
+    if not 10 <= len(cards) <= 45:
+        fails.append(f"size: {len(cards)} cards (expected a 10-45 item reading list)")
+    per_bucket = Counter(c.get("bucket") for c in cards)
+    for name, num in per_bucket.items():
+        if name not in BUCKETS:
+            fails.append(f"bucket: unknown bucket {name!r}")
+        elif num > PER_BUCKET_CAP:
+            fails.append(f"bucket {name}: {num} cards > cap {PER_BUCKET_CAP} "
+                         f"-- cut by score, do not pad the list")
 
     seen = set()
     for n, card in enumerate(cards, 1):
@@ -127,6 +146,26 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]]) -> Tuple[
             elif card["manual"] != item.get("manual"):
                 fails.append(f"{tag}: manual={card['manual']} but pool row says "
                              f"{item.get('manual')}")
+        if "score" not in card:
+            fails.append(f"{tag}: missing score (the review must judge every card)")
+        else:
+            score = card["score"]
+            if not isinstance(score, int) or isinstance(score, bool) or not 0 <= score <= 100:
+                fails.append(f"{tag}: score={score!r} must be an integer 0-100")
+            parts = card.get("score_parts") or {}
+            if parts:
+                if set(parts) != set(SCORE_CAPS):
+                    fails.append(f"{tag}: score_parts keys {sorted(parts)} != "
+                                 f"{sorted(SCORE_CAPS)}")
+                else:
+                    for name, cap in SCORE_CAPS.items():
+                        val = parts[name]
+                        if not isinstance(val, int) or isinstance(val, bool) or not 0 <= val <= cap:
+                            fails.append(f"{tag}: score_parts[{name}]={val!r} "
+                                         f"must be an integer 0-{cap}")
+                    if sum(parts.values()) != score:
+                        fails.append(f"{tag}: score_parts sum {sum(parts.values())} "
+                                     f"!= score {score}")
         body = json.dumps(card, ensure_ascii=False)
         for ph in placeholder_hits(body):
             fails.append(f"{tag}: placeholder {ph!r} leaked into the card")

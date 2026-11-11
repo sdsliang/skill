@@ -12,6 +12,9 @@ Card shape::
       "abstract_id":  null,               # conference abstract number (null on TS)
       "lba":          true,               # late-breaking tag
       "manual":       true,               # human-curated? null = unknown (platform can't fetch featured)
+      "score":        78,                 # the reviewer's own 0-100 judgement (Step 4), not computed here
+      "score_parts":  {"evidence_strength": 26, "effect_size": 22,
+                       "clinical_impact": 20, "novelty": 4, "readout_maturity": 6},
       "bucket":       "pivotal",          # early | pivotal | failed
       "title":        "...",              # abstract title, verbatim
       "summary":      "...",              # what was reported, numbers included
@@ -31,6 +34,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+from collections import Counter
 import sys
 from typing import Any, Dict, List, Optional
 
@@ -73,6 +77,12 @@ def build_cards(plan: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
         for key in ("title", "summary", "why"):
             if not (spec.get(key) or "").strip():
                 problems.append(f"{esid}: missing {key}")
+        # The score belongs to whoever read the abstract; this script only carries
+        # it through. A plan without one is a plan that never judged the record,
+        # so it fails here rather than shipping an unranked list.
+        judged = spec.get("score", item.get("score"))
+        if not isinstance(judged, int) or not 0 <= judged <= 100:
+            problems.append(f"{esid}: score must be an integer 0-100 from the review")
         card = {
             "esid": esid,
             "abstract_id": spec.get("abstract_id") or item.get("abstract_id"),
@@ -85,6 +95,8 @@ def build_cards(plan: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
             "title": spec.get("title") or item.get("title") or "",
             "summary": spec.get("summary") or "",
             "why": spec.get("why") or "",
+            "score": judged,
+            "score_parts": spec.get("score_parts") or item.get("score_parts") or {},
             "drug": spec.get("drug") or item.get("drug") or "",
             "target": spec.get("target") or item.get("target") or "",
             "indication": spec.get("indication")
@@ -140,7 +152,9 @@ def main(argv: Optional[List[str]] = None) -> int:
     lba = sum(1 for c in cards if c["lba"])
     manual = sum(1 for c in cards if c.get("manual") is True)
     unknown = sum(1 for c in cards if c.get("manual") is None)
-    print(f"cards {len(cards)} (lba {lba} manual {manual} unknown {unknown}) -> {args.out}")
+    buckets = Counter(c["bucket"] for c in cards)
+    spread = " ".join(f"{b}={buckets.get(b, 0)}" for b in ("early", "pivotal", "failed"))
+    print(f"cards {len(cards)} ({spread}; lba {lba} manual {manual} unknown {unknown}) -> {args.out}")
     for b in BUCKETS:
         print(f"  {b}: {sum(1 for c in cards if c['bucket'] == b)}")
     if quotes:
