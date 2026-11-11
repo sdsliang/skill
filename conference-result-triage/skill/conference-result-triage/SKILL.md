@@ -44,7 +44,7 @@ python3 $S/pull_results.py --conference "ESMO 2026" --out /workspace/work/rows.j
 
 1. 先只取 id（一次回全量），再用 `esids` 切片取全字段（响应体约 6 MB 上限，35 字段的整场调用只会回 ~500 行且 `ok: true`）。
 2. `clinical_result.lba` 必须显式写进 `selected_fields`，否则键直接消失。
-3. `featured`（`是`/`否`，策展编辑的头条标记）**不在** `with-params` 的可选字段白名单里，只能用平台自带的 `TEST_execute-sql` 拉一个 `extra_esid, featured, lba` 的三列旁表（整场约 100 KB），再按 esid 合回主表。这一步失败只降级、不中断（会有 `WARNING: featured sidecar unavailable`）。
+3. `featured`（`是`= 人工生产 / `否`= 流水线抽取，**不是头条**）**不在** `with-params` 的可选字段白名单里，只能用平台自带的 `TEST_execute-sql` 拉一个 `extra_esid, featured, lba` 的三列旁表（整场约 100 KB），再按 esid 合回主表。它只用于卡片上的生产方式标注，不参与排序。这一步失败只降级、不中断（会有 `WARNING: featured sidecar unavailable`）。
 
 成功输出形如：
 
@@ -69,22 +69,35 @@ python3 $S/triage.py /workspace/work/rows.json --out-dir /workspace/work/pool --
 - **真实世界 / 回顾性 / 汇总分析 / 试验进行中不进三桶**，单独计入 `excluded`。
 - **试验分期取 `evidence_source`**，不是疾病分期 `clinical_stage`。
 
-### Step 3 — 报告形式信号（平台内**没有**摘要号）
+### Step 3 — 报告形式信号（平台内只剩 `lba`）
 
-先说清一件事，避免重复踩坑：**Tool Smith 平台上拿不到摘要号。**
+先说清两件事，避免重复踩坑：
 
-- 结果表 `clinical_trial_result_structured` 111 列里**没有 `abstract_id`**（只有 `lba` / `abstract_text` / `journal` / `featured` / `listing_display`）。
-- 平台 35 个工具里**没有**会议摘要库（`medicalMeeting`），23 张可查表里也没有会议表。
+**一、平台内拿不到摘要号。**
+
+- 结果表 `clinical_trial_result_structured` 111 列里**没有 `abstract_id`**；
+- 平台 35 个工具里**没有**会议摘要库（`medicalMeeting`），23 张可查表里也没有会议表；
 - `abstract_text` 全部以 `#### Background` 开头，编号不在正文里；`paper_title` 也不带 `LBA` 前缀。
 
-所以平台内的“头条”先验只由两个字段构成，`triage.py` 直接吃：
+**二、`featured` 不是头条，是「人工 / AI 生产」标记。** 实测 `featured='是'` **100/100 就等于** `source='np_result_conf'` 那一档（人工核对过的结果），其余 1000 条 `np_clinical_conference` 全是 `否`（流水线抽取）。所以：
 
-| 信号 | 来源 | ESMO 2026 | 含义 |
-|---|---|---|---|
-| `lba` | `clinical_result.lba`（白名单内） | 73 行 | late-breaking，无编号 |
-| `featured` | `TEST_execute-sql` 旁表 | 100 行 | 编辑精选 / 头条，前段几乎全是 Presidential LBA |
+- ❌ 不能拿它排序、不能拿它代表报告等级；
+- ✅ 只能作为每条卡片的生产方式标注（「人工核对」/「流水线抽取」），属于诚实声明的一部分。
 
-合成的 `presentation` 层级（rank 越小越先读）：`Featured Late-breaking 0` → `Late-breaking Oral 1` → `Featured 2` → `Oral 3` → `Rapid Oral 4` → `Poster 5` → `ePoster 6` → `Unknown 9`。ESMO 2026 实测：551 候选里 131 条（24%）拿到了这个层级信号，其中 Featured Late-breaking 19 条、Featured 74 条、Late-breaking Oral 38 条。
+`triage.py` 里 `manual` 字段就是它，`manual_of()` 只做布尔解析，`presentation_of()` **完全不看它**。
+
+平台内真正可用的报告形式信号只有 `lba`（`clinical_result.lba`，白名单内，ESMO 2026 共 73 行）：
+
+| presentation | 条件 | rank |
+|---|---|---|
+| `Late-breaking Oral` | `lba` 为真（或 `abstract_id` 以 `LBA` 开头） | 0 |
+| `Oral` / `eOral` | `abstract_id` 后缀 `O`（仅外网补号后才有） | 1 |
+| `Rapid Oral` / `eRapid Oral` | 后缀 `RO` | 2 |
+| `Poster` | 后缀 `P` | 4 |
+| `ePoster` | 后缀 `eP` | 5 |
+| `Unknown` | 三个信号都没有（平台内的绝大多数） | 9 |
+
+ESMO 2026 实测：551 候选里 **51 条**拿到 `lba`（early 6 / pivotal 45 / failed 6），其余 500 条是 `Unknown` —— 这是诚实结果，不要为了"看起来有层级"去造。
 
 `abstract_id` 在平台内**恒为 `null`**，卡片照常输出该字段（schema 固定）；有外网且配了 `PHARMCUBE_MCP_APP_KEY` 时才可选用会议库补号：
 
@@ -94,7 +107,7 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
     --meeting /workspace/work/meeting.json --out /workspace/work/pool/pool_labeled.json
 ```
 
-这一步是**纯标注**：只写 `abstract_id` / `presentation` / `presentation_rank`，不增删、不重排、不改判定。平台内跑不了就跳过 —— 分类与排序不受影响。
+这一步是**纯标注**：只写 `abstract_id` / `presentation` / `presentation_rank`，不增删、不重排、不改判定。平台内跑不了就跳过 —— 分类不受影响。
 
 ### Step 4 — 逐条复核（模型，核心步骤）
 
@@ -162,7 +175,7 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 
 ```json
 {"conference": "ESMO 2026", "count": 30, "cards": [
-  {"esid": "24_37_p_...", "abstract_id": null, "lba": true, "featured": true,
+  {"esid": "24_37_p_...", "abstract_id": null, "lba": true, "manual": true,
    "bucket": "pivotal", "tag": "LBA",
    "title": "…", "summary": "…", "why": "…",
    "drug": "…", "target": "…", "indication": "…",
@@ -171,7 +184,8 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 ]}
 ```
 
-- `esid` 是结果记录 id（用户要的"对应的结果id"）；`abstract_id` 是会议摘要号，平台内**恒为 `null`**（见 Step 2），有外网补库时才有值。
+- `esid` 是结果记录 id（用户要的"对应的结果id"）；`abstract_id` 是会议摘要号，平台内**恒为 `null`**（见 Step 3），有外网补库时才有值。
+- `manual` 是生产方式标记（人工核对 / 流水线抽取），**不是**推荐等级。
 - 路径固定为 `/workspace/output/watchlist.json`：后端硬编码读取，改名即断链。同一工作区复跑就覆盖。
 - `write_file` 一律带 `overwrite=True`，包括首次写入。
 

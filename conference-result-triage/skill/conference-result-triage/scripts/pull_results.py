@@ -142,13 +142,18 @@ def pull(client: Mcp, tool: str, conference: str, fields: List[str],
 
 
 def pull_flags(client: Mcp, conference: str) -> Dict[str, Any]:
-    """Fetch the curation flags that ``query-clinical-result-with-params`` cannot expose.
+    """Fetch the provenance flag that ``query-clinical-result-with-params`` cannot expose.
 
     ``clinical_result.featured`` (是/否) is **not** in the tool's selectable field
     whitelist, so a with-params pull silently returns rows without the key -- the
-    same failure mode that lost ``lba`` in v0.2. It is the closest in-platform
-    substitute for the abstract-number tier: on ESMO 2026 it marks 100 of 1100
-    rows, and that slice is dominated by Presidential late-breaking readouts.
+    same failure mode that lost ``lba`` in v0.2.
+
+    What it means: **human-produced vs machine-produced**, not "editor's pick".
+    Verified on ESMO 2026 -- ``featured='是'`` is exactly the ``source='np_result_conf'``
+    slice (100/100), and all 1000 ``np_clinical_conference`` rows are ``'否'``. An
+    earlier draft read it as a headline tier and ranked it above plain orals; that
+    was wrong. It is carried through only so each card can state whether a human
+    curated the row or the pipeline extracted it.
 
     ``TEST_execute-sql`` is used only for this narrow three-column sidecar. It is
     the platform's own SQL tool, not a direct Elasticsearch connection, and the
@@ -173,9 +178,10 @@ def _norm_esid(value: Any) -> str:
 
     The same record is keyed ``24_37_p_<hash>_1`` in ``clinical_trial_result_structured``
     but ``nr_24_37_p_<hash>_1`` in the ``with-params`` payload (~100 of ESMO 2026's
-    1100 rows, exactly the ``source='np_result_conf'`` slice). Without normalising,
-    those 97 rows silently get ``featured=null`` and drop out of the headline tier --
-    a full 100% of the sidecar matches only after the prefix is stripped.
+    1100 rows, exactly the ``source='np_result_conf'`` slice -- i.e. the human-curated
+    rows). Without normalising, those 97 rows silently get ``featured=null`` and every
+    card for them would claim machine production. A full 100% of the sidecar only
+    matches after the prefix is stripped.
     """
     s = str(value or "")
     return s[3:] if s.startswith("nr_") else s

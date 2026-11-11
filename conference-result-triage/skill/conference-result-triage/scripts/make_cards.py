@@ -11,7 +11,7 @@ Card shape::
       "esid":         "24_37_p_...",      # the clinical-result record id
       "abstract_id":  null,               # conference abstract number (null on TS)
       "lba":          true,               # late-breaking tag
-      "featured":     true,               # editor-curated headline flag
+      "manual":       true,               # human-curated row vs pipeline-extracted
       "bucket":       "pivotal",          # early | pivotal | failed
       "title":        "...",              # abstract title, verbatim
       "summary":      "...",              # what was reported, numbers included
@@ -77,7 +77,8 @@ def build_cards(plan: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
             "esid": esid,
             "abstract_id": spec.get("abstract_id") or item.get("abstract_id"),
             "lba": bool(item.get("lba") or spec.get("lba")),
-            "featured": bool(item.get("featured") or spec.get("featured")),
+            "manual": bool(item.get("manual") if "manual" in item
+                           else spec.get("manual")),
             "bucket": spec.get("bucket") or item.get("_bucket"),
             "tag": spec.get("tag") or _auto_tag(item),
             "title": spec.get("title") or item.get("title") or "",
@@ -102,18 +103,11 @@ def build_cards(plan: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
 def _auto_tag(item: Dict[str, Any]) -> str:
     """Short read-slot label. Never invents one for an unmarked record.
 
-    ``featured`` outranks the bare ``lba`` flag because an editor-picked headline
-    is a stronger read-me signal than "it was late-breaking" -- the two together
-    are the platform's stand-in for the abstract-number tier.
+    Only ``lba`` feeds the slot label. ``featured`` is deliberately excluded: it
+    marks human- vs machine-produced rows, so "精选" would be a fabricated claim
+    about editorial importance.
     """
-    lba, featured = bool(item.get("lba")), bool(item.get("featured"))
-    if lba and featured:
-        return "LBA · 精选"
-    if lba:
-        return "LBA"
-    if featured:
-        return "精选"
-    return ""
+    return "LBA" if item.get("lba") else ""
 
 
 def main(argv: Optional[List[str]] = None) -> int:
@@ -143,8 +137,8 @@ def main(argv: Optional[List[str]] = None) -> int:
                   indent=2 if args.pretty else None)
         fh.write("\n")
     lba = sum(1 for c in cards if c["lba"])
-    featured = sum(1 for c in cards if c["featured"])
-    print(f"cards {len(cards)} (lba {lba} featured {featured}) -> {args.out}")
+    manual = sum(1 for c in cards if c["manual"])
+    print(f"cards {len(cards)} (lba {lba} manual {manual}) -> {args.out}")
     for b in BUCKETS:
         print(f"  {b}: {sum(1 for c in cards if c['bucket'] == b)}")
     if quotes:

@@ -22,12 +22,11 @@ Every figure in a card must be traceable to that record's own text. `check_cards
    python3 $S/pull_results.py --conference "ESMO 2026" --out /workspace/work/rows.json
    ```
    It calls `query-clinical-result-with-params` on the data-server MCP endpoint. **Never substitute a direct Elasticsearch query**: the ES mirror has no `lba` column, and in v0.2 that detour silently dropped every late-breaking abstract — twelve Presidential readouts, including DeLLphi-305 and SAFFRON.
-   Expect `rows=1097 missing=0 lba=73 featured=97`. If `missing>0`, re-query those ids; do not build a pool with a hole in it.
-3. **Know what the platform does *not* have.** There is **no abstract number here**: the result table has no `abstract_id` column (111 columns, only `lba` / `abstract_text` / `journal` / `featured`), the 35-tool catalogue has **no meeting-book tool**, and `abstract_text` always opens with `#### Background` with the number nowhere in it. Do **not** try `meeting_pull.py` on the platform (it needs the public openapi host, which the container cannot reach) and do not go hunting through Elasticsearch.
-   The presentation tier is therefore synthesised from two real fields, already done by `pull_results.py` + `triage.py`:
-   - `lba` — `clinical_result.lba`, in the field whitelist;
-   - `featured` — `是`/`否`, **not** in the whitelist; the script side-loads it with the platform's own `TEST_execute-sql` and merges on esid (stripping the `nr_` prefix the result table adds to `np_result_conf` rows).
-   Resulting grades, strongest first: `Featured Late-breaking` → `Late-breaking Oral` → `Featured` → `Oral` → `Rapid Oral` → `Poster` → `ePoster` → `Unknown`. On ESMO 2026 that covers 131 of 551 candidates (24%) and its top slice is Presidential late-breaking (PACE-LUNG, BEATcc, HERON-Lung01, OptiTROP-Lung06). `featured` is the closest in-platform substitute for the abstract-number prior — **never drop it**, and never invent an abstract number to fill the `abstract_id` field: output `null`.
+   Expect `rows=1097 missing=0 lba=73 featured=97` (`featured=97` is provenance only). If `missing>0`, re-query those ids; do not build a pool with a hole in it.
+3. **Know what the platform does *not* have.** There is **no abstract number here**: the result table has no `abstract_id` column (111 columns, only `lba` / `abstract_text` / `journal` / `featured`), the 35-tool catalogue has **no meeting-book tool**, and `abstract_text` always opens with `#### Background`. Do **not** run `meeting_pull.py` on the platform (it needs the public openapi host, which the container cannot reach) and do not go hunting through Elasticsearch.
+   The presentation tier therefore has exactly **one** real signal, `clinical_result.lba` — strongest first: `Late-breaking Oral` → `Oral` → `Rapid Oral` → `Poster` → `ePoster` → `Unknown`. On ESMO 2026 only 51 of 551 candidates carry it (early 6 / pivotal 45 / failed 6); the other 500 are honestly `Unknown`. Do not manufacture a tier to make the pool look richer.
+   **`featured` is not a headline flag.** It means **human-produced vs machine-produced**: on ESMO 2026 `featured='是'` is exactly the `source='np_result_conf'` slice (100/100), and all 1000 pipeline-extracted rows are `否`. It reaches the pool as the boolean `manual` and exists **only** so each card can state whether a human curated the row. Never rank on it — an earlier draft did, which would have promoted 100 rows purely on how they were produced. Use `presentation_rank` for read order.
+   In short: on the platform `abstract_id` is always `null` — output the key with `null`, never invent a number to fill it.
 4. **Screen mechanically.** `triage.py` writes `pool/pool.json`, `pool/pool.md`, `pool/review.jsonl` (batch files). Read `pool.md` — that is your map of the conference. Run `--self-test` once and confirm `OK`.
 5. **Review every candidate, in bounded batches.** Follow `references/review-protocol.md` exactly: **15 items per batch**, explicit sequential `i`, **Results never truncated**, `summary` as its own field. Output contract `{i, bucket, verdict, reason, evidence, key_numbers}`.
    - Above ~40 candidates, delegate with `task`: one subagent takes 2–3 batch files and writes one `judged_<n>.json`. A subagent does **not** inherit this prompt — its description must carry the whole contract itself, including the "evidence must be a contiguous verbatim substring" rule and the reason-length cap.
@@ -50,7 +49,7 @@ Every figure in a card must be traceable to that record's own text. `check_cards
 | `title` | verbatim from the record |
 | `summary` | what was reported, must carry at least one unit-bearing number (% / months / HR / OR / CI / p) |
 | `why` | one sentence, natural language, why it belongs on the list — name the population or the comparator, not "interesting results" |
-| `lba` / `featured` / `abstract_id` | booleans from the record; `abstract_id` is `null` on the platform — never fabricate one |
+| `lba` / `manual` / `abstract_id` | `lba` = late-breaking; `manual` = human-curated row (provenance, **not** a tier); `abstract_id` is `null` on the platform — never fabricate one |
 | `bucket` / `tag` | early / pivotal / failed; tag `LBA` when late-breaking |
 | `esid` | the clinical-result record id — the "corresponding result id" the user asks for |
 | `stock` | only if a same-day quote was supplied; otherwise `null`. **Never substitute another day's move.** |
@@ -67,7 +66,7 @@ Every figure in a card must be traceable to that record's own text. `check_cards
 
 ## Presentation tier (use it, do not gate on it)
 
-The presentation grade comes from `featured` + `lba` (see step 3), or from the abstract suffix (`1234O` oral, `1234RO` rapid oral, `LBA3` late-breaking oral, `1234P` poster) when a meeting-book join was possible. On ESMO 2026 the pool was 25% oral-tier, yet 4 of the 7 abstracts in-house experts picked were oral-tier (57%) — a 2.3× enrichment. Weight it, label it, and prefer the stronger slot at equal numbers; never gate on it (the same experts picked three posters).
+The presentation grade comes from `lba` (see step 3), or from the abstract suffix (`1234O` oral, `1234RO` rapid oral, `LBA3` late-breaking oral, `1234P` poster) when a meeting-book join was possible. `featured` is provenance, not grade. On ESMO 2026 the pool was 25% oral-tier, yet 4 of the 7 abstracts in-house experts picked were oral-tier (57%) — a 2.3× enrichment. Weight it, label it, and prefer the stronger slot at equal numbers; never gate on it (the same experts picked three posters).
 
 Late-breaking is ranked **above** ordinary orals. The v0.2 rank table put the late-breaking tier below every ordinary oral, which is exactly how the Presidential readouts fell out of the shortlist.
 

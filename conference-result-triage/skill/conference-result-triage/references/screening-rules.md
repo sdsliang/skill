@@ -30,7 +30,7 @@
 
 因此增加**并列第二入口** `scripts/meeting_pull.py` + `meeting_join.py`：
 
-- 会议摘要库（`medicalMeeting`）**只在有外网时**才可用：按 title join 补 `abstract_id` / `presentation` / `target` / `drug` / `moa` / 全文。平台内没有这个工具，`abstract_id` 恒为 `null`，报告形式改由 `lba` + `featured` 合成（见 3.1）；
+- 会议摘要库（`medicalMeeting`）**只在有外网时**才可用：按 title join 补 `abstract_id` / `presentation` / `target` / `drug` / `moa` / 全文。平台内没有这个工具，`abstract_id` 恒为 `null`，报告形式只剩 `lba` 一个信号（见 3.1）；
 - 只在摘要库里的记录 → 需「有药名 + Results 段有数字 + 能解析出期别 + 非 RWE/回顾/综述」才转成补充行；
 - **补充行只进 `early`**。期别是从散文里正则抽的，稳健度远低于 curated `evidence_source`，不够格撑 pivotal / failed 两桶。
 
@@ -61,39 +61,33 @@ else:                                                excluded
 
 ### 3.1 报告形式（presentation tier）
 
-**平台内没有摘要号**（v0.3 复核结论）：结果表 111 列里没有 `abstract_id`，35 个工具里没有会议摘要库，`abstract_text` 以 `#### Background` 开头不带编号。所以这一层由两个真实字段合成，`triage.py` 的 `presentation_of()` 直接吃：
-
-| 信号 | 来源 | 取值 | 排序权重 |
-|---|---|---|---|
-| `lba` | `clinical_result.lba`（白名单字段） | `"LBA"` / null | 有号无号都算 late-breaking |
-| `featured` | `TEST_execute-sql` 旁表（**不在** `with-params` 白名单） | `是` / `否` | 编辑精选 / 头条 |
-
-合成层级（rank 越小越先读）：
+**平台内没有摘要号**（v0.3 复核结论）：结果表 111 列里没有 `abstract_id`，35 个工具里没有会议摘要库，`abstract_text` 以 `#### Background` 开头不带编号。平台内唯一可用的报告形式信号是 `clinical_result.lba`：
 
 | presentation | 条件 | rank |
 |---|---|---|
-| `Featured Late-breaking` | `featured=是` 且 `lba` | 0 |
-| `Late-breaking Oral` | 只有 `lba` | 1 |
-| `Featured` | 只有 `featured` | 2 |
-| `Oral` / `eOral` | `abstract_id` 后缀 `O`（有外网补号时） | 3 |
-| `Rapid Oral` / `eRapid Oral` | 后缀 `RO` | 4 |
-| `Poster` | 后缀 `P` | 5 |
-| `ePoster` | 后缀 `eP` | 6 |
-| `Unknown` | 三个信号都没有 | 9 |
+| `Late-breaking Oral` | `lba` 为真 / `abstract_id` 以 `LBA` 开头 | 0 |
+| `Oral` / `eOral` | 后缀 `O`（仅外网补号后） | 1 |
+| `Rapid Oral` / `eRapid Oral` | 后缀 `RO` | 2 |
+| `Poster` | 后缀 `P` | 4 |
+| `ePoster` | 后缀 `eP` | 5 |
+| `Unknown` | 无信号（平台内的绝大多数） | 9 |
 
-**这是最强的单一会议先验，必须用上。** ESMO 2026 实证（v0.3 池）：
+ESMO 2026 实测：551 候选里 51 条拿到 `lba`（early 6 / pivotal 45 / failed 6），其余 500 条 `Unknown`。**这是诚实的覆盖现状**，不要为了"看起来有层级"造信号。
 
-- 551 候选里 131 条（24%）拿到了层级信号：Featured Late-breaking 19 / Featured 74 / Late-breaking Oral 38；
-- `featured=是` 全表 100 条，前段几乎全是 Presidential LBA（PACE-LUNG、BEATcc、HERON-Lung01、OptiTROP-Lung06、TALENT、RASolute 302…），这就是摘要号后缀在平台内唯一可替代的先验；
-- v0.2 的证据：内部专家挑的 7 条里 4 条是口头级（57% vs 池内 25% 基线）。
+### 3.1b `featured` ≠ 头条（重要更正）
 
-用法有三条边界：
+`clinical_result.featured`（`是`/`否`）是**人工生产 / AI 生产**标记，**不是**编辑精选：
 
-1. **只用于加权与提示，不做硬门槛。** 专家也挑了 3 条 wall poster（1015P / 1029P / 2567P），砍掉 poster 会丢掉一半命中。
-2. **池内排序**为 `(presentation_rank, -n)`：头条先被读到；**全量条目仍然都会进复核**，顺序只影响注意力优先级，不减少覆盖。
-3. 榜单每一条都要标出报告形式（如「late-breaking / 编辑精选」），让读者知道数据的出场规格。
+- `featured='是'` 在 ESMO 2026 **100/100 等于** `source='np_result_conf'`（人工核对过的结果行）；
+- 其余 1000 条 `source='np_clinical_conference'`（流水线抽取）全是 `否`。
 
-> v0.2 曾把纯 `LBA<n>` 排在 `1234O` 之后（rank 3 vs 1），导致整个 Presidential 层被压在普通口头后面。v0.3 已按上表修正，并有 self-test 断言守着。
+所以它**只能**用于卡片上的生产方式标注（"人工核对" / "流水线抽取"），**禁止**参与排序或当作报告等级。`triage.py` 里它叫 `manual`，`presentation_of()` 完全不读它 —— 有 self-test 断言守着（"manual production does not create a presentation tier"）。
+
+用法边界（对 `lba` 这一层依然成立）：
+
+1. **只用于加权与提示，不做硬门槛。** 专家也挑了 3 条 wall poster（1015P / 1029P / 2567P）。
+2. **池内排序**为 `(presentation_rank, -n)`：late-breaking 先被读到；**全量条目仍然都会进复核**，顺序只影响注意力优先级，不减少覆盖。
+3. 榜单每一条都要标出报告形式（如「late-breaking」）与生产方式。
 
 ### 3.2 人群难度：verdict 不能只看绝对值
 
