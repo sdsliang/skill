@@ -2,47 +2,26 @@
 
 ## 0. 在 TS 上唯一允许的取数方式
 
+**平台工作区没有网络**（见 `pitfalls.md` §21：in-cluster 端点 `Network is unreachable`、公网 DNS 全灭、`env` 里无 MCP 端点）。所以平台内**不允许**让脚本自己联网，两条命令代替原来的直连：
+
 ```bash
+# 1) 你先调用工具（结果会被平台强制落盘，模型只看到 5 行预览）
+#    pharmcube-query-clinical-result-with-params
+#      meeting_tags = "ESMO 2026"
+#      selected_fields = pull_results.py --list-fields 的输出，逐字复制
+#    → /workspace/tool_results/pharmcube-query-clinical-result-with-params/<call-id>.jsonl
+
+# 2) 脚本解析 dump（跨多次调用去重合并）
 python3 /workspace/skills/conference-result-triage/scripts/pull_results.py \
-    --conference "ESMO 2026" --out /workspace/work/rows.json
+    --from-tool-results /workspace/tool_results \
+    --out /workspace/work/rows.json
 ```
 
-它连的是 **TS 数据服务器**（`MCP_PHARMCUBE_ENDPOINT_URL`，默认内网 `http://172.17.26.74:30080/mcp/`），
-工具名用 `tools/list` 自动发现（匹配 `query-clinical-result`），固定两阶段：
+落盘格式：`data` 是 list 时一行一个 row（JSONL），键就是 `clinical_result__id` / `clinical_result_lba` 等返回键，**无需映射**。dump 在 **turn 结束时清除**，必须同 turn 解析。
 
-1. 只取 `clinical_result.extra_esid` → 一次拿全场 id（1097 条，body 很小）；
-2. 按 `esids` 切片（默认 120/次）取全字段。
+`featured` / `lba` 旁表同理：一次 `TEST_execute-sql`（`SELECT extra_esid, featured, lba FROM clinical_trial_result_structured WHERE journal='ESMO 2026'`），再 `--flags-from /workspace/tool_results/pharmcube-TEST_execute-sql`。
 
-**禁止**改成一次取全字段、也**禁止**改去查 Elasticsearch。两条都会静默出错：
-
-| 错误做法 | 静默后果 |
-|---|---|
-| 一次取 35 字段全量 | 响应体约 6 MB 上限，只回 ~500 行且 `ok: true`，池子少一半 |
-| 直连 ES `np_clinical` | 该索引**没有 `lba` 列**，整类 late-breaking 丢失（v0.2 的 12 条 Presidential 摘要就是这么没的） |
-
-`pull_results.py` 的 `DEFAULT_FIELDS` 是唯一字段集来源，**不要手写**：
-
-```
-clinical_result.extra_esid, lba, paper_title, journal, paper_release_time,
-abbreviation_label, abstract_text, summary, key_evidence, study_results,
-evaluation, evidence_source, trial_abbreviation, primary_endpoint_all_name,
-primary_endpoint_en, group_count, projects, indication_name, indication_name_en,
-therapy_line_en, therapy_line_cn, randomized, random_ratio, trial_control,
-blinded, multi_center, clinical_stage_en, clinical_stage_cn, layer_factor,
-full_article_link, doi, pm_id, research_design.evaluation.text,
-base.abbreviation_label.text
-```
-
-写入点是**点号**名，返回的 key 是**下划线**名（`clinical_result.lba` → `clinical_result_lba`），
-`triage.py` 已按后者读取。
-
-成功判据（不看 HTTP 状态，看这行输出）：
-
-```
-rows=1097 requested=1097 missing=0 lba=73 with_abstract_text=1097
-```
-
-`missing>0` 要把那些 id 单独再查一次；`lba=0` 说明字段没取回来（见 `pitfalls.md` §1）。
+直连模式（不带 `--from-tool-results`）只在本地/有外网时可用：`--conference "ESMO 2026"`，走 `MCP_PHARMCUBE_ENDPOINT_URL`（默认 `http://172.17.26.74:30080/mcp/`）+ `PHARMCUBE_MCP_APP_KEY`，工具名用 `tools/list` 自动发现（匹配 `query-clinical-result`），固定两阶段：先只取 id、再按 `esids` 切片取全字段。
 
 ## 1. 直连调试入口（仅排查，不是 skill 的数据路径）
 

@@ -201,3 +201,32 @@ WHERE journal='ESMO 2026' GROUP BY source, featured;
 5. `abstract_id` 在平台内恒为 `null`，卡片照常输出该键，**禁止**编造编号。
 
 **顺带一个 join 陷阱**：同一记录在 SQL 侧键是 `24_37_p_<hash>_1`，在 `with-params` 侧是 `nr_24_37_p_<hash>_1`（`source='np_result_conf'` 的那 97 条）。不剥 `nr_` 前缀，旁表只能匹配 1003/1097，剩下 97 条静默拿到 `featured=null` —— 也就是**人工核对的记录被误报成流水线抽取**。剥了之后 1100/1100 全中。
+
+## 21. 平台工作区**没有网络**，但工具结果会自动落盘
+
+**现象**：`pull_results.py --conference "ESMO 2026"` 在平台 chat 里第一次跑就 `urllib.error.URLError: [Errno 101] Network is unreachable`，退出码 1。模型当时判断「平台数据端点不可达」，于是停手不再建池。
+
+**探针（容器内 `execute`）**：
+
+```
+1) env | grep -iE "mcp|toolsmith|endpoint"     →  空
+2) /etc/resolv.conf                            →  nameserver 100.100.2.136 / 138
+3) socket 172.17.26.74:30080                   →  OSError 101 Network is unreachable
+   socket mcp-openapi.pharmcube.com:443        →  gaierror -3 Temporary failure in name resolution
+   socket k8s-node-test-inner…:36773           →  gaierror -3
+```
+
+三条全灭 + 无端点环境变量 = **沙箱没有任何出网/内网能力**，不是路径写错、不是 key 缺失。`--web` 也救不了：web 工具（`web_search` / `fetch_url`）是**后端**执行的，不经沙箱 socket。
+
+**根因（正经机制，不是 bug）**：平台把 MCP 工具结果**强制落盘**再喂给模型 —— `agent/capabilities/pharmcube_mcp.py` 调 `maybe_offload_tool_result(..., force_save=True)`，`max_chars=MCP_TOOL_RESULT_MAX_CHARS=20_000`；`data` 是 list 时序列化成 **JSONL**（一行一个 row，`file_extension=".jsonl"`），落在 `/workspace/tool_results/<exposed_name>/<call-id>.jsonl`，模型只看到 `content_preview()` 的 5 头 5 尾 + 提示 `The result … was too large to keep inline`。
+
+所以平台内**取数 = 你调工具 + 脚本读 dump**，而不是「脚本自己联网」。整场 1097 行一次拉完 **0 上下文成本**——这反而是比 v0.3 直连模式更好的架构。
+
+**处置**：
+
+1. `pull_results.py` 新增 `--from-tool-results`（目录 / glob / 单文件，跨多次调用去重合并）与 `--flags-from`；`--conference` 直连模式保留给本地。
+2. **dump 在 turn 结束时删除**（提示原文：`This file is cleared at turn end`），所以必须在同一 turn 内解析完，`rows.json` 才是持久落点。
+3. 落盘是原样 row dict，键仍是 `clinical_result__id` / `clinical_result_lba`，**不需要任何字段映射**。
+4. `KNOWN_ABSENT` 里钉住两个「要了但永远不返回」的字段（`clinical_result.extra_esid` 实际以 `clinical_result__id` 回来、`clinical_result.layer_factor` 被 SQL projection 丢掉），否则完整性检查会误报「请重跑」。
+
+**教训**：脚本报「网络不可达」时，先分清是**这个环境没有网**还是**地址写错**。在平台里一律是前者；再去改 endpoint、加重试、换库都是白费一轮。反过来，`getent`/`socket` 三连探针 10 秒就能定性，比猜快得多。

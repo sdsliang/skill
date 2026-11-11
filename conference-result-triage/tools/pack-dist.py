@@ -13,7 +13,7 @@ Contract
     reference present (a package that ships without either is broken by construction)
 
 Usage
-  tools/pack-dist.py           # build dist/conference-result-triage-v0.3.zip
+  tools/pack-dist.py           # build dist/conference-result-triage-v0.4.zip
   tools/pack-dist.py --check   # rebuild in memory, compare with the dist file
 """
 
@@ -28,7 +28,7 @@ import zipfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "skill", "conference-result-triage")
-VERSION = "v0.3"
+VERSION = "v0.4"
 NAME = "conference-result-triage"
 OUT = os.path.join(REPO, "dist", f"{NAME}-{VERSION}.zip")
 PREFIX = NAME + "/"

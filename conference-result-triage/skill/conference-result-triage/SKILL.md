@@ -34,26 +34,47 @@ mkdir -p /workspace/work /workspace/output
 
 ### Step 1 — 拉全量结果行（唯一允许取数通道）
 
+**先记住一条硬事实：平台工作区没有任何网络。** 在 chat 里实测过：in-cluster 数据服务器 `172.17.26.74:30080` 报 `Network is unreachable`，公网域名全部 `Temporary failure in name resolution`，`env` 里也没有任何 MCP 端点变量。所以**脚本不可能自己去连 MCP**——数据必须由「你调用平台工具」进来，再由脚本解析。
+
+好在平台自己会把工具结果落盘：MCP 工具的返回值只要是列表，就会被写到 `/workspace/tool_results/<工具名>/<call-id>.jsonl`（每行一个 JSON row，强制落盘，不看大小），你在上下文里只看到前 5 + 后 5 行预览。**这意味着整场 1097 行可以用一次工具调用取全，而且不花上下文。** 正确姿势就两步：
+
+1. **你调用工具** `pharmcube-query-clinical-result-with-params`，参数 `meeting_tags="ESMO 2026"`（或对应会议名）、`selected_fields` 用 `pull_results.py --list-fields` 打出来的那份清单（**逐字复制，别改名**）。工具回一句 "too large … saved to /workspace/tool_results/…"，把那个路径记下来。
+2. **脚本解析落盘文件**：
+
 ```bash
-python3 $S/pull_results.py --conference "ESMO 2026" --out /workspace/work/rows.json
+S=/workspace/skills/conference-result-triage/scripts
+mkdir -p /workspace/work /workspace/output
+python3 $S/pull_results.py --from-tool-results /workspace/tool_results --out /workspace/work/rows.json
 ```
 
-它走 Tool Smith 数据服务器的 MCP 工具 `query-clinical-result-with-params`，**禁止**改去查 Elasticsearch：平台工作区读不到结果表，而 ES 侧的 `np_clinical` 没有 `lba` 列，一旦绕路就会把整个 late-breaking 层静默丢掉。
+`--from-tool-results` 接受目录、glob 或单个文件，会跨多个 dump 去重合并，所以工具被切成几次调用也没关系。
 
-脚本内部做三件事，都是防静默失败的：
+> **这些 dump 在 turn 结束时会被清空。** 必须在**同一个 turn 内**解析完，`rows.json` 才是持久的落点。
 
-1. 先只取 id（一次回全量），再用 `esids` 切片取全字段（响应体约 6 MB 上限，35 字段的整场调用只会回 ~500 行且 `ok: true`）。
-2. `clinical_result.lba` 必须显式写进 `selected_fields`，否则键直接消失。
-3. `featured`（`是`= 人工生产 / `否`= 流水线抽取，**不是头条**）**不在** `with-params` 的可选字段白名单里，只能用平台自带的 `TEST_execute-sql` 拉一个 `extra_esid, featured, lba` 的三列旁表（整场约 100 KB），再按 esid 合回主表。它只用于卡片上的生产方式标注，不参与排序。这一步失败只降级、不中断（会有 `WARNING: featured sidecar unavailable`）。
+`featured`（`是`= 人工生产 / `否`= 流水线抽取，**不是头条**）不在 `with-params` 的白名单里，需要另一次 `TEST_execute-sql` 调用：
+
+```sql
+SELECT extra_esid, featured, lba FROM clinical_trial_result_structured WHERE journal='ESMO 2026'
+```
+
+同样会落成一个 jsonl，然后加 `--flags-from /workspace/tool_results/pharmcube-TEST_execute-sql` 合回主表。它只用于卡片上的生产方式标注、**不参与排序**；这一步失败只降级不中断（会打 `WARNING: featured sidecar matched 0 rows`）。
 
 成功输出形如：
 
 ```
 flags: sidecar=1100 matched=1097 featured=97
-rows=1097 requested=1097 missing=0 lba=73 featured=97 with_abstract_text=1097 -> /workspace/work/rows.json
+rows=1097 lba=73 featured=97 with_abstract_text=1097 -> /workspace/work/rows.json
 ```
 
-`missing>0` 说明有 id 没回记录：把那些 id 单独再查一次，不要带着缺口建池。
+`missing>0` 或 `WARNING: … requested fields are absent` 说明有 id/字段没回：把那些 id 单独再查一次，不要带着缺口建池。
+
+有三件事容易静默出错，脚本已经内置防线：
+
+1. `clinical_result.lba` 必须显式写进 `selected_fields`，否则这个键直接消失 —— 整层 late-breaking 变哑。
+2. 宽字段一次性拉会被工具截断在 ~6 MB 且仍 `ok: true`；走落盘 dump 就没有这个问题，若你改成自己分片拉，先只取 id 再按 `esids` 切片。
+3. `featured`/`lba` 旁表的 esid 在 SQL 侧是 `24_37_p_…`、在 `with-params` 侧是 `nr_24_37_p_…`，脚本会剥 `nr_` 前缀（不剥会静默丢 97 条正是人工核对的行）。
+
+**不要**用 `pull_results.py` 的直连模式（不带 `--from-tool-results`）：那是给本地/有外网环境用的，在平台里必然 `Network is unreachable`。
 
 ### Step 2 — 机械筛（无判断）
 
@@ -234,3 +255,4 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 - **v0.1** — 首版，ESMO 2026 全量实跑（467 候选 → 30 条）。
 - **v0.2** — Results 不截断 + 会议摘要库并列数据源 + 报告形式加权 + 人群难度分档；候选 532，evidence 逐字 100%，专家 7 条 keep 3/7 → 5/7。
 - **v0.3** — 改为平台内执行：取数唯一走 MCP（`pull_results.py` 两阶段切片），补 `clinical_result.lba`（v0.2 漏选导致整类 LBA 丢失），`PRESENTATION_RANK` 修正（Presidential/LBA 不再被压到普通口头之下），会议库标题 join 补回 LBA 编号（57/57），交付物改为 `/workspace/output/watchlist.json` 卡片清单。候选 551（early 200 / pivotal 292 / failed 59）。
+- **v0.4** — 平台工作区实测**无网络**：取数改为「你调工具 → 结果落 `/workspace/tool_results/*.jsonl` → `pull_results.py --from-tool-results` 解析」，整场 1097 行 0 上下文成本；`featured` 更正为人工/AI 生产标记（`是` 100/100 = `source=np_result_conf`），撤掉 Featured 层级，报告形式只剩 `lba`；`featured` 字段改名 `manual`,只做卡片标注。
