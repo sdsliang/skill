@@ -136,3 +136,39 @@ else: 保留机器分桶
 **定榜排序不能只靠机器 sort。** 池子按 `(presentation_rank, -n)` 排，那是**为读的次序**，不是推荐次序。ESMO 2026 实测：7 条专家选择在机器序里排名为 2 / 19 / 27 / 72 / 101（另有 2 条判 weak 未入 keep），两条壁报 `1029P`、`2567P` 因 n 小被压到 72 和 101 名 —— 壁报档里 n 大的平庸研究一定压过 n 小的耐药人群研究。所以定榜由人（或复核模型读完全部 keep 后）排序，脚本只负责按给定顺序渲染（`scripts/make_watchlist.py` 就是只渲染、不排序）。
 
 **定榜要交付三件**：`judgements.csv`（全量判定，机器桶与复核桶并排）· `watchlist.csv` / `watchlist.md`（定榜）· `history.md`（同资产历次读数）。
+
+## 8. 平台内执行（v0.3）：子任务委派契约
+
+候选超过 40 条时，主线程不逐批读，改派 `task`。子代理**不继承本 Skill 的 prompt 与 references**，所以每个 `task` 的 description 必须自带完整契约：
+
+```
+1. 读 /workspace/work/pool/review_<n>.json（含 items 数组）
+2. 逐条判读全部 items，不得跳过
+3. 每条输出 {i, bucket, verdict, reason, evidence, key_numbers}
+   - i 原样抄，不改动，不用 esid 索引
+   - bucket ∈ early|pivotal|failed，按证据强度重判；lba=true 不自动升 pivotal
+   - verdict ∈ keep|weak|drop（阈值见下）
+   - reason ≤40 个汉字，必须点出人群难度档
+   - evidence 必须是该条 results 或 background 的**连续原文子串**（≤120 字符）：
+     不拼接两个分离句子、不改写、不去表格 `|`、不翻译
+   - key_numbers 只列带单位数字（%、月、HR、OR/CI、p），不列纯计数/年龄
+4. 写 JSON 数组到 /workspace/work/judged_<n>.json（UTF-8，不留占位）
+5. 读回该文件确认是合法数组且条数等于输入条数，回复一行 OK <条数>
+```
+
+一次性把 2–3 个批文件分给一个子任务；**所有 `task` 调用放在同一条消息里**（分开发会串行执行）。文件体积上限按 40 KB 控制，超过就再切——工具的读取上限会让子代理只看到半截，而它不会报错。
+
+合并前主线程必须跑机械校验（条数 / `i` 覆盖 / `evidence` 子串 / `reason` 长度）。**校验不过整批重跑，不许手工修补**：一个"看起来合理"的 evidence 是不可核验的。
+
+## 9. verdict 阈值（子任务里要重述，不能只写"按协议"）
+
+| 人群 | ORR 门槛 |
+|---|---|
+| 一线 / 初治，非耐药 | ≥ 40% |
+| 后线（≥2 线）或明确耐药 | ≥ 25% |
+
+降档**必须把人群写进 reason 或 evidence**（几线、既往失败过什么）。9MW2821 在 TOP1i-ADC 耐药 TNBC 的 ORR 30.0% / mPFS 3.7 mo 就是这条规则的来源。
+
+其它 keep 条件：HR ≤ 0.75、OS 绝对获益 ≥ 3 月、明确阴性结论。
+`weak`：有数字但 n<20、单臂极小、关键数字只在未给出的表里、一般人群 ORR 25–40% 且无其它支撑。
+`drop`：只有安全性 / PK / 生物标志物 / HRQoL，或只说"将继续评估"。

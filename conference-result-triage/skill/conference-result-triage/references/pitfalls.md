@@ -2,13 +2,21 @@
 
 按"会不会让结论错"排序。
 
-## 1. `lba` 字段全为 None
+## 1. `clinical_result.lba` 必须显式写进 `selected_fields`（v0.3 修正：旧结论「全部为 None」是错的）
 
-**现象**：`base.abbreviation_label` 里能查到 `lba / interim / final / subgroup` 等标记，但结构化表返回的 `lba` 对所有行都是 None。
+**现象**：字段确实存在，返回 `"LBA"` 或 null。ESMO 2026 共 1097 行里有 **73 行 `lba=="LBA"`，且 73/73 带完整 `abstract_text`**。但如果 `selected_fields` 里没列它，返回的记录就**没有这个 key** —— 不报错、不警告，看起来就像这批数据根本没有 LBA 一样。v0.2 因此把整类 late-breaking 当普通记录处理，12 条 Presidential 摘要（DeLLphi-305、SAFFRON、INTerpath-001、VOLGA …）全部漏选。
 
-**后果**：不能用 LBA 判断"是不是重磅/首次公布"。只能从 `abstract_text` 的措辞推断（见 `screening-rules.md` §5）。
+**后果**：不只是少一列。
+- 拿不到 LBA，`PRESENTATION_RANK` 就把 late-breaking 层压到普通口头之下；
+- 分桶的「只在会议摘要库里 ⇒ 只进 early」硬门会误伤 LBA（它们是最高证据档，不是首次人体数据）；
+- 定榜时读者看不到任何 LBA 标记。
 
-**处置**：榜单不引入 LBA 信号；如需按 LBA 分组，得另行从 np_clinical 原始字段补。
+**处置**：
+1. 取数固定用 `scripts/pull_results.py`（`DEFAULT_FIELDS` 已含 `clinical_result.lba`），不要手写字段集。
+2. 建池后断言 `lba` 计数非零，为零就说明字段没取回来。
+3. `lba` 是**布尔标记，没有编号**。编号（`LBA3`、`LBA57`）只在会议摘要库里，靠标题 join 补回（ESMO 2026：57/57 命中，见 `scripts/attach_abstract_ids.py`）。
+
+**教训**：「某字段不存在」这个结论，必须先读完运行时 `selected_fields` 的 `ALLOWED_FIELD_NAMES` 全文再下。
 
 ## 2. `evaluation` 是记录级枚举，不是试验级
 
@@ -141,3 +149,19 @@
 **现象**：池子按 `(presentation_rank, -n)` 排，本意是"先读重要档"。但 7 条专家选择在机器序里的位置是 2 / 19 / 27 / 72 / 101。壁报档里 `1029P`（CTS3497，28 例 MTAP 缺失 ORR 43%）、`2567P`（BG-C477，43 例 CEA ADC）被 n 更大的平庸壁报压到 72、101 名。
 
 **处置**：机器序只决定"读的顺序"，定榜顺序交给读完 keep 的人。`scripts/make_watchlist.py` 只按给定顺序渲染，不做排序，就是为了不让这个隐含假设重新长回来。
+
+## 18. 宽字段整场调用会被 ~6 MB 响应体上限静默截断
+
+**现象**：`query-clinical-result-with-params` 一个 1 字段调用（`clinical_result.paper_title`）能回全量 1097 行；换成 6 个字段，仍然 `ok: true`、`actual_result_count` 看着正常，但实际只回了约 500 行。35 字段的整场调用同样止步在 ~500 行。没有任何错误码、没有 truncated 标志。
+
+**后果**：如果直接建池，会得到一个"看起来跑通了"的半场候选池——failed 桶和 late-breaking 桶尤其容易整段消失（它们在表里位置靠后）。这类错误不会在断言里报出来，只会在复盘时发现"某某研究怎么没进榜"。
+
+**处置**：`scripts/pull_results.py` 固定两阶段——先只取 id（单字段，一次回全量），再按 `esids` 切片（默认 120 个/次）取全字段。**不要为了省时间把 slice 调到一次装下全场**；判定标准是返回行数，不是 HTTP 200。
+
+## 19. `PRESENTATION_RANK` 层级倒置：late-breaking 被压到普通口头之下
+
+**现象**：v0.2 的 rank 表把纯 `LBA<n>`（如 `LBA3`）当成 rank 3，普通口头 `1234O` 是 rank 1，于是 Presidential 级读数在池内排序里排到所有普通口头后面。
+
+**后果**：池内顺序决定读的顺序，也影响定榜时"同等证据、谁先上"的判断。DeLLphi-305 / SAFFRON 这类会议头条因此在 v0.2 里根本没进候选池（叠加了 §1 的字段漏选），复盘时表现为"专家挑的 7 条里有 4 条我们没进榜"。
+
+**处置**：层级改为 `Late-breaking Oral: 0` → `Oral / Late-breaking: 1` → `Rapid Oral: 2` → `Poster: 4` → `ePoster: 5` → `Unknown: 9`；纯 `LBA<n>` 与 `LBA<n>O` 都按 `Late-breaking Oral` 处理。`triage.py --self-test` 里有对应断言（`presentation_of("2041P")[1] > presentation_of("LBA3")[1]`）。

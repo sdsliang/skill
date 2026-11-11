@@ -1,11 +1,50 @@
-# 数据契约（np_clinical via MCP）
+# 数据契约（平台内执行版 v0.3）
 
-## 1. 入口
+## 0. 在 TS 上唯一允许的取数方式
 
-唯一数据路径：ToolSmith 的 MCP 工具 `pharmcube-query-clinical-result-with-params`
-（底层表 `TableName.CLINICAL_TRIAL_RESULT_STRUCTURED`）。
+```bash
+python3 /workspace/skills/conference-result-triage/scripts/pull_results.py \
+    --conference "ESMO 2026" --out /workspace/work/rows.json
+```
 
-调用方式（本地脚本 / 排查用）：
+它连的是 **TS 数据服务器**（`MCP_PHARMCUBE_ENDPOINT_URL`，默认内网 `http://172.17.26.74:30080/mcp/`），
+工具名用 `tools/list` 自动发现（匹配 `query-clinical-result`），固定两阶段：
+
+1. 只取 `clinical_result.extra_esid` → 一次拿全场 id（1097 条，body 很小）；
+2. 按 `esids` 切片（默认 120/次）取全字段。
+
+**禁止**改成一次取全字段、也**禁止**改去查 Elasticsearch。两条都会静默出错：
+
+| 错误做法 | 静默后果 |
+|---|---|
+| 一次取 35 字段全量 | 响应体约 6 MB 上限，只回 ~500 行且 `ok: true`，池子少一半 |
+| 直连 ES `np_clinical` | 该索引**没有 `lba` 列**，整类 late-breaking 丢失（v0.2 的 12 条 Presidential 摘要就是这么没的） |
+
+`pull_results.py` 的 `DEFAULT_FIELDS` 是唯一字段集来源，**不要手写**：
+
+```
+clinical_result.extra_esid, lba, paper_title, journal, paper_release_time,
+abbreviation_label, abstract_text, summary, key_evidence, study_results,
+evaluation, evidence_source, trial_abbreviation, primary_endpoint_all_name,
+primary_endpoint_en, group_count, projects, indication_name, indication_name_en,
+therapy_line_en, therapy_line_cn, randomized, random_ratio, trial_control,
+blinded, multi_center, clinical_stage_en, clinical_stage_cn, layer_factor,
+full_article_link, doi, pm_id, research_design.evaluation.text,
+base.abbreviation_label.text
+```
+
+写入点是**点号**名，返回的 key 是**下划线**名（`clinical_result.lba` → `clinical_result_lba`），
+`triage.py` 已按后者读取。
+
+成功判据（不看 HTTP 状态，看这行输出）：
+
+```
+rows=1097 requested=1097 missing=0 lba=73 with_abstract_text=1097
+```
+
+`missing>0` 要把那些 id 单独再查一次；`lba=0` 说明字段没取回来（见 `pitfalls.md` §1）。
+
+## 1. 直连调试入口（仅排查，不是 skill 的数据路径）
 
 ```
 POST {TS_BASE}/api/tools/debug
@@ -13,18 +52,14 @@ Authorization: Bearer $TS_TOKEN
 {
   "name": "pharmcube-query-clinical-result-with-params",
   "mcp_server_id": "pharmcube",
-  "arguments": {
-    "meeting_tags": "ESMO 2026",
-    "selected_fields": [ ...见下... ]
-  }
+  "arguments": {"meeting_tags": "ESMO 2026", "selected_fields": [ ...见下... ]}
 }
 ```
 
-- `meeting_tags` **精确匹配**（不是模糊搜索）。ESMO 2026 → 1338 原始行，1.1 s 量级。
-- 同一试验会返回多行（按 arm / endpoint 拆行）。**必须按 esid 去重**：1338 → 988。
-- `selected_fields` 必须是字段白名单里的**原样字符串**（大小写敏感）。写错直接 `BadRequestException`，不会静默忽略。
-
-> 不走 ES 直连的原因：ES 里 `np_clinical` 与 `np_result` 的口径不同（ESMO 2026：945 vs 332），且 `np_clinical_conference` 索引对本账号 403。结构化表是唯一能拿到 `study_results`（含 p / HR / CI）的路径。
+- `meeting_tags` **精确匹配**（不是模糊搜索），写错得到空集。
+- 同一试验会按 arm / endpoint 拆多行，**必须按 esid 去重**。
+- `selected_fields` 用字段白名单的原样字符串（大小写敏感）；写错 `BadRequestException`，但**漏写不会报错**——这就是 `lba` 被漏掉的方式。
+- `clinical_result__id` 不能作为 `selected_fields` 传入（`INVALID_INPUT`），但会在返回行里出现，就是 `esid`。
 
 ## 2. 字段清单（15 个，实跑可用）
 

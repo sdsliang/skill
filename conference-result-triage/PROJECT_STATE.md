@@ -1,8 +1,44 @@
 # PROJECT_STATE — conference-result-triage
 
-## 现状（2026-10-23，v0.2 完成）
+## 现状（2026-11-11，v0.3 改为平台内执行）
 
-**状态**：v0.2 本地完成并出全量 ESMO 2026 榜；未发布 ToolSmith（用户明确要求"先不碰 TS 发布"）。
+**状态**：v0.3 完成，**目标形态是 ToolSmith 平台内运行**（不是本地脚本跑批）：用户在 TS 会话里给一个会议名，agent 拉全量结果 → 机械筛 → 逐批判读 → 输出 `/workspace/output/watchlist.json` 卡片清单 → `present_artifact`。仍未发布 TS（用户要求发布前须单独确认）。
+
+**目录已对齐 `clinical-result-comparison` 的形态**：
+
+```
+skill/conference-result-triage/{SKILL.md, references/, templates/, scripts/}
+system-prompts/conference-result-triage-v0.3.md
+tools/pack-dist.py     -> dist/conference-result-triage-v0.3.zip (16 entries)
+```
+
+平台把 zip 解到 `/workspace/skills/conference-result-triage/`，所以 SKILL.md 里的脚本一律按 `/workspace/skills/conference-result-triage/scripts/...` 调用。
+
+## v0.3 改了什么（相对 v0.2）
+
+| 项 | v0.2 | v0.3 |
+|---|---|---|
+| 取数 | 本地直连 `/api/tools/debug`，缺 `lba` | `scripts/pull_results.py` 走 MCP，`lba` 在 `DEFAULT_FIELDS` |
+| 大响应 | 一次取全字段，静默只回 ~500 行 | 两阶段：先 id 全量，再 `esids` 切片 120/次（1097/1097） |
+| LBA 排序 | 纯 `LBA<n>` rank 3，被压到普通口头下 | `Late-breaking Oral: 0`，高于 `Oral: 1` |
+| LBA 分桶 | 「只在会议库 ⇒ 只进 early」把 LBA 一并误伤 | LBA 行豁免，可进 pivotal/failed |
+| 摘要号 | 池内 LBA 无编号 | `attach_abstract_ids.py` 标题 join，57/57 补回 `LBA<n>` |
+| 交付物 | `watchlist.md` + 两个 csv | `/workspace/output/watchlist.json` 卡片清单（固定路径） |
+| 闸门 | 无 | `check_cards.py` fail-closed（exit 3） |
+| 候选池 | 532 | **551**（early 200 / pivotal 292 / failed 59），37 批 |
+
+NATALEE / NSABP B-42 / INTerpath-001 / DASL-HiCaP / LOMAC / CAPItello-281 / DUO-E / CheckMate 8HW / DeLLphi-305 等 LBA 已全部进 pivotal 桶。
+
+## 交付 schema
+
+```json
+{"conference":"ESMO 2026","count":30,"cards":[
+ {"esid":"...","abstract_id":"LBA3","lba":true,"bucket":"pivotal","tag":"LBA",
+  "title":"...","summary":"...","why":"...","drug":"","target":"","indication":"",
+  "phase":"Phase III","presentation":"Late-breaking Oral","stock":null}]}
+```
+
+`esid` = 结果记录 id；`stock` 只在给了 `--quotes` 同日行情时非空，否则 `null`（不用其它日期顶替）。
 
 ## 是什么
 

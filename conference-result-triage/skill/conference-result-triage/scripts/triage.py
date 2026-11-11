@@ -160,15 +160,21 @@ EVIDENCE_TOKEN_RE = re.compile(
 TABLE_MARK_RE = re.compile(r"\bTables?\b\s*[:.]?\s*[0-9A-Za-z]*")
 PCT_RE = re.compile(r"\d+(?:\.\d+)?\s*%")
 
-# abstract_id suffix -> presentation tier (the single strongest conference prior).
+# Presentation tier (the single strongest conference prior): lower rank reads first.
+# A bare ``LBA<n>`` id is the late-breaking *main list* (Presidential symposium /
+# proffered session), not a lesser slot: it must never rank below a plain poster
+# or a plain oral. Before v0.3 this map put "Late-breaking" at rank 3, which
+# silently pushed the whole Presidential tier below every ordinary oral.
 PRESENTATION_RANK = {
+    "Late-breaking Oral": 0,
     "Oral": 1,
-    "Late-breaking Oral": 1,
+    "Late-breaking": 1,
     "Rapid Oral": 2,
     "Late-breaking Rapid Oral": 2,
-    "Late-breaking": 3,
     "Poster": 4,
+    "Late-breaking Poster": 4,
     "ePoster": 5,
+    "Late-breaking ePoster": 5,
     "Unknown": 9,
 }
 
@@ -287,19 +293,26 @@ def is_trial_in_progress(row: Dict[str, Any]) -> bool:
     return False
 
 
-def presentation_of(abstract_id: Optional[str]) -> Tuple[str, int]:
+def presentation_of(abstract_id: Optional[str], lba: bool = False) -> Tuple[str, int]:
     """Derive presentation tier from the abstract number suffix.
 
     Observed ESMO 2026 numbering: ``1234O`` proffered paper (oral), ``1234RO``
     rapid oral, ``1234P`` poster, ``1234eP`` online-only ePoster, ``1234eTiP``
-    online trial-in-progress (never a candidate), optional ``LBA`` prefix marks
-    late-breaking. Returns ``(label, rank)`` -- lower rank is a stronger slot.
+    online trial-in-progress (never a candidate). ``LBA`` may appear either as a
+    prefix (``LBA34``, ``LBA95O``) or only as a boolean flag on the result row
+    (the structured table exposes ``lba="LBA"`` but no abstract number), so the
+    flag is accepted directly. A bare ``LBA<n>`` has no suffix to decode and is
+    the late-breaking main list -> ``Late-breaking Oral``.
+
+    Returns ``(label, rank)`` -- lower rank is a stronger slot.
     """
     t = (abstract_id or "").strip().upper()
+    is_lba = bool(lba) or t.startswith("LBA")
     if not t:
+        if is_lba:
+            return "Late-breaking Oral", PRESENTATION_RANK["Late-breaking Oral"]
         return "Unknown", PRESENTATION_RANK["Unknown"]
-    lba = t.startswith("LBA")
-    core = t[3:] if lba else t
+    core = t[3:] if t.startswith("LBA") else t
 
     m = re.match(r"^\d+\s*(e?)\s*(RO|O|P|TIP)$", core, re.I)
     if m:
@@ -315,8 +328,16 @@ def presentation_of(abstract_id: Optional[str]) -> Tuple[str, int]:
     else:
         base = "Unknown"
 
-    if lba:
-        base = "Late-breaking" if base == "Unknown" else "Late-breaking " + base
+    if is_lba:
+        base = {
+            "Unknown": "Late-breaking Oral",
+            "eOral": "Late-breaking Oral",
+            "Oral": "Late-breaking Oral",
+            "Rapid Oral": "Late-breaking Rapid Oral",
+            "eRapid Oral": "Late-breaking Rapid Oral",
+            "Poster": "Late-breaking Poster",
+            "ePoster": "Late-breaking ePoster",
+        }.get(base, "Late-breaking Oral")
     return base, PRESENTATION_RANK.get(base, PRESENTATION_RANK["Unknown"])
 
 
@@ -660,12 +681,17 @@ def build_pools(
         # released days before the meeting may not have been curated yet --
         # BG-C477 / 2567P was the demonstration). Their phase comes from prose,
         # so they are never trusted for the late-phase or failed buckets.
-        if str(row.get("_id") or "").startswith("mm:") and bucket != "early":
+        # Exception: a row flagged ``lba`` is the highest-evidence tier, not
+        # first-in-human noise, so it is allowed into the late buckets. The flag
+        # comes from ``clinical_result.lba`` on the TS result table (v0.3+);
+        # meeting-book-only rows never carry it.
+        is_lba_row = bool(row.get("lba"))
+        if str(row.get("_id") or "").startswith("mm:") and bucket != "early" and not is_lba_row:
             excluded["会议库独有(非早期阶段)"] += 1
             continue
         res_text, res_src = results_of(row)
         abstract_id = first_text(row.get("abstract_id"))
-        pres_label, pres_rank = presentation_of(abstract_id)
+        pres_label, pres_rank = presentation_of(abstract_id, is_lba_row)
         entry = {
             "esid": row.get("_id"),
             "abstract_id": abstract_id,
@@ -687,6 +713,7 @@ def build_pools(
             "abstract_text": first_text(row.get("abstract_text")),
             "results_text": res_text,
             "results_source": res_src,
+            "lba": is_lba_row,
             "presentation": pres_label,
             "presentation_rank": pres_rank,
             "refractory": refractory_of(first_text(row.get("abstract_text")),
@@ -736,7 +763,8 @@ def missing_abstract(pool: Dict[str, Any]) -> int:
 
 def to_csv(pool: Dict[str, Any], path: str) -> None:
     cols = [
-        "bucket", "esid", "trial", "indication", "phase", "evaluation", "n",
+        "bucket", "esid", "abstract_id", "lba", "presentation", "trial",
+        "indication", "phase", "evaluation", "n",
         "key_evidence", "primary_endpoint", "randomized", "blinded", "trial_control",
         "data_type", "machine_signal", "machine_endpoint_call", "has_summary", "has_abstract",
     ]
@@ -759,6 +787,9 @@ def to_csv(pool: Dict[str, Any], path: str) -> None:
                 writer.writerow({
                     "bucket": bucket,
                     "esid": item["esid"],
+                    "abstract_id": item.get("abstract_id") or "",
+                    "lba": item.get("lba") or "",
+                    "presentation": item.get("presentation") or "",
                     "trial": item["trial"] or "",
                     "indication": "; ".join(item["indication"]),
                     "phase": item["phase"] or "",
@@ -836,6 +867,7 @@ def batch_record(bucket: str, item: Dict[str, Any]) -> Dict[str, Any]:
         "bucket": bucket,
         "esid": item["esid"],
         "abstract_id": item.get("abstract_id"),
+        "lba": bool(item.get("lba")),
         "presentation": item.get("presentation"),
         "trial": item["trial"],
         "indication": item["indication"],
@@ -979,8 +1011,13 @@ def _self_test() -> int:
     check(presentation_of("1000O")[0] == "Oral", "1000O -> oral")
     check(presentation_of("2567P")[0] == "Poster", "2567P -> poster")
     check(presentation_of("3128eP")[0] == "ePoster", "3128eP -> eposter")
-    check(presentation_of("LBA34")[0] == "Late-breaking", "LBA34 -> late breaking")
+    check(presentation_of("LBA34") == ("Late-breaking Oral", 0),
+          "bare LBA34 -> late-breaking main list")
     check(presentation_of("LBA95O")[0] == "Late-breaking Oral", "LBA95O -> LBA oral")
+    check(presentation_of(None, True)[0] == "Late-breaking Oral",
+          "lba flag without a number still outranks a poster")
+    check(presentation_of("2041P")[1] > presentation_of("LBA3")[1],
+          "LBA main list reads before any poster")
     check(presentation_of("2041eTiP")[0] == "Unknown", "eTiP is not a tier")
     check(is_tip_abstract_id("2041eTiP") is True, "eTiP detected as trial-in-progress")
     check(is_tip_abstract_id("2567P") is False, "poster is not TiP")
