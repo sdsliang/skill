@@ -1,5 +1,29 @@
 # PROJECT_STATE — conference-result-triage
 
+## 平台内实跑验证（2026-11-11，v0.4）
+
+**数据层已在 ToolSmith 真跑打通**（标签 `slice-e2e`，模型 `GPT 6.1 Sol`，606 s，31 次工具调用，9 次落盘 18.4 MB）：
+
+```
+rows=1097 lba=73 with_abstract_text=1097 -> /workspace/work/rows.json
+coverage: 1097/1097 ids present
+self-test: OK
+candidates 551 / missing abstract 0
+```
+
+两条实测硬事实（写进 SKILL.md Step 1、系统提示词 step 2、pitfalls §21）：
+
+| 事实 | 证据 |
+|---|---|
+| **工作区没有网络** | `172.17.26.74:30080` → `Network is unreachable`；公网 → `gaierror -3`；`env` 无 MCP 端点。脚本不能自己连数据服务 |
+| **宽字段一次拉静默截断** | 32 字段 + `meeting_tags` 只回 **458/1097**，`ok: true` 无报错；id-only 回全 1097 |
+| `selected_fields` 混入线上白名单外的名字 | `research_design.evaluation.text` / `base.abbreviation_label.text` → 整次调用 `INVALID_INPUT`，**一行都不回** |
+| `featured` 取不到 | 不在白名单；`TEST_execute-sql` 不能绑项目（400） → `manual` 恒 `null`（三态，`check_cards` 拒绝改成 true/false） |
+
+**取数四阶段**（平台版）：id-only 调用 → `plan_slices.py --size 150` → 每片 `esids` 调用 → `pull_results.py --from-tool-results --expect-ids` 合并校验。落盘路径 `/workspace/tool_results/<tool>/<call-id>.jsonl`，**turn 结束时清除**。
+
+TS 侧：project `d1c193d7809d4c04ba5423942523f91c`，prompt family `3fa0f27ef41648c0a968bb7b9a76adfb`，skill family `69db628c867b4bf2acf8477789562c96` / skill_id `230463cbc03d4fe5ba0e2e8964fe91dd`（v0.3.0，17 entries），`toolsmith-publish status` → **in sync**。
+
 ## 现状（2026-11-11，v0.3 改为平台内执行）
 
 **状态**：v0.3 完成，**目标形态是 ToolSmith 平台内运行**（不是本地脚本跑批）：用户在 TS 会话里给一个会议名，agent 拉全量结果 → 机械筛 → 逐批判读 → 输出 `/workspace/output/watchlist.json` 卡片清单 → `present_artifact`。仍未发布 TS（用户要求发布前须单独确认）。
@@ -8,8 +32,8 @@
 
 ```
 skill/conference-result-triage/{SKILL.md, references/, templates/, scripts/}
-system-prompts/conference-result-triage-v0.3.md
-tools/pack-dist.py     -> dist/conference-result-triage-v0.3.zip (16 entries)
+system-prompts/conference-result-triage-v0.4.md
+tools/pack-dist.py     -> dist/conference-result-triage-v0.4.zip (17 entries)
 ```
 
 平台把 zip 解到 `/workspace/skills/conference-result-triage/`，所以 SKILL.md 里的脚本一律按 `/workspace/skills/conference-result-triage/scripts/...` 调用。

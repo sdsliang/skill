@@ -123,7 +123,7 @@ python3 $S/triage.py /workspace/work/rows.json --out-dir /workspace/work/pool --
 **二、`featured` 不是头条，是「人工 / AI 生产」标记。** 实测 `featured='是'` **100/100 就等于** `source='np_result_conf'` 那一档（人工核对过的结果），其余 1000 条 `np_clinical_conference` 全是 `否`（流水线抽取）。所以：
 
 - ❌ 不能拿它排序、不能拿它代表报告等级；
-- ✅ 只能作为每条卡片的生产方式标注（「人工核对」/「流水线抽取」），属于诚实声明的一部分。
+- ✅ 只能作为每条卡片的生产方式标注（「人工核对」/「流水线抽取」），属于诚实声明的一部分。**平台内取不到这个字段**（见 Step 1），所以卡片写 `manual: null` 并在正文说「生产方式未知」——`false` 是伪造结论，`null` 才是实话。
 
 `triage.py` 里 `manual` 字段就是它，`manual_of()` 只做布尔解析，`presentation_of()` **完全不看它**。
 
@@ -226,7 +226,7 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 ```
 
 - `esid` 是结果记录 id（用户要的"对应的结果id"）；`abstract_id` 是会议摘要号，平台内**恒为 `null`**（见 Step 3），有外网补库时才有值。
-- `manual` 是生产方式标记（人工核对 / 流水线抽取），**不是**推荐等级。
+- `manual` 是生产方式标记（人工核对 / 流水线抽取），**不是**推荐等级。平台内**恒为 `null`**（`featured` 不可选），`check_cards.py` 会拒绝把它改成 `true`/`false`。
 - 路径固定为 `/workspace/output/watchlist.json`：后端硬编码读取，改名即断链。同一工作区复跑就覆盖。
 - `write_file` 一律带 `overwrite=True`，包括首次写入。
 
@@ -276,4 +276,4 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 - **v0.1** — 首版，ESMO 2026 全量实跑（467 候选 → 30 条）。
 - **v0.2** — Results 不截断 + 会议摘要库并列数据源 + 报告形式加权 + 人群难度分档；候选 532，evidence 逐字 100%，专家 7 条 keep 3/7 → 5/7。
 - **v0.3** — 改为平台内执行：取数唯一走 MCP（`pull_results.py` 两阶段切片），补 `clinical_result.lba`（v0.2 漏选导致整类 LBA 丢失），`PRESENTATION_RANK` 修正（Presidential/LBA 不再被压到普通口头之下），会议库标题 join 补回 LBA 编号（57/57），交付物改为 `/workspace/output/watchlist.json` 卡片清单。候选 551（early 200 / pivotal 292 / failed 59）。
-- **v0.4** — 平台工作区实测**无网络**：取数改为「你调工具 → 结果落 `/workspace/tool_results/*.jsonl` → `pull_results.py --from-tool-results` 解析」，整场 1097 行 0 上下文成本；`featured` 更正为人工/AI 生产标记（`是` 100/100 = `source=np_result_conf`），撤掉 Featured 层级，报告形式只剩 `lba`；`featured` 字段改名 `manual`,只做卡片标注。
+- **v0.4** — 平台内实跑打通数据层。两条硬事实：①**工作区无网络**（in-cluster `Network is unreachable`、公网 DNS 全灭），取数改为「你调工具 → 结果落 `/workspace/tool_results/*.jsonl` → `pull_results.py --from-tool-results` 解析」；②**宽字段一次拉静默截断**（32 字段 + `meeting_tags` 只回 458/1097 且 `ok: true`），改为四阶段：id-only → `plan_slices.py` 切 150/片 → `esids` 逐片 → 合并 + `--expect-ids` 校验。实跑结果 `rows=1097 lba=73 coverage 1097/1097 candidates 551`（early 200 / pivotal 292 / failed 59），零网络、31 次工具调用、9 次落盘 18.4 MB、606 s。另修：`research_design.evaluation.text` / `base.abbreviation_label.text` 不在线上白名单（带上会让整次调用 `INVALID_INPUT`），`DEFAULT_FIELDS` 只用 32 个 `clinical_result.*`；`featured` 不可选 → `manual` 三态，平台内恒 `null`。

@@ -291,7 +291,7 @@ def is_trial_in_progress(row: Dict[str, Any]) -> bool:
     return False
 
 
-def manual_of(row: Dict[str, Any]) -> bool:
+def manual_of(row: Dict[str, Any]) -> Optional[bool]:
     """``clinical_result.featured`` (是/否) actually means **human vs machine produced**.
 
     Verified on ESMO 2026: ``featured='是'`` is exactly the ``source='np_result_conf'``
@@ -304,13 +304,23 @@ def manual_of(row: Dict[str, Any]) -> bool:
 
     Kept as metadata for the honesty statement on each card ("人工核对 / 流水线抽取"),
     never as a ranking signal.
+
+    Returns ``None`` when ``featured`` is absent, and that is the normal case on the
+    platform: ``featured`` is not in the deployed ``selected_fields`` whitelist, so the
+    pull cannot fetch it. ``False`` would be a *claim* ("the pipeline produced this"),
+    which is exactly the kind of invented certainty this Skill is supposed to refuse.
     """
     v = row.get("featured")
     if isinstance(v, bool):
         return v
     if isinstance(v, (list, tuple)):
         v = v[0] if v else None
-    return str(v or "").strip() == "是"
+    if v is None:
+        return None
+    text = str(v).strip()
+    if not text:
+        return None
+    return text == "是"
 
 
 def presentation_of(abstract_id: Optional[str], lba: bool = False) -> Tuple[str, int]:
@@ -1042,7 +1052,7 @@ def _self_test() -> int:
     check(manual_of({"featured": "是"}) is True, "featured 是 parsed")
     check(manual_of({"featured": ["是"]}) is True, "list-wrapped featured parsed")
     check(manual_of({"featured": "否"}) is False, "featured 否 parsed")
-    check(manual_of({}) is False, "missing featured is false, never guessed")
+    check(manual_of({}) is None, "missing featured is None (unknown), never guessed")
     # featured is provenance, never a read slot: a manual row with no lba must
     # still rank as Unknown, otherwise 100 machine-flagged rows get promoted.
     check(presentation_of(None, False)[1] == 9 and manual_of({"featured": "是"}),

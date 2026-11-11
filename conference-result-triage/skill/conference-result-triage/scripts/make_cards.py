@@ -11,7 +11,7 @@ Card shape::
       "esid":         "24_37_p_...",      # the clinical-result record id
       "abstract_id":  null,               # conference abstract number (null on TS)
       "lba":          true,               # late-breaking tag
-      "manual":       true,               # human-curated row vs pipeline-extracted
+      "manual":       true,               # human-curated? null = unknown (platform can't fetch featured)
       "bucket":       "pivotal",          # early | pivotal | failed
       "title":        "...",              # abstract title, verbatim
       "summary":      "...",              # what was reported, numbers included
@@ -77,8 +77,9 @@ def build_cards(plan: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
             "esid": esid,
             "abstract_id": spec.get("abstract_id") or item.get("abstract_id"),
             "lba": bool(item.get("lba") or spec.get("lba")),
-            "manual": bool(item.get("manual") if "manual" in item
-                           else spec.get("manual")),
+            # Tri-state on purpose: `featured` is not selectable on the platform, so
+            # "unknown" is the honest value and `false` would be a fabrication.
+            "manual": (item["manual"] if "manual" in item else spec.get("manual")),
             "bucket": spec.get("bucket") or item.get("_bucket"),
             "tag": spec.get("tag") or _auto_tag(item),
             "title": spec.get("title") or item.get("title") or "",
@@ -137,8 +138,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                   indent=2 if args.pretty else None)
         fh.write("\n")
     lba = sum(1 for c in cards if c["lba"])
-    manual = sum(1 for c in cards if c["manual"])
-    print(f"cards {len(cards)} (lba {lba} manual {manual}) -> {args.out}")
+    manual = sum(1 for c in cards if c.get("manual") is True)
+    unknown = sum(1 for c in cards if c.get("manual") is None)
+    print(f"cards {len(cards)} (lba {lba} manual {manual} unknown {unknown}) -> {args.out}")
     for b in BUCKETS:
         print(f"  {b}: {sum(1 for c in cards if c['bucket'] == b)}")
     if quotes:

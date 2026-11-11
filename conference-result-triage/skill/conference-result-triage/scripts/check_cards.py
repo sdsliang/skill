@@ -12,7 +12,9 @@ Checks
   2. every card has a non-empty ``title`` / ``summary`` / ``why``
   3. ``esid`` exists in the pool (no invented records)
   4. ``bucket`` is one of early|pivotal|failed
-  5. ``lba`` / ``manual`` are real booleans and match the pool row
+  5. ``lba`` is a real boolean and ``manual`` is true/false/null -- both must match
+     the pool row (``manual`` is null on the platform, where ``featured`` cannot be
+     selected; a card may not upgrade that to a claim)
   6. no placeholder text leaked (TODO/XXX/None/nan/{}/$VAR)
   7. ``summary`` carries at least one unit-bearing number
   8. every ``%`` / ``mo`` / ``HR`` / ``ORR`` figure in summary+why appears in that
@@ -120,11 +122,11 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]]) -> Tuple[
         # was produced. Optional key: older plans predate it and a missing key must
         # not fail -- but a present key must agree with the pool.
         if "manual" in card:
-            if not isinstance(card["manual"], bool):
-                fails.append(f"{tag}: manual must be boolean")
-            elif card["manual"] != bool(item.get("manual")):
+            if not isinstance(card["manual"], bool | None):
+                fails.append(f"{tag}: manual must be boolean or null")
+            elif card["manual"] != item.get("manual"):
                 fails.append(f"{tag}: manual={card['manual']} but pool row says "
-                             f"{bool(item.get('manual'))}")
+                             f"{item.get('manual')}")
         body = json.dumps(card, ensure_ascii=False)
         for ph in placeholder_hits(body):
             fails.append(f"{tag}: placeholder {ph!r} leaked into the card")
