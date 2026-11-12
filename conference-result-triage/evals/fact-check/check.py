@@ -40,7 +40,7 @@ import re
 import sys
 from typing import Dict, List
 
-EVALUATOR_REVISION = "2026-11-13-r5"
+EVALUATOR_REVISION = "2026-11-13-r6"
 
 # Presidential / late-breaking trials the X discussion concentrated on. Used by the
 # heat-coverage item, which is `warn`: the list must never be bent toward what was
@@ -563,6 +563,17 @@ def op_report_meta(sv, spec):
                     bad.append(f"{key} has an empty title")
                 if not re.match(r"^https?://\S+$", str(item.get("link") or "")):
                     bad.append(f"{key} link is not http(s)")
+                # v0.10: the platform verifier requires exactly these three keys, and
+                # the skill docs used to mention only title/link/date -- which is how
+                # ESC/EASL 2026 shipped 13 `{title, link}` entries and got refused
+                # after delivery. Same rule here so the fact layer cannot pass what
+                # the delivery gate rejects.
+                if sorted(item) != ["link", "paper_release_time_str", "title"]:
+                    bad.append(f"{key} keys {sorted(item)} != "
+                               f"['link','paper_release_time_str','title']")
+                stamp = str(item.get("paper_release_time_str") or "")
+                if stamp and not re.match(r"^\d{4}-\d{2}-\d{2}$", stamp):
+                    bad.append(f"{key} paper_release_time_str {stamp!r} is not a date")
     if bad:
         return False, "; ".join(bad[:4])
     return True, (f"skills={skills} lang={meta.get('lang')} "

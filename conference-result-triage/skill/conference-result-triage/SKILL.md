@@ -109,7 +109,7 @@ coverage: 1097/1097 ids present
 python3 $S/triage.py /workspace/work/rows.json --out-dir /workspace/work/pool --top 0
 ```
 
-产出 `pool/pool.json`（三桶 + excluded）、`pool/pool.md`（人眼速览）、`pool/review.jsonl`（复核批次）。ESMO 2026 基准（v0.6）：1097 行 → **592 候选**（early 200 / pivotal 306 / failed 86）+ excluded 505，40 批。
+产出 `pool/pool.json`（三桶 + excluded）、`pool/pool.md`（人眼速览）、`pool/review.jsonl`（复核批次）。基准（`--top 0`）：ESMO 2026（肿瘤，期别齐全）1097 → **592 候选**；ESC 2026（心血管，期别普遍缺失）242 → **164 候选**；ADA 2026 191 → 138；EASL 2026 214 → 135。**别拿 ESMO 的候选数当基线去判断另一场会议是否正常**——会议规模与期别填写习惯差一个量级。
 
 > **`--top 0` 就是「不截断」。** 这个参数只用于压 token 试跑：ESMO 2026 设 `--top 60` 会把 pivotal 第 64 名的 SAFFRON（LBA2）切掉，而榜上照样显示"已覆盖"。正式出榜必须全量判读，`--top N` 只写进试跑记录。
 
@@ -118,6 +118,7 @@ python3 $S/triage.py /workspace/work/rows.json --out-dir /workspace/work/pool --
 - **n 不作入榜门槛**，只做展示与并列次级排序。
 - **真实世界 / 回顾性 / 汇总分析 / 试验进行中不进三桶**，单独计入 `excluded`。但 **`前瞻性研究` 不是排除理由**——它是「真试验、分期没填」，73 条 ESMO 2026 LBA 里 16 条都是这个值，`lba` 为真仍进 pivotal（见 `references/screening-rules.md` §1.1.1）。
 - **试验分期取 `evidence_source`**，不是疾病分期 `clinical_stage`。
+- **没有期别的记录不丢，按设计归档（v0.10）**：肿瘤会为每条摘要填期别，心血管/代谢/肝病/神经**基本不填**——ESC 2026 的 242 条里 **123 条**没有任何期别（68 条 `evidence_source` 为空，59 条只写「前瞻性研究」），整批被判「无法归类」丢掉，而 ACACIA-HCM、ENRICH-AF、SAL003 就在其中，也就是那届会议的主场。现在的规则是：`随机化`/`平行分组`/`交叉设计` → **pivotal**，其余 → **early**，并在条目上写 `phase_inferred`（例：`随机化对照（按设计判定）`）。**这不是加评分，是补一个缺失字段**；卡片上要照实印「期别未标注（按设计判定）」，不许把推断写成 `Phase III`。ADA 2026 因此从 98 → 138 条候选，EASL 2026 从 80 → 135 条（bepirovirsen 那批功能性治愈读数原先整条被切）。
 
 ### Step 3 — 报告形式信号（平台内只剩 `lba`）
 
@@ -176,17 +177,30 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
 | `score_parts` | 五维 `evidence_strength≤30` / `effect_size≤25` / `clinical_impact≤25` / `novelty≤10` / `readout_maturity≤10`，**相加必须等于 `score`** |
 | `reason` | ≤40 个汉字，必须点出人群难度档 |
 | `evidence` | 该条 `results` 或 `background` 的**连续原文子串**，≤120 字符；不拼接、不改写、不去表格符号 |
-| `key_numbers` | 只列带单位数字（%、月、HR、OR/CI、p），不列纯计数 |
+| `key_numbers` | 只列带单位数字（%、个月、mg/dL、mmol/L、mL/min、IU/mL、mL、points、HR、OR/CI、p），不列纯计数。单位不在你手上那句话里就不要写 |
 
 **分数只能由判读产生，不能由脚本算。** 试过按 `phase` + `n` + 正则抓 HR/p 加权：安全性摘要被排到疗效摘要前面，`PR count = 3 subjects` 被读成缓解率。那种分是假精确。所以：你读完给分，脚本只查「五维相加 == 总分、各维不超上限」。
 
+`keep` 的判据是**「主要终点是否达成 + 效应量对这条治疗线是否有意义」**，不是某个固定阈值：
+
 | verdict | 条件 |
 |---|---|
-| keep | ORR 一线/初治 ≥40%，后线/耐药 ≥25%，或 HR ≤0.75，或 OS 绝对获益 ≥3 月，或明确阴性结论 |
-| weak | 有疗效数字但 n<20、单臂极小、关键数字只在表里；或一般人群 ORR 25–40% 且无其它支撑 |
+| keep | 主要终点达成且效应量足以改变这条线的选择；或明确的阴性/终止结论（失败桶照样高分） |
+| weak | 有疗效数字但样本极小（n<20）、单臂、关键数字只在表里，或效应量与该线现有方案拉不开 |
 | drop | 只有安全性 / PK / 生物标志物 / HRQoL，或只说"将继续评估"而无结果 |
 
-降档 ORR 门槛（后线 ≥25%）**必须把人群写进 `reason`/`evidence`**，否则不成立。
+阈值按领域自己定，写进 `reason` 才对得上账。同一会议的判读必须用同一把尺：
+
+| 领域 | 主终点长什么样 | 「有意义」大致长什么样 |
+|---|---|---|
+| 肿瘤 | ORR / PFS / OS | ORR 一线 ≥40%、后线 ≥25%；HR ≤0.75；OS 绝对获益 ≥3 个月 |
+| 代谢（糖尿病/肥胖） | HbA1c 降幅、体重降幅 % | HbA1c ≥0.8%（对照已用 SGLT2/GLP-1 时 ≥0.5%）、体重 ≥10–15%，且安全性可长期用 |
+| 心血管 | MACE / 事件 HR、LDL-C 降幅、运动能力 | 主要终点 HR ≤0.85 且 CI 不含 1；LDL-C 相对降幅 ≥30%；pVO2/KCCQ 有统计学与临床双达标 |
+| 肝病 | 病毒学/生化应答、纤维化 | 功能性治愈或应答率显著高于对照（如 PBC 生化应答差值 >20 个百分点）；组织学改善须配对活检 |
+| 神经 | 发作频率降幅、量表变化 | 发作频率降幅 ≥50% 且优于对照；量表变化超过 MCID |
+| 眼科/罕见病 | 视力 letters、年化事件率 | 与对照差异达预设主要终点且持续 ≥1 年 |
+
+**领域不在上表里就按「主要终点 + 效应量」自己判，不要套肿瘤阈值**。降档（后线/经治）**必须把人群写进 `reason`/`evidence`**，否则不成立。
 
 合并前先校验：`i` 覆盖必须等于池子条数、`evidence` 必须是原文子串、`reason` 长度合规。任一项不过整批重跑，不要凑数。
 
@@ -252,12 +266,13 @@ python3 $S/make_cards.py --pool /workspace/work/pool_labeled.json \
     --plan /workspace/work/plan.json --out /workspace/output/watchlist.json --pretty \
     --rows /workspace/work/rows.json
 python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
-    --pool /workspace/work/pool_labeled.json --rows /workspace/work/rows.json
+    --pool /workspace/work/pool_labeled.json --rows /workspace/work/rows.json \
+    --report /workspace/output/report.md
 ```
 
-`--rows` 只在有 `promoted` 卡片时才必需；给了它，池子外的 esid 必须带 `"promoted": "web"` 才放行。
+**`--rows` 永远必传**（v0.10 起是 `required=True`）。池子成员资格由脚本**用 `rows.json` 现场重算**（`recompute_pool()` 调 `triage.build_pools`）决定，`--pool` 只是展示字段的来源。原因是一次真实翻车：ESC 2026 那轮模型觉得 triage 删多了，自己拼了一个 `pool_ext.json` 当 `--pool`，闸门全绿，而事后事实层按 `work/pool/pool.json` 重算，判出 9 个池外 esid + 61 个查不到出处的数字。**不要手拼、不要手改 pool 文件**：觉得筛错了就重跑 `triage.py`，或在 `coverage_notes` 里写清哪类记录被规则切掉了。池子外的 esid 必须带 `"promoted": "web"` 才放行（且必须在 `rows.json` 里）。
 
-`check_cards.py` **必须 exit 0** 才能交付。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字（**按数值比对，不是子串**：`44%` 不会因为原文有 `44.7%` 或 `n=144` 而通过；`个月` 与 `mo` 一样会被扫描出来）、**每桶超过 10 条 / 全场超过 30 条**、**`score` 不是 0–100 整数或五维相加不等于总分**、**`why` 少于 60 字或只是复述 `summary`**、**`listed_company` 键缺失或给了假 ticker/假链接**、**任何行情字段回潮（`stock` / `reaction` / `change_pct` / `excess_pct`）**、**池子外的卡片没有 `promoted` 标记**、**`coverage_notes` 缺失或没写到两条边界**。
+`check_cards.py` **必须 exit 0** 才能交付（`--report` 一起传，否则只剩卡片层的检查）。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字（**按数值比对，不是子串**：`44%` 不会因为原文有 `44.7%` 或 `n=144` 而通过；`个月` 与 `mo` 一样会被扫描出来）、**每桶超过 10 条 / 全场超过 30 条**、**`score` 不是 0–100 整数或五维相加不等于总分**、**`why` 少于 60 字或只是复述 `summary`**、**`listed_company` 键缺失或给了假 ticker/假链接**、**任何行情字段回潮（`stock` / `reaction` / `change_pct` / `excess_pct`）**、**池子外的卡片没有 `promoted` 标记**（池子成员资格由 `rows.json` **现场重算**，手改或另拼一个 pool 文件不起作用）、**`coverage_notes` 缺失或没写到两条边界**。数字扫描覆盖的**单位**有：`%`、`个百分点`、`个月/周/天/年`、`mo/months`、`mmol/L`、`mg/dL`、`mg/L`、`g/dL`、`ng/mL`、`pg/mL`、`IU/mL`、`U/L`、`mL/min(1.73m2)`、`mL/kg/min`、`mL`、`kg`、`cm`、`mmHg`、`points`、`events/100` —— 单位不在这一列里，那类数字就**不被检查**，所以写数字时别自创单位。
 
 `coverage_notes` 必须写在交付 JSON 的顶层（见下「两个必须写进清单的诚实声明」）。v0.5 的实跑把它写成了别的字段名、v0.6 的实跑把边界写在 `coverage.boundary` 里 ⇒ 事实层 `A-H1` 两次都判失败：**边界只写在聊天回复里，下个月读 JSON 的人看不到**。所以这一条从"建议"升级成闸门，措辞不查（`无 p 或 HR` / `未列p或HR` / `没给 p 值或 HR` 都算），只查事实有没有落到交付物里。
 
@@ -297,7 +312,15 @@ lang: zh-CN
 - `skills` **必须是非空数组**，且只写**这一回合真的用过**的 skill。`conference-result-triage` 是必须项（它是产出这份清单的那个 skill）；没有实际调用的 skill 一个都不许写——宿主会拿它选主题，写错就是骗下游。
 - **不要用旧的业务字段 `type` 标识结果**（`type: 临床结果推荐` 这种）。宿主不再认它，写了也只是多一个不生效的键。
 - `date` 用 `YYYY-MM-DD`；`lang` 写实际语言（`zh-CN` / `en`）。
-- **引用机制可选，但声明了就必须对得上**：`citations: /workspace/output/citations.json` 里的键必须与正文的 `{{ref_N}}` **双向一一对应**（正文有 N 就必有 `ref_N` 条目，反之亦然），每个条目要有 `title` + http(s) `link`。平台内拿不到摘要原文链接，**没有任何可引用的外部来源时就不要写 `citations` 这一行，也不要在正文里留 `{{ref_…}}`** —— 编一个引用比不给引用糟得多。
+- **引用机制可选，但声明了就必须对得上**：`citations: /workspace/output/citations.json` 里的键必须与正文的 `{{ref_N}}` **双向一一对应**（正文有 N 就必有 `ref_N` 条目，反之亦然）。**每条恰好三个键、一个字都不能多不能少**：
+
+  ```json
+  {"ref_1": {"title": "Hot Lines revealed – ESC Congress 2026",
+             "link": "https://www.escardio.org/news/press/press-releases/...",
+             "paper_release_time_str": "2026-08-28"}}
+  ```
+
+  `title` 非空、`link` 必须 http(s)、`paper_release_time_str` 只写 `YYYY-MM-DD`（日期查不到就写 `""`，**不要编时间**）。写 `{title, link}` 两条会**在交付后被平台拒**（v0.10 实测 ESC/EASL 两场就是这么红的：文档没写这个键，模型就只写了两个）；现在 `check_cards.py --report` 会在交付前按同一口径拦住。平台内拿不到摘要原文链接，**没有任何可引用的外部来源时就不要写 `citations` 这一行，也不要在正文里留 `{{ref_…}}`** —— 编一个引用比不给引用糟得多。
 - 正文**只写内容**，标题/链接/日期这些元数据留在 `citations.json`，不要在正文里重复贴 URL 列表。
 - 一次请求只交**一套**最终产物（除用户明确要多语言版本）；不要在报告里同时放中英文两份清单。
 - `report.md` 和 `watchlist.json` 用 `write_file(overwrite=True)` 覆盖写。
@@ -380,6 +403,8 @@ lang: zh-CN
 
 ## 版本
 
+- **v0.10** — **跨疾病领域验证后的三处修正**（同一天并行跑 ADA 2026 / ESC 2026 / EASL 2026，只换 `meeting_tags`）。①**期别缺失不再是排除理由**：`bucket_of()` 对没有期别的记录按研究设计定桶（`随机化`/`平行分组`/`交叉设计` → pivotal，其余 → early），条目写 `phase_inferred`，卡片印「期别未标注（按设计判定）」而**不改 `phase`**。ESC 2026 的 242 条里 123 条（51%）原先被判「无法归类」丢掉，含 ACACIA-HCM / ENRICH-AF / SAL003；ADA 40 条（含 retatrutide 之外的多个代谢资产）、EASL 55 条（含 bepirovirsen 24 个月治愈读数）同理。候选数 ADA 98→138、EASL 80→135、ESC 54→164。②**`check_cards.py --rows` 改为必传、成员资格改为现场重算**：e2e #10 用自拼的 `pool_ext.json` 绕过闸门放进了 9 个池外 esid；现在 `recompute_pool()` 用 `triage.build_pools` 重建池子，`--pool` 只提供展示字段，池文件与重算不一致会出 note。③**数字扫描的单个单位枚举改成一张领域无关的单位表**（加 `mmol/L`/`mg/dL`/`mL/min`/`IU/mL`/`points` 等），因为 `%` + `mo` 只能看见肿瘤写法的数字，心血管/代谢/肝病的读数在闸门里是隐形的。判读侧的 `keep`/`effect_size` 判据也改成领域无关：给出六类领域的主终点与「有意义」水位表，并明确**表里没有就按主终点 + 效应量自判，不许套肿瘤阈值**。测试：`test_check_cards.py` 23 → **26 case**（lab 单位 + 自拼 pool 被推翻 + 重算一致性），`test_triage.py` 加设计兜底 8 组断言。
+- **v0.10** — **三处「按领域/按会议泛化」的必要修正**，都来自同一天跑 ADA / ESC / EASL 三场暴露的问题。①**期别缺失不再丢**：`bucket_of()` 原来在 `phase` 匹配不上时返回 `None`，记录落进 `excluded["无法归类"]` —— ESC 2026 因此丢了 123 条（242 条里 51%，含 `ACACIA-HCM` / `ENRICH-AF` / `SAL003`），ADA 丢 40、EASL 丢 55（含 `bepirovirsen` / `pemvidutide`）。现在尾部**无条件** `return design_bucket(row)`：`随机化` 或 `平行分组/交叉设计/析因设计` → `pivotal`，其余真试验 → `early`，并写 `phase_inferred`；`phase` 保持原样（通常为空）。三场候选量 191→138 / 242→164 / 214→135，`无法归类` 归零。②**成员资格由 `rows.json` 现场重算**：`check_cards.py --rows` 改 `required=True`，`--pool` 降级为展示字段，手拼 `pool_ext.json` 不再能绕过（e2e #10 的作案路径）。③**领域无关化**：数字单位表扩到 `mg/dL` / `mmol/L` / `mL/min` / `IU/mL` / `points` 等，判读 `verdict` 给出六领域水位表，明确「表里没有就按主终点 + 效应量自判，别套肿瘤阈值」。④**引文三键**：`citations.json` 每条固定 `{title, link, paper_release_time_str}`（`YYYY-MM-DD`），`check_cards.py --report` 在交付前按平台同一口径复核。⑤**去重别名**：同试验两条记录合并后，被合并的 esid 记 `alias_esids`，卡写兄弟记录不再被判越界。测试 23 → 33 case；`triage` 夹具 4 → 6 行（补 phase-less 随机化 + phase-less 单臂）。
 - **v0.9** — **删掉整个行情层，并把交付物改成带 `skills` frontmatter 的 Markdown 报告**。①**行情移除**：`reaction` / `stock` / `excess` / `fetch_quotes.py` / `work/web/quotes.jsonl` / `check_cards.py --quotes-evidence` / 事实项 `A-F7` 全部删除。依据是重算而不是偏好：按每条摘要自己的披露日重算后 **24 条行情里 18 条落在所属板块基准的 ±0.6% 内**（那个数字是 beta），同一公司多张卡拿同一个数字（MRK 8 张卡都是 −3.83%）。`listed_company` 保留为纯身份字段 `{name, ticker, exchange, source_url}`；新增**防回潮闸门**（`check_cards.py` + 事实项 `A-N1-no-price-claims`，双 mutation）：任何卡片再出现 `stock`/`reaction`/`change_pct`/`excess_pct`/`bench_change_pct`/`price_source` 即判失败。②**对齐 chat 联动约定**（《产品经理使用 Skill 的通用约束》）：交付物从纯 JSON 改为 **`/workspace/output/report.md`**（YAML frontmatter：`skills` 非空数组且含 `conference-result-triage`、`title`、`date`、`lang`；有引用时加 `citations: /workspace/output/citations.json`），正文只写 `{{ref_N}}`，标题/链接/日期只进引文文件，**双向一一对应**；不再用业务字段 `type` 标识结果。`present_artifact` 指向 `report.md`。新增事实项 `A-C2-report-frontmatter`（双 mutation：用 `type` 顶替 `skills` / 正文 `{{ref_1}}` 无对应条目）+ NEG「声明引文且对得上仍绿」。**不带引用是合法的**（平台内拿不到摘要链接，编一个就是造假），闸门只查"声明了就必须对得上"。事实层 24 → **25 条 fail + 1 warn**，NEG 7 条不变。
 - **v0.8** — **`reaction` 从自由短句变成带口径的结构化对象**。起因是一条真实提问：「怎么只查到了股票代码，没有对应的事件日增长幅」。复盘 e2e6：108 次工具调用里 **29 次 `web_fetch` 全落在公司 IR 落地页**（`merck.com/investor-relations/stockholder-services/` 这类只有代码与股东服务的页），`web_search` 一次没调，28 张卡一个涨跌幅都没有。①**给出端点**：东财 kline `push2his.eastmoney.com/api/qt/stock/kline/get?secid=<mkt>.<code>&…` 返回纯 JSON（`klines:["2026-10-23,145.270"]`），`web_fetch` 直接可读，附 secid 前缀表（105/106/107/116 补零 5 位/155）与 `rc:100`/`rc:102` 语义；检索改查「`<ticker> 收盘 <日期> 涨跌幅`」（deepseek 源直接给券商页数字，bocha 源常给过期快照）。②**口径钉死**：涨跌幅 = **该市场早于会议首日的最后一个收盘 → 该市场 ∈ 会议窗口的第一个收盘**，`from_date/to_date/basis` 必须印进 JSON；**不许说成「因为这条摘要涨了 X%」**（e2e7 同一批 30 张卡里 MRK −1.34%、LLY −2.54%，板块整体在跌，这个对照本身就是信息）。③**基准日按市场各自取**：各市场休市日不同，统一成一个日历日就会算错；会议首日必须真的查过（ESMO 2026 = 10-23 至 10-27，Madrid）。④**不覆盖就留空**：SIX（Roche/Novartis）东财不覆盖，`reaction` 省略、不许拿 OTC ADR `RHHBY` 顶替 `ROG.SW`。⑤**可审计**：取数结果落 `work/web/quotes.jsonl`，`check_cards.py --quotes-evidence` 验「涨跌幅能否由两个收盘算出」+「能否逐条对上证据」，新增事实项 `A-F7-reaction-traceable`（fail，双 mutation：涨跌幅篡改 / 证据文件缺失）+ NEG「完全不印 reaction 仍绿」（增强项不否决清单）。⑥**本地预计算**：`scripts/fetch_quotes.py --meeting-start` 一次算完（沙箱无网，只能在 WSL 侧跑），`make_cards.py --quotes` 折进 `listed_company`。⑦顺手修掉一个真 bug：占位符扫描原来扫 `json.dumps(card)`，于是**任何把嵌套对象放最后一张卡都会因字面量 `}}` 被判泄漏**，改成只扫叶子字符串。事实层 23 → **24 条 fail + 1 warn**，NEG 6 → **7**。
 - **v0.7** — 三道改动，都是「清单自己长出来的问题」。①**两段收敛**：机器短名单仍是每桶 15 / 全场 45，但交付清单收成**每桶 10 / 全场 30**（无上限的清单不再是阅读清单），中间插一道**联网终选**（每桶 ≥6 次检索，证据落 `work/web/<bucket>.jsonl`）；允许把机器筛掉但外部热议的研究提上来，条件是它在 `rows.json` 里、且卡片标 `promoted: "web"`、`why` 说明为什么破格——开门，但能查账。②**`why` 从标签变判断**：≥60 字、2–4 句，按「未满足需求 → 这次数据的定位 → 对格局的影响 → 局限」铺开，**不许复写 `summary`**；原来那种「报告了主要终点读数」等于没写。③**新增 `listed_company`**：这类读数披露当天常常就是股价的重定价日，每张卡都要这个键，上市填 `{name,ticker,exchange,reaction?,source_url}`、未上市或查不到填 `null`（`null` 是「查过、没有」）。踩过的坑：平台的 `web_search`（部分模型显示成 `web.run`）有**双重开关** —— 项目能力 `web=true` **且** 回合带 `enable_web=true`，缺一个就静默不可用，模型会一路编；发现工具不在工具表里必须停下让用户开联网。事实层 19 → **23 条 fail 项 + 1 warn**（新增 `A-P5-why-depth` / `A-F5-listed-company` / `A-F6-promotion-traceable` / `A-W1-web-evidence`，各配 mutation + 5 条 NEG）。**首次端到端（`cards-e2e5`）零交付**：1097 行取数、592 条判读全过，但 `web_fetch` 打开一个 IR 页失败后模型把「检索查不到」当成中止条件，写"暂未交付最终 JSON"就结束回合。所以三处文档补上**联网层失败只降级、不中止**：换词换源再试 → 仍不行就按判读分收敛、`listed_company` 全 `null`、`coverage_notes` 写明「联网核实未完成」→ 照常交付；`A-W1` 同时开了这条唯一例外通道（声明可用即通过，但清单必须存在）。第二次端到端（`cards-e2e6`）交付成功：1097 行 → 592 条判读 → **pivotal 10 / failed 10 / early 8**，26 行检索证据（18 行带 URL），`listed_company` 26/28 填实，`facts 23/23 -> PASS`。

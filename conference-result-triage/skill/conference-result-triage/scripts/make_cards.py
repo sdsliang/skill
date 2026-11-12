@@ -134,6 +134,10 @@ def build_cards(plan: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
             "indication": spec.get("indication")
             or ", ".join((item.get("indication") or [])[:2]),
             "phase": item.get("phase") or "",
+            # v0.10: non-oncology records rarely carry a phase; triage places
+            # them by study design and records the basis here, so the card can
+            # print "期别未标注（按设计判定：随机化对照）" instead of a blank.
+            "phase_inferred": item.get("phase_inferred") or None,
             "presentation": item.get("presentation") or "",
         }
         # Both keys are carried only when the plan supplies them: an absent

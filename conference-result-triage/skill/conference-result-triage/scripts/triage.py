@@ -496,6 +496,47 @@ def evaluation_of(row: Dict[str, Any]) -> Optional[str]:
 
 
 # --------------------------------------------------------------------------- #
+# Phase-less trial rows (v0.10)
+# --------------------------------------------------------------------------- #
+# Oncology meetings file a phase for every abstract; cardiology / diabetes /
+# hepatology / neurology meetings do not. On ESC 2026 123 of 242 records had no
+# phase (68 with an empty ``evidence_source``, 59 with just ``前瞻性研究``) and
+# every single one was dropped as 「无法归类」 -- including ACACIA-HCM, ENRICH-AF
+# and SAL003, i.e. the session the whole meeting was about. ADA (40/191) and
+# EASL (55/214, bepirovirsen among them) had the same hole at a smaller scale.
+#
+# A missing phase is not missing evidence. When the row is a trial at all, place
+# it by study design and say so on the card: randomized/controlled -> pivotal,
+# otherwise -> early. No clinical scoring is added, and the basis is recorded in
+# ``phase_inferred`` so nothing claims a phase the curator never wrote.
+RANDOMIZED_VALUES = {"随机化", "是", "yes", "Yes", "randomized", "Randomized"}
+CONTROLLED_VALUES = {"平行分组", "交叉设计", "析因设计"}
+
+
+def randomized_of(row: Dict[str, Any]) -> bool:
+    return first_text(row.get("randomized")) in RANDOMIZED_VALUES
+
+
+def controlled_of(row: Dict[str, Any]) -> bool:
+    return first_text(row.get("trial_control")) in CONTROLLED_VALUES
+
+
+def design_bucket(row: Dict[str, Any]) -> Optional[str]:
+    """Bucket for a trial row that carries no phase label at all."""
+    if randomized_of(row) or controlled_of(row):
+        return "pivotal"
+    return "early"
+
+
+def design_label(row: Dict[str, Any]) -> str:
+    if randomized_of(row):
+        return "随机化对照（按设计判定）"
+    if controlled_of(row):
+        return "平行/交叉对照（按设计判定）"
+    return "单臂或未标注设计（按设计判定）"
+
+
+# --------------------------------------------------------------------------- #
 # study_results digest (presentation only -- never used to rank)
 # --------------------------------------------------------------------------- #
 def study_results(row: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -668,7 +709,9 @@ def bucket_of(row: Dict[str, Any]) -> Optional[str]:
     # reported (usually None) and the card says so.
     if row.get("lba"):
         return "pivotal"
-    return None
+    # Any phase text left is a study-design word ("前瞻性研究", "首次人体试验"),
+    # not a phase. Place by design rather than dropping the row.
+    return design_bucket(row)
 
 
 def dedupe_key(row: Dict[str, Any]) -> str:
@@ -742,6 +785,15 @@ def build_pools(
             "trial": first_text(row.get("trial_abbreviation")),
             "indication": as_text_list(row.get("indication_name")),
             "phase": phase_of(row),
+            # Set only when the bucket came from study design, i.e. the record
+            # carries no phase at all. Cards must say the basis out loud.
+            "phase_inferred": (
+                design_label(row)
+                if not is_lba_row
+                and phase_of(row) not in LATE_PHASES
+                and phase_of(row) not in EARLY_PHASES
+                else None
+            ),
             "evaluation": evaluation_of(row),
             "n": parse_n(row.get("group_count")),
             "key_evidence": first_text(row.get("key_evidence")),
@@ -774,8 +826,22 @@ def build_pools(
         # deterministic tie-break: prefer the record that carries study_results,
         # then the larger sample. No clinical scoring.
         rank = (entry["has_study_results"], entry["n"] or 0)
+        # Two rows of the same trial are one card: a prespecified sub-analysis
+        # (VESALIUS-CV on ESC 2026) sits next to the primary publication, and which
+        # esid survives is a tie-break, not a judgement. Keep the losers as
+        # ``alias_esids`` so a card written off the sibling record is still
+        # recognised as pool-backed -- refusing it by esid punishes the model for a
+        # choice this code made. Every alias is an esid of this meeting's rows.json,
+        # so this widens nothing.
+        aliases = [a for a in (prev.get("alias_esids") or [])] if prev else []
+        if prev is not None and prev.get("esid") != entry["esid"]:
+            aliases.append(str(prev.get("esid")))
         if prev is None or rank > (prev["has_study_results"], prev["n"] or 0):
+            entry["alias_esids"] = sorted({a for a in aliases if a and a != entry["esid"]})
             pools[bucket][key] = entry
+        else:
+            aliases.append(str(entry["esid"]))
+            prev["alias_esids"] = sorted({a for a in aliases if a and a != prev.get("esid")})
 
     out: Dict[str, Any] = {
         "input_rows": len(rows),

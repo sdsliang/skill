@@ -30,7 +30,8 @@
 
 1. 真实世界 / 回顾性 / 汇总分析不进任何桶，单独计为 excluded；**`前瞻性研究` 不算非试验证据**——它是「真试验、分期未填」，73 条 ESMO 2026 LBA 里 16 条都是这个值。
 2. n 不作入榜门槛，只做展示与并列次级排序。
-3. 试验分期取自 `evidence_source`，不是 `clinical_stage_new`。
+3. 试验分期取自 `evidence_source`，不是 `clinical_stage_new`。**期别为空/写的是研究设计的记录不丢**：按设计归档，
+   `{{phase}}` 一栏写「未标注（按设计判定：随机化对照）」，不许改写成 `Phase III`（见 screening-rules §1.1.2）。
 4. 失败首先由 `evaluation ∈ {不佳, 终止}` 驱动，p/HR 只作佐证。
 5. 模型只写归因，不自算 ORR/HR/PFS。
 

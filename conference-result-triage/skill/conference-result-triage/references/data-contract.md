@@ -123,8 +123,18 @@ p_value, outcome_p_value, hazard_ratio, hazard_ratio_ci, odd_ratio, relative_ris
 | 任何行情字段 | ❌ | `stock` / `reaction` / `change_pct` / `excess_pct` / `bench_change_pct` / `price_source` 在卡片或 `listed_company` 上出现即判失败（`A-N1-no-price-claims`） |
 | `promoted` | 仅破格入榜 | 固定 `"web"` |
 | `lba` / `manual` / `abstract_id` | ✅（值可为 null） | `manual`、`abstract_id` 在平台上恒 `null`，不猜 |
+| `phase` / `phase_inferred` | ✅ | `phase` 照抄记录（跨领域会议常为 `""`）；`phase_inferred` 只在期别缺失、由设计定桶时非空，取值固定三种（`随机化对照（按设计判定）` / `平行/交叉对照（按设计判定）` / `单臂或未标注设计（按设计判定）`）。**推断值不许写进 `phase`** |
 
 上限：**每桶 10 / 全场 30**（机器短名单 15/45 是另一回事，`work/shortlist.json`）。
+
+### 6.5.0 期别缺失要显式交付，不许静默丢
+
+`bucket_of()` 在 v0.10 起对没有期别的记录按研究设计定桶（`screening-rules.md` §1.1.2）。这带来一个必须写进交付物的诚实声明：
+
+- 卡片正文印「期别未标注（按设计判定：随机化对照）」，不印 `Phase III`；
+- `coverage_notes` 里必须有一条说明**这批记录的期别是推断的**、依据是什么，例：`本次会议 51% 的记录未填期别，按研究设计归档（随机化对照→重磅、单臂→早期），phase_inferred 字段逐条标明；这不是策展期别`。
+
+没有这一条时，读者会把 164 条候选误读成「都有期别的 164 条」，而实际只有 41 条有。
 
 ### 6.5.1 行情为什么不在卡片里
 
@@ -152,7 +162,10 @@ citations: /workspace/output/citations.json   # 仅当确实有可引用来源
 
 - **`skills` 取代业务 `type`**：非空数组、只写这一回合真的用过的 skill（本 skill 必在其列）。宿主按它选渲染主题；未识别的 skill 由宿主报错或用通用布局，**不允许静默退回普通 Markdown**。为了命中主题而编一个没执行过的 skill 名，是把下游骗到底。
 - `title` / `date`（`YYYY-MM-DD`）/ `lang` 必填。
-- **引文与正文分离**：正文只写 `{{ref_N}}`，`title`/`link`/`date` 只在 `citations.json`；键集与正文标记**双向一一对应**，任一侧缺项即失败。路径必须以 `/workspace/output` 开头。
+- **引文与正文分离**：正文只写 `{{ref_N}}`，元数据只在 `citations.json`；键集与正文标记**双向一一对应**，任一侧缺项即失败。路径必须以 `/workspace/output` 开头。
+- **每条引文的键集是固定的三个**：`{"title", "link", "paper_release_time_str"}`（平台校验器 `sorted(keys) == ["link", "paper_release_time_str", "title"]`，多一个少一个都拒）。`paper_release_time_str` 只接受 `YYYY-MM-DD` 或空串；`link` 必须 http(s)；`title` 非空。v0.9 文档里只写了 `title`/`link`/`date`，于是 ESC 2026 与 EASL 2026 两场的 13 条引文全部写成 `{title, link}`，交付后被平台闸门判失败 —— 这是**文档缺口径**导致的合规失败，不是模型乱写。
+- **同一试验的多条记录只出一张卡，但兄弟 esid 仍然合法**：`triage.build_pools` 按 `trial_abbreviation` 去重，胜出条目带 `alias_esids`（被合并的 esid 列表）。卡面写的是哪一条都可以，成员资格按 `rows.json` 现场重算后两者都认。
+- `check_cards.py --report output/report.md` 在交付前按同一口径复核（frontmatter 键、双向一致、三键 schema），因此这类失败现在不会跑到 `present_artifact` 之后。
 - **没有可引用来源就不写 `citations`、也不留 `{{ref_…}}`**（平台内拿不到摘要原文链接，编一个引用比不给引用糟）。
 - 一次请求一套最终产物（除明确要求多语言）。
 

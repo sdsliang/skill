@@ -162,5 +162,121 @@
    }
   ],
   "study_results": []
+ },
+ {
+  "_id": "e5",
+  "trial_abbreviation": "FIXTURE-HF-401",
+  "paper_title": "Randomised HF trial",
+  "abstract_text": "A randomised, double-blind trial of a novel myosin inhibitor in obstructive HCM. Results: pVO2 improved by 1.2 mL/kg/min (p=0.004); KCCQ-CSS +8.1 points.",
+  "summary": "pVO2 +1.2 mL/kg/min in obstructive HCM.",
+  "key_evidence": "是",
+  "evaluation": "积极",
+  "evidence_source": [],
+  "group_count": 282,
+  "randomized": [
+   "随机化"
+  ],
+  "blinded": null,
+  "trial_control": [
+   "平行分组"
+  ],
+  "indication_name": [
+   {
+    "text": [
+     "梗阻性肥厚型心肌病"
+    ]
+   }
+  ],
+  "primary_endpoint_cn": [
+   {
+    "text": [
+     "ORR"
+    ]
+   }
+  ],
+  "study_results": [
+   {
+    "endpoint_attribute": "安全性",
+    "endpoint_label": "Grade >=3 TEAE",
+    "result": "44.6",
+    "result_unit": "%",
+    "endpoint_type": "主要终点",
+    "arm_type": "experimental"
+   },
+   {
+    "endpoint_attribute": "有效性",
+    "endpoint_label": "ORR",
+    "result": "51.1",
+    "result_unit": "%",
+    "endpoint_type": "次要终点",
+    "arm_type": "experimental"
+   },
+   {
+    "endpoint_attribute": "有效性",
+    "endpoint_label": "median PFS",
+    "result": "6.8",
+    "result_unit": "months",
+    "endpoint_type": "次要终点",
+    "arm_type": "experimental"
+   }
+  ]
+ },
+ {
+  "_id": "e6",
+  "trial_abbreviation": "FIXTURE-HBV-101",
+  "paper_title": "Single-arm HBV study",
+  "abstract_text": "Single-arm study of an ASO in chronic hepatitis B. Results: HBsAg loss in 31.0% at week 48.",
+  "summary": "HBsAg loss 31.0% at week 48.",
+  "key_evidence": "是",
+  "evaluation": "积极",
+  "evidence_source": [
+   "前瞻性研究"
+  ],
+  "group_count": 60,
+  "randomized": [
+   "非随机化"
+  ],
+  "blinded": null,
+  "trial_control": null,
+  "indication_name": [
+   {
+    "text": [
+     "慢性乙型肝炎"
+    ]
+   }
+  ],
+  "primary_endpoint_cn": [
+   {
+    "text": [
+     "ORR"
+    ]
+   }
+  ],
+  "study_results": [
+   {
+    "endpoint_attribute": "安全性",
+    "endpoint_label": "Grade >=3 TEAE",
+    "result": "44.6",
+    "result_unit": "%",
+    "endpoint_type": "主要终点",
+    "arm_type": "experimental"
+   },
+   {
+    "endpoint_attribute": "有效性",
+    "endpoint_label": "ORR",
+    "result": "51.1",
+    "result_unit": "%",
+    "endpoint_type": "次要终点",
+    "arm_type": "experimental"
+   },
+   {
+    "endpoint_attribute": "有效性",
+    "endpoint_label": "median PFS",
+    "result": "6.8",
+    "result_unit": "months",
+    "endpoint_type": "次要终点",
+    "arm_type": "experimental"
+   }
+  ]
  }
 ]

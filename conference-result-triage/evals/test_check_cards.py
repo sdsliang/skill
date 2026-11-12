@@ -273,6 +273,99 @@ fails, _ = check_cards.check({"conference": "T", "count": 1,
                               "coverage_notes": NOTES}, trap_by)
 expect("chinese month unit is scanned", fails, "figure '16 个月' not found")
 
+# 24. v0.10: lab units are numbers too. Cardiology / diabetes / hepatology abstracts
+# report mmol/L, mg/dL, mL/min, IU/mL, mL -- none of which the old %/mo figure regex
+# could see, so a fabricated lab value was invisible to the gate. ESC 2026 writes in
+# exactly these units.
+lab = copy.deepcopy(items[0])
+lab["results_text"] = ("HbA1c fell 1.8% with LDL-C 52.3 mg/dL and eGFR change "
+                       "+4.1 mL/min/1.73m2 over 24 weeks.")
+lab_by = {str(lab["esid"]): lab}
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(base[0], summary="LDL-C 下降 55.0 mg/dL。")],
+                              "coverage_notes": NOTES}, lab_by)
+expect("lab unit is scanned", fails, "figure '55.0 mg/dL' not found")
+
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(base[0], summary="LDL-C 52.3 mg/dL，eGFR +4.1 mL/min/1.73m2。")],
+                              "coverage_notes": NOTES}, lab_by)
+if [f for f in fails if "figure" in f]:
+    failures.append(f"verbatim lab figures rejected: {fails}")
+else:
+    print("  ok  verbatim lab figures pass (52.3 mg/dL / 4.1 mL/min)")
+
+# 25. The pool file is metadata; membership is rebuilt from rows.json. e2e #10 shipped
+# 9 ESC 2026 cards that triage had cut, by pointing --pool at a hand-made pool_ext.json;
+# the delivered JSON passed its own gate while the fact layer failed on unknown esids.
+hand_pool_row = {"esid": "nr_hand_pool_1", "lba": False, "manual": None,
+                 "summary": "ORR 40%", "study_results": ["ORR 40%"],
+                 "_bucket": "pivotal"}
+hand_by_esid = dict(by_esid)
+hand_by_esid["nr_hand_pool_1"] = hand_pool_row
+hand_card = dict(base[0], esid="nr_hand_pool_1")
+fails, notes = check_cards.check({"conference": "T", "count": 1, "cards": [hand_card],
+                                  "coverage_notes": NOTES}, hand_by_esid,
+                                 {"nr_hand_pool_1": hand_pool_row}, {})
+expect("hand-made pool is overruled", fails, "was not promoted")
+
+# 26. and the rebuild must agree with the pools a clean run produces
+rows_by_esid = json.load(open(os.path.join(HERE, "fixtures", "mini_rows.json"), encoding="utf-8"))
+rebuilt = check_cards.recompute_pool({str(r["_id"]): triage.flat_row(r) for r in rows_by_esid})
+if set(rebuilt) != set(by_esid):
+    failures.append(f"recompute_pool disagrees: {len(rebuilt)} vs {len(by_esid)}")
+else:
+    print(f"  ok  recompute_pool agrees with build_pools ({len(rebuilt)} records)")
+
+# 27. The report gate mirrors the platform verifier, so a citation schema error is caught
+# before present_artifact instead of after it. ESC/EASL 2026 both shipped
+# `{title, link}` entries and only found out from the post-run verifier.
+import tempfile  # noqa: E402
+
+def report_case(name, head, body, cites):
+    d = tempfile.mkdtemp()
+    open(os.path.join(d, "citations.json"), "w", encoding="utf-8").write(json.dumps(cites))
+    p = os.path.join(d, "report.md")
+    open(p, "w", encoding="utf-8").write("---\n" + head + "\n---\n" + body)
+    fails, _ = check_cards.check_report(p)
+    return fails
+
+GOOD_HEAD = ("skills: [conference-result-triage]\ntitle: T 2026\ndate: 2026-11-12\n"
+             "lang: zh-CN\ncitations: /workspace/output/citations.json")
+GOOD_CITE = {"ref_1": {"title": "ESC Hot Lines", "link": "https://www.escardio.org/x",
+                       "paper_release_time_str": "2026-08-28"}}
+
+fails = report_case("ok", GOOD_HEAD, "正文 {{ref_1}} 引用。", GOOD_CITE)
+if fails:
+    failures.append(f"valid report rejected: {fails}")
+else:
+    print("  ok  valid report + citations pass")
+
+fails = report_case("two-keys", GOOD_HEAD, "正文 {{ref_1}} 引用。",
+                    {"ref_1": {"title": "ESC Hot Lines",
+                               "link": "https://www.escardio.org/x"}})
+expect("citation missing the date key", fails, "paper_release_time_str")
+
+fails = report_case("bad-date", GOOD_HEAD, "正文 {{ref_1}} 引用。",
+                    {"ref_1": {"title": "T", "link": "https://a.b/c",
+                               "paper_release_time_str": "2026-08-28 10:00"}})
+expect("citation date is not date-only", fails, "is not YYYY-MM-DD")
+
+fails = report_case("marker-no-entry", GOOD_HEAD, "正文 {{ref_1}} {{ref_2}} 引用。",
+                    GOOD_CITE)
+expect("marker without entry", fails, "markers=[1, 2] entries=[1]")
+
+fails = report_case("entry-no-marker", GOOD_HEAD, "正文没有标记。", GOOD_CITE)
+expect("entry without marker", fails, "unused=[1]")
+
+fails = report_case("undeclared", "skills: [conference-result-triage]\ntitle: T\n"
+                                 "date: 2026-11-12\nlang: zh-CN",
+                    "正文 {{ref_1}} 引用。", GOOD_CITE)
+expect("marker without citations line", fails, "no `citations:` line")
+
+fails = report_case("no-skill", "title: T\ndate: 2026-11-12\nlang: zh-CN",
+                    "没有引用。", {})
+expect("skills not listed", fails, "conference-result-triage")
+
 if failures:
     print(f"\nFAIL ({len(failures)}):")
     for f in failures:

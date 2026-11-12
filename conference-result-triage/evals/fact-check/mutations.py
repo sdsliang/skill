@@ -535,8 +535,10 @@ def ngen_citations_legal(root):
     with open(p, "w", encoding="utf-8") as f:
         f.write(text)
     write(root, "artifacts/output/citations.json",
-          {"ref_1": {"title": "ESMO 2026 Congress", "link": "https://www.esmo.org/meetings/esmo-congress-2026",
-                     "date": "2026-10-23"}})
+          {"ref_1": {"title": "ESMO 2026 Congress",
+                     "link": "https://www.esmo.org/meetings/esmo-congress-2026",
+                     # v0.10: the platform verifier's exact key set, not a `date` field
+                     "paper_release_time_str": "2026-10-23"}})
 
 
 def ngen_heat_hit(root):

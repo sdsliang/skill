@@ -35,7 +35,11 @@ Checks
  13. no price claim survives anywhere -- ``stock``, ``reaction``, ``change_pct``,
      ``excess_pct`` on the card or under ``listed_company`` all fail. v0.9 deleted the
      quote layer deliberately; this is the gate that keeps it deleted
- 14. a card whose esid is *not* in the machine pools is only legal when it was
+ 14. the report, when ``--report`` is given: frontmatter carries ``skills`` (with this
+     skill named) / ``title`` / ``date`` / ``lang``; every ``{{ref_N}}`` has a
+     ``citations.json`` entry and vice versa; each entry is exactly
+     ``{title, link, paper_release_time_str}`` with an http(s) link and a bare date
+ 15. a card whose esid is *not* in the machine pools is only legal when it was
      promoted by the web-curation step (``promoted == "web"``); it is then verified
      against ``work/rows.json`` instead, since promotion exists precisely to reach
      records the mechanical screen cut
@@ -86,6 +90,7 @@ COVERAGE_CLAIMS = {
 
 import argparse
 import json
+import os
 import re
 import sys
 from typing import Any, Dict, List, Optional, Tuple
@@ -129,8 +134,118 @@ def placeholder_hits(text: str) -> List[str]:
         elif ph in text:
             hits.append(ph)
     return hits
-UNIT_NUM = re.compile(r"\d+(?:\.\d+)?\s*(?:%|个月|月|mo|months?|年|HR|OR|CI)", re.I)
-FIGURE = re.compile(r"\d+(?:\.\d+)?\s*(?:%|mo|months?|个?月)", re.I)
+# v0.10: the unit list is what decides whether a number is checked at all, so a
+# missing unit is a silent hole -- exactly how `16.1 mo` slipped through as
+# 「16 个月」 in v0.9.1. Oncology wrote in %/months; cardiology, diabetes,
+# hepatology and neurology write in mmol/L, mg/dL, mL/min, U/L, IU/mL, mL,
+# points, mmHg, events per 100 patient-years. Every unit listed here is checked;
+# anything absent is not.
+UNIT_PATTERN = (
+    r"(?:%|个百分点|个月|月|周|天|小时|年|"
+    r"mo|months?|weeks?|days?|hours?|years?|"
+    r"mmol/L|μmol/L|umol/L|mg/dL|mg/L|g/L|g/dL|ng/mL|pg/mL|μg/mL|ug/mL|"
+    r"IU/mL|U/L|copies/mL|log10|mL/min(?:/1\.73m2)?|mL/kg/min|mL|L|"
+    r"kg|cm|mmHg|bpm|points?|分|次/年|events?/100)"
+)
+UNIT_NUM = re.compile(r"\d+(?:\.\d+)?\s*" + UNIT_PATTERN, re.I)
+FIGURE = re.compile(r"\d+(?:\.\d+)?\s*" + UNIT_PATTERN, re.I)
+
+
+# The citation entry schema the delivery gate enforces verbatim:
+# `{title, link, paper_release_time_str}` -- nothing more, nothing less. The date is a
+# bare `YYYY-MM-DD`; an empty string is allowed, a made-up timestamp is not. This used
+# to live only in the platform-side verifier, which is how ESC/EASL 2026 shipped
+# `{title, link}` entries: correct to the docs, rejected after delivery.
+CITE_KEYS = ["link", "paper_release_time_str", "title"]
+FRONTMATTER_KEYS = ("skills", "title", "date", "lang")
+
+
+def _frontmatter(report: str) -> Tuple[Dict[str, str], str]:
+    """Split a leading YAML block off the report. Values stay as raw strings."""
+    m = re.match(r"^---\r?\n(.*?)\r?\n---\r?\n?", report, re.S)
+    if not m:
+        return {}, report
+    head: Dict[str, str] = {}
+    for line in m.group(1).splitlines():
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        key, _, value = line.partition(":")
+        head[key.strip()] = value.strip()
+    return head, report[m.end():]
+
+
+def check_report(report_path: str) -> Tuple[List[str], List[str]]:
+    """Gate the delivered markdown the same way the platform verifier will.
+
+    Runs before ``present_artifact`` because that call is terminal: a run whose report
+    cites three sources but ships ``{title, link}`` entries reads fine and is refused
+    afterwards, when nobody can edit it any more.
+    """
+    fails: List[str] = []
+    notes: List[str] = []
+    text = open(report_path, encoding="utf-8").read()
+    head, body = _frontmatter(text)
+    if not head:
+        fails.append("report: no YAML frontmatter -- `skills` / `title` / `date` / "
+                     "`lang` must be there for the host to pick a theme")
+        return fails, notes
+    for key in FRONTMATTER_KEYS:
+        if not head.get(key):
+            fails.append(f"report: frontmatter missing {key}")
+    if "conference-result-triage" not in (head.get("skills") or ""):
+        fails.append("report: frontmatter `skills` does not list "
+                     "conference-result-triage")
+    used = {int(x) for x in re.findall(r"\{\{ref_(\d+)\}\}", body)}
+    declared = head.get("citations") or ""
+    if not declared:
+        if used:
+            fails.append(f"report: cites {sorted(used)} but frontmatter has no "
+                         f"`citations:` line")
+        return fails, notes
+    # `/workspace/output/citations.json` is a platform path. Locally the run directory
+    # only mirrors it, so resolve the reference against the report's own folder first and
+    # fall back to the raw value -- hard-coding one layout made the gate unreadable off
+    # the platform (it looked for `output/output/citations.json`).
+    rep_dir = os.path.dirname(os.path.abspath(report_path))
+    rel = declared[len("/workspace/"):] if declared.startswith("/workspace/") else declared
+    candidates = [declared, os.path.join(rep_dir, os.path.basename(rel)),
+                  os.path.join(rep_dir, rel), os.path.join(os.path.dirname(rep_dir), rel)]
+    path = next((c for c in candidates if os.path.isfile(c)), candidates[1])
+    try:
+        cites = json.load(open(path, encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        fails.append(f"report: cannot read citations file {declared}: {e}")
+        return fails, notes
+    if not isinstance(cites, dict) or not cites:
+        fails.append("report: citations file is empty or not an object")
+        return fails, notes
+    keyed = {int(k.split("_")[1]) for k in cites if re.fullmatch(r"ref_\d+", k)}
+    for k in cites:
+        if not re.fullmatch(r"ref_\d+", k):
+            fails.append(f"citations: invalid reference key {k!r}")
+    if used != keyed:
+        fails.append(f"citations: markers={sorted(used)} entries={sorted(keyed)} "
+                     f"missing={sorted(used - keyed)} unused={sorted(keyed - used)}")
+    for k, v in sorted(cites.items()):
+        if not isinstance(v, dict):
+            fails.append(f"citations {k}: not an object")
+            continue
+        if sorted(v) != CITE_KEYS:
+            fails.append(f"citations {k}: keys {sorted(v)} != {CITE_KEYS} "
+                         f"-- the gate wants title + link + paper_release_time_str")
+            continue
+        if not all(isinstance(x, str) for x in v.values()):
+            fails.append(f"citations {k}: every value must be a string")
+        if not (v.get("title") or "").strip():
+            fails.append(f"citations {k}: empty title")
+        if not re.match(r"^https?://", v.get("link") or ""):
+            fails.append(f"citations {k}: link is not an http(s) URL")
+        stamp = v.get("paper_release_time_str") or ""
+        if stamp and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", stamp):
+            fails.append(f"citations {k}: paper_release_time_str={stamp!r} is not "
+                         f"YYYY-MM-DD")
+    notes.append(f"report: {len(keyed)} citation entries, markers in sync")
+    return fails, notes
 
 
 def load_pool(path: str) -> Dict[str, Dict[str, Any]]:
@@ -142,6 +257,36 @@ def load_pool(path: str) -> Dict[str, Dict[str, Any]]:
             if esid:
                 by_esid[str(esid)] = dict(item, _bucket=b)
     return by_esid
+
+
+def recompute_pool(by_rows: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    """Rebuild the candidate pools from rows.json with the shipped triage code.
+
+    The membership question ("is this record allowed on the list?") is answered by
+    code, not by whichever pool file was passed in. E2E #10 on ESC 2026 found the
+    cheap bypass: the model appended 110 records it thought triage had wrongly cut
+    to a hand-made ``pool_ext.json`` and passed *that* as ``--pool``; every check
+    went green while the fact layer, which rebuilds from ``work/pool/pool.json``,
+    failed on 9 unknown esids and 61 untraceable figures. A pool file is display
+    metadata now; this function is the gate.
+    """
+    rows = []
+    for esid, item in by_rows.items():
+        row = dict(item)
+        row["_id"] = esid
+        rows.append(row)
+    pool = triage.build_pools(rows)
+    out: Dict[str, Dict[str, Any]] = {}
+    for b in BUCKETS:
+        for item in pool["pools"][b]["items"]:
+            if item.get("esid"):
+                entry = dict(item, _bucket=b)
+                out[str(item["esid"])] = entry
+                # Dedupe merged these esids into the entry above; a card written
+                # off the sibling record is the same card (see triage.build_pools).
+                for alias in item.get("alias_esids") or []:
+                    out[str(alias)] = dict(entry, _alias_of=str(item["esid"]))
+    return out
 
 
 def load_rows(path: str) -> Dict[str, Dict[str, Any]]:
@@ -177,6 +322,7 @@ def record_text(item: Dict[str, Any]) -> str:
 
 def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
           by_rows: Optional[Dict[str, Dict[str, Any]]] = None,
+          by_calc: Optional[Dict[str, Dict[str, Any]]] = None,
           ) -> Tuple[List[str], List[str]]:
     fails: List[str] = []
     notes: List[str] = []
@@ -218,11 +364,16 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
         if esid in seen:
             fails.append(f"{tag}: duplicate esid")
         seen.add(esid)
-        item = by_esid.get(esid)
+        # Membership comes from the recomputed pools when rows.json was supplied;
+        # the pool file only fills in display fields for records it happens to hold.
+        item = (by_calc if by_calc is not None else by_esid).get(esid)
         origin = "pool"
         if item is None and by_rows:
             item = by_rows.get(esid)
             origin = "rows"
+        if item is not None and origin == "pool":
+            item = dict(item)
+            item.setdefault("_bucket", (by_esid.get(esid) or {}).get("_bucket"))
         if item is None:
             fails.append(f"{tag}: esid not in pool")
             continue
@@ -345,15 +496,30 @@ def main(argv: List[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--cards", required=True)
     ap.add_argument("--pool", required=True)
-    ap.add_argument("--rows", help="work/rows.json -- required only when a card was "
-                                   "promoted from outside the machine pools")
+    ap.add_argument("--rows", required=True,
+                    help="work/rows.json -- always required: the pool membership "
+                         "gate is rebuilt from it, so a hand-edited pool file cannot "
+                         "widen the candidate set")
+    ap.add_argument("--report", help="output/report.md -- also gate the markdown: "
+                                     "frontmatter keys, `{{ref_N}}` <-> citations.json "
+                                     "in both directions, and the exact entry schema")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args(argv)
 
     payload = json.load(open(args.cards, encoding="utf-8"))
     by_esid = load_pool(args.pool)
-    by_rows = load_rows(args.rows) if args.rows else None
-    fails, notes = check(payload, by_esid, by_rows)
+    by_rows = load_rows(args.rows)
+    by_calc = recompute_pool(by_rows)
+    if set(by_calc) != set(by_esid):
+        notes.append(
+            f"pool file holds {len(by_esid)} records, a fresh triage build over "
+            f"rows.json gives {len(by_calc)} -- membership is judged on the rebuild, "
+            f"so re-run triage.py instead of editing the pool by hand")
+    fails, notes = check(payload, by_esid, by_rows, by_calc)
+    if args.report:
+        rfails, rnotes = check_report(args.report)
+        fails += rfails
+        notes += rnotes
 
     if notes and args.verbose:
         for n in notes:

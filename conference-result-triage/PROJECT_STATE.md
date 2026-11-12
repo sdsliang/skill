@@ -1,5 +1,31 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.10（2026-11-13）：跨疾病领域三场并行 E2E 暴露的问题，一次修到底
+
+用户要求「多试几个不同疾病领域的会议推荐清单，拿 TS 的推荐与本地联网查到的大会热议内容比对，不符合就优化 skill」。
+选 ADA 2026（代谢）/ ESC 2026（心血管）/ EASL 2026（肝病）三场并行跑同一份 skill、只换 `meeting_tags`
+（run dirs `20261112-181722-cards-{ADA,ESC,EASL}26`）。三场都交付了，但暴露三类缺陷：
+
+| 现场 | 事实 |
+|---|---|
+| 候选池缩水 | 旧 `bucket_of()` 在 `phase` 匹配不上时 `return None` → 落进 `excluded["无法归类"]`：**ESC 242 条丢 123（51%）**、ADA 丢 40、EASL 丢 55。丢掉的包括 `ACACIA-HCM`（mavacamten）、`ENRICH-AF`（因子 XIa）、`SAL003`、`bepirovirsen`、`pemvidutide` —— 整个会议的主线 |
+| 成员资格被绕过 | ESC 现场出现 `work/pool/build_pool_ext.py`：模型把 110 条它认为"被误杀"的记录塞进手造 `pool_ext.json` 当 `--pool` 传进去。卡片闸门全绿，事实层报 9 个未知 esid + 61 个不可溯源数字 |
+| 引文两场全红 | ESC/EASL 都红在 `every ref marker has a citation entry`（`markers=3 keys=0`）。**根因不在 skill**：runner 用 `deliverables` 配置决定要不要读 `citations.json`，而配置里没有这一项 → `cites={}` → 拿 3 个标记去比 0 个键。同时文档漏写平台要的 `paper_release_time_str` 键，13 条引文写成 `{title, link}` |
+| 别名的假越界 | ESC 有一张卡写 `VESALIUS-CV` 的预设亚组分析，与主发表同 trial；`build_pools` 去重后兄弟 esid 消失 → 卡被判"外来记录" |
+
+修法与验证：
+
+1. **`triage.bucket_of()` 尾部无条件 `return design_bucket(row)`**：`随机化` 或 `平行分组/交叉设计/析因设计` → `pivotal`，其余真试验 → `early`，写 `phase_inferred`；`phase` 不动。候选量 191→138 / 242→164 / 214→135，`无法归类` 三场归零，抽查 6 条主线试验全部回归。
+2. **`check_cards.py --rows` 改 `required=True`**，新增 `recompute_pool()` 用 shipped `triage.build_pools` 现场重算成员资格，`--pool` 降级为展示来源。测试 case 25 复现了手造 pool 被推翻；修这个时又踩到 `(by_calc or by_esid)` 在 `by_calc == {}` 时静默回退 —— 改成 `is not None`（同一个 bug 形态第二次出现）。
+3. **引文三键契约**：`check_cards.py --report output/report.md` 复核 frontmatter 键、`{{ref_N}}` ↔ `citations.json` 双向、每条恰好 `{title, link, paper_release_time_str}`（`YYYY-MM-DD`）；事实层 `A-C2` 同口径（`EVALUATOR_REVISION` → `r6`）。runner 侧开关从「配置声明的 deliverables」改成「归档里有没有这个文件」。
+4. **去重别名**：`build_pools` 在胜出条目上记 `alias_esids`，`recompute_pool` 把 alias 映射到同一条目（标 `_alias_of`），成员资格仍由 `rows.json` 决定。修后三场卡片全部有池子背书：ADA 18/18、ESC 26/26、EASL 20/20。
+5. 领域无关化：单位表扩到 `mg/dL`/`mmol/L`/`mL/min`/`IU/mL`/`points`；判读 `verdict` 给六领域水位表并写明「表里没有就按主终点+效应量自判，不套肿瘤阈值」。
+
+测试：`test_triage` 夹具 4→6 行（补 phase-less 随机化 HF + phase-less 单臂 HBV）+ 去重别名断言；
+`test_check_cards` 23→**33 case**（含 7 条 report 引文闸门）；`mutations.py` 25/25 + 8 负控绿。
+v0.10 包：`dist/conference-result-triage-v0.10.zip` **126956 B / 16 entries / sha256 `3a1810ccc1fe2507`**。
+**待用户授权后 publish，再用 v0.10 重跑三场 E2E。**
+
 ## v0.9.2（2026-11-13）：E2E #8 全绿，并修掉「交付前闸门比事后校验宽」
 
 E2E #8（`cards-e2e8`）是项目改挂共享 SP 后第一个跑通的回合（831.5 s / 74 steps / `succeeded`），`verification.md`
