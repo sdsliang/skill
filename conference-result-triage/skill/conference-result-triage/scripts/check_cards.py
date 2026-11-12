@@ -8,8 +8,10 @@ plan, so a card cannot be self-consistent and still fabricated.
 Exit codes: 0 = clean, 3 = at least one FAIL (details on stdout).
 
 Checks
-  1. envelope shape, ``count`` == len(cards), **at most 15 cards per bucket**
-  2. every card has a non-empty ``title`` / ``summary`` / ``why``
+  1. envelope shape, ``count`` == len(cards), **at most 10 cards per bucket** (30 total)
+  2. every card has a non-empty ``title`` / ``summary`` / ``why``, and ``why`` earns its
+     place: it must reach ``MIN_WHY_CHARS`` and not be a re-wrap of ``summary``
+     -- the field is supposed to say what the result *means*, not repeat what was printed
   3. ``esid`` exists in the pool (no invented records)
   4. ``bucket`` is one of early|pivotal|failed
   5. ``lba`` is a real boolean and ``manual`` is true/false/null -- both must match
@@ -26,6 +28,14 @@ Checks
  12. ``coverage_notes`` states the two honest limits (``data_type`` undetermined,
      abstracts without p/HR) -- the JSON is what gets read next month, so a limit
      that lives only in the chat reply is a limit nobody will see
+ 13. ``listed_company`` is present on every card (``null`` when the sponsor is not
+     listed or could not be verified) and, when present, carries name+ticker+
+     exchange+a resolvable source URL -- a stock reaction is only worth printing if
+     the ticker is real
+ 14. a card whose esid is *not* in the machine pools is only legal when it was
+     promoted by the web-curation step (``promoted == "web"``); it is then verified
+     against ``work/rows.json`` instead, since promotion exists precisely to reach
+     records the mechanical screen cut
 """
 
 from __future__ import annotations
@@ -35,7 +45,15 @@ from collections import Counter
 # The rubric from references/review-protocol.md §2.5. These are *ceilings*, not
 # weights: the reviewer decides how much of each to award, and the only thing
 # checked mechanically is that the parts add up to the total they claimed.
-PER_BUCKET_CAP = 15
+# v0.7: the machine pools feed a 15-per-bucket shortlist, then the web-curation step
+# cuts to 10. The cap lives here because an uncapped list stops being a reading list.
+PER_BUCKET_CAP = 10
+TOTAL_CAP = 30
+# A "why" that is shorter than this is a label, not a judgement. 60 Chinese chars is
+# roughly two sentences -- enough for "unmet need -> what this readout changes".
+MIN_WHY_CHARS = 60
+LISTED_FIELDS = ("name", "ticker", "exchange", "source_url")
+PROMOTE_REASONS = ("web",)
 BUCKETS = ("early", "pivotal", "failed")
 SCORE_CAPS = {"evidence_strength": 30, "effect_size": 25, "clinical_impact": 25,
               "novelty": 10, "readout_maturity": 10}
@@ -60,7 +78,12 @@ import argparse
 import json
 import re
 import sys
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
+try:  # same directory; the CLI runs from scripts/
+    import triage
+except ImportError:  # pragma: no cover - packaged imports
+    triage = None  # type: ignore[assignment]
 
 BUCKETS = ("early", "pivotal", "failed")
 PLACEHOLDERS = ("TODO", "TBD", "XXX", "FIXME", "None", "nan", "{{", "}}", "占位")
@@ -96,11 +119,28 @@ def load_pool(path: str) -> Dict[str, Dict[str, Any]]:
     return by_esid
 
 
+def load_rows(path: str) -> Dict[str, Dict[str, Any]]:
+    """Raw workspace rows, flattened exactly like ``triage.py`` does.
+
+    Needed only for promoted cards: ``bucket_of``/``excluded_reason`` deliberately cut
+    ~500 rows out of the pools, and the web step is allowed to bring one back.
+    """
+    payload = json.load(open(path, encoding="utf-8"))
+    rows = payload.get("rows") if isinstance(payload, dict) else payload
+    out: Dict[str, Dict[str, Any]] = {}
+    for raw in rows or []:
+        item = triage.flat_row(raw) if any(str(k).startswith(triage.PREFIXES) for k in raw) else dict(raw)
+        esid = item.get("esid") or item.get("_id")
+        if esid:
+            out[str(esid)] = item
+    return out
+
+
 def record_text(item: Dict[str, Any]) -> str:
     """Everything the record itself claims, for the number-traceability check."""
-    parts = [item.get("results"), item.get("results_text"), item.get("key_evidence"),
-             item.get("summary"), item.get("background"), item.get("primary_endpoint"),
-             item.get("abstract_text")]
+    parts = [item.get("results"), item.get("results_text"), item.get("study_results"),
+             item.get("key_evidence"), item.get("summary"), item.get("background"),
+             item.get("primary_endpoint"), item.get("abstract_text")]
     flat: List[str] = []
     for p in parts:
         if isinstance(p, list):
@@ -110,7 +150,8 @@ def record_text(item: Dict[str, Any]) -> str:
     return " ".join(flat)
 
 
-def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]]) -> Tuple[List[str], List[str]]:
+def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
+          by_rows: Optional[Dict[str, Dict[str, Any]]] = None) -> Tuple[List[str], List[str]]:
     fails: List[str] = []
     notes: List[str] = []
     cards = payload.get("cards")
@@ -120,8 +161,8 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]]) -> Tuple[
         fails.append(f"envelope: count={payload.get('count')} != len(cards)={len(cards)}")
     if not payload.get("conference"):
         fails.append("envelope: missing conference")
-    if not 10 <= len(cards) <= 45:
-        fails.append(f"size: {len(cards)} cards (expected a 10-45 item reading list)")
+    if not 10 <= len(cards) <= TOTAL_CAP:
+        fails.append(f"size: {len(cards)} cards (expected a 10-{TOTAL_CAP} item reading list)")
     claims = payload.get("coverage_notes")
     if not isinstance(claims, list) or not claims:
         fails.append("envelope: `coverage_notes` missing -- the two honest limits "
@@ -145,23 +186,43 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]]) -> Tuple[
     for n, card in enumerate(cards, 1):
         tag = f"card {n} ({card.get('esid') or 'no-esid'})"
         esid = str(card.get("esid") or "")
-        item = by_esid.get(esid)
         if not esid:
             fails.append(f"{tag}: empty esid")
             continue
         if esid in seen:
             fails.append(f"{tag}: duplicate esid")
         seen.add(esid)
+        item = by_esid.get(esid)
+        origin = "pool"
+        if item is None and by_rows:
+            item = by_rows.get(esid)
+            origin = "rows"
         if item is None:
             fails.append(f"{tag}: esid not in pool")
             continue
+        promoted = card.get("promoted")
+        if promoted is not None and promoted not in PROMOTE_REASONS:
+            fails.append(f"{tag}: promoted={promoted!r} not in {list(PROMOTE_REASONS)}")
+        if origin == "rows":
+            if promoted not in PROMOTE_REASONS:
+                fails.append(f"{tag}: esid is outside the machine pools and was not "
+                             f"promoted -- set promoted='web' and say why in `why`")
+                continue
+            notes.append(f"{tag}: promoted from rows.json (outside the candidate pools)")
         for key in ("title", "summary", "why"):
             if not str(card.get(key) or "").strip():
                 fails.append(f"{tag}: missing {key}")
         if card.get("bucket") not in BUCKETS:
             fails.append(f"{tag}: bad bucket {card.get('bucket')!r}")
-        elif card["bucket"] != item.get("_bucket"):
+        elif item.get("_bucket") and card["bucket"] != item.get("_bucket"):
             notes.append(f"{tag}: bucket re-judged {item.get('_bucket')} -> {card['bucket']}")
+        why = " ".join(str(card.get("why") or "").split())
+        summary = " ".join(str(card.get("summary") or "").split())
+        if why and len(why) < MIN_WHY_CHARS:
+            fails.append(f"{tag}: why is {len(why)} chars (< {MIN_WHY_CHARS}) -- it must "
+                         f"say what the result means, not label it")
+        if why and summary and (summary[:20] in why or why[:20] in summary):
+            fails.append(f"{tag}: why repeats summary -- state the value, not the numbers")
         if not isinstance(card.get("lba"), bool):
             fails.append(f"{tag}: lba must be boolean")
         elif card["lba"] != bool(item.get("lba")):
@@ -214,6 +275,29 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]]) -> Tuple[
                 for key in ("ticker", "change_pct", "date"):
                     if stock.get(key) in (None, ""):
                         fails.append(f"{tag}: stock.{key} missing")
+        # Presence of the key is the contract, not presence of a value: `null` means
+        # "checked and not listed / not verifiable". A missing key silently means the
+        # same thing without anybody having looked, which is the failure mode this
+        # field exists to prevent.
+        if "listed_company" not in card:
+            fails.append(f"{tag}: missing listed_company (null when the sponsor is not "
+                         f"listed or cannot be verified)")
+            continue
+        company = card["listed_company"]
+        if company is None:
+            continue
+        if not isinstance(company, dict):
+            fails.append(f"{tag}: listed_company must be an object or null")
+            continue
+        for key in LISTED_FIELDS:
+            if not str(company.get(key) or "").strip():
+                fails.append(f"{tag}: listed_company.{key} missing")
+        url = str(company.get("source_url") or "")
+        if url and not re.match(r"^https?://\S+$", url):
+            fails.append(f"{tag}: listed_company.source_url is not an http(s) URL: {url!r}")
+        ticker = str(company.get("ticker") or "")
+        if ticker and not re.search(r"[0-9A-Za-z]", ticker):
+            fails.append(f"{tag}: listed_company.ticker={ticker!r} has no alphanumerics")
     return fails, notes
 
 
@@ -221,12 +305,15 @@ def main(argv: List[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--cards", required=True)
     ap.add_argument("--pool", required=True)
+    ap.add_argument("--rows", help="work/rows.json -- required only when a card was "
+                                   "promoted from outside the machine pools")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args(argv)
 
     payload = json.load(open(args.cards, encoding="utf-8"))
     by_esid = load_pool(args.pool)
-    fails, notes = check(payload, by_esid)
+    by_rows = load_rows(args.rows) if args.rows else None
+    fails, notes = check(payload, by_esid, by_rows)
 
     if notes and args.verbose:
         for n in notes:

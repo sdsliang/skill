@@ -18,7 +18,10 @@ Card shape::
       "bucket":       "pivotal",          # early | pivotal | failed
       "title":        "...",              # abstract title, verbatim
       "summary":      "...",              # what was reported, numbers included
-      "why":          "...",              # why it is worth reading
+      "why":          "...",              # what the result means (>=60 chars, v0.7)
+      "listed_company": {"name": "...", "ticker": "...", "exchange": "...",
+                         "source_url": "https://..."},  # or null
+      "promoted":     "web",              # only for cards the web step pulled in
       "drug": "...", "target": "...", "indication": "...", "phase": "Phase III",
       "stock": null                       # optional {ticker, change_pct, date, ...}
     }
@@ -39,6 +42,12 @@ import sys
 from typing import Any, Dict, List, Optional
 
 BUCKETS = ("early", "pivotal", "failed")
+PROMOTE_REASONS = ("web",)
+
+try:  # same directory; the CLI runs from scripts/
+    import triage
+except ImportError:  # pragma: no cover
+    triage = None  # type: ignore[assignment]
 
 
 def load_pool(path: str) -> Dict[str, Dict[str, Any]]:
@@ -50,6 +59,26 @@ def load_pool(path: str) -> Dict[str, Dict[str, Any]]:
             if item.get("esid"):
                 by_esid[str(item["esid"])] = dict(item, _bucket=b)
     return by_esid
+
+
+def load_rows(path: str) -> Dict[str, Dict[str, Any]]:
+    """``work/rows.json`` flattened like ``triage.py`` does.
+
+    Only needed for web-promoted cards: they exist in the workspace but were cut out
+    of the pools by the mechanical screen, and the numbers on the card still have to
+    come from that row's own text.
+    """
+    payload = json.load(open(path, encoding="utf-8"))
+    rows = payload.get("rows") if isinstance(payload, dict) else payload
+    out: Dict[str, Dict[str, Any]] = {}
+    for raw in rows or []:
+        item = (triage.flat_row(raw)
+                if triage and any(str(k).startswith(triage.PREFIXES) for k in raw)
+                else dict(raw))
+        esid = item.get("esid") or item.get("_id")
+        if esid:
+            out[str(esid)] = item
+    return out
 
 
 def load_quotes(path: Optional[str]) -> Dict[str, Dict[str, Any]]:
@@ -65,12 +94,24 @@ def load_quotes(path: Optional[str]) -> Dict[str, Dict[str, Any]]:
 
 
 def build_cards(plan: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
-                quotes: Dict[str, Dict[str, Any]]) -> List[Dict[str, Any]]:
+                quotes: Dict[str, Dict[str, Any]],
+                by_rows: Optional[Dict[str, Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
     cards: List[Dict[str, Any]] = []
     problems: List[str] = []
     for spec in plan.get("cards") or []:
         esid = str(spec.get("esid") or "")
         item = by_esid.get(esid)
+        if item is None and by_rows is not None:
+            # A promoted card may live outside the pools -- but only with the marker,
+            # otherwise "not in pool" is the honest answer.
+            if spec.get("promoted") not in PROMOTE_REASONS:
+                problems.append(f"{esid or '<empty esid>'}: not in pool "
+                                f"(set promoted='web' if the web step pulled it in)")
+                continue
+            item = by_rows.get(esid)
+            if item is None:
+                problems.append(f"{esid}: promoted but not found in --rows")
+                continue
         if item is None:
             problems.append(f"{esid or '<empty esid>'}: not in pool")
             continue
@@ -105,6 +146,13 @@ def build_cards(plan: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
             "presentation": item.get("presentation") or "",
             "stock": quotes.get(esid),
         }
+        # Both keys are carried only when the plan supplies them: an absent
+        # `listed_company` must reach `check_cards.py` as "missing" rather than
+        # silently defaulting to null, which is the value that means "checked".
+        if "listed_company" in spec:
+            card["listed_company"] = spec["listed_company"]
+        if spec.get("promoted"):
+            card["promoted"] = spec["promoted"]
         cards.append(card)
     if problems:
         for p in problems:
@@ -130,13 +178,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--plan", required=True, help="cards plan JSON {conference, cards:[...]}")
     ap.add_argument("--out", required=True, help="output JSON path")
     ap.add_argument("--quotes", help="optional {esid: {ticker, change_pct, ...}}")
+    ap.add_argument("--rows", help="work/rows.json -- needed only for promoted cards")
     ap.add_argument("--pretty", action="store_true", help="indent the output")
     args = ap.parse_args(argv)
 
     plan = json.load(open(args.plan, encoding="utf-8"))
     by_esid = load_pool(args.pool)
     quotes = load_quotes(args.quotes)
-    cards = build_cards(plan, by_esid, quotes)
+    cards = build_cards(plan, by_esid, quotes, load_rows(args.rows) if args.rows else None)
 
     missing_quotes = [c["esid"] for c in cards if not c["stock"]]
     payload = {

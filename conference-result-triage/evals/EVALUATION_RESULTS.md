@@ -117,3 +117,24 @@ VOLGA / KRASCENDO-1 / CLARITY-Gastric01 三条都在榜上（pivotal 96 / 94 / �
 
 - **v0.6 已发布并验证**；剩余项是人工复核（45 张卡的可读性、分数分布）与 `featured` 白名单（`manual` 恒 `null`）。
 - 失败桶 vs 热度：阴性 query 两次 502，数据缺失，不给结论。
+
+---
+
+## R6 — v0.7 本地闸门（2026-11-12，未上平台）
+
+**范围**：v0.7 的三条改动（交付清单 10/30、`why` 深度、`listed_company` + `promoted`）在脚本与事实层的行为。
+**不做**：端到端跑批——v0.7 尚未发布，`cards-e2e5` 留到发布后。
+
+| 闸门 | 命令 | 结果 |
+|---|---|---|
+| 分桶 / 切片 / 归一 | `python3 evals/test_triage.py` | OK（4 rows / 4 assertion groups） |
+| 卡片闸门 | `python3 evals/test_check_cards.py` | **15 例全绿**（新增：`why` 太短、`why` 复写 `summary`、`listed_company` 缺键、假 ticker/假 URL、池外未标记、`promoted` 合法入榜 + 4 条 NEG 级合法变体） |
+| 事实层 | `python3 evals/fact-check/mutations.py` | baseline `facts 23/23`；`23/23 fail items have a mutation; 4 negative controls green` |
+| 打包 | `python3 tools/pack-dist.py` | `v0.7` 17 entries / 104494 B / sha256 `3f80acebc4b5a597` |
+
+**判据说明**：`A-W1-web-evidence` 是 **fail** 级。理由与分片证据同一条——联网终选的全部产出是「检索到了什么」，
+而平台 `/workspace/tool_results/` 回合结束即清空、回复里写"查过"无法复核。没有 `work/web/<bucket>.jsonl`
+就等于这一步没有留下可查的痕迹，所以不给 SKIP 通道。
+
+**已知风险**：`A-W1` 会把「做了检索但忘记落盘」判成失败，从而挡住交付。这是有意的：宁可一次跑批失败重跑，
+也不要一份无法追溯来源的"热点"清单。

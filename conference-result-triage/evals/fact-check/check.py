@@ -38,8 +38,9 @@ import json
 import os
 import re
 import sys
+from typing import Dict, List
 
-EVALUATOR_REVISION = "2026-11-11-r1"
+EVALUATOR_REVISION = "2026-11-12-r2"
 
 # Presidential / late-breaking trials the X discussion concentrated on. Used by the
 # heat-coverage item, which is `warn`: the list must never be bent toward what was
@@ -51,7 +52,10 @@ HEAT_TRIALS = ["DeLLphi-305", "SAFFRON", "INTerpath-001", "VOLGA", "KRASCENDO-1"
 BUCKETS = ("early", "pivotal", "failed")
 SCORE_CAPS = {"evidence_strength": 30, "effect_size": 25, "clinical_impact": 25,
               "novelty": 10, "readout_maturity": 10}
-PER_BUCKET_CAP = 15
+PER_BUCKET_CAP = 10
+TOTAL_CAP = 30
+MIN_WHY_CHARS = 60
+LISTED_FIELDS = ("name", "ticker", "exchange", "source_url")
 NUM_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(%|mo|months?|月|HR|hazard|OR\b|p\s*[=<>]|P\s*[=<>])")
 
 
@@ -139,7 +143,28 @@ def load_run(run_dir: str) -> dict:
     if isinstance(rows_doc, dict):
         rows = rows_doc.get("rows")
 
+    # `work/web/<bucket>.jsonl` -- one line per live search, the only durable proof
+    # that step 5B happened (the reply can claim anything; tool_results is wiped).
+    web_evidence: Dict[str, List[dict]] = {}
+    wdir = os.path.join(os.path.dirname(rows_path), "web") if rows_path else ""
+    if wdir and os.path.isdir(wdir):
+        for name in sorted(os.listdir(wdir)):
+            if not name.endswith(".jsonl"):
+                continue
+            recs = []
+            with open(os.path.join(wdir, name), encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        recs.append(json.loads(line))
+                    except Exception:
+                        recs.append({})
+            web_evidence[name] = recs
+
     return {"watchlist": watchlist, "pool": pool, "calls": calls, "reply": reply,
+            "web_evidence": web_evidence,
             "slice_counts": ledger if isinstance(ledger, list) else None,
             "rows": rows if isinstance(rows, list) else None,
             "rows_doc": rows_doc if isinstance(rows_doc, dict) else None,
@@ -278,9 +303,93 @@ def op_cards_cap(sv, spec):
     for c in cards:
         per[c.get("bucket")] = per.get(c.get("bucket"), 0) + 1
     bad = {k: v for k, v in per.items() if v > spec.get("cap", PER_BUCKET_CAP)}
-    over_total = len(cards) > spec.get("total", 45)
+    over_total = len(cards) > spec.get("total", TOTAL_CAP)
     ok = not bad and not over_total
     return ok, f"per-bucket {per}, total {len(cards)}"
+
+
+def op_why_depth(sv, spec):
+    """`why` must be a judgement: long enough to hold one, and not `summary` re-wrapped.
+
+    A 20-character `why` is a label ("数据好"), and a `why` that opens with the same
+    20 characters as `summary` is the number restated. Both were the actual failure
+    of v0.6's cards.
+    """
+    bad = []
+    for i, c in enumerate((sv["watchlist"] or {}).get("cards") or [], 1):
+        why = str(c.get("why") or "")
+        summary = str(c.get("summary") or "")
+        if len(why) < spec.get("min_chars", MIN_WHY_CHARS):
+            bad.append(f"card{i} why {len(why)} chars")
+        elif summary and (summary[:20] in why or why[:20] in summary):
+            bad.append(f"card{i} why repeats summary")
+    return not bad, "; ".join(bad[:4]) if bad else "every why is a judgement, not a label"
+
+
+def op_listed_company_shape(sv, spec):
+    """`listed_company` is mandatory; a non-null one must carry ticker + source URL."""
+    bad = []
+    for i, c in enumerate((sv["watchlist"] or {}).get("cards") or [], 1):
+        if "listed_company" not in c:
+            bad.append(f"card{i} key missing")
+            continue
+        co = c["listed_company"]
+        if co is None:
+            continue
+        if not isinstance(co, dict):
+            bad.append(f"card{i} not an object")
+            continue
+        for key in LISTED_FIELDS:
+            if not str(co.get(key) or "").strip():
+                bad.append(f"card{i} .{key} empty")
+        if not re.match(r"^https?://\S+$", str(co.get("source_url") or "")):
+            bad.append(f"card{i} source_url not http(s)")
+    return not bad, "; ".join(bad[:4]) if bad else "listed_company present and sourced"
+
+
+def op_promotion_traceable(sv, spec):
+    """A card outside the machine pools may only enter as a `promoted: "web"` record,
+    and the esid must exist in `rows.json` -- otherwise the numbers have no source."""
+    pool_ids, row_ids = set(), set()
+    for bucket in ((sv["pool"] or {}).get("pools") or {}).values():
+        for item in bucket.get("items") or []:
+            if item.get("esid"):
+                pool_ids.add(str(item["esid"]).removeprefix("nr_"))
+    for row in sv["rows"] or []:
+        if isinstance(row, dict):
+            for key in ("esid", "_id", "clinical_result.extra_esid",
+                        "clinical_result._extra_esid"):
+                if row.get(key):
+                    row_ids.add(str(row[key]).removeprefix("nr_"))
+                    break
+    bad, seen = [], 0
+    for i, c in enumerate((sv["watchlist"] or {}).get("cards") or [], 1):
+        esid = str(c.get("esid") or "").removeprefix("nr_")
+        if esid in pool_ids:
+            if c.get("promoted"):
+                bad.append(f"card{i} promoted but already in pool")
+            continue
+        seen += 1
+        if c.get("promoted") != "web":
+            bad.append(f"card{i} outside pool without promoted='web'")
+        elif row_ids and esid not in row_ids:
+            bad.append(f"card{i} promoted esid not in rows.json")
+    return not bad, ("; ".join(bad[:4]) if bad
+                     else f"all {seen} out-of-pool card(s) traceable to rows.json")
+
+
+def op_web_evidence(sv, spec):
+    """The web step must leave re-checkable evidence, not just a claim in the reply."""
+    files = sv.get("web_evidence") or {}
+    if not files:
+        return False, "no work/web/*.jsonl -- the web curation step left no trace"
+    lines = sum(len(v) for v in files.values())
+    if lines < spec.get("min_lines", 6):
+        return False, f"only {lines} search record(s) across {len(files)} file(s)"
+    bad = [f"{k}:{i}" for k, v in files.items() for i, r in enumerate(v, 1)
+           if not str(r.get("url") or "").startswith("http")]
+    return not bad, (f"{len(files)} file(s)/{lines} record(s), {len(bad)} without url"
+                     if not bad else f"{len(bad)} record(s) without a URL")
 
 
 def op_count_matches(sv, spec):
@@ -472,6 +581,10 @@ OPS = {
     "reply_mentions": op_reply_mentions,
     "lba_not_dropped": op_lba_not_dropped,
     "coverage_claims": op_coverage_claims,
+    "why_depth": op_why_depth,
+    "listed_company_shape": op_listed_company_shape,
+    "promotion_traceable": op_promotion_traceable,
+    "web_evidence": op_web_evidence,
     "heat_coverage": op_heat_coverage,
 }
 

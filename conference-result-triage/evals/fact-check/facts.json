@@ -35,10 +35,10 @@
   {
    "id": "A-S1-bucket-cap",
    "op": "cards_cap",
-   "cap": 15,
-   "total": 45,
+   "cap": 10,
+   "total": 30,
    "severity": "fail",
-   "rationale": "每桶硬上限 15、全场 45。超了不是「多给点」，是把读完的压力转嫁给读者。"
+   "rationale": "每桶上限 10、全场 30（v0.7）。机器短名单是 15，但交付清单是**阅读**清单：无上限的清单不再是清单。超了不是「多给点」，是把读完的压力转嫁给读者；不足就少给，不许拿 weak 凑。"
   },
   {
    "id": "A-S2-count-field",
@@ -139,6 +139,32 @@
    "min_hits": 3,
    "severity": "warn",
    "rationale": "X 讨论集中在这 12 个 Presidential/LBA 试验上。清单完全避开它们不一定是错，但差距要摆出来让人判断。"
+  },
+  {
+   "id": "A-P5-why-depth",
+   "op": "why_depth",
+   "min_chars": 60,
+   "severity": "fail",
+   "rationale": "`why` 必须承载判断，不是标签：短于 60 字说明只写了「数据好」；开头 20 字与 summary 相同说明只是把数字复述了一遍。v0.6 的卡片两种都有。"
+  },
+  {
+   "id": "A-F5-listed-company",
+   "op": "listed_company_shape",
+   "severity": "fail",
+   "rationale": "每张卡都要 `listed_company` 键；非 null 时必须带 name/ticker/exchange 与可解析的 source_url。这个字段的用途是「披露当天股价是否重定价」，ticker 假了这条信息就是负资产。null 是「查过、没有」，缺键是「没查」。"
+  },
+  {
+   "id": "A-F6-promotion-traceable",
+   "op": "promotion_traceable",
+   "severity": "fail",
+   "rationale": "网页收敛允许把机器筛掉的记录提上来，但必须标 promoted='web' 且 esid 在 rows.json 里——否则卡片上的数字没有原文出处。开一扇门，同时留一条能查账的路径。"
+  },
+  {
+   "id": "A-W1-web-evidence",
+   "op": "web_evidence",
+   "min_lines": 6,
+   "severity": "fail",
+   "rationale": "联网终选是本版新增的判断来源，它的证据必须能独立存在：`work/web/<bucket>.jsonl` 一行一次检索（query/title/url）。回合结束 tool_results 就被清空，回复里说「查过」不算证据。"
   }
  ]
 }

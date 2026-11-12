@@ -1,5 +1,28 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.7（2026-11-12）：15 → 10 的编辑收敛、`why` 变判断、上市公司字段
+
+三处改动都来自「45 张卡交出去之后读者会问什么」，而不是脚本能算出来的东西。
+
+| 改动 | 为什么 | 落成什么 |
+|---|---|---|
+| **两段收敛**：机器短名单 15/45 → **交付清单 10/30** | 15 条是防止池子变倾倒场的天花板，但它不是阅读上限；一份 15 条的清单读不完，10 条的会 | `check_cards.py` `PER_BUCKET_CAP=10` / `TOTAL_CAP=30`；`work/shortlist.json`（≤15）与 `work/plan.json`（≤10）分开 |
+| **联网终选（Step 5B）** | 只从会议库挑，永远不知道会议室里真正被讨论的是哪一条，也不知道研发公司是上市公司、披露当天股价怎么走 | 每桶 ≥6 次 `web_search`，证据落 `work/web/<bucket>.jsonl`；允许 `promoted:"web"` 把池外记录提上来（必须在 `rows.json` 里） |
+| **`why` 从标签变判断** | 「报告了主要终点读数」等于没写；读者要的是「这项研究值什么」 | `MIN_WHY_CHARS=60`、2–4 句、禁止与 `summary` 互相包含前 20 字 |
+| **`listed_company`** | 这类读数是股价的重定价日；查不到就该空着，而不是让读者猜 | 每张卡必有该键，非 null 时 `name/ticker/exchange/source_url` 齐全且 URL 可解析 |
+
+**实探到的坑**：平台的 `web_search`（模型侧可能显示成 `web.run`）有**双重开关** —— 项目 `capabilities_config.web=true`
+**且** 回合 `enable_web=true`。只开前者时模型看到的工具表里根本没有检索工具，它会一路"没有联网工具"地编下去；
+`debug-history.json` 里 `web_search` 只出现在 prompt 与回复里、零条工具定义。`settings.WEB_SEARCH_API_KEY` 为空时是
+**返回一条 message**（`WEB_SEARCH_NOT_CONFIGURED_MESSAGE`），不是隐藏工具——两种现象要分开报。
+
+**事实层**：19 → **23 条 fail 项 + 1 warn**。新增 `A-P5-why-depth`（短 / 复写 `summary` 两个分支）·
+`A-F5-listed-company` · `A-F6-promotion-traceable` · `A-W1-web-evidence`，各配 mutation；NEG 从 2 条加到 4 条
+（合法的桶间重排、热点标题、`why` 踩 60 字下限、带交易所来源的港股公司）。`EVALUATOR_REVISION = 2026-11-12-r2`。
+基线 `facts 23/23`，`mutations.py` 输出 `coverage: 23/23 fail items have a mutation; 4 negative controls green`。
+
+**未做**：E2E #5（v0.7 未发布，尚未实跑）；`featured` 白名单仍是 dev ticket；`stock` 数据源仍未接通。
+
 ## v0.6.1（2026-11-12）：原地重跑两次，facts 19/19 全绿
 
 v0.6 发布后原地跑全量（592 候选 / 40 批），**第一次 `facts 16/19`，暴露的三个面全部修掉后第二次 `19/19`**。

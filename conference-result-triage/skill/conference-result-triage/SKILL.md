@@ -190,15 +190,35 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
 
 合并前先校验：`i` 覆盖必须等于池子条数、`evidence` 必须是原文子串、`reason` 长度合规。任一项不过整批重跑，不要凑数。
 
-### Step 5 — 定榜（编辑决策，不在脚本里）
+### Step 5 — 定榜（两段收敛：初选 15 → 联网终选 10）
 
-**每桶最多 15 条，全场最多 45 条。** 从 `keep` 里挑，**不要为了凑数把 `weak` 提上来**；不足就写不足（只交 8 条也算完成）。
+#### 5A 初选（编辑取舍，≤15 条/桶）
 
-1. 早期机会（≤15）：新机制/新靶点，数字超出该适应症历史水位。
-2. 重磅 II/III 期（≤15）：随机对照、主要终点达成且有临床意义；late-breaking / 口头优先。
-3. 失败（≤15）：III 期或大型随机研究的主要终点未达 / 提前终止 / OS 反向。
+从 `keep` 里挑，**不要用 `weak` 凑数**；不足就少给。压同质（同机制最多 2 条）、标数据类型（首次公布 > 更新 > 亚组）、看同资产历史读数（`history_for.py`）。产物写 `work/shortlist.json`，**它不是交付物**，只是终选的输入。
 
-排序：**以判读 `score` 为主序**，再做编辑取舍（压同质、同机制最多留 2 条）。你可以推翻分数，但要在 `why` 里说清原因。超过 15 条就按分从高往低砍，`check_cards.py` 会拦。
+#### 5B 联网终选（≤10 条/桶、全场 ≤30）
+
+这一步的作用是**把榜单从"会议库里挑出来的"变成"外部世界也认的"**：找出被机械筛和初选漏掉的热点，并把研发公司是否上市查清楚。**必须主 agent 亲自跑检索**，不要交给 `task` 子代理（子代理的成本策略与工具面不同，主 agent 也看不到原始 URL 标题，无法判断来源可靠性）。
+
+**工具**：联网检索靠平台的 `web_search`（部分模型把它显示成 `web.run`，同一个东西：入参 `queries`/`query`，回 `sources` + `items[url,title]`）。它有个**双重开关**，缺一个就静默不可用：项目 `capabilities_config.web=true` **且** 本回合以 `enable_web=true` 发起（UI 上就是"联网"按钮）。实测过能力已开但回合没带 flag —— 模型看到的工具表里干脆没有检索工具，于是它会一路"没有联网工具"地编下去。发现没有这个工具时**停下来告诉用户开联网**，不要假装查过。`freshness` 只在需要时效时才收紧，默认不限。
+
+**每桶至少 6 次查询**，四类模板各覆盖一次：
+
+| 目的 | 查询模板 |
+|---|---|
+| 会议现场热度 | `"<会议> <药名/试验名> results"` |
+| 适应症内定位 | `"<药名> <适应症> data <会议> <年份>"` |
+| 股价/公司 | `"<药名 或 公司> stock reaction <月份>"` |
+| 未被收录的热点 | `"<会议> late-breaking abstract <适应症> most anticipated"` |
+| 上市公司 | `"<公司名> listed ticker exchange"`（再用 `web_fetch` 打开交易所/公司 IR 页确认） |
+
+**证据要落盘**：每次检索追加一行到 `work/web/<bucket>.jsonl`（`{"query","title","url","published_at","note"}`）。回合结束 `/workspace/tool_results/` 会清空，只有这个文件留下来能复核。
+
+**允许 `promote`（外部热议但初选漏了）**：前提是它在 `work/rows.json` 里 —— 卡片上的数字必须有原文出处。写卡时标 `"promoted": "web"`，并在 `why` 里点明外部讨论的是什么（例：多项报道把该读数列为该适应症本届最受关注的口头报告）。**`rows.json` 里根本没有的研究一律不进卡**，只在 `coverage_notes` 里写一句"外部讨论了 X，但会议库无对应记录，未纳入"。`check_cards.py --rows` 会按 `rows.json` 校验这类卡片；没有 `promoted` 标记却在池子外的 esid 直接拒绝。
+
+**查上市公司**：每张卡都要落 `listed_company` 字段。上市 ⇒ 对象 `{name, ticker, exchange, reaction, source_url}`，`source_url` 必须是你真的打开过的页面；未上市或查不到 ⇒ `null`（**不要猜、不要用同名母公司顶替**）。为什么要这个字段：这类读数披露当天常常就是股价的重定价日，`reaction` 写"披露当日 +4.1%"这种可核实的短句，没有核实到就省略该键。
+
+**终选原则**：每桶 ≤10 条。分数仍是内部定榜的主要依据，但**外部信号可以覆盖它**，覆盖了要在 `why` 里写清（"外部讨论集中在 X，而初选按分数把它排在 12 位"）。同机制仍最多 2 条。宁可 8 条也不要用 `weak` 补到 10。
 
 写 `plan.json`：
 
@@ -207,24 +227,34 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
   {"esid": "...", "bucket": "pivotal", "score": 78,
    "score_parts": {"evidence_strength": 26, "effect_size": 22,
                    "clinical_impact": 20, "novelty": 4, "readout_maturity": 6},
-   "title": "…", "summary": "…", "why": "…"}
+   "title": "…", "summary": "…", "why": "…",
+   "promoted": "web",
+   "listed_company": {"name": "Roche Holding AG", "ticker": "ROG", "exchange": "SIX",
+                      "reaction": "披露当日 +4.1%", "source_url": "https://…"}}
 ]}
 ```
 
-`title` / `summary` / `why` / `score` 四条必填，缺一条脚本直接停（`score_parts` 没给就沿用判读阶段的值）。`summary` 写报告了什么（带数字），`why` 写为什么值得读（自然语言，一句话，点出人群或对照）。
+`title` / `summary` / `why` / `score` / `listed_company` 五条必填（`listed_company` 可以是 `null`，但键必须在），缺一条脚本直接停（`score_parts` 没给就沿用判读阶段的值）。
+
+`summary` 写**报告了什么**（带数字）；`why` 写**这项研究值什么**，2–4 句、**≥60 字**，按「未满足需求 → 这次数据的定位 → 对治疗格局或后续研发的影响 → 主要局限」铺开，**不要复述 `summary` 的数字**，也不要写"数据很好、值得关注"这种空话。判读分不写进 `why`。
 
 ### Step 6 — 渲染交付物
 
 ```bash
 python3 $S/make_cards.py --pool /workspace/work/pool_labeled.json \
-    --plan /workspace/work/plan.json --out /workspace/output/watchlist.json --pretty
+    --plan /workspace/work/plan.json --out /workspace/output/watchlist.json --pretty \
+    --rows /workspace/work/rows.json
 python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
-    --pool /workspace/work/pool_labeled.json
+    --pool /workspace/work/pool_labeled.json --rows /workspace/work/rows.json
 ```
 
-`check_cards.py` **必须 exit 0** 才能交付。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字、**每桶超过 15 条**、**`score` 不是 0–100 整数或五维相加不等于总分**、**`coverage_notes` 缺失或没写到两条边界**。
+`--rows` 只在有 `promoted` 卡片时才必需；给了它，池子外的 esid 必须带 `"promoted": "web"` 才放行。
+
+`check_cards.py` **必须 exit 0** 才能交付。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字、**每桶超过 10 条 / 全场超过 30 条**、**`score` 不是 0–100 整数或五维相加不等于总分**、**`why` 少于 60 字或只是复述 `summary`**、**`listed_company` 键缺失或给了假 ticker/假链接**、**池子外的卡片没有 `promoted` 标记**、**`coverage_notes` 缺失或没写到两条边界**。
 
 `coverage_notes` 必须写在交付 JSON 的顶层（见下「两个必须写进清单的诚实声明」）。v0.5 的实跑把它写成了别的字段名、v0.6 的实跑把边界写在 `coverage.boundary` 里 ⇒ 事实层 `A-H1` 两次都判失败：**边界只写在聊天回复里，下个月读 JSON 的人看不到**。所以这一条从"建议"升级成闸门，措辞不查（`无 p 或 HR` / `未列p或HR` / `没给 p 值或 HR` 都算），只查事实有没有落到交付物里。
+
+「研发公司是否上市」用 `listed_company` 字段表达（见 Step 5B），不要塞进 `stock`：`stock` 是**当日行情快照**，`listed_company` 是**身份 + 可核实的披露反应**，两者混在一起会让"没查到涨跌"看起来像"没上市"。
 
 股票涨跌是同一天的市场数据，结果库里没有。给了 `--quotes`（`{"<esid>": {"ticker": "…", "change_pct": 5.2, "date": "2026-10-19"}}`）就附在对应卡片上；没给就留 `null`，**绝不用其它日期的涨跌顶替**。
 
@@ -249,6 +279,9 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
    "title": "…", "summary": "…", "why": "…",
    "drug": "…", "target": "…", "indication": "…",
    "phase": "Phase III", "presentation": "Late-breaking Oral",
+   "listed_company": {"name": "…", "ticker": "…", "exchange": "…",
+                      "reaction": "…", "source_url": "https://…"},
+   "promoted": "web",
    "stock": null}
 ]}
 ```
@@ -256,6 +289,9 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 - `coverage_notes` 是**必填**的字符串数组，上面两条声明各至少一条；`check_cards.py` 会按语义（不是字面措辞）校验它。
 - `esid` 是结果记录 id（用户要的"对应的结果id"）；`abstract_id` 是会议摘要号，平台内**恒为 `null`**（见 Step 3），有外网补库时才有值。
 - `score` / `score_parts` 是判读结论（Step 4 给的分），不是脚本算的；总分只用来决定阅读顺序，`why` 里不出现分数。
+- `why` 是**价值判断**（2–4 句、≥60 字），不是 `summary` 的改写：它要回答"这项研究为什么重要"，而 `summary` 回答"报告了什么"。
+- `listed_company` **每张卡都有这个键**：上市填 `{name, ticker, exchange, reaction?, source_url}`，未上市/查不到填 `null`。`null` 是"查过、没有"，不是"没查"。
+- `promoted` 只在**联网终选把池子外的记录提进来**时出现，值是 `"web"`；这类卡片必须能对上 `work/rows.json` 的 esid。
 - `manual` 是生产方式标记（人工核对 / 流水线抽取），**不是**推荐等级。平台内**恒为 `null`**（`featured` 不可选），`check_cards.py` 会拒绝把它改成 `true`/`false`。
 - 路径固定为 `/workspace/output/watchlist.json`：后端硬编码读取，改名即断链。同一工作区复跑就覆盖。
 - `write_file` 一律带 `overwrite=True`，包括首次写入。
@@ -303,6 +339,7 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 
 ## 版本
 
+- **v0.7** — 三道改动，都是「清单自己长出来的问题」。①**两段收敛**：机器短名单仍是每桶 15 / 全场 45，但交付清单收成**每桶 10 / 全场 30**（无上限的清单不再是阅读清单），中间插一道**联网终选**（每桶 ≥6 次检索，证据落 `work/web/<bucket>.jsonl`）；允许把机器筛掉但外部热议的研究提上来，条件是它在 `rows.json` 里、且卡片标 `promoted: "web"`、`why` 说明为什么破格——开门，但能查账。②**`why` 从标签变判断**：≥60 字、2–4 句，按「未满足需求 → 这次数据的定位 → 对格局的影响 → 局限」铺开，**不许复写 `summary`**；原来那种「报告了主要终点读数」等于没写。③**新增 `listed_company`**：这类读数披露当天常常就是股价的重定价日，每张卡都要这个键，上市填 `{name,ticker,exchange,reaction?,source_url}`、未上市或查不到填 `null`（`null` 是「查过、没有」）。踩过的坑：平台的 `web_search`（部分模型显示成 `web.run`）有**双重开关** —— 项目能力 `web=true` **且** 回合带 `enable_web=true`，缺一个就静默不可用，模型会一路编；发现工具不在工具表里必须停下让用户开联网。事实层 19 → **23 条 fail 项 + 1 warn**（新增 `A-P5-why-depth` / `A-F5-listed-company` / `A-F6-promotion-traceable` / `A-W1-web-evidence`，各配 mutation + 4 条 NEG）。
 - **v0.1** — 首版，ESMO 2026 全量实跑（467 候选 → 30 条）。
 - **v0.2** — Results 不截断 + 会议摘要库并列数据源 + 报告形式加权 + 人群难度分档；候选 532，evidence 逐字 100%，专家 7 条 keep 3/7 → 5/7。
 - **v0.3** — 改为平台内执行：取数唯一走 MCP（`pull_results.py` 两阶段切片），补 `clinical_result.lba`（v0.2 漏选导致整类 LBA 丢失），`PRESENTATION_RANK` 修正（Presidential/LBA 不再被压到普通口头之下），会议库标题 join 补回 LBA 编号（57/57），交付物改为 `/workspace/output/watchlist.json` 卡片清单。候选 551（early 200 / pivotal 292 / failed 59）。

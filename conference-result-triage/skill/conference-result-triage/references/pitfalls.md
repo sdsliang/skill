@@ -244,3 +244,22 @@ WHERE journal='ESMO 2026' GROUP BY source, featured;
 **补记（同日实跑）**：落盘这条路走通后，**一次宽字段调用仍然拉不全** —— 32 字段 + `meeting_tags` 只落 458 行 / 6.4 MB，工具在服务端就截断了，且 `ok: true`。id-only 调用（`selected_fields=["clinical_result.extra_esid"]`）回全 1097，不受限。所以正解是**四阶段**：id → `plan_slices.py` 切 150/片 → 每片 `esids` 调用 → 合并 + `--expect-ids` 校验覆盖。
 
 **第二个静默杀手**：`selected_fields` 里混进一个线上白名单没有的名字（`research_design.evaluation.text`、`base.abbreviation_label.text`），整次调用返回 `INVALID_INPUT: Invalid fields selected`、`data=null`，**一行都没有**——不是丢一列。判断法：`INVALID_INPUT` 里直接点名列出来，别猜；`clinical_result.evaluation` / `clinical_result.abbreviation_label` 才是线上名字。
+
+## 22. `web_search` 有**双重开关**，缺一个就静默消失（v0.7 实探）
+
+`web_search` / `web_fetch` 是**后端执行**的工具，不受沙箱无网影响 —— 但它们只在两个条件同时成立时才进入工具表：
+
+1. 项目级能力：`capabilities_config.web = true`（`schemas/capabilities.py` 的 `CapabilityConfig.web`）；
+2. 回合级开关：`POST /api/chat` 的 `enable_web = true`（UI 上就是"联网"按钮）。
+
+实测过程：项目 `web=false` 时模型回答"当前没有 web_search"；`PATCH /api/projects/{id}` 把 `web` 改成 `true` 后，回合仍**不带** `enable_web`，模型依旧回答"没有这个工具"，而 `debug-history.json` 里 `web_search` 只出现在用户 prompt 和模型回复里、**零条工具定义** —— 说明工具确实没被提供，不是它不会用。
+
+**代码层还要看一件事**：`agent/capabilities/web.py` 的 gate 是 `capability_config.web and deps.enable_web`；`settings.WEB_SEARCH_API_KEY` 为空时是**返回一条 message**（`WEB_SEARCH_NOT_CONFIGURED_MESSAGE`），不是隐藏工具。所以"工具表里没有它"= 开关没开，"有它但一调就报 not configured"= 服务端缺 key。两种情况要分开报。
+
+**处置**：`toolsmith-publish run ... --web` 会带 `enable_web=true`（`run.json` 里能看到）。复盘时先看 `run.json` 的 `enable_web`，再看 `debug-history.json` 有没有 `web_search` 的工具定义，最后才怀疑模型。**发现工具不在工具表里，必须停下让用户开联网**，不许按常识继续写"据报道……"。
+
+**顺带**：模型侧工具名可能显示成 `web.run`（同一个工具，入参 `query`/`queries`，返回 `sources` + `items[url,title]`）。按 `web_search` 或 `web.run` 任何一个写文档都不算错，但**报"没有 web 工具"前先确认自己开没开开关**。
+
+## 23. `why` 会退化成 `summary` 的复写（v0.7 加闸）
+
+症状：45 张卡里 `why` 写成「报告了 ORR 47.5%、mPFS 6.8 个月」，与 `summary` 前 20 字几乎相同。这不是措辞问题 —— 读者从 `summary` 已经知道了数字，`why` 的唯一职责是回答**这项研究为什么重要**（未满足需求、改变了什么、对后续研发的影响、局限）。判据落成两条机械规则：**≥60 字**（少于 60 字写不完一个判断）、**不许与 `summary` 互相包含前 20 字**（否则就是把数字换个说法）。评分不写进 `why` —— 分数是内部排序依据，露出来只会让读者去比大小。

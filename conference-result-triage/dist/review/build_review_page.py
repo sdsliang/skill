@@ -42,6 +42,16 @@ def entry(idx, c, bucket):
     # "未判定" is the honest default, not information — it stays in the JSON only
     if c.get("data_type") and c["data_type"] != "未判定":
         chips.append(f'<span class="chip ghost">{esc(c["data_type"])}</span>')
+    # v0.7: only render a ticker we could actually source — a listed-looking chip with
+    # no exchange behind it is worse than nothing next to a share-price claim.
+    co = c.get("listed_company") or {}
+    if co.get("ticker"):
+        label = f'{co.get("ticker")} · {co.get("exchange")}' if co.get("exchange") \
+            else str(co["ticker"])
+        chips.append(f'<span class="chip stock" title="{esc(co.get("name") or "")}">'
+                     f'{esc(label)}</span>')
+    if c.get("promoted"):
+        chips.append('<span class="chip ghost">网页补录</span>')
     return f"""
     <article class="item" id="c-{bucket}-{idx}">
       <div class="body">
@@ -140,6 +150,7 @@ HTML = f"""<!doctype html>
   .chip.solid{{background:var(--ink);color:var(--paper);border-color:var(--ink)}}
   .chip.who{{border-color:var(--l5);color:var(--l2)}}
   .chip.ghost{{border-style:dashed;color:var(--muted)}}
+  .chip.stock{{border-color:var(--ink);color:var(--ink);font-variant-numeric:tabular-nums}}
   .sum{{font-size:13px;line-height:1.7;color:var(--ink);max-width:900px}}
   .why{{font-size:12.5px;line-height:1.7;color:var(--l2);margin-top:7px;max-width:900px}}
   .why:before{{content:'推荐理由 · ';font-weight:700;color:var(--muted);letter-spacing:.02em}}

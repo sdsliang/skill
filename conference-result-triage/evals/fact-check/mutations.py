@@ -64,6 +64,7 @@ def build_fixture(root):
     os.makedirs(os.path.join(root, "artifacts", "work", "pool"), exist_ok=True)
     os.makedirs(os.path.join(root, "artifacts", "work", "slices"), exist_ok=True)
 
+    os.makedirs(os.path.join(root, "artifacts", "work", "web"), exist_ok=True)
     raw = []
     for i, (bucket, scores, name) in enumerate((
             ("pivotal", [88, 84, 79, 75, 71], "DeLLphi-305"),
@@ -76,10 +77,22 @@ def build_fixture(root):
             raw.append({"esid": esid, "bucket": bucket, "score": sc,
                         "score_parts": parts_for(sc), "title": title,
                         "summary": f"ORR {float(30 + i + j)}% with HR {0.5 + j / 100:.2f}",
-                        "why": "随机对照，主要终点达成，人群为一线", "_source": source})
+                        # A judgement, not a label: >=60 chars, and not a re-wrap of
+                        # `summary` (that pair of rules is what A-P5 audits).
+                        "why": ("该人群至今没有确立的二线标准，随机对照把主要终点打成阳性，"
+                                "效应量足以改写这一线的治疗选择；局限是随访仍短，"
+                                "总生存尚未成熟，且入组排除了经过免疫治疗进展的患者。"),
+                        "_source": source})
     cards = []
-    for c in raw:
-        cards.append({k: v for k, v in c.items() if not k.startswith("_")})
+    for n, c in enumerate(raw):
+        card = {k: v for k, v in c.items() if not k.startswith("_")}
+        # `listed_company` is mandatory on every card; one card carries a fully
+        # sourced company so the shape check has something legal to accept.
+        card["listed_company"] = (
+            {"name": "Roche Holding AG", "ticker": "ROG", "exchange": "SIX",
+             "reaction": "披露当日 +4.1%",
+             "source_url": "https://www.roche.com/investors"} if n == 0 else None)
+        cards.append(card)
 
     watchlist = {"conference": "ESMO 2026", "count": len(cards), "cards": cards,
                  "coverage_notes": ["数据类型无明确首次/更新依据则未判定。",
@@ -110,6 +123,22 @@ def build_fixture(root):
         with open(os.path.join(root, "artifacts", "work", "slices", f"slice_{n + 1:02d}.json"),
                   "w", encoding="utf-8") as f:
             json.dump(chunk, f)
+
+    # The web-curation step has to leave re-checkable evidence: one JSON line per
+    # query, per bucket. Without it the step is unverifiable after the turn ends.
+    for bucket in ("pivotal", "early", "failed"):
+        recs = [{"query": f"ESMO 2026 {bucket} trial results",
+                 "title": f"ESMO 2026 {bucket} round-up",
+                 "url": f"https://example.org/esmo-2026/{bucket}-1",
+                 "published_at": "2026-10-20", "note": "media coverage"},
+                {"query": f"ESMO 2026 {bucket} sponsor stock reaction",
+                 "title": f"{bucket} sponsor listed?",
+                 "url": f"https://example.org/esmo-2026/{bucket}-2",
+                 "published_at": "2026-10-21", "note": "listed-company check"}]
+        with open(os.path.join(root, "artifacts", "work", "web", f"{bucket}.jsonl"),
+                  "w", encoding="utf-8") as f:
+            for r in recs:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
     with open(os.path.join(root, "artifacts.json"), "w", encoding="utf-8") as f:
         json.dump([{"path": "/workspace/output/watchlist.json"},
@@ -169,7 +198,7 @@ def run_check(root):
 def m_bucket_cap(root):
     w = read(root, "artifacts/output/watchlist.json")
     extra = copy.deepcopy(w["cards"][0])
-    while sum(1 for c in w["cards"] if c["bucket"] == "pivotal") <= 15:
+    while sum(1 for c in w["cards"] if c["bucket"] == "pivotal") <= 10:
         e = copy.deepcopy(extra)
         e["esid"] = e["esid"] + f"_x{len(w['cards'])}"
         w["cards"].append(e)
@@ -301,6 +330,43 @@ def m_direct_es(root):
     open(p, "a", encoding="utf-8").write("\ncurl -s $ES_HOST/np_clinical/_search?size=10\n")
 
 
+def m_why_depth(root):
+    """Both branches of A-P5 in one mutation: a label, and a number restated."""
+    w = read(root, "artifacts/output/watchlist.json")
+    w["cards"][0]["why"] = "数据好，值得关注"
+    c = w["cards"][1]
+    c["why"] = c["summary"] + "，此外这项研究的人群与对照设置都值得注意，" \
+               "随访成熟后可能改变一线选择，但目前的入组经过高度筛选。"
+    write(root, "artifacts/output/watchlist.json", w)
+
+
+def m_listed_missing(root):
+    w = read(root, "artifacts/output/watchlist.json")
+    w["cards"][0].pop("listed_company", None)
+    write(root, "artifacts/output/watchlist.json", w)
+
+
+def m_listed_bare(root):
+    w = read(root, "artifacts/output/watchlist.json")
+    w["cards"][0]["listed_company"] = {"name": "某公司", "ticker": "",
+                                       "exchange": "HKEX", "source_url": "n/a"}
+    write(root, "artifacts/output/watchlist.json", w)
+
+
+def m_promoted_missing(root):
+    w = read(root, "artifacts/output/watchlist.json")
+    c = copy.deepcopy(w["cards"][0])
+    c["esid"] = "nr_24_37_p_notinpool"
+    c.pop("promoted", None)
+    w["cards"].append(c)
+    w["count"] = len(w["cards"])
+    write(root, "artifacts/output/watchlist.json", w)
+
+
+def m_web_missing(root):
+    shutil.rmtree(os.path.join(root, "artifacts", "work", "web"), ignore_errors=True)
+
+
 MUTATIONS = [
     ("A-D1-full-coverage", m_coverage),
     ("A-D2-sliced-pulls", m_wide_pull),
@@ -321,6 +387,10 @@ MUTATIONS = [
     ("A-T2-no-json-paste", m_json_paste),
     ("A-H1-two-honest-claims", m_notes),
     ("A-D4-lba-not-dropped", m_lba_dropped),
+    ("A-P5-why-depth", m_why_depth),
+    ("A-F5-listed-company", m_listed_missing),
+    ("A-F6-promotion-traceable", m_promoted_missing),
+    ("A-W1-web-evidence", m_web_missing),
 ]
 
 # Legal variations that must stay green: the scorer should test facts, not formatting.
@@ -328,6 +398,24 @@ def ngen_legal_reorder(root):
     """Reverse the order *between* buckets -- order is only meaningful inside one."""
     w = read(root, "artifacts/output/watchlist.json")
     w["cards"].sort(key=lambda c: c["bucket"])
+    write(root, "artifacts/output/watchlist.json", w)
+
+
+def ngen_why_varied(root):
+    """A `why` at the 60-char floor with different wording must stay green."""
+    w = read(root, "artifacts/output/watchlist.json")
+    w["cards"][0]["why"] = ("该适应症长期缺少随机对照证据，这次把主要终点做成阳性，"
+                            "效应量足够支撑一个二线新选择；但总生存尚未成熟，"
+                            "且入组排除了免疫经治者，外推要谨慎。")
+    write(root, "artifacts/output/watchlist.json", w)
+
+
+def ngen_listed_legal(root):
+    """A different but fully sourced company shape must stay green."""
+    w = read(root, "artifacts/output/watchlist.json")
+    w["cards"][1]["listed_company"] = {"name": "四川科伦博泰生物医药股份有限公司",
+                                       "ticker": "06990", "exchange": "HKEX",
+                                       "source_url": "https://www.hkexnews.hk/"}
     write(root, "artifacts/output/watchlist.json", w)
 
 
@@ -339,7 +427,9 @@ def ngen_heat_hit(root):
 
 
 NEGATIVES = [("legal bucket reorder", ngen_legal_reorder),
-             ("heat trial titled", ngen_heat_hit)]
+             ("heat trial titled", ngen_heat_hit),
+             ("why at the length floor", ngen_why_varied),
+             ("fully sourced HK company", ngen_listed_legal)]
 
 
 def main() -> int:

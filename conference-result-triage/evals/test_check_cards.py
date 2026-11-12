@@ -64,7 +64,13 @@ def card(item, score=60, parts=None):
         "tag": "LBA" if item.get("lba") else "",
         "title": str(item.get("title") or item.get("trial") or "untitled"),
         "summary": summary or "ORR 40%",
-        "why": "报告了主要终点读数，人群见摘要",
+        # `why` has to carry a judgement, not a label: >=60 chars, and it may not be a
+        # re-wrap of `summary`. Both rules exist because the field kept collapsing
+        # back into "报告了主要终点读数".
+        "why": ("该读数首次在随机对照中验证这一机制，缓解深度与既往同类药物相比"
+                "有明显提升；若总生存获益在后继随访中成立，会直接改变这一线的标准治疗，"
+                "但入组人群经过高度筛选，外推需谨慎。"),
+        "listed_company": None,
         "score": score,
         "score_parts": parts or {"evidence_strength": 20, "effect_size": 15,
                                  "clinical_impact": 15, "novelty": 5,
@@ -121,7 +127,7 @@ for c in many:
     c["bucket"] = same_bucket
 fails, _ = check_cards.check({"conference": "T", "count": len(many), "cards": many,
                              "coverage_notes": NOTES}, by_esid)
-expect(f"{same_bucket} over 15", fails, "> cap 15")
+expect(f"{same_bucket} over cap", fails, f"> cap {check_cards.PER_BUCKET_CAP}")
 
 # 6. no coverage_notes at all -- the exact defect of the 40-card ESMO 2026 run
 fails, _ = check_cards.check({"conference": "T", "count": 1, "cards": base}, by_esid)
@@ -142,6 +148,67 @@ if paraphrase:
     failures.append(f"legal paraphrase rejected: {paraphrase}")
 else:
     print("  ok  legal paraphrase of the notes passes")
+
+# 9. `why` too short -- "数据好" is not a reason
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(base[0], why="数据很好，值得关注")],
+                              "coverage_notes": NOTES}, by_esid)
+expect("why too short", fails, f"why is ")
+
+# 10. `why` that just repeats `summary`
+dup = dict(base[0], why=str(base[0]["summary"]) + "该结果值得关注，因为这项研究改变了这一线的治疗格局，"
+           "且入组人群的缓解持续时间明显优于历史对照，后续随访会验证总生存。")
+fails, _ = check_cards.check({"conference": "T", "count": 1, "cards": [dup],
+                              "coverage_notes": NOTES}, by_esid)
+expect("why repeats summary", fails, "repeats summary")
+
+# 11. missing listed_company -- the field is the record that somebody looked
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [{k: v for k, v in base[0].items()
+                                         if k != "listed_company"}],
+                              "coverage_notes": NOTES}, by_esid)
+expect("listed_company missing", fails, "missing listed_company")
+
+# 12. a listed company with no verifiable ticker/source is a rumour, not a fact
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(base[0], listed_company={
+                                  "name": "某公司", "ticker": "", "exchange": "HKEX",
+                                  "source_url": "not-a-url"})],
+                              "coverage_notes": NOTES}, by_esid)
+expect("listed_company ticker", fails, "listed_company.ticker missing")
+expect("listed_company url", fails, "not an http(s) URL")
+
+# 13. NEG: a fully sourced listed company passes
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(base[0], listed_company={
+                                  "name": "Roche Holding AG", "ticker": "ROG",
+                                  "exchange": "SIX", "reaction": "披露当日 +4.1%",
+                                  "source_url": "https://www.roche.com/investors"})],
+                              "coverage_notes": NOTES}, by_esid)
+if [f for f in fails if "listed_company" in f]:
+    failures.append(f"legal listed_company rejected: {fails}")
+else:
+    print("  ok  sourced listed_company passes")
+
+# 14/15. a card the mechanical screen cut may only enter via a web promotion
+promoted_row = {"esid": "nr_post_hoc_1", "lba": False, "manual": None,
+                "summary": "ORR 40%", "study_results": ["ORR 40%"]}
+promo_card = dict(base[0], esid="nr_post_hoc_1", lba=False, bucket="pivotal")
+fails, _ = check_cards.check({"conference": "T", "count": 1, "cards": [promo_card],
+                              "coverage_notes": NOTES}, by_esid,
+                             {"nr_post_hoc_1": promoted_row})
+expect("unpromoted out-of-pool card", fails, "was not promoted")
+fails, notes = check_cards.check({"conference": "T", "count": 1,
+                                  "cards": [dict(promo_card, promoted="web")],
+                                  "coverage_notes": NOTES}, by_esid,
+                                 {"nr_post_hoc_1": promoted_row})
+# the fixture row deliberately carries only "ORR 40%", so the summary's other
+# figures are untraceable here -- that is the number gate, not the promotion gate
+left = [f for f in fails if f.startswith("card ") and "figure" not in f]
+if left:
+    failures.append(f"promoted card rejected: {left}")
+else:
+    print("  ok  web-promoted card resolves against rows.json")
 
 if failures:
     print(f"\nFAIL ({len(failures)}):")

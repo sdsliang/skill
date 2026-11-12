@@ -108,6 +108,22 @@ p_value, outcome_p_value, hazard_ratio, hazard_ratio_ci, odd_ratio, relative_ris
 | `dist/ESMO2026-watchlist.csv` | 30 条定榜 |
 | `dist/ESMO2026-watchlist.md` | 三桶报告 |
 
+## 6.5 交付卡片的字段契约（v0.7）
+
+每张卡（`output/watchlist.json` → `cards[]`）：
+
+| 字段 | 必填 | 说明 |
+|---|---|---|
+| `esid` | ✅ | 临床结果记录 id；池子外的记录只有在 `promoted="web"` 时才允许出现，且必须在 `work/rows.json` 里 |
+| `title` / `summary` | ✅ | `summary` 至少要有一个带单位的数字 |
+| `why` | ✅ | **判断**，≥60 字、2–4 句；不许复述 `summary`；不写分数 |
+| `score` / `score_parts` | ✅ | 模型判读；五维各不超上限且相加等于总分 |
+| `listed_company` | ✅（可以是 `null`） | 上市：`{name, ticker, exchange, reaction?, source_url}`，`source_url` 必须 http(s)；未上市/查不到：`null`。**缺键 = 没查** |
+| `promoted` | 仅破格入榜 | 固定 `"web"` |
+| `lba` / `manual` / `abstract_id` | ✅（值可为 null） | `manual`、`abstract_id` 在平台上恒 `null`，不猜 |
+
+上限：**每桶 10 / 全场 30**（机器短名单 15/45 是另一回事，`work/shortlist.json`）。
+
 ## 7. 会议摘要库（`medicalMeeting`）—— **仅限本地/有外网，平台内不可用**
 
 > **平台内（v0.3 主运行时）这条路走不通**：Tool Smith 的 35 个工具里没有会议摘要库，`mcp-openapi.pharmcube.com` 不在容器网络内，23 张可查表里也没有会议表。所以平台内**拿不到摘要号**，`abstract_id` 恒为 `null`，报告形式只剩 `clinical_result.lba`（`featured` 是人工/AI 生产标记，不是头条，见 `screening-rules.md` §3.1b）。下面这节只在本地跑或容器能出网时适用。
