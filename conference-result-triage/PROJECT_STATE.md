@@ -20,6 +20,15 @@ v0.6 发布后原地跑全量（592 候选 / 40 批），**第一次 `facts 16/1
 **run 2 `cards-e2e4`**：1520 s、55 次工具调用、45 卡（15/15/15）、17 个不同分数、`facts 19/19 warn 1/1 -> PASS`、VOLGA / KRASCENDO-1 / CLARITY-Gastric01 全部进榜。
 **未做**：45 张卡的人工可读性复核；`featured` 白名单（`manual` 恒 `null`）。
 
+**复核页（2026-11-12）**：把 run 2 的交付物渲染成单文件 HTML 供人工读，
+`dist/review/esmo2026-watchlist.html`（`tools` 不是脚本，生成器在 `dist/review/build_review_page.py`，
+只读 `output/watchlist.json` 不改判读结果）。版式按 lieflat 的图卡契约：
+图A `L13 Hourglass Stream` 漏斗 1,097 → 592 → 272 → 45（`kpi` 行是排字家具，不占图额度），
+图B `F15 Tick Box` 三桶判读分分布（early 中位 81 / pivotal 93 / failed 92 —— 说明“失败桶不低”是数据事实），
+其余是排版不是图。清单按桶分节，分数只做定榜依据，`why` 里不出现分数；
+`coverage_notes` 七条原样落地；`verification_points` 里 VOLGA / KRASCENDO-1 / CLARITY-Gastric01
+的 `selected` 由卡片 esid 反查得出（run 2 只写了 `present_in_pool`，渲染时不能再凭一个缺字段就说“未上榜”）。
+
 ## v0.6（2026-11-11）：排除规则的静默删除 + 事实层首次落地
 
 **被外部热度对照逼出来的真缺陷**：`excluded_reason()` 用 `evidence_source` 判断研究类型，
