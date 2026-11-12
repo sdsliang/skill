@@ -26,7 +26,7 @@ def esc(s):
     return str(s).replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def entry(idx, c):
+def entry(idx, c, bucket):
     chips = []
     if c.get("tag"):
         chips.append(f'<span class="chip solid">{esc(c["tag"])}</span>')
@@ -42,7 +42,7 @@ def entry(idx, c):
     if c.get("data_type") and c["data_type"] != "未判定":
         chips.append(f'<span class="chip ghost">{esc(c["data_type"])}</span>')
     return f"""
-    <article class="item">
+    <article class="item" id="c-{bucket}-{idx}">
       <div class="idx"><div class="sc">{c['score']}</div><div class="no">#{idx:02d}</div></div>
       <div class="body">
         <h3>{esc(c['title'])}</h3>
@@ -54,17 +54,24 @@ def entry(idx, c):
     </article>"""
 
 
+nav_groups = []
 sections = []
 for key, label in BUCKETS:
     items = [c for c in cards if c["bucket"] == key]
     if not items:
         continue
-    rows = "\n".join(entry(i + 1, c) for i, c in enumerate(items))
+    rows = "\n".join(entry(i + 1, c, key) for i, c in enumerate(items))
     sections.append(f"""
-  <section class="bucket">
+  <section class="bucket" id="b-{key}">
     <div class="bh"><span class="ladder l-{key}"></span><h2>{label}<span class="cnt">{len(items)}</span></h2></div>
     {rows}
   </section>""")
+    links = "".join(
+        f'<a href="#c-{key}-{i + 1}"><span class="ns">{c["score"]}</span>'
+        f'<span class="nd">{esc(c.get("drug") or c["title"])}</span></a>'
+        for i, c in enumerate(items))
+    nav_groups.append(f'<div class="ng"><a class="ng-t" href="#b-{key}">'
+                      f'<span class="ladder l-{key}"></span>{label}</a>{links}</div>')
 
 HTML = f"""<!doctype html>
 <html lang="zh-Hans">
@@ -80,15 +87,45 @@ HTML = f"""<!doctype html>
   *{{margin:0;padding:0;box-sizing:border-box}}
   body{{background:var(--bg);color:var(--ink);font-family:'Inter','Noto Sans SC',sans-serif;
     -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums lining-nums;padding:56px 28px 80px}}
-  .sheet{{width:1080px;max-width:1080px;margin:0 auto}}
+  html{{scroll-behavior:smooth}}
+  .sheet{{width:1280px;max-width:1280px;margin:0 auto;display:grid;
+    grid-template-columns:206px minmax(0,1fr);gap:44px}}
+  .main{{min-width:0}}
+
+  .nav{{position:sticky;top:26px;align-self:start;max-height:calc(100vh - 52px);
+    overflow:auto;padding-right:6px}}
+  .nav::-webkit-scrollbar{{width:4px}}
+  .nav::-webkit-scrollbar-thumb{{background:var(--grid);border-radius:9px}}
+  .nt{{font-size:9.5px;font-weight:700;letter-spacing:.14em;color:var(--muted);
+    line-height:1.7;padding-bottom:12px;border-bottom:1px solid var(--ink)}}
+  .nt b{{font-size:11px;letter-spacing:.02em;color:var(--ink)}}
+  .ng{{margin-top:16px}}
+  .ng-t{{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;
+    color:var(--ink);text-decoration:none;letter-spacing:-.01em;margin-bottom:8px}}
+  .ng-t .ladder{{width:9px;height:9px;border-radius:3px;flex:none}}
+  .nav a{{text-decoration:none}}
+  .ng a:not(.ng-t){{display:flex;gap:7px;align-items:baseline;padding:3px 0;max-width:100%;
+    font-size:10px;color:var(--l2);border-bottom:1px solid transparent}}
+  .ng a:not(.ng-t):hover{{color:var(--ink)}}
+  .ng a:not(.ng-t):hover .nd{{text-decoration:underline;text-underline-offset:2px}}
+  .ns{{font-size:9.5px;font-weight:800;color:var(--muted);min-width:15px;text-align:right}}
+  .nd{{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em}}
+  .l-early{{background:var(--l3)}} .l-pivotal{{background:var(--ink)}} .l-failed{{background:var(--l5)}}
+  @media (max-width:1320px){{
+    body{{padding:34px 20px 60px}}
+    .sheet{{width:auto;max-width:1080px;grid-template-columns:1fr;gap:26px}}
+    .nav{{position:static;max-height:none;overflow:visible;border-bottom:1px solid var(--grid);padding-bottom:16px}}
+    .nav .ng{{display:inline-block;vertical-align:top;margin:14px 26px 0 0;
+      width:calc((100% - 60px) / 3);max-width:300px}}
+    .nt{{display:none}}
+  }}
 
   .kick{{font-size:9.5px;font-weight:700;letter-spacing:.16em;color:var(--muted)}}
   h1{{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:14px 0 0}}
 
   .bucket{{margin-top:52px}}
   .bh{{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--ink);padding-bottom:10px}}
-  .ladder{{width:13px;height:13px;border-radius:4px}}
-  .l-early{{background:var(--l3)}} .l-pivotal{{background:var(--ink)}} .l-failed{{background:var(--l5)}}
+  .ladder{{width:13px;height:13px;border-radius:4px;flex:none}}
   .bh h2{{font-size:18px;font-weight:800;letter-spacing:-.02em}}
   .bh .cnt{{font-size:11px;font-weight:600;color:var(--muted);margin-left:10px;letter-spacing:.06em}}
 
@@ -113,9 +150,15 @@ HTML = f"""<!doctype html>
 </head>
 <body>
 <div class="sheet">
-  <div class="kick">{esc(W.get('conference', ''))} · 临床结果推荐</div>
-  <h1>{len(cards)} 张推荐卡片</h1>
-  {''.join(sections)}
+  <nav class="nav">
+    <div class="nt">{esc(W.get('conference', ''))}<br><b>{len(cards)} 张推荐卡片</b></div>
+    {''.join(nav_groups)}
+  </nav>
+  <main class="main">
+    <div class="kick">{esc(W.get('conference', ''))} · 临床结果推荐</div>
+    <h1>{len(cards)} 张推荐卡片</h1>
+    {''.join(sections)}
+  </main>
 </div>
 </body>
 </html>

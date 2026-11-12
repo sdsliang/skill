@@ -12,15 +12,45 @@
   *{margin:0;padding:0;box-sizing:border-box}
   body{background:var(--bg);color:var(--ink);font-family:'Inter','Noto Sans SC',sans-serif;
     -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums lining-nums;padding:56px 28px 80px}
-  .sheet{width:1080px;max-width:1080px;margin:0 auto}
+  html{scroll-behavior:smooth}
+  .sheet{width:1280px;max-width:1280px;margin:0 auto;display:grid;
+    grid-template-columns:206px minmax(0,1fr);gap:44px}
+  .main{min-width:0}
+
+  .nav{position:sticky;top:26px;align-self:start;max-height:calc(100vh - 52px);
+    overflow:auto;padding-right:6px}
+  .nav::-webkit-scrollbar{width:4px}
+  .nav::-webkit-scrollbar-thumb{background:var(--grid);border-radius:9px}
+  .nt{font-size:9.5px;font-weight:700;letter-spacing:.14em;color:var(--muted);
+    line-height:1.7;padding-bottom:12px;border-bottom:1px solid var(--ink)}
+  .nt b{font-size:11px;letter-spacing:.02em;color:var(--ink)}
+  .ng{margin-top:16px}
+  .ng-t{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;
+    color:var(--ink);text-decoration:none;letter-spacing:-.01em;margin-bottom:8px}
+  .ng-t .ladder{width:9px;height:9px;border-radius:3px;flex:none}
+  .nav a{text-decoration:none}
+  .ng a:not(.ng-t){display:flex;gap:7px;align-items:baseline;padding:3px 0;max-width:100%;
+    font-size:10px;color:var(--l2);border-bottom:1px solid transparent}
+  .ng a:not(.ng-t):hover{color:var(--ink)}
+  .ng a:not(.ng-t):hover .nd{text-decoration:underline;text-underline-offset:2px}
+  .ns{font-size:9.5px;font-weight:800;color:var(--muted);min-width:15px;text-align:right}
+  .nd{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em}
+  .l-early{background:var(--l3)} .l-pivotal{background:var(--ink)} .l-failed{background:var(--l5)}
+  @media (max-width:1320px){
+    body{padding:34px 20px 60px}
+    .sheet{width:auto;max-width:1080px;grid-template-columns:1fr;gap:26px}
+    .nav{position:static;max-height:none;overflow:visible;border-bottom:1px solid var(--grid);padding-bottom:16px}
+    .nav .ng{display:inline-block;vertical-align:top;margin:14px 26px 0 0;
+      width:calc((100% - 60px) / 3);max-width:300px}
+    .nt{display:none}
+  }
 
   .kick{font-size:9.5px;font-weight:700;letter-spacing:.16em;color:var(--muted)}
   h1{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:14px 0 0}
 
   .bucket{margin-top:52px}
   .bh{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--ink);padding-bottom:10px}
-  .ladder{width:13px;height:13px;border-radius:4px}
-  .l-early{background:var(--l3)} .l-pivotal{background:var(--ink)} .l-failed{background:var(--l5)}
+  .ladder{width:13px;height:13px;border-radius:4px;flex:none}
   .bh h2{font-size:18px;font-weight:800;letter-spacing:-.02em}
   .bh .cnt{font-size:11px;font-weight:600;color:var(--muted);margin-left:10px;letter-spacing:.06em}
 
@@ -45,13 +75,18 @@
 </head>
 <body>
 <div class="sheet">
-  <div class="kick">ESMO 2026 · 临床结果推荐</div>
-  <h1>45 张推荐卡片</h1>
-  
-  <section class="bucket">
+  <nav class="nav">
+    <div class="nt">ESMO 2026<br><b>45 张推荐卡片</b></div>
+    <div class="ng"><a class="ng-t" href="#b-early"><span class="ladder l-early"></span>早期机会提示</a><a href="#c-early-1"><span class="ns">85</span><span class="nd">Mo-Rez</span></a><a href="#c-early-2"><span class="ns">84</span><span class="nd">larotrectinib</span></a><a href="#c-early-3"><span class="ns">83</span><span class="nd">PF-08634404 (SSGJ-707)</span></a><a href="#c-early-4"><span class="ns">82</span><span class="nd">ABBV-706</span></a><a href="#c-early-5"><span class="ns">82</span><span class="nd">raludotatug deruxtecan</span></a><a href="#c-early-6"><span class="ns">81</span><span class="nd">torvutatug samrotecan</span></a><a href="#c-early-7"><span class="ns">81</span><span class="nd">SHR-4849 (IDE849)</span></a><a href="#c-early-8"><span class="ns">81</span><span class="nd">LBL-034</span></a><a href="#c-early-9"><span class="ns">81</span><span class="nd">telisotuzumab adizutecan</span></a><a href="#c-early-10"><span class="ns">81</span><span class="nd">anzutresgene autoleucel</span></a><a href="#c-early-11"><span class="ns">81</span><span class="nd">dalpiciclib + pyrotinib</span></a><a href="#c-early-12"><span class="ns">80</span><span class="nd">SHR-A2009 + adebrelimab ± bevacizumab</span></a><a href="#c-early-13"><span class="ns">80</span><span class="nd">SHR-A1811 + pertuzumab</span></a><a href="#c-early-14"><span class="ns">79</span><span class="nd">NB003</span></a><a href="#c-early-15"><span class="ns">79</span><span class="nd">enozertinib (ORIC-114)</span></a></div><div class="ng"><a class="ng-t" href="#b-pivotal"><span class="ladder l-pivotal"></span>重磅 II/III 期</a><a href="#c-pivotal-1"><span class="ns">96</span><span class="nd">tarlatamab + durva</span></a><a href="#c-pivotal-2"><span class="ns">95</span><span class="nd">anbenitamab</span></a><a href="#c-pivotal-3"><span class="ns">95</span><span class="nd">selpercatinib</span></a><a href="#c-pivotal-4"><span class="ns">94</span><span class="nd">diva</span></a><a href="#c-pivotal-5"><span class="ns">94</span><span class="nd">savolitinib + osimertinib</span></a><a href="#c-pivotal-6"><span class="ns">93</span><span class="nd">intismeran + pembro</span></a><a href="#c-pivotal-7"><span class="ns">93</span><span class="nd">atezo + bev</span></a><a href="#c-pivotal-8"><span class="ns">93</span><span class="nd">tarlatamab</span></a><a href="#c-pivotal-9"><span class="ns">92</span><span class="nd">ivonescimab</span></a><a href="#c-pivotal-10"><span class="ns">92</span><span class="nd">sac-TMT</span></a><a href="#c-pivotal-11"><span class="ns">91</span><span class="nd">iza-bren</span></a><a href="#c-pivotal-12"><span class="ns">91</span><span class="nd">osi + savo</span></a><a href="#c-pivotal-13"><span class="ns">90</span><span class="nd">zani + TIS</span></a><a href="#c-pivotal-14"><span class="ns">90</span><span class="nd">sac-TMT + P</span></a><a href="#c-pivotal-15"><span class="ns">89</span><span class="nd">QL1706</span></a></div><div class="ng"><a class="ng-t" href="#b-failed"><span class="ladder l-failed"></span>失败的研究</a><a href="#c-failed-1"><span class="ns">95</span><span class="nd">pembrolizumab</span></a><a href="#c-failed-2"><span class="ns">95</span><span class="nd">pembrolizumab</span></a><a href="#c-failed-3"><span class="ns">94</span><span class="nd">sigvotatug vedotin</span></a><a href="#c-failed-4"><span class="ns">93</span><span class="nd">nivolumab + ipilimumab</span></a><a href="#c-failed-5"><span class="ns">93</span><span class="nd">sonesitatug vedotin</span></a><a href="#c-failed-6"><span class="ns">92</span><span class="nd">durvalumab + tremelimumab + enfortumab vedotin</span></a><a href="#c-failed-7"><span class="ns">92</span><span class="nd">pembrolizumab + lenvatinib + belzutifan；quavonlimab/pembrolizumab + lenvatinib</span></a><a href="#c-failed-8"><span class="ns">92</span><span class="nd">lenvatinib + pembrolizumab</span></a><a href="#c-failed-9"><span class="ns">91</span><span class="nd">oxaliplatin + irinotecan + 5-FU</span></a><a href="#c-failed-10"><span class="ns">90</span><span class="nd">trotabresib + temozolomide</span></a><a href="#c-failed-11"><span class="ns">89</span><span class="nd">camupepimut (ELI-002 7P)</span></a><a href="#c-failed-12"><span class="ns">87</span><span class="nd">ipatasertib + fulvestrant</span></a><a href="#c-failed-13"><span class="ns">87</span><span class="nd">eicosapentaenoic acid (EPA)</span></a><a href="#c-failed-14"><span class="ns">87</span><span class="nd">lorigerlimab</span></a><a href="#c-failed-15"><span class="ns">86</span><span class="nd">tovecimig + paclitaxel</span></a></div>
+  </nav>
+  <main class="main">
+    <div class="kick">ESMO 2026 · 临床结果推荐</div>
+    <h1>45 张推荐卡片</h1>
+    
+  <section class="bucket" id="b-early">
     <div class="bh"><span class="ladder l-early"></span><h2>早期机会提示<span class="cnt">15</span></h2></div>
     
-    <article class="item">
+    <article class="item" id="c-early-1">
       <div class="idx"><div class="sc">85</div><div class="no">#01</div></div>
       <div class="body">
         <h3>Mocertatug rezetecan (Mo-Rez) in patients with platinum-resistant ovarian cancer (PROC): Updated results with longer follow-up from the global BEHOLD-1 study</h3>
@@ -62,7 +97,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-early-2">
       <div class="idx"><div class="sc">84</div><div class="no">#02</div></div>
       <div class="body">
         <h3>Long-term efficacy and safety of larotrectinib in patients with TRK fusion solid tumours: NAVIGATE final analysis</h3>
@@ -73,7 +108,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-early-3">
       <div class="idx"><div class="sc">83</div><div class="no">#03</div></div>
       <div class="body">
         <h3>Phase 2 trial of the PD-1/VEGF bispecific antibody, PF-08634404 (SSGJ-707), plus chemotherapy (chemo) in advanced NSCLC: Updated results</h3>
@@ -84,7 +119,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-early-4">
       <div class="idx"><div class="sc">82</div><div class="no">#04</div></div>
       <div class="body">
         <h3>ABBV-706: A first-in-class SEZ6-targeted topoisomerase 1 inhibitor (Top1i)-antibody-drug conjugate (ADC) with robust antitumour activity in relapsed/refractory small cell lung cancer (R/R SCLC)</h3>
@@ -95,7 +130,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-early-5">
       <div class="idx"><div class="sc">82</div><div class="no">#05</div></div>
       <div class="body">
         <h3>Raludotatug deruxtecan (R-DXd) in patients (pts) with platinum-resistant ovarian cancer (PROC): An updated analysis of efficacy and tolerability from the Ph 2 part of REJOICE-Ovarian01</h3>
@@ -106,7 +141,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-early-6">
       <div class="idx"><div class="sc">81</div><div class="no">#06</div></div>
       <div class="body">
         <h3>Updated results from FONTANA: Torvutatug samrotecan (torvu-sam), a folate receptor α (FRα)-targeted antibody-drug conjugate (ADC), in patients (pts) with platinum-resistant ovarian cancer (PROC)</h3>
@@ -118,7 +153,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-early-7">
       <div class="idx"><div class="sc">81</div><div class="no">#07</div></div>
       <div class="body">
         <h3>SHR-4849 (IDE849), an ADC targeting delta-like ligand 3 (DLL3), in relapsed small cell lung carcinoma (SCLC) and other neuroendocrine carcinomas (NECs): Long-term results from the phase 1 study</h3>
@@ -129,7 +164,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-early-8">
       <div class="idx"><div class="sc">81</div><div class="no">#08</div></div>
       <div class="body">
         <h3>A first-in-human phase I study of LBL-034, a GPRC5D/CD3 bispecific antibody, in relapsed/refractory multiple myeloma (RRMM)</h3>
@@ -140,7 +175,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-early-9">
       <div class="idx"><div class="sc">81</div><div class="no">#09</div></div>
       <div class="body">
         <h3>Overall survival (OS) analysis of telisotuzumab adizutecan in patients (pts) with nonsquamous non-small cell lung cancer (NSQ NSCLC): Phase 1 first-in-human study</h3>
@@ -151,7 +186,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-early-10">
       <div class="idx"><div class="sc">81</div><div class="no">#10</div></div>
       <div class="body">
         <h3>Response durability with anzutresgene autoleucel (anzu-cel), a PRAME-directed T-cell receptor (TCR) T-cell therapy, in advanced melanoma</h3>
@@ -162,7 +197,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-early-11">
       <div class="idx"><div class="sc">81</div><div class="no">#11</div></div>
       <div class="body">
         <h3>Dalpiciclib plus Pyrotinib-based chemotherapy-free regimens as first line treatment in Trastuzumab-Sensitive, HER2-positive metastatic breast cancer (DAP-HER-02): A dual-cohort, phase II study</h3>
@@ -173,7 +208,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-early-12">
       <div class="idx"><div class="sc">80</div><div class="no">#12</div></div>
       <div class="body">
         <h3>SHR-A2009 plus adebrelimab (Adebre) with or without bevacizumab (Bev) for pretreated NSCLC: A phase 1b/2 study</h3>
@@ -184,7 +219,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-early-13">
       <div class="idx"><div class="sc">80</div><div class="no">#13</div></div>
       <div class="body">
         <h3>Updated results of SHR-A1811 plus pertuzumab in human epidermal growth factor receptor 2-positive (HER2+) unresectable/metastatic breast cancer: A phase 1b/2 study</h3>
@@ -195,7 +230,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-early-14">
       <div class="idx"><div class="sc">79</div><div class="no">#14</div></div>
       <div class="body">
         <h3>Final results from the first-in-human phase I trial of NB003, a potent and selective KIT inhibitor, in patients (pts) with advanced gastrointestinal stromal tumors (GIST)</h3>
@@ -206,7 +241,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-early-15">
       <div class="idx"><div class="sc">79</div><div class="no">#15</div></div>
       <div class="body">
         <h3>Enozertinib (ORIC-114), a brain penetrant, highly selective EGFR inhibitor, in treatment-naive metastatic NSCLC with EGFR atypical mutations</h3>
@@ -217,10 +252,10 @@
       </div>
     </article>
   </section>
-  <section class="bucket">
+  <section class="bucket" id="b-pivotal">
     <div class="bh"><span class="ladder l-pivotal"></span><h2>重磅 II/III 期<span class="cnt">15</span></h2></div>
     
-    <article class="item">
+    <article class="item" id="c-pivotal-1">
       <div class="idx"><div class="sc">96</div><div class="no">#01</div></div>
       <div class="body">
         <h3>Tarlatamab plus durvalumab (durva) vs durva as 1L maintenance (1LM) therapy following durva, platinum, and etoposide (1L durva + EP) in extensive-stage small cell lung cancer (ES-SCLC): Primary analysis of the phase 3 DeLLphi-305 trial</h3>
@@ -231,7 +266,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-pivotal-2">
       <div class="idx"><div class="sc">95</div><div class="no">#02</div></div>
       <div class="body">
         <h3>Anbenitamab plus chemotherapy for previously treated HER2-positive gastric or gastroesophageal carcinomas (GC/GEJC): Updated overall survival (OS) analysis of KC-WISE</h3>
@@ -242,7 +277,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-pivotal-3">
       <div class="idx"><div class="sc">95</div><div class="no">#03</div></div>
       <div class="body">
         <h3>Updated results of randomized phase 3 study of selpercatinib vs cabozantinib or vandetanib (C/V) in advanced, kinase inhibitor-naïve, RET-mutant medullary thyroid cancer (MTC)</h3>
@@ -253,7 +288,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-pivotal-4">
       <div class="idx"><div class="sc">94</div><div class="no">#04</div></div>
       <div class="body">
         <h3>Krascendo 1: Efficacy and safety of divarasib (diva) vs sotorasib (soto) or adagrasib (ada) in previously treated locally advanced or metastatic KRAS G12C-mutated NSCLC</h3>
@@ -264,7 +299,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-pivotal-5">
       <div class="idx"><div class="sc">94</div><div class="no">#05</div></div>
       <div class="body">
         <h3>Savolitinib or placebo combined with osimertinib in treatment-naïve advanced NSCLC with EGFR mutation and MET overexpression: Results from the phase 3 SANOVO study</h3>
@@ -275,7 +310,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-pivotal-6">
       <div class="idx"><div class="sc">93</div><div class="no">#06</div></div>
       <div class="body">
         <h3>INTerpath-001: Phase 3 study of the mRNA-based individualized neoantigen therapy (INT) intismeran autogene (intismeran) plus pembrolizumab (pembro) vs pembro alone for adjuvant treatment of resected stage IIB-IV melanoma (MEL)</h3>
@@ -286,7 +321,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-pivotal-7">
       <div class="idx"><div class="sc">93</div><div class="no">#07</div></div>
       <div class="body">
         <h3>Final overall survival (OS) results from BEATcc (ENGOT-Cx10/GEICO 68-C/JGOG1084/GOG-3030), a randomised phase 3 trial of first-line atezolizumab (atezo), chemotherapy (CT) and bevacizumab (bev) for metastatic, persistent or recurrent cervical cancer (R/M CC)</h3>
@@ -297,7 +332,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-pivotal-8">
       <div class="idx"><div class="sc">93</div><div class="no">#08</div></div>
       <div class="body">
         <h3>Tarlatamab in previously treated SCLC: Extended follow-up of overall survival from the phase 3 DeLLphi-304 trial</h3>
@@ -308,7 +343,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-pivotal-9">
       <div class="idx"><div class="sc">92</div><div class="no">#09</div></div>
       <div class="body">
         <h3>Ivonescimab plus chemotherapy versus durvalumab plus chemotherapy as first-line treatment for advanced biliary tract cancer: A randomized, controlled, double-blinded, phase 3 trial (HARMONi-GI1)</h3>
@@ -319,7 +354,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-pivotal-10">
       <div class="idx"><div class="sc">92</div><div class="no">#10</div></div>
       <div class="body">
         <h3>Final OS analysis of sacituzumab tirumotecan (sac-TMT) versus platinum-based chemotherapy in EGFR-mutated non-small cell lung cancer (NSCLC) after progression on EGFR-TKI: Phase III OptiTROP-Lung04 study</h3>
@@ -330,7 +365,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-pivotal-11">
       <div class="idx"><div class="sc">91</div><div class="no">#11</div></div>
       <div class="body">
         <h3>PANKU-Lung01: Randomized phase III study of izalontamab brengitecan (iza-bren) in EGFR-mutant non-squamous non-small cell lung cancer (NSCLC) after progression on a third-generation EGFR TKI</h3>
@@ -341,7 +376,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-pivotal-12">
       <div class="idx"><div class="sc">91</div><div class="no">#12</div></div>
       <div class="body">
         <h3>Osimertinib (osi) + savolitinib (savo) vs platinum–pemetrexed (plat–pem) in EGFRm MET-overexpressed (OE) and/or -amplified (AMP) advanced NSCLC post-osi: SAFFRON phase (Ph) 3 primary results</h3>
@@ -352,7 +387,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-pivotal-13">
       <div class="idx"><div class="sc">90</div><div class="no">#13</div></div>
       <div class="body">
         <h3>Zanidatamab (zani) + chemotherapy (CT) ± tislelizumab (TIS) for first-line (1L) HER2-positive (HER2+) advanced/metastatic gastroesophageal adenocarcinoma (mGEA): Second interim analysis (IA) from HERIZON-GEA-01</h3>
@@ -363,7 +398,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-pivotal-14">
       <div class="idx"><div class="sc">90</div><div class="no">#14</div></div>
       <div class="body">
         <h3>Sacituzumab tirumotecan (sac-TMT) plus pembrolizumab (P) versus chemotherapy (chemo) plus pembrolizumab (P) as first-line (1L) treatment for PD-L1-negative advanced non-squamous (nsq) NSCLC: Randomized phase 3 OptiTROP-Lung06 study</h3>
@@ -374,7 +409,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-pivotal-15">
       <div class="idx"><div class="sc">89</div><div class="no">#15</div></div>
       <div class="body">
         <h3>Iparomlimab and tuvonralimab (QL1706) plus chemotherapy with or without bevacizumab as first-line treatment for persistent, recurrent, or metastatic cervical cancer (R/M CC): Results from a double-blind, randomized, placebo-controlled phase 3 trial</h3>
@@ -385,10 +420,10 @@
       </div>
     </article>
   </section>
-  <section class="bucket">
+  <section class="bucket" id="b-failed">
     <div class="bh"><span class="ladder l-failed"></span><h2>失败的研究<span class="cnt">15</span></h2></div>
     
-    <article class="item">
+    <article class="item" id="c-failed-1">
       <div class="idx"><div class="sc">95</div><div class="no">#01</div></div>
       <div class="body">
         <h3>Pembrolizumab or placebo plus concurrent definitive chemoradiotherapy in esophageal and gastroesophageal junction (GEJ) cancer: The phase 3 randomized KEYNOTE-975 study</h3>
@@ -399,7 +434,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-failed-2">
       <div class="idx"><div class="sc">95</div><div class="no">#02</div></div>
       <div class="body">
         <h3>End-of-trial results of the phase 3 KEYNOTE-630 trial of adjuvant pembrolizumab (pembro) versus placebo (pbo) for high-risk locally advanced cutaneous squamous cell carcinoma (LA cSCC)</h3>
@@ -410,7 +445,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-failed-3">
       <div class="idx"><div class="sc">94</div><div class="no">#03</div></div>
       <div class="body">
         <h3>Phase 3 study of sigvotatug vedotin (SV) vs docetaxel (DTX) in previously treated nonsquamous non-small cell lung cancer (NSCLC)</h3>
@@ -421,7 +456,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-failed-4">
       <div class="idx"><div class="sc">93</div><div class="no">#04</div></div>
       <div class="body">
         <h3>Final overall survival results from CheckMate 8HW: Nivolumab plus ipilimumab versus nivolumab or chemotherapy in MSI-H/dMMR metastatic colorectal cancer</h3>
@@ -432,7 +467,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-failed-5">
       <div class="idx"><div class="sc">93</div><div class="no">#05</div></div>
       <div class="body">
         <h3>CLARITY-Gastric 01 (CG-01): A phase 3 study of sonesitatug vedotin (Sone-Ve) in second or later-line (2L+) advanced or metastatic Claudin 18.2 (CLDN18.2)-positive gastroesophageal carcinoma (GEC)</h3>
@@ -443,7 +478,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-failed-6">
       <div class="idx"><div class="sc">92</div><div class="no">#06</div></div>
       <div class="body">
         <h3>Perioperative durvalumab with or without tremelimumab plus neoadjuvant enfortumab vedotin in muscle-invasive bladder cancer: Results from the phase 3 VOLGA trial</h3>
@@ -454,7 +489,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-failed-7">
       <div class="idx"><div class="sc">92</div><div class="no">#07</div></div>
       <div class="body">
         <h3>First-line pembrolizumab + lenvatinib + belzutifan or MK-1308A + lenvatinib in advanced RCC: Randomized open-label phase 3 LITESPARK-012 study</h3>
@@ -465,7 +500,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-failed-8">
       <div class="idx"><div class="sc">92</div><div class="no">#08</div></div>
       <div class="body">
         <h3>Phase 3 LEAP-012 study of lenvatinib + pembrolizumab vs dual placebo with transarterial chemoembolization (TACE) for unresectable non-metastatic hepatocellular carcinoma: Long-term OS results</h3>
@@ -476,7 +511,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-failed-9">
       <div class="idx"><div class="sc">91</div><div class="no">#09</div></div>
       <div class="body">
         <h3>IROCAS: A randomized phase III trial of adjuvant treatment intensification with mFOLFIRINOX versus mFOLFOX6 in high-risk stage III (T4 and/or N2) colon cancer</h3>
@@ -487,7 +522,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-failed-10">
       <div class="idx"><div class="sc">90</div><div class="no">#10</div></div>
       <div class="body">
         <h3>Randomized phase II trial investigating addition of trotabresib (CC-90010) to radiotherapy and temozolomide in patients with newly diagnosed IDH wild-type glioblastoma</h3>
@@ -498,7 +533,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-failed-11">
       <div class="idx"><div class="sc">89</div><div class="no">#11</div></div>
       <div class="body">
         <h3>Seven-valent mKRAS-specific lymph node targeted amphiphile immunotherapy versus observation in resected pancreatic ductal adenocarcinoma (PDAC): The AMPLIFY-7P randomized phase 2 study</h3>
@@ -509,7 +544,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-failed-12">
       <div class="idx"><div class="sc">87</div><div class="no">#12</div></div>
       <div class="body">
         <h3>A double-blind placebo controlled randomized phase III trial of fulvestrant and ipatasertib as treatment for HER-2 negative and estrogen receptor positive (ER+) metastatic breast cancer (MBC): Overall survival results of the CCTG/BCT MA.40/FINER study</h3>
@@ -520,7 +555,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-failed-13">
       <div class="idx"><div class="sc">87</div><div class="no">#13</div></div>
       <div class="body">
         <h3>Omega-3 polyunsaturated fatty acid eicosapentaenoic acid (EPA) versus placebo after resection of colorectal cancer liver metastases (EMT2): A multicentre, double-blind, randomised phase 3 trial</h3>
@@ -531,7 +566,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-failed-14">
       <div class="idx"><div class="sc">87</div><div class="no">#14</div></div>
       <div class="body">
         <h3>LINNET: A phase 2 study to evaluate lorigerlimab in participants (pts) with advanced gynecologic cancers</h3>
@@ -542,7 +577,7 @@
       </div>
     </article>
 
-    <article class="item">
+    <article class="item" id="c-failed-15">
       <div class="idx"><div class="sc">86</div><div class="no">#15</div></div>
       <div class="body">
         <h3>A randomized trial of paclitaxel ± tovecimig in previously treated patients with advanced biliary tract cancer</h3>
@@ -553,6 +588,7 @@
       </div>
     </article>
   </section>
+  </main>
 </div>
 </body>
 </html>
