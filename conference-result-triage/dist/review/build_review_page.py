@@ -35,7 +35,8 @@ def entry(idx, c, bucket):
     # "LBA" and "Late-breaking Oral" are the same fact in two fields — print it once
     if c.get("presentation") and c["presentation"] != "Unknown" and not c.get("tag"):
         chips.append(f'<span class="chip">{esc(c["presentation"])}</span>')
-    who = " · ".join(x for x in [c.get("drug"), c.get("target"), c.get("indication")] if x)
+    # the drug name moved up to the head of the card, so the chip keeps only target · indication
+    who = " · ".join(x for x in [c.get("target"), c.get("indication")] if x)
     if who:
         chips.append(f'<span class="chip who">{esc(who)}</span>')
     # "未判定" is the honest default, not information — it stays in the JSON only
@@ -43,8 +44,8 @@ def entry(idx, c, bucket):
         chips.append(f'<span class="chip ghost">{esc(c["data_type"])}</span>')
     return f"""
     <article class="item" id="c-{bucket}-{idx}">
-      <div class="idx"><div class="sc">{c['score']}</div><div class="no">#{idx:02d}</div></div>
       <div class="body">
+        <div class="head"><span class="no">#{idx:02d}</span><span class="drug">{esc(c.get('drug') or '—')}</span></div>
         <h3>{esc(c['title'])}</h3>
         <div class="chips">{''.join(chips)}</div>
         <p class="sum">{esc(c['summary'])}</p>
@@ -67,7 +68,7 @@ for key, label in BUCKETS:
     {rows}
   </section>""")
     links = "".join(
-        f'<a href="#c-{key}-{i + 1}"><span class="ns">{c["score"]}</span>'
+        f'<a href="#c-{key}-{i + 1}" title="{esc(c["title"])}">'
         f'<span class="nd">{esc(c.get("drug") or c["title"])}</span></a>'
         for i, c in enumerate(items))
     nav_groups.append(f'<div class="ng"><a class="ng-t" href="#b-{key}">'
@@ -108,7 +109,6 @@ HTML = f"""<!doctype html>
     font-size:10px;color:var(--l2);border-bottom:1px solid transparent}}
   .ng a:not(.ng-t):hover{{color:var(--ink)}}
   .ng a:not(.ng-t):hover .nd{{text-decoration:underline;text-underline-offset:2px}}
-  .ns{{font-size:9.5px;font-weight:800;color:var(--muted);min-width:15px;text-align:right}}
   .nd{{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em}}
   .l-early{{background:var(--l3)}} .l-pivotal{{background:var(--ink)}} .l-failed{{background:var(--l5)}}
   @media (max-width:1320px){{
@@ -129,11 +129,10 @@ HTML = f"""<!doctype html>
   .bh h2{{font-size:18px;font-weight:800;letter-spacing:-.02em}}
   .bh .cnt{{font-size:11px;font-weight:600;color:var(--muted);margin-left:10px;letter-spacing:.06em}}
 
-  .item{{display:grid;grid-template-columns:78px 1fr;gap:18px;padding:26px 0 20px;
-    border-bottom:1px solid var(--grid)}}
-  .idx{{text-align:right}}
-  .idx .sc{{font-size:26px;font-weight:800;letter-spacing:-.03em;line-height:1}}
-  .idx .no{{font-size:9.5px;font-weight:600;color:var(--faint);margin-top:6px;letter-spacing:.1em}}
+  .item{{padding:24px 0 20px;border-bottom:1px solid var(--grid)}}
+  .head{{display:flex;align-items:baseline;gap:9px;margin-bottom:7px}}
+  .head .no{{font-size:9.5px;font-weight:700;color:var(--faint);letter-spacing:.1em}}
+  .head .drug{{font-size:12.5px;font-weight:800;letter-spacing:-.01em;color:var(--ink)}}
   .item h3{{font-size:14.5px;font-weight:700;line-height:1.45;letter-spacing:-.01em;max-width:900px}}
   .chips{{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 11px}}
   .chip{{font-size:9.5px;font-weight:600;letter-spacing:.04em;padding:3px 8px;border-radius:99px;
