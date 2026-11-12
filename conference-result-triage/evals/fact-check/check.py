@@ -424,9 +424,11 @@ def op_web_evidence(sv, spec):
     # A search that returned nothing usable has no URL -- that is an honest record, not
     # a fabricated one. What it may not be is silent: a URL-less row must say why, and
     # the evidence as a whole still has to carry real sources (min_urls).
-    # `quotes.jsonl` shares the evidence surface but records *market* calls, not
-    # searches. Its rows carry close + change_pct; counting them here would let a
-    # handful of quote fetches satisfy the search-evidence floor.
+    # Rows that carry a price (close + change_pct) are market calls, not searches: they
+    # could satisfy the search-evidence floor without a single query having run. v0.9
+    # removed the quote layer, so this filter is now purely defensive -- it stays
+    # because the floor is the only thing standing between "curated with the web" and
+    # "wrote a plausible list".
     def _is_quote(row):
         return "close" in row and "change_pct" in row
 
