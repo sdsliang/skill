@@ -22,15 +22,19 @@ Card shape::
       "listed_company": {"name": "...", "ticker": "...", "exchange": "...",
                          "source_url": "https://..."},  # or null
       "promoted":     "web",              # only for cards the web step pulled in
-      "drug": "...", "target": "...", "indication": "...", "phase": "Phase III",
-      "stock": null                       # optional {ticker, change_pct, date, ...}
+      "drug": "...", "target": "...", "indication": "...", "phase": "Phase III"
     }
 
 Zero third-party dependencies.
 
 The script never invents content: ``title`` comes from the record, ``summary`` /
-``why`` come from the plan file written by the reviewer, and ``stock`` only from
-``--quotes``. Anything missing is reported, not filled.
+``why`` come from the plan file written by the reviewer. Anything missing is
+reported, not filled.
+
+v0.9 dropped the quote fields (``stock`` / ``listed_company.reaction``) entirely:
+a card is about the readout, and a per-abstract price move on a conference day is
+mostly the sector's own beta -- 18 of 20 quotes landed inside +/-0.6% of their
+benchmark, i.e. the number said nothing about the abstract.
 """
 from __future__ import annotations
 
@@ -81,36 +85,7 @@ def load_rows(path: str) -> Dict[str, Dict[str, Any]]:
     return out
 
 
-def load_quotes(path: Optional[str]) -> Dict[str, Dict[str, Any]]:
-    """``{"<esid>": {ticker, change_pct, date, ...}}`` -- optional sidecar."""
-    if not path:
-        return {}
-    data = json.load(open(path, encoding="utf-8"))
-    if isinstance(data, dict) and "quotes" in data:
-        data = data["quotes"]
-    if not isinstance(data, dict):
-        raise SystemExit("--quotes must be {esid: {...}} or {\"quotes\": {...}}")
-    return {str(k): v for k, v in data.items()}
-
-
-def _split_quote(quote: Any) -> Tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]:
-    """``--quotes`` values may carry a day snapshot, a window move, or both.
-
-    A bare ``{ticker, change_pct, date}`` object is the legacy same-day snapshot form,
-    which keeps old quote files working without a migration step.
-    """
-    if not isinstance(quote, dict):
-        return None, None
-    stock = quote.get("stock")
-    reaction = quote.get("reaction")
-    if stock is None and reaction is None and {"ticker", "change_pct", "date"} <= set(quote):
-        stock = quote
-    return (stock if isinstance(stock, dict) else None,
-            reaction if isinstance(reaction, dict) else None)
-
-
 def build_cards(plan: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
-                quotes: Dict[str, Dict[str, Any]],
                 by_rows: Optional[Dict[str, Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
     cards: List[Dict[str, Any]] = []
     problems: List[str] = []
@@ -160,25 +135,12 @@ def build_cards(plan: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
             or ", ".join((item.get("indication") or [])[:2]),
             "phase": item.get("phase") or "",
             "presentation": item.get("presentation") or "",
-            "stock": _split_quote(quotes.get(esid))[0],
         }
         # Both keys are carried only when the plan supplies them: an absent
         # `listed_company` must reach `check_cards.py` as "missing" rather than
         # silently defaulting to null, which is the value that means "checked".
         if "listed_company" in spec:
             card["listed_company"] = spec["listed_company"]
-        # A price move only means something attached to an identified listing; folding
-        # it into a null `listed_company` would invent a company to hang it on.
-        reaction = _split_quote(quotes.get(esid))[1]
-        if reaction:
-            company = card.get("listed_company")
-            if not isinstance(company, dict):
-                problems.append(f"{esid}: quote carries a reaction but listed_company is "
-                                f"not an object -- who moved?")
-            else:
-                company = dict(company)
-                company["reaction"] = reaction
-                card["listed_company"] = company
         if spec.get("promoted"):
             card["promoted"] = spec["promoted"]
         cards.append(card)
@@ -205,17 +167,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     ap.add_argument("--pool", required=True, help="triage pool.json")
     ap.add_argument("--plan", required=True, help="cards plan JSON {conference, cards:[...]}")
     ap.add_argument("--out", required=True, help="output JSON path")
-    ap.add_argument("--quotes", help="optional {esid: {ticker, change_pct, ...}}")
     ap.add_argument("--rows", help="work/rows.json -- needed only for promoted cards")
     ap.add_argument("--pretty", action="store_true", help="indent the output")
     args = ap.parse_args(argv)
 
     plan = json.load(open(args.plan, encoding="utf-8"))
     by_esid = load_pool(args.pool)
-    quotes = load_quotes(args.quotes)
-    cards = build_cards(plan, by_esid, quotes, load_rows(args.rows) if args.rows else None)
+    cards = build_cards(plan, by_esid, load_rows(args.rows) if args.rows else None)
 
-    missing_quotes = [c["esid"] for c in cards if not c["stock"]]
     payload = {
         "conference": plan.get("conference"),
         "count": len(cards),
@@ -234,10 +193,6 @@ def main(argv: Optional[List[str]] = None) -> int:
     print(f"cards {len(cards)} ({spread}; lba {lba} manual {manual} unknown {unknown}) -> {args.out}")
     for b in BUCKETS:
         print(f"  {b}: {sum(1 for c in cards if c['bucket'] == b)}")
-    if quotes:
-        print(f"  stock attached: {len(cards) - len(missing_quotes)}/{len(cards)}")
-    else:
-        print("  stock: no --quotes given (field is null)")
     return 0
 
 

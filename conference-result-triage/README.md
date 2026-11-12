@@ -16,21 +16,22 @@
 | 模型 | 逐条读摘要，判 `keep/weak/drop`，写理由 + **逐字**证据摘录 | 不自算 ORR/HR/PFS，不猜缺失数字 |
 | 人（定榜） | 压同质、标注 `data_type`、补药名/靶点、写"看点" | 不用 weak 凑数 |
 | 主 agent（联网终选，v0.7+） | 检索会议现场热度与公司上市状态，15 → **10/桶**，允许带 `promoted:"web"` 破格入榜 | 不编来源、不把池外不存在的记录写成卡 |
-| `scripts/fetch_quotes.py`（v0.8，本地） | 按市场各自的首个交易日算「会议窗口涨跌幅」，落 `work/quotes.json` + `work/web/quotes.jsonl` | 不归因（涨了不等于因为这条摘要）、不拿 ADR 顶替本土上市股 |
+| 交付渲染 | 写 `output/report.md`（frontmatter `skills`/`title`/`date`/`lang`[/`citations`]）+ `output/watchlist.json` 底稿 | 不写业务 `type`、不编引用、不把行情当信号 |
 
 三条硬规则：**n 不作入榜门槛**（只展示）；**真实世界/回顾性/汇总分析不进桶**（单独计 excluded）；**试验期别取 `evidence_source`**（不是疾病分期）。
 
 两道收敛：机器短名单每桶 ≤15 → **交付清单每桶 ≤10 / 全场 ≤30**。`why` 写"这项研究值什么"（≥60 字，不复述数字）；
-每张卡带 `listed_company`（研发公司上市身份 + 可核实的窗口涨跌幅，查不到就是 `null`）。
+每张卡带 `listed_company`（**纯上市身份** `{name, ticker, exchange, source_url}`，查不到就是 `null`）。
 
-`reaction` 是**带口径的对象**，不是一句"披露当日 +4.1%"：`{from_date, to_date, prev_close, close, change_pct, basis, source_url}`，
-口径固定为「该市场早于会议首日的最后收盘 → 该市场 ∈ 会议窗口的第一个收盘」，`basis` 必须写「非归因」。
-`check_cards.py --quotes-evidence` 会验涨跌幅能否由自己的两个收盘算出、能否在证据文件里逐条对上；**省略 `reaction` 合法**（增强项，不是闸门）。
+**卡片里没有股价**（v0.9 删除）：按每条摘要自己的披露日重锚、扣掉板块基准后，24 条行情里 **18 条落在 ±0.6% 内**，
+同一公司的多张卡还拿到同一个数字（MRK 8 张卡全是 −3.83%）—— 那个数字是板块 beta，不是对这条读数的反应。
+`stock` / `reaction` / `change_pct` 等键一旦回潮，`check_cards.py` 与事实项 `A-N1` 都会拒。论证见 `references/pitfalls.md §26`。
 
 ## 跑在哪（v0.3）
 
 **跑在 ToolSmith 平台里**：用户在会话里给一个会议名，agent 按 `SKILL.md` 的 7 步走完，交付
-`/workspace/output/watchlist.json`（卡片清单）并 `present_artifact`。不是本地跑批脚本。
+`/workspace/output/report.md`（Markdown 报告，frontmatter 带 `skills`）+ `/workspace/output/watchlist.json`（卡片数据底稿）并
+`present_artifact` 指向报告。不是本地跑批脚本。
 
 ```
 conference-result-triage/
@@ -66,7 +67,8 @@ python3 $S/triage.py /workspace/work/rows.json --out-dir /workspace/work/pool --
 python3 $S/make_cards.py --pool /workspace/work/pool_labeled.json \
     --plan /workspace/work/plan.json --out /workspace/output/watchlist.json --pretty
 python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
-    --pool /workspace/work/pool_labeled.json   # 必须 exit 0
+    --pool /workspace/work/pool_labeled.json --rows /workspace/work/rows.json  # 必须 exit 0
+# 再写 /workspace/output/report.md（frontmatter + 三桶正文），present_artifact 指向它
 ```
 
 本地（研发机）等价自检：

@@ -210,47 +210,32 @@ if left:
 else:
     print("  ok  web-promoted card resolves against rows.json")
 
-# 16/17/18. a printed price move is a claim about the outside world, so it needs both
-# arithmetic that closes and a line in work/web/quotes.jsonl to point at
-REACTION = {"from_date": "2026-10-16", "to_date": "2026-10-19",
-            "prev_close": 22.04, "close": 23.53, "change_pct": 6.76,
-            "basis": "meeting-window first session vs prior close (not attributed)",
-            "source_url": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=105.TNGX"}
-EVIDENCE = [{"ticker": "TNGX", "to_date": "2026-10-19", "change_pct": 6.76,
-             "source_url": REACTION["source_url"]}]
+# 16/17/18. v0.9 deleted the quote layer, so the field's reappearance is the defect:
+# a meeting-day move is mostly the sector's own beta, and one company's move is
+# shared by every card that names it -- neither says anything about an abstract.
 listed = {"name": "Tango Therapeutics", "ticker": "TNGX", "exchange": "NASDAQ",
-          "source_url": "https://investors.tangotx.com/", "reaction": REACTION}
-
-fails, _ = check_cards.check({"conference": "T", "count": 1,
-                              "cards": [dict(base[0], listed_company=dict(listed))],
-                              "coverage_notes": NOTES}, by_esid,
-                             quote_evidence=list(EVIDENCE), evidence_given=True)
-if [f for f in fails if "reaction" in f]:
-    failures.append(f"traced reaction rejected: {[f for f in fails if 'reaction' in f]}")
-else:
-    print("  ok  reaction with matching evidence passes")
-
-skewed = dict(listed, reaction=dict(REACTION, change_pct=7.66))
-fails, _ = check_cards.check({"conference": "T", "count": 1,
-                              "cards": [dict(base[0], listed_company=skewed)],
-                              "coverage_notes": NOTES}, by_esid,
-                             quote_evidence=list(EVIDENCE), evidence_given=True)
-expect("reaction arithmetic", fails, "does not follow from")
+          "source_url": "https://investors.tangotx.com/"}
 
 fails, _ = check_cards.check({"conference": "T", "count": 1,
                               "cards": [dict(base[0], listed_company=dict(listed))],
                               "coverage_notes": NOTES}, by_esid)
-expect("reaction without evidence", fails, "without --quotes-evidence")
-
-# 19. a card with no reaction at all is still legal: the field is an enhancement
-fails, _ = check_cards.check({"conference": "T", "count": 1,
-                              "cards": [dict(base[0], listed_company={
-                                  k: v for k, v in listed.items() if k != "reaction"})],
-                              "coverage_notes": NOTES}, by_esid)
-if [f for f in fails if "reaction" in f]:
-    failures.append(f"reaction-free card rejected: {fails}")
+if [f for f in fails if "price" in f]:
+    failures.append(f"identity-only company rejected: {fails}")
 else:
-    print("  ok  no reaction is legal (enhancement, not a gate)")
+    print("  ok  identity-only listed_company passes (no price needed)")
+
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(base[0], listed_company=dict(
+                                  listed, reaction={"to_date": "2026-10-19",
+                                                    "change_pct": 6.76}))],
+                              "coverage_notes": NOTES}, by_esid)
+expect("reaction field returns", fails, "price field")
+
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(base[0], stock={"ticker": "TNGX",
+                                                             "change_pct": 6.76})],
+                              "coverage_notes": NOTES}, by_esid)
+expect("stock field returns", fails, "price field")
 
 # 20. `09966.HK` + exchange=HKEX is the same fact twice and breaks quote lookup by bare
 # code -- the suffix belongs nowhere near the ticker

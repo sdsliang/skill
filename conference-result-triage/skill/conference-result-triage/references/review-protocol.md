@@ -195,17 +195,21 @@ else: 保留机器分桶
 |---|---|---|
 | 会议现场热度 | `"<会议> <药名/试验名> results"` | 多家专业媒体单独成文 = 热点 |
 | 适应症内定位 | `"<药名> <适应症> data <会议> <年份>"` | 是否被写成"该适应症本届最受关注" |
-| 股价/公司 | `"<ticker> 收盘 <YYYY年M月D日> 涨跌幅"` | 必须能对上 `prev_close→close`，口径见下 |
 | 未被收录的热点 | `"<会议> late-breaking abstract <适应症> most anticipated"` | 用来发现机制上被漏掉的研究 |
+| 研发公司身份 | `"<公司名> listed ticker exchange"` | 拿得到的交易所代码与披露页；**只填 `listed_company`，不取价格** |
 
 **证据落 `work/web/<bucket>.jsonl`**，一行一次检索：`{"query","title","url","published_at","note"}`。平台 `/workspace/tool_results/` 回合结束即清空，只有这个文件能让复核者回到原始来源。
 
 **两种用法**：
 
 1. **纠偏（promote）**：外部热议、但初选漏了的研究可以提上来，**前提是它在 `work/rows.json` 里** —— 卡片上的每个数字都必须在那条记录自己的原文里出现。写卡时标 `"promoted": "web"`，并在 `why` 里写明外部讨论的是什么。会议库根本没有这条记录时**不能进卡**，只能写进 `coverage_notes`（"外部讨论了 X，会议库无对应记录，未纳入"）。`check_cards.py --rows` 会反查。
-2. **上市公司（`listed_company`）**：每张卡都要这个键。上市 ⇒ `{name, ticker, exchange, reaction, source_url}`，`source_url` 必须是真打开过的 IR/交易所/行情页；未上市或查不到 ⇒ `null`。**不要用同名母公司顶替**（一个管线属于子公司，股价反应落在母公司 ticker 上时要在 `name` 里写清这一层）。**`reaction` 是对象，不是短句**（v0.8）：`{from_date, to_date, prev_close, close, change_pct, basis, source_url}`。取数两条正路 —— ①`web_fetch` 东财 kline JSON：`https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=<mkt>.<code>&fields1=f1,f2&fields2=f51,f53&klt=101&fqt=1&beg=YYYYMMDD&end=YYYYMMDD`（前缀 NASDAQ 105 / NYSE 106 / AMEX 107 / HKEX 116 补零 5 位 / LSE 155；`rc:102` = 市场不覆盖，SIX 就在这一类）；②`web_search` 查 `"<ticker> 收盘 <日期> 涨跌幅"`，deepseek 源直接返回券商页的收盘与涨跌幅。口径固定为「**该市场**早于会议首日的最后收盘 → **该市场** ∈ 会议窗口的第一个收盘」，`basis` 必须写明"非归因"；基准日按市场各自取（港股 2026-10-19 台风停市，只能用 10-16 → 10-20）。取数结果逐行落 `work/web/quotes.jsonl`，交付时 `check_cards.py --quotes-evidence`。没核实到就**省掉 `reaction`**（合法），**不许拿 OTC ADR 顶替本土上市股**（`RHHBY` ≠ `ROG.SW`）。
+2. **上市公司（`listed_company`）**：每张卡都要这个键。上市 ⇒ `{name, ticker, exchange, source_url}`，`source_url` 必须是真打开过的 IR/交易所页；未上市或查不到 ⇒ `null`。**不要用同名母公司顶替**（一个管线属于子公司、母公司另算时，要在 `name` 里写清这一层）。`ticker` 只写裸代码，市场写 `exchange`（`09966` + `HKEX`）。
+
+   **不带行情（v0.9 起）**：这个字段只回答"谁在做这个药"。会议当天的涨跌幅是**板块 beta**，不是对这条读数的反应——按每条摘要自己的披露日重算并扣掉板块基准后，24 条里 18 条落在 ±0.6% 内，同一公司的多张卡还拿到同一个数字（MRK 8 张卡全是 −3.83%）。所以 `reaction` / `stock` / `change_pct` 等键一律不许出现（`check_cards.py` 会拒，事实项 `A-N1` 也会拒）。**理由与代价**见 `pitfalls.md §26`。
 
 **联网层失败只降级、不中止**：检索无返回、IR/交易所页 403 或超时，都不允许拿"查不到"当理由不出清单。顺序是：换词换源再试（检索结果里的标题和 URL 已经够填 `listed_company.source_url`，不必打开页面）→ 仍不行就按判读分收敛到 10 条、`listed_company` 全填 `null` → 在 `coverage_notes` 写「联网核实未完成（原因）」→ 照常交付。`cards-e2e5` 就是这么废掉的：`web_search` 明明返回了 12 条来源，`web_fetch` 打开 amgen.com 失败后模型写"搜索无可用返回"，结束回合、零交付。
+
+**输出前排序**：每桶内部必须按 `score` **降序**写进 `plan.json`（`make_cards.py` 只渲染、不排序，`A-P4-score-order` 会逐桶检查）。桶间顺序无意义。
 
 **终选判据**：判读分仍是主序，外部信号可以覆盖，但覆盖必须写进 `why`（"多家报道把它列为本届该适应症最受关注的口头报告，分数把它排在 12 位"）。同机制仍最多 2 条。**宁缺不凑**：8 条诚实的清单好过 10 条注水的。
 

@@ -40,7 +40,7 @@ import re
 import sys
 from typing import Dict, List
 
-EVALUATOR_REVISION = "2026-11-12-r3"
+EVALUATOR_REVISION = "2026-11-13-r4"
 
 # Presidential / late-breaking trials the X discussion concentrated on. Used by the
 # heat-coverage item, which is `warn`: the list must never be bent toward what was
@@ -56,8 +56,10 @@ PER_BUCKET_CAP = 10
 TOTAL_CAP = 30
 MIN_WHY_CHARS = 60
 LISTED_FIELDS = ("name", "ticker", "exchange", "source_url")
-REACTION_FIELDS = ("from_date", "to_date", "prev_close", "close", "change_pct",
-                   "basis", "source_url")
+# v0.9: the quote layer is gone. These keys are what a regression would look like.
+PRICE_KEYS = ("stock", "reaction", "change_pct", "excess_pct", "bench_change_pct",
+              "price_source")
+FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.S)
 NUM_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(%|mo|months?|月|HR|hazard|OR\b|p\s*[=<>]|P\s*[=<>])")
 
 
@@ -89,6 +91,9 @@ def load_run(run_dir: str) -> dict:
 
     watchlist_path = pick("output/watchlist.json")
     pool_path = pick("work/pool/pool.json")
+    # v0.9: the delivered result is the Markdown report (frontmatter carries `skills`),
+    # so the report itself is a surface -- not just the JSON behind it.
+    report_path = pick("output/report.md")
 
     watchlist = _load_json(watchlist_path) if watchlist_path else None
     pool = _load_json(pool_path) if pool_path else None
@@ -165,14 +170,32 @@ def load_run(run_dir: str) -> dict:
                         recs.append({})
             web_evidence[name] = recs
 
+    report = ""
+    if report_path and os.path.exists(report_path):
+        with open(report_path, encoding="utf-8", errors="replace") as f:
+            report = f.read()
+
+    # Any `citations*.json` that actually landed under output/ -- the frontmatter path
+    # is checked separately, because a declared path that does not exist is the bug.
+    citations: Dict[str, dict] = {}
+    out_dir = os.path.join(art, "output")
+    if os.path.isdir(out_dir):
+        for name in sorted(os.listdir(out_dir)):
+            if name.startswith("citations") and name.endswith(".json"):
+                doc = _load_json(os.path.join(out_dir, name), {}) or {}
+                if isinstance(doc, dict):
+                    citations[name] = doc
+
     return {"watchlist": watchlist, "pool": pool, "calls": calls, "reply": reply,
+            "report": report, "citations": citations,
             "web_evidence": web_evidence,
             "slice_counts": ledger if isinstance(ledger, list) else None,
             "rows": rows if isinstance(rows, list) else None,
             "rows_doc": rows_doc if isinstance(rows_doc, dict) else None,
             "slices": slices,
             "transcript": transcript,
-            "paths": {"watchlist": watchlist_path, "pool": pool_path}}
+            "paths": {"watchlist": watchlist_path, "pool": pool_path,
+                      "report": report_path}}
 
 
 def pool_text_by_esid(pool) -> dict:
@@ -422,62 +445,123 @@ def op_web_evidence(sv, spec):
     return True, (f"{len(files)} file(s)/{lines} record(s), {len(url_rows)} with a URL")
 
 
-def op_reaction_traceable(sv, spec):
-    """A printed price move needs: arithmetic that closes, and a line to point at.
+def _frontmatter(text: str):
+    """The YAML block at the top of the report, parsed just enough to be checked.
 
-    Same rule as every other number in the card -- if it is not re-checkable from a
-    durable artifact, it is a claim the reader cannot audit. Omitting `reaction`
-    entirely is legal; the field is an enhancement, and a missing enhancement may not
-    veto the list (pitfalls §24).
+    Not a YAML parser on purpose: the contract is three scalars and one list, and a
+    dependency-free reader that also *rejects* what the contract forbids (a bare
+    ``type`` standing in for ``skills``) is more useful here than a tolerant one.
     """
-    evidence = (sv.get("web_evidence") or {}).get("quotes.jsonl") or []
-    index = {}
-    for row in evidence:
-        if isinstance(row, dict) and row.get("ticker"):
-            index[(str(row["ticker"]).upper(), str(row.get("to_date") or ""))] = row
-    bad, seen = [], 0
-    for i, c in enumerate((sv["watchlist"] or {}).get("cards") or [], 1):
-        co = c.get("listed_company")
-        if not isinstance(co, dict):
+    m = FRONTMATTER_RE.match(text or "")
+    if not m:
+        return None
+    meta: dict = {}
+    key = None
+    for raw in m.group(1).splitlines():
+        line = raw.rstrip()
+        if not line.strip() or line.lstrip().startswith("#"):
             continue
-        react = co.get("reaction")
-        if react is None:
+        if line.lstrip().startswith("- ") and key:
+            meta.setdefault(key, [])
+            if isinstance(meta[key], list):
+                meta[key].append(line.lstrip()[2:].strip().strip('"\''))
             continue
-        seen += 1
-        if not isinstance(react, dict):
-            bad.append(f"card{i} reaction not an object")
+        if ":" not in line:
             continue
-        missing = [k for k in REACTION_FIELDS if react.get(k) in (None, "")]
-        if missing:
-            bad.append(f"card{i} reaction missing {','.join(missing)}")
-            continue
-        try:
-            prev_close = float(react["prev_close"])
-            close = float(react["close"])
-            claimed = float(react["change_pct"])
-        except (TypeError, ValueError):
-            bad.append(f"card{i} reaction numbers unparsable")
-            continue
-        if prev_close <= 0:
-            bad.append(f"card{i} prev_close not positive")
-            continue
-        if abs((close / prev_close - 1) * 100 - claimed) > 0.05:
-            bad.append(f"card{i} change_pct {claimed} != {prev_close}->{close}")
-        if not re.match(r"^https?://\S+$", str(react.get("source_url") or "")):
-            bad.append(f"card{i} reaction source_url not http(s)")
-        row = index.get((str(co.get("ticker") or "").upper(), str(react["to_date"])))
-        if row is None:
-            bad.append(f"card{i} reaction has no quotes.jsonl line")
+        key, _, val = line.partition(":")
+        key = key.strip()
+        val = val.strip()
+        if not val:
+            meta[key] = []
+        elif val.startswith("[") and val.endswith("]"):
+            meta[key] = [x.strip().strip('"\'') for x in val[1:-1].split(",") if x.strip()]
         else:
-            try:
-                if abs(float(row.get("change_pct")) - claimed) > 0.05:
-                    bad.append(f"card{i} reaction {claimed} != evidence {row.get('change_pct')}")
-            except (TypeError, ValueError):
-                bad.append(f"card{i} evidence row has no change_pct")
+            meta[key] = val.strip('"\'')
+    return meta
+
+
+def op_no_price_claims(sv, spec):
+    """v0.9 removed the quote layer; this item is what keeps it removed.
+
+    The reason is not taste. Re-measured on the 30-card e2e run, anchoring each card on
+    its *own* abstract release date and printing the excess over that market's sector
+    benchmark left 18 of 24 quotes inside +/-0.6% -- i.e. the number was the sector's
+    beta, not a view on the abstract. Eight Merck cards all received the same -3.83%,
+    because the move belongs to the company, not to any one readout.
+    """
+    cards = (sv["watchlist"] or {}).get("cards") or []
+    hits = []
+    for i, c in enumerate(cards, 1):
+        for k in PRICE_KEYS:
+            if k in c and c.get(k) not in (None, "", {}):
+                hits.append(f"card{i}.{k}")
+        co = c.get("listed_company")
+        if isinstance(co, dict):
+            for k in PRICE_KEYS:
+                if k in co and co.get(k) not in (None, "", {}):
+                    hits.append(f"card{i}.listed_company.{k}")
+    if hits:
+        return False, f"price fields came back: {', '.join(hits[:5])}"
+    return True, f"no price claim on {len(cards)} card(s)"
+
+
+def op_report_meta(sv, spec):
+    """The result must be identifiable as *this* skill's output by `skills`, not `type`.
+
+    Host-side contract (产品经理使用 Skill 的通用约束 §2): a non-empty `skills` array,
+    `title`, `date`, `lang`; `citations` only when the result cites sources, and then
+    the path must live under /workspace/output and match the body markers one-to-one.
+    """
+    text = sv.get("report") or ""
+    if not text.strip():
+        return False, "no artifacts/output/report.md -- the result was not delivered"
+    meta = _frontmatter(text)
+    if meta is None:
+        return False, "report.md has no YAML frontmatter"
+    bad = []
+    skills = meta.get("skills")
+    if not isinstance(skills, list) or not skills:
+        bad.append("skills is not a non-empty array")
+    want = spec.get("skill", "conference-result-triage")
+    if isinstance(skills, list) and skills and want not in skills:
+        bad.append(f"skills={skills} does not contain {want}")
+    if not str(meta.get("title") or "").strip():
+        bad.append("title missing")
+    if not re.match(r"^\d{4}-\d{2}-\d{2}$", str(meta.get("date") or "")):
+        bad.append("date is not YYYY-MM-DD")
+    if not str(meta.get("lang") or "").strip():
+        bad.append("lang missing")
+    if "type" in meta and "skills" not in meta:
+        bad.append("a bare `type` is not a result identifier")
+    cites = str(meta.get("citations") or "").strip()
+    if cites:
+        if not cites.startswith("/workspace/output"):
+            bad.append(f"citations path {cites!r} is outside /workspace/output")
+        body = text[len(FRONTMATTER_RE.match(text).group(0)):]
+        refs = re.findall(r"\{\{(ref_\d+)\}\}", body)
+        declared = [v for v in (sv.get("citations") or {}).values()]
+        keys = set()
+        for doc in declared:
+            keys |= set(doc.keys())
+        if not declared:
+            bad.append("citations declared but no citations json landed under output/")
+        elif set(refs) != {k for k in keys if k.startswith("ref_")}:
+            missing = sorted({k for k in keys if k.startswith("ref_")} - set(refs))
+            dangling = sorted(set(refs) - keys)
+            bad.append(f"body/citation mismatch missing={missing} dangling={dangling}")
+        else:
+            for key, item in (declared[0] or {}).items():
+                if not isinstance(item, dict):
+                    bad.append(f"{key} is not an object")
+                    continue
+                if not str(item.get("title") or "").strip():
+                    bad.append(f"{key} has an empty title")
+                if not re.match(r"^https?://\S+$", str(item.get("link") or "")):
+                    bad.append(f"{key} link is not http(s)")
     if bad:
         return False, "; ".join(bad[:4])
-    return True, (f"{seen} price move(s) traced to work/web/quotes.jsonl"
-                  if seen else "no price move printed (legal: reaction is optional)")
+    return True, (f"skills={skills} lang={meta.get('lang')} "
+                  f"citations={'yes' if cites else 'no'}")
 
 
 def op_count_matches(sv, spec):
@@ -673,7 +757,8 @@ OPS = {
     "listed_company_shape": op_listed_company_shape,
     "promotion_traceable": op_promotion_traceable,
     "web_evidence": op_web_evidence,
-    "reaction_traceable": op_reaction_traceable,
+    "report_meta": op_report_meta,
+    "no_price_claims": op_no_price_claims,
     "heat_coverage": op_heat_coverage,
 }
 

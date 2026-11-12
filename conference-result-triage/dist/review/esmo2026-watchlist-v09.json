@@ -1,0 +1,893 @@
+{
+ "conference": "ESMO 2026",
+ "count": 30,
+ "cards": [
+  {
+   "esid": "24_37_p_e10b5c6806f81cae90171b05d680c2d5_1",
+   "abstract_id": null,
+   "lba": true,
+   "manual": null,
+   "bucket": "pivotal",
+   "tag": "LBA",
+   "title": "INTerpath-001: Phase 3 study of the mRNA-based individualized neoantigen therapy (INT) intismeran autogene (intismeran) plus pembrolizumab (pembro) vs pembro alone for adjuvant treatment of resected stage IIB-IV melanoma (MEL)",
+   "summary": "1137例已完全切除的IIB–IV期皮肤黑色素瘤随机接受intismeran+帕博利珠单抗或安慰剂+帕博利珠单抗；中位随访24.6个月，24个月无复发生存率82.2% vs 70.0%（HR 0.58，95%CI 0.45–0.75，P<0.001），24个月无远处转移生存率88.5% vs 80.2%（HR 0.62，95%CI 0.45–0.85，P=0.002）。",
+   "why": "高危黑色素瘤术后长期以PD-1单药为天花板，加第二个免疫检查点未能突破，行业因此需要新机制。这是个体化mRNA新抗原疗法首个III期阳性结果，把“按患者肿瘤突变定制”从概念推到可注册证据级别，会改变辅助治疗的分层逻辑并带动同类新抗原疫苗的III期布局。局限是随访仍偏短、总生存未成熟，且制备依赖肿瘤测序与个体化生产，可及性决定其落地速度。",
+   "score": 95,
+   "score_parts": {
+    "evidence_strength": 29,
+    "effect_size": 23,
+    "clinical_impact": 24,
+    "novelty": 10,
+    "readout_maturity": 9
+   },
+   "drug": "",
+   "target": "",
+   "indication": "黑色素瘤",
+   "phase": "Phase III",
+   "presentation": "Late-breaking Oral",
+   "listed_company": {
+    "name": "Merck & Co.",
+    "ticker": "MRK",
+    "exchange": "NYSE",
+    "source_url": "https://www.merck.com/news/merck-and-moderna-will-present-results-from-landmark-phase-3-interpath-001-trial-for-intismeran-autogene-plus-keytruda-pembrolizumab-at-esmo-2026-presidential-symposium/"
+   }
+  },
+  {
+   "esid": "24_37_p_0cceb7e71bbdf6ead053d5b71a882134_1",
+   "abstract_id": null,
+   "lba": true,
+   "manual": null,
+   "bucket": "pivotal",
+   "tag": "LBA",
+   "title": "Tarlatamab plus durvalumab (durva) vs durva as 1L maintenance (1LM) therapy following durva, platinum, and etoposide (1L durva + EP) in extensive-stage small cell lung cancer (ES-SCLC): Primary analysis of the phase 3 DeLLphi-305 trial",
+   "summary": "563例一线度伐利尤单抗+铂类+依托泊苷后未进展的广泛期SCLC按1:1随机接受塔拉妥单抗+度伐利尤单抗或度伐利尤单抗维持；中位随访15.9与16.1个月，中位OS 21.1 vs 12.7个月（HR 0.42，95%CI 0.32–0.54，P<0.001），中位PFS 7.4 vs 1.9个月（HR 0.34），ORR 26.4% vs 4.1%。",
+   "why": "广泛期SCLC的一线维持长期没有能改变生存的选项，DLL3双抗此前只在后线立足，把T细胞衔接器前移到维持是全新定位。这是该场景首个OS显著获益的III期研究，若获批会把维持治疗从“继续免疫”变成“加DLL3双抗”，并直接冲击现有维持策略的排布。局限是随访仅一年余、CRS发生率接近半数（以低级别为主），且为开放标签设计。",
+   "score": 95,
+   "score_parts": {
+    "evidence_strength": 29,
+    "effect_size": 24,
+    "clinical_impact": 24,
+    "novelty": 9,
+    "readout_maturity": 9
+   },
+   "drug": "",
+   "target": "",
+   "indication": "小细胞肺癌",
+   "phase": "Phase III",
+   "presentation": "Late-breaking Oral",
+   "listed_company": {
+    "name": "Amgen",
+    "ticker": "AMGN",
+    "exchange": "NASDAQ",
+    "source_url": "https://www.thepharmaletter.com/biotech-news/esmo-positive-phase-iii-dellphi-305-results-for-imdelltra-and-imfinzi-combod"
+   }
+  },
+  {
+   "esid": "24_37_p_6f530e01806c414937b18cdea38d66be_1",
+   "abstract_id": null,
+   "lba": true,
+   "manual": null,
+   "bucket": "pivotal",
+   "tag": "LBA",
+   "title": "Anbenitamab plus chemotherapy for previously treated HER2-positive gastric or gastroesophageal carcinomas (GC/GEJC): Updated overall survival (OS) analysis of KC-WISE",
+   "summary": "246例曲妥珠单抗治疗失败的HER2阳性胃/胃食管交界腺癌随机接受anbenitamab+化疗或安慰剂+化疗；中位随访22.8与22.3个月，中位OS 19.6 vs 9.6个月（HR 0.39，95%CI 0.28–0.54，P<0.0001），中位PFS 7.1 vs 2.7个月（HR 0.35）。",
+   "why": "HER2阳性胃癌在曲妥珠单抗耐药后长期只剩化疗或化疗联合雷莫西尤单抗，生存空间十余年没有量级变化。这项研究把HER2双抗推到二线标准位置，且以更新OS呈现，说明获益随时间维持而非早期偶然，会压缩后续ADC与免疫在该线的空间。局限是样本量中等、对照组为安慰剂加化疗而非当代最优二线方案，跨地区外推仍需验证。",
+   "score": 93,
+   "score_parts": {
+    "evidence_strength": 29,
+    "effect_size": 24,
+    "clinical_impact": 23,
+    "novelty": 8,
+    "readout_maturity": 9
+   },
+   "drug": "",
+   "target": "",
+   "indication": "胃癌, 胃食管交界处癌",
+   "phase": "Phase II/III",
+   "presentation": "Late-breaking Oral",
+   "listed_company": {
+    "name": "康宁杰瑞制药 Alphamab Oncology",
+    "ticker": "09966.HK",
+    "exchange": "HKEX",
+    "source_url": "https://www1.hkexnews.hk/listedco/listconews/sehk/2026/1026/2026102600205.pdf"
+   }
+  },
+  {
+   "esid": "nr_24_37_p_9710d2cb57a9ea979d788e6d20fec928_1",
+   "abstract_id": null,
+   "lba": true,
+   "manual": null,
+   "bucket": "pivotal",
+   "tag": "LBA",
+   "title": "Trastuzumab rezetecan (SHR-A1811) in HER2-low advanced breast cancer (BC): A randomized, phase 3 study (HORIZON-Breast06)",
+   "summary": "551例HER2低表达晚期乳腺癌（81.5%未接受过转移阶段化疗、73.0% HR阳性）随机接受trastuzumab rezetecan或医生选择化疗；中位随访18.0个月，未化疗亚组中位PFS 16.6 vs 6.8个月（HR 0.25，95%CI 0.19–0.33，P<0.0001），总体人群16.4 vs 6.8个月（HR 0.27），ORR 75.5% vs 41.2%。",
+   "why": "HER2低表达是ADC最拥挤的赛道，T-DXd之后真正稀缺的是“更早线、更少化疗暴露”的随机证据。该研究把HER2 ADC放到几乎未化疗的人群并取得大幅PFS优势，意味着化疗可进一步后移，也会重新划定HER2低表达的定义边界与检测阈值。局限是OS尚不成熟、≥3级TRAE达84.1%，且入组以中国人群为主，全球外推需谨慎。",
+   "score": 92,
+   "score_parts": {
+    "evidence_strength": 28,
+    "effect_size": 24,
+    "clinical_impact": 23,
+    "novelty": 8,
+    "readout_maturity": 9
+   },
+   "drug": "",
+   "target": "",
+   "indication": "HER2低表达乳腺癌",
+   "phase": "Phase III",
+   "presentation": "Late-breaking Oral",
+   "listed_company": {
+    "name": "江苏恒瑞医药 Jiangsu Hengrui Pharmaceuticals",
+    "ticker": "600276.SH",
+    "exchange": "SSE",
+    "source_url": "https://markets.ft.markitdigital.com/data/equities/tearsheet/historical?s=600276:SHH.SH"
+   }
+  },
+  {
+   "esid": "nr_24_37_p_db61d5a57b493b67660085c39492dbf0_1",
+   "abstract_id": null,
+   "lba": false,
+   "manual": null,
+   "bucket": "pivotal",
+   "tag": "",
+   "title": "Updated results of randomized phase 3 study of selpercatinib vs cabozantinib or vandetanib (C/V) in advanced, kinase inhibitor-naïve, RET-mutant medullary thyroid cancer (MTC)",
+   "summary": "本次为更新数据：291例未接受过激酶抑制剂的晚期RET突变甲状腺髓样癌随机接受selpercatinib或卡博替尼/凡德他尼；中位随访45个月，3年PFS率75% vs 25%（HR 0.21，95%CI 0.14–0.30，P<0.0001），3年OS率92% vs 75%（HR 0.34），3年PFS2率91% vs 60%（HR 0.23）。",
+   "why": "甲状腺髓样癌一线长期在多靶点TKI之间选择，疗效有限而毒性负担重，分子分型对一线决策的影响一直偏弱。选择性RET抑制剂把PFS差距拉到数倍并在最终OS分析中维持获益，基本确立了“先检测RET、再决定一线”的逻辑，也让先用多靶点TKI、进展后换RET抑制剂的序贯失去吸引力。局限是罕见瘤种样本有限、对照组交叉比例较高，OS估计需谨慎解读。",
+   "score": 92,
+   "score_parts": {
+    "evidence_strength": 29,
+    "effect_size": 24,
+    "clinical_impact": 23,
+    "novelty": 7,
+    "readout_maturity": 9
+   },
+   "drug": "",
+   "target": "",
+   "indication": "髓样甲状腺癌",
+   "phase": "Phase III",
+   "presentation": "Unknown",
+   "listed_company": {
+    "name": "Eli Lilly (Loxo Oncology)",
+    "ticker": "LLY",
+    "exchange": "NYSE",
+    "source_url": "https://ycharts.com/companies/LLY/total_return_price"
+   }
+  },
+  {
+   "esid": "24_37_p_a5fbbf439a4b2cc6d3f46f5522d592b7_1",
+   "abstract_id": null,
+   "lba": true,
+   "manual": null,
+   "bucket": "pivotal",
+   "tag": "LBA",
+   "title": "Perioperative durvalumab with or without tremelimumab plus neoadjuvant enfortumab vedotin in muscle-invasive bladder cancer: Results from the phase 3 VOLGA trial",
+   "summary": "695例不适合或拒绝顺铂的肌层浸润性膀胱癌按1:1:1随机接受新辅助度伐利尤单抗+EV、度伐利尤单抗+曲美木单抗+EV，或直接膀胱切除；中位EFS随访22.9个月，D+EV组EFS HR 0.51（24个月率64% vs 45%）、OS HR 0.58（78% vs 69%），pCR 45% vs 10%。",
+   "why": "顺铂不耐受的肌层浸润性膀胱癌过去只能直接手术，围术期治疗近乎空白。这项研究用三个周期新辅助加短期辅助即取得EFS与OS双终点获益，且三联组只有EFS达标而OS未达标，为“是否必须叠加CTLA-4”提供了少见的随机答案。局限是对照组为单纯手术而非现行EV联合帕博利珠的围术期方案，真实增量需要在新标准背景下重新评估。",
+   "score": 89,
+   "score_parts": {
+    "evidence_strength": 27,
+    "effect_size": 23,
+    "clinical_impact": 23,
+    "novelty": 8,
+    "readout_maturity": 8
+   },
+   "drug": "",
+   "target": "",
+   "indication": "肌层浸润性膀胱癌",
+   "phase": "前瞻性研究",
+   "presentation": "Late-breaking Oral",
+   "listed_company": {
+    "name": "AstraZeneca",
+    "ticker": "AZN",
+    "exchange": "NASDAQ",
+    "source_url": "https://stockanalysis.com/stocks/azn/history/"
+   }
+  },
+  {
+   "esid": "24_37_p_3a58da6acdeffd626e7259fb52edff76_1",
+   "abstract_id": null,
+   "lba": true,
+   "manual": null,
+   "bucket": "pivotal",
+   "tag": "LBA",
+   "title": "Risvutatug rezetecan (Ris-Rez) versus gemcitabine and docetaxel (GD) in heavily pretreated patients (pts) with relapsed or refractory (R/R) osteosarcoma: Primary results from the phase 3 ARTEMIS-011 study",
+   "summary": "122例重度经治复发/难治骨肉瘤随机接受risvutatug rezetecan或吉西他滨+多西他赛；中位随访7.1个月，中位PFS 5.5 vs 1.4个月（HR 0.33，P<0.0001），OS尚不成熟但HR 0.51，≥3级TEAE 92.5% vs 83.3%，治疗相关严重不良事件63.8% vs 28.6%。",
+   "why": "骨肉瘤复发后二十余年没有随机III期阳性结果，青少年与年轻患者几乎无后线选择可用。这是该瘤种极少数随机对照阳性研究，把B7-H3 ADC推到注册路径上，也会带动儿科与青少年人群的剂量和长期毒性研究。局限是随访很短、OS仍不成熟，治疗相关严重不良事件明显更高，获益风险比需在更长随访中确认。",
+   "score": 87,
+   "score_parts": {
+    "evidence_strength": 27,
+    "effect_size": 22,
+    "clinical_impact": 21,
+    "novelty": 9,
+    "readout_maturity": 8
+   },
+   "drug": "",
+   "target": "",
+   "indication": "骨肉瘤",
+   "phase": "Phase III",
+   "presentation": "Late-breaking Oral",
+   "listed_company": {
+    "name": "翰森制药 Hansoh Pharmaceutical",
+    "ticker": "03692.HK",
+    "exchange": "HKEX",
+    "source_url": "https://www.cbbc.hangseng.com/zh-cn/market/stock/code/03692"
+   }
+  },
+  {
+   "esid": "24_37_p_8927e6332848b31a629ee1f38fd6d8e1_1",
+   "abstract_id": null,
+   "lba": true,
+   "manual": null,
+   "bucket": "pivotal",
+   "tag": "LBA",
+   "title": "Osimertinib (osi) + savolitinib (savo) vs platinum–pemetrexed (plat–pem) in EGFRm MET-overexpressed (OE) and/or -amplified (AMP) advanced NSCLC post-osi: SAFFRON phase (Ph) 3 primary results",
+   "summary": "338例奥希替尼进展后MET过表达和/或扩增的EGFR突变晚期NSCLC随机接受奥希替尼+savolitinib或铂类+培美曲塞；PFS HR 0.55（95%CI 0.42–0.72，P<0.001），OS HR 0.68（95%CI 0.50–0.91，P=0.010），PFS获益在MET过表达与扩增亚组一致。",
+   "why": "奥希替尼耐药后按分子机制而非一律化疗分流，是肺癌精准治疗最后一块未落地的拼图。该研究在MET过表达/扩增人群用双口服靶向替代化疗，PFS与OS同时达标，使“耐药后检测MET并针对性联合”成为可执行路径，也会推动MET检测进入常规耐药评估。局限是MET判读阈值尚未统一、检测可及性不均衡，且停药率与严重TEAE高于化疗组，真实人群耐受性待观察。",
+   "score": 86,
+   "score_parts": {
+    "evidence_strength": 27,
+    "effect_size": 21,
+    "clinical_impact": 22,
+    "novelty": 7,
+    "readout_maturity": 9
+   },
+   "drug": "",
+   "target": "",
+   "indication": "非小细胞肺癌",
+   "phase": "Phase III",
+   "presentation": "Late-breaking Oral",
+   "listed_company": {
+    "name": "AstraZeneca",
+    "ticker": "AZN",
+    "exchange": "NASDAQ",
+    "source_url": "https://stockanalysis.com/stocks/azn/history/"
+   }
+  },
+  {
+   "esid": "24_37_p_87f6d6cce4f49e477a790e5a8f96f3f4_1",
+   "abstract_id": null,
+   "lba": true,
+   "manual": null,
+   "bucket": "pivotal",
+   "tag": "LBA",
+   "title": "Final overall survival results from CheckMate 8HW: Nivolumab plus ipilimumab versus nivolumab or chemotherapy in MSI-H/dMMR metastatic colorectal cancer",
+   "summary": "本次为更新数据：MSI-H/dMMR转移性结直肠癌最终OS分析（中位随访68.1个月），纳武利尤单抗+伊匹木单抗对比纳武利尤单抗单药全治疗线OS HR 0.61（95%CI 0.46–0.82，P=0.0009），一线对比化疗OS HR 0.37（95%CI 0.24–0.57，P<0.0001），一线对比纳武利尤单抗单药HR 0.66（95%CI 0.44–0.99，未达预设显著性界值）。",
+   "why": "MSI-H肠癌一线已由PD-1单药主导，是否值得叠加CTLA-4长期缺少成熟OS证据。这项最终分析给出五年以上随访，并明确区分“优于化疗”与“优于单药”两种比较——后者未达显著性，这个细节比总体阳性更重要。局限是开放标签、交叉与后续治疗影响难以剔除，双免疫的毒性成本需要在单药已足够好的背景下逐例权衡。",
+   "score": 85,
+   "score_parts": {
+    "evidence_strength": 27,
+    "effect_size": 22,
+    "clinical_impact": 21,
+    "novelty": 5,
+    "readout_maturity": 10
+   },
+   "drug": "",
+   "target": "",
+   "indication": "结直肠癌",
+   "phase": "Phase III",
+   "presentation": "Late-breaking Oral",
+   "listed_company": {
+    "name": "Bristol Myers Squibb",
+    "ticker": "BMY",
+    "exchange": "NYSE",
+    "source_url": "https://www.financecharts.com/compare/BMY,MRK/summary/price"
+   }
+  },
+  {
+   "esid": "nr_24_37_p_944c015e870f608a87645eb844f5360e_1",
+   "abstract_id": null,
+   "lba": true,
+   "manual": null,
+   "bucket": "pivotal",
+   "tag": "LBA",
+   "title": "Sacituzumab tirumotecan in previously treated advanced or recurrent endometrial cancer: Results from the phase 3 TroFuse-005/ENGOT-en23/GOG-3095 study",
+   "summary": "776例铂类+PD-(L)1治疗后进展的晚期或复发子宫内膜癌随机接受sac-TMT或医生选择化疗；中位随访14.0个月，中位PFS 7.2 vs 3.9个月（HR 0.59，P<0.0001），中位OS 19.0 vs 12.1个月（HR 0.68，P=0.0001），≥3级TRAE 54.4% vs 41.4%。",
+   "why": "免疫治疗后进展的子宫内膜癌目前只能回到化疗，是本适应症最清晰的未满足需求。作为该场景首个取得PFS与OS双阳性的TROP2 ADC，它把ADC从后线补救提升为标准候选，也让占入组多数的pMMR人群第一次有了分子层面的新选项。局限是随访仅一年余、OS事件数仍偏少，≥3级TRAE过半，长期耐受性与后续ADC序贯尚未回答。",
+   "score": 80,
+   "score_parts": {
+    "evidence_strength": 27,
+    "effect_size": 18,
+    "clinical_impact": 19,
+    "novelty": 7,
+    "readout_maturity": 9
+   },
+   "drug": "",
+   "target": "",
+   "indication": "子宫内膜癌, 子宫癌肉瘤",
+   "phase": "Phase III",
+   "presentation": "Late-breaking Oral",
+   "listed_company": {
+    "name": "Merck & Co.",
+    "ticker": "MRK",
+    "exchange": "NYSE",
+    "source_url": "https://www.biospace.com/drug-development/esmo-2026-mercks-kelun-partnered-adc-cuts-death-risk-by-over-30-in-endometrial-cancer"
+   }
+  },
+  {
+   "esid": "24_37_p_0026c5483058b444195be3eefd87cc17_1",
+   "abstract_id": null,
+   "lba": false,
+   "manual": null,
+   "bucket": "failed",
+   "tag": "",
+   "title": "First-line pembrolizumab + lenvatinib + belzutifan or MK-1308A + lenvatinib in advanced RCC: Randomized open-label phase 3 LITESPARK-012 study",
+   "summary": "1688例初治晚期透明细胞肾癌按1:1:1随机接受帕博利珠单抗+仑伐替尼+belzutifan、MK-1308A+仑伐替尼或帕博利珠单抗+仑伐替尼；中位随访43.6个月，中位PFS 20.8与20.7 vs 23.7个月（HR 1.08与1.07），OS HR 1.04与1.12，ORR 69.1%与69.0% vs 76.3%。",
+   "why": "一线肾癌“叠加即更强”的假设在这里被正面否定：两个三联不仅没有获益，PFS与缓解率反而低于双药标准。对研发的意义是HIF-2α抑制剂与CTLA-4在该线加法的路线需要重估，对实践的意义是维持帕博利珠单抗联合仑伐替尼不动。局限是试验组因不良事件停药的比例明显更高，暴露不足可能掩盖真实疗效，因此不能据此推断该组合在任何人群中无效。",
+   "score": 86,
+   "score_parts": {
+    "evidence_strength": 29,
+    "effect_size": 18,
+    "clinical_impact": 23,
+    "novelty": 6,
+    "readout_maturity": 10
+   },
+   "drug": "",
+   "target": "",
+   "indication": "肾透明细胞癌",
+   "phase": "Phase III",
+   "presentation": "Unknown",
+   "listed_company": {
+    "name": "Merck & Co.",
+    "ticker": "MRK",
+    "exchange": "NYSE",
+    "source_url": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=106.MRK&fields1=f1,f2&fields2=f51,f53&klt=101&fqt=1&beg=20261015&end=20261030"
+   }
+  },
+  {
+   "esid": "24_37_p_20e2e6f20add425cc529c95af671cfe3_1",
+   "abstract_id": null,
+   "lba": false,
+   "manual": null,
+   "bucket": "failed",
+   "tag": "",
+   "title": "Perioperative pembrolizumab (pembro) or placebo (pbo) + neoadjuvant cisplatin (cis) and gemcitabine (gem) in participants (pts) with muscle-invasive bladder cancer (MIBC): the double-blind, phase 3 KEYNOTE-866 study",
+   "summary": "907例顺铂可耐受的肌层浸润性膀胱癌随机接受围术期帕博利珠单抗或安慰剂联合新辅助顺铂+吉西他滨；中位随访60.9个月，中位EFS 74.1个月 vs 未达到（HR 0.88，95%CI 0.71–1.10，P=0.1366），pCR 44.4% vs 35.8%，OS HR 1.00（95%CI 0.79–1.27）。",
+   "why": "围术期免疫治疗在肌层浸润性膀胱癌曾被寄予厚望，这项研究给出了相反答案：病理完全缓解率的提高没有转化为无事件生存获益。它改变的是临床与研究者的默认假设——把PD-1加进顺铂新辅助化疗不再是合理起点，资源应转向EV等ADC与免疫的联合。局限是pCR与OS均未做正式统计检验，且对照组为化疗而非更新的围术期方案，不能外推到ADC联合策略。",
+   "score": 79,
+   "score_parts": {
+    "evidence_strength": 27,
+    "effect_size": 16,
+    "clinical_impact": 21,
+    "novelty": 5,
+    "readout_maturity": 10
+   },
+   "drug": "",
+   "target": "",
+   "indication": "肌层浸润性膀胱癌",
+   "phase": "Phase III",
+   "presentation": "Unknown",
+   "listed_company": {
+    "name": "Merck & Co.",
+    "ticker": "MRK",
+    "exchange": "NYSE",
+    "source_url": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=106.MRK&fields1=f1,f2&fields2=f51,f53&klt=101&fqt=1&beg=20261015&end=20261030"
+   }
+  },
+  {
+   "esid": "24_37_p_1bbaf3be697d036cd293f95d956c67db_1",
+   "abstract_id": null,
+   "lba": false,
+   "manual": null,
+   "bucket": "failed",
+   "tag": "",
+   "title": "Pembrolizumab or placebo plus concurrent definitive chemoradiotherapy in esophageal and gastroesophageal junction (GEJ) cancer: The phase 3 randomized KEYNOTE-975 study",
+   "summary": "703例不可切除局部晚期食管/胃食管交界癌随机接受帕博利珠单抗或安慰剂联合同步根治性放化疗；中位随访47.1个月，PD-L1 CPS≥10人群中位EFS 15.2 vs 14.7个月（HR 0.97，95%CI 0.77–1.23，P=0.3994），中位OS 32.2 vs 35.0个月（HR 1.00），研究因EFS未达标而终止。",
+   "why": "把免疫治疗塞进根治性放化疗同期，是食管癌近年反复尝试又反复失败的方向。这项III期在预设的最大获益人群（CPS≥10）仍未显示EFS或OS获益并提前终止，基本关闭了“同期叠加”这条路，后续应转向巩固或序贯给药以及更强的生物标志物筛选。局限是研究同时纳入鳞癌与腺癌、生物学异质性大，按无效设计提前停止也使亚组解释力有限。",
+   "score": 76,
+   "score_parts": {
+    "evidence_strength": 27,
+    "effect_size": 15,
+    "clinical_impact": 20,
+    "novelty": 5,
+    "readout_maturity": 9
+   },
+   "drug": "",
+   "target": "",
+   "indication": "食管癌",
+   "phase": "前瞻性研究",
+   "presentation": "Unknown",
+   "listed_company": {
+    "name": "Merck & Co.",
+    "ticker": "MRK",
+    "exchange": "NYSE",
+    "source_url": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=106.MRK&fields1=f1,f2&fields2=f51,f53&klt=101&fqt=1&beg=20261015&end=20261030"
+   }
+  },
+  {
+   "esid": "nr_24_37_p_3e9406e22dd9539a97545aca5086e1f7_1",
+   "abstract_id": null,
+   "lba": true,
+   "manual": null,
+   "bucket": "failed",
+   "tag": "LBA",
+   "title": "Phase 3 study of sigvotatug vedotin (SV) vs docetaxel (DTX) in previously treated nonsquamous non-small cell lung cancer (NSCLC)",
+   "summary": "本次含事后亚组分析：703例经治非鳞NSCLC随机接受sigvotatug vedotin或多西他赛；中位OS 11.9 vs 11.5个月（HR 0.929，单侧P=0.226），BICR中位PFS 4.7 vs 4.2个月（HR 0.844）；事后二线亚组OS 13.6 vs 11.1个月（HR 0.831），三线及以上无获益趋势。",
+   "why": "IB6 ADC曾被列为肺癌ADC的下一梯队，这项III期在总人群中OS与PFS均未达标，且IB6表达水平未能筛出获益人群，说明“靶点表达即疗效”在该药上不成立。对研发的意义是生物标志物策略必须重做，对实践的意义是多西他赛仍是该线参照。局限是事后二线亚组出现方向性获益但置信区间跨一，只能作为后续研究假设，不能作为用药依据。",
+   "score": 75,
+   "score_parts": {
+    "evidence_strength": 27,
+    "effect_size": 13,
+    "clinical_impact": 19,
+    "novelty": 7,
+    "readout_maturity": 9
+   },
+   "drug": "",
+   "target": "",
+   "indication": "非鳞状非小细胞肺癌",
+   "phase": "Phase III",
+   "presentation": "Late-breaking Oral",
+   "listed_company": {
+    "name": "Pfizer (Seagen)",
+    "ticker": "PFE",
+    "exchange": "NYSE",
+    "source_url": "https://www.moomooapp.com/hant/stock/PFE-US"
+   }
+  },
+  {
+   "esid": "24_37_p_2e2014cad93b5d15f5ecabb1c5875bea_1",
+   "abstract_id": null,
+   "lba": false,
+   "manual": null,
+   "bucket": "failed",
+   "tag": "",
+   "title": "Phase 3 LEAP-012 study of lenvatinib + pembrolizumab vs dual placebo with transarterial chemoembolization (TACE) for unresectable non-metastatic hepatocellular carcinoma: Long-term OS results",
+   "summary": "本次为更新数据：480例不可切除非转移性肝细胞癌随机接受仑伐替尼+帕博利珠单抗或双安慰剂联合TACE；中位随访44.2个月，中位OS 40.4 vs 40.8个月（HR 0.98，95%CI 0.76–1.26），≥3级TRAE 72.2% vs 32.0%。",
+   "why": "中期分析曾以PFS阳性为这条联合路线背书，长期OS随访把它拉了回来。对实践的意义很直接：TACE基础上加仑伐替尼+帕博利珠单抗不应被视为延长生存的手段；同时它给出该人群约四十个月的中位OS基准，会改变后续试验的对照选择与样本量设计。局限是开放标签、后续治疗不均衡，PFS获益与OS未获益的分离机制仍未解释清楚。",
+   "score": 75,
+   "score_parts": {
+    "evidence_strength": 26,
+    "effect_size": 14,
+    "clinical_impact": 20,
+    "novelty": 5,
+    "readout_maturity": 10
+   },
+   "drug": "",
+   "target": "",
+   "indication": "肝细胞癌",
+   "phase": "Phase III",
+   "presentation": "Unknown",
+   "listed_company": {
+    "name": "Merck & Co.",
+    "ticker": "MRK",
+    "exchange": "NYSE",
+    "source_url": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=106.MRK&fields1=f1,f2&fields2=f51,f53&klt=101&fqt=1&beg=20261015&end=20261030"
+   }
+  },
+  {
+   "esid": "24_37_p_27b5ef7e0002303fbe513306665f38d0_1",
+   "abstract_id": null,
+   "lba": false,
+   "manual": null,
+   "bucket": "failed",
+   "tag": "",
+   "title": "Final analysis of adjuvant pembrolizumab (pembro) in resected early-stage non–small-cell lung cancer (NSCLC): Phase 3 PEARLS/KEYNOTE-091 study",
+   "summary": "本次为更新数据：1177例已切除早期NSCLC随机接受辅助帕博利珠单抗或安慰剂；中位随访87.7个月，6年OS率68.5% vs 66.4%（HR 0.98，95%CI 0.81–1.18，P=0.41826），DFS维持获益，≥3级AE 34.0% vs 25.6%。",
+   "why": "辅助免疫治疗的关键问题从来不是能否推迟复发，而是能否延长生存。这项接近成熟随访的最终分析显示OS无差异，提示DFS获益未转化为生存获益，会直接影响医生在早期患者中的辅助决策与知情沟通。局限是OS为次要终点、研究未按OS把握度设计，不能据此断言绝对无获益；PD-L1分层与是否接受化疗仍是解读关键。",
+   "score": 73,
+   "score_parts": {
+    "evidence_strength": 27,
+    "effect_size": 12,
+    "clinical_impact": 20,
+    "novelty": 4,
+    "readout_maturity": 10
+   },
+   "drug": "",
+   "target": "",
+   "indication": "非小细胞肺癌",
+   "phase": "Phase III",
+   "presentation": "Unknown",
+   "listed_company": {
+    "name": "Merck & Co.",
+    "ticker": "MRK",
+    "exchange": "NYSE",
+    "source_url": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=106.MRK&fields1=f1,f2&fields2=f51,f53&klt=101&fqt=1&beg=20261015&end=20261030"
+   }
+  },
+  {
+   "esid": "nr_24_37_p_0ef490d05e002a599cb113ff1e4d9718_1",
+   "abstract_id": null,
+   "lba": false,
+   "manual": null,
+   "bucket": "failed",
+   "tag": "",
+   "title": "End-of-trial results of the phase 3 KEYNOTE-630 trial of adjuvant pembrolizumab (pembro) versus placebo (pbo) for high-risk locally advanced cutaneous squamous cell carcinoma (LA cSCC)",
+   "summary": "本次为更新数据：450例高危局部晚期皮肤鳞癌术后随机接受辅助帕博利珠单抗或安慰剂；中位随访47.4个月，36个月RFS率71.6% vs 66.5%（HR 0.81，95%CI 0.58–1.12），36个月OS率80.7% vs 88.0%（HR 1.70，95%CI 1.11–2.60）。",
+   "why": "这是本届最需要谨慎解读的阴性信号：RFS方向有利却未达显著，OS反而显著偏向安慰剂，而安慰剂组交叉与后续cemiplimab使用让解释更复杂。对实践的意义是辅助PD-1在该人群缺乏生存层面支持，与cemiplimab辅助研究的方向相反，两者对比会重塑术后高危皮肤鳞癌的选择。局限是样本四百余例、OS事件少，单次分析不宜直接推出“有害”结论。",
+   "score": 72,
+   "score_parts": {
+    "evidence_strength": 24,
+    "effect_size": 16,
+    "clinical_impact": 18,
+    "novelty": 5,
+    "readout_maturity": 9
+   },
+   "drug": "",
+   "target": "",
+   "indication": "皮肤鳞状细胞癌",
+   "phase": "Phase III",
+   "presentation": "Unknown",
+   "listed_company": {
+    "name": "Merck & Co.",
+    "ticker": "MRK",
+    "exchange": "NYSE",
+    "source_url": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=106.MRK&fields1=f1,f2&fields2=f51,f53&klt=101&fqt=1&beg=20261015&end=20261030"
+   }
+  },
+  {
+   "esid": "24_37_p_4dc45825be9a70c0d895480e27d520fc_1",
+   "abstract_id": null,
+   "lba": true,
+   "manual": null,
+   "bucket": "failed",
+   "tag": "LBA",
+   "title": "IROCAS: A randomized phase III trial of adjuvant treatment intensification with mFOLFIRINOX versus mFOLFOX6 in high-risk stage III (T4 and/or N2) colon cancer",
+   "summary": "795例高危III期结肠癌（T4和/或N2）随机接受辅助mFOLFIRINOX或mFOLFOX6；中位随访55个月，3年DFS 65.6% vs 66.3%（HR 1.07，95%CI 0.84–1.36，p=0.61），3年OS 91.2% vs 86.7%（HR 0.85，p=0.37），≥3级腹泻15.6% vs 3.8%。",
+   "why": "按TNM分期做经验性化疗加码是结肠癌辅助治疗的长期惯性，这项研究证明加码既不改善DFS，还显著增加腹泻等毒性。它的价值在于为“不再按分期盲目强化”提供随机证据，把研究方向推向以分子残留病灶指导的治疗分配。局限是OS仍未成熟、两组后续治疗差异可能稀释效应，结论也不能推广到dMMR/MSI-H人群。",
+   "score": 71,
+   "score_parts": {
+    "evidence_strength": 26,
+    "effect_size": 14,
+    "clinical_impact": 18,
+    "novelty": 4,
+    "readout_maturity": 9
+   },
+   "drug": "",
+   "target": "",
+   "indication": "结肠癌（高危III期，T4和/或N2）",
+   "phase": "前瞻性研究",
+   "presentation": "Late-breaking Oral",
+   "listed_company": null
+  },
+  {
+   "esid": "24_37_p_21505111c2866a29aa4f87a4c91b6137_1",
+   "abstract_id": null,
+   "lba": true,
+   "manual": null,
+   "bucket": "failed",
+   "tag": "LBA",
+   "title": "Adjuvant chemotherapy with gemcitabine and cisplatin compared to standard of care after curative intent resection of cholangiocarcinoma and gallbladder carcinoma (ACTICCA-1 trial)",
+   "summary": "591例胆道癌根治术后随机接受吉西他滨+顺铂或卡培他滨；中位随访4.8年，DFS中位2.14 vs 1.49年（log-rank p=0.097），因违反比例风险假设改用RMST分析：前三年平均多2.6个无病月（p=0.01），OS仅呈趋势（p=0.076）。",
+   "why": "胆道癌辅助治疗长期由BILCAP的卡培他滨占据，这项研究试图用吉西他滨+顺铂取代它，但主分析未达统计学显著、只能靠RMST给出边际获益。对实践的意义是卡培他滨仍是默认选项，GC只在特定高危人群可讨论；对方法学的意义是比例风险假设被违反时如何报告与解读，会成为后续辅助试验的参照。局限是统计路径复杂、证据强度偏弱，且未做生物标志物分层。",
+   "score": 63,
+   "score_parts": {
+    "evidence_strength": 22,
+    "effect_size": 12,
+    "clinical_impact": 15,
+    "novelty": 5,
+    "readout_maturity": 9
+   },
+   "drug": "",
+   "target": "",
+   "indication": "胆管癌, 胆囊癌",
+   "phase": "前瞻性研究",
+   "presentation": "Late-breaking Oral",
+   "listed_company": null
+  },
+  {
+   "esid": "24_37_p_7afd69c59c484464f3f9dae34e33293d_1",
+   "abstract_id": null,
+   "lba": true,
+   "manual": null,
+   "bucket": "failed",
+   "tag": "LBA",
+   "title": "Results from KEYNOTE-B49: A phase 3, randomized, double-blind study of pembrolizumab (pembro) vs placebo (pbo) plus chemotherapy (CT) in participants (pts) with HR+/HER2− advanced breast cancer (ABC)",
+   "summary": "342例PD-L1 CPS≥1的HR+/HER2−晚期乳腺癌（99.4%既往CDK4/6抑制剂）随机接受帕博利珠单抗或安慰剂联合化疗；PFS HR 0.74（95%CI 0.58–0.95，P=0.0089），最终分析OS HR 1.04（95%CI 0.81–1.33，P=0.6185），中位OS 21.0 vs 22.2个月。",
+   "why": "HR阳性乳腺癌被视为免疫惰性亚型，这项研究给出了PFS阳性而OS无获益的典型分裂结果。它提醒临床不应因PFS改善就在该人群常规加免疫，也说明CPS≥1作为阈值过宽、需要更强的生物标志物。局限是样本量偏小、随访中位不足三年，OS事件有限，后续治疗与亚组异质性都可能稀释差异。",
+   "score": 66,
+   "score_parts": {
+    "evidence_strength": 26,
+    "effect_size": 8,
+    "clinical_impact": 20,
+    "novelty": 5,
+    "readout_maturity": 7
+   },
+   "drug": "",
+   "target": "",
+   "indication": "HR阳性乳腺癌",
+   "phase": "Phase III",
+   "presentation": "Late-breaking Oral",
+   "listed_company": {
+    "name": "Merck & Co.",
+    "ticker": "MRK",
+    "exchange": "NYSE",
+    "source_url": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=106.MRK&fields1=f1,f2&fields2=f51,f53&klt=101&fqt=1&beg=20261015&end=20261030"
+   }
+  },
+  {
+   "esid": "24_37_p_158c644052f6c66233d55dcdbfb75a6b_1",
+   "abstract_id": null,
+   "lba": true,
+   "manual": null,
+   "bucket": "early",
+   "tag": "LBA",
+   "title": "Clinical complete response with dostarlimab monotherapy in dMMR/MSI-H locally advanced rectal cancer (LARC): First results from the global registrational AZUR-1 trial",
+   "summary": "154例未治疗dMMR/MSI-H局部晚期直肠癌接受多斯塔利单抗单药9个周期；中位随访26.3个月，可评估144例中68%达到持续至少12个月的临床完全缓解（cCR12），15例手术后12例达pCR，cCR12+pCR合计76%，ICR评估cCR12为47%（54/116），缓解者无复发。",
+   "why": "局部晚期直肠癌的标准治疗（放化疗加手术）带来终身功能代价，dMMR人群是最可能免于手术的亚群。这是该策略首个全球注册性研究，把“单药免疫+密切监测、免放化疗免手术”从单中心经验推到可注册证据，并已进入监管路径。局限是单臂设计，研究者与独立评审的cCR12差异明显（评估时点敏感），长期无复发生存仍待随访。",
+   "score": 82,
+   "score_parts": {
+    "evidence_strength": 24,
+    "effect_size": 22,
+    "clinical_impact": 20,
+    "novelty": 9,
+    "readout_maturity": 7
+   },
+   "drug": "",
+   "target": "",
+   "indication": "直肠癌, MSI-H或dMMR实体瘤",
+   "phase": "Phase II",
+   "presentation": "Late-breaking Oral",
+   "listed_company": {
+    "name": "GSK plc",
+    "ticker": "GSK",
+    "exchange": "NYSE",
+    "source_url": "https://stockanalysis.com/stocks/gsk/history/"
+   }
+  },
+  {
+   "esid": "24_37_p_8b5ed1ae24ad4887ea9018182e7f409c_1",
+   "abstract_id": null,
+   "lba": false,
+   "manual": null,
+   "bucket": "early",
+   "tag": "",
+   "title": "Calderasib (MK-1084), alone or in combination, for KRAS G12C-mutant metastatic non-small cell lung cancer (mNSCLC)",
+   "summary": "本次为更新数据：346例KRAS G12C突变转移性NSCLC分臂接受calderasib单药、联合帕博利珠单抗或联合帕博利珠单抗+化疗；联合帕博利珠单抗组（n=98）确认ORR 72%、中位PFS 28.9个月，PD-L1 TPS≥50%亚组ORR 87%，单药组ORR 27%、中位PFS 8.3个月。",
+   "why": "KRAS G12C抑制剂单药在肺癌的缓解持续时间一直偏短，真问题是能否与免疫联用而不被肝毒性拖累。这组数据显示联合方案的PFS明显长于单药，且因不良事件停药比例低，支持把G12C抑制剂前移到一线联合并重新定义该靶点的治疗窗口。局限是分臂非随机、样本不均、随访仍有限，PD-L1高表达亚组的极端数值需要前瞻随机验证。",
+   "score": 79,
+   "score_parts": {
+    "evidence_strength": 20,
+    "effect_size": 23,
+    "clinical_impact": 21,
+    "novelty": 7,
+    "readout_maturity": 8
+   },
+   "drug": "",
+   "target": "",
+   "indication": "非小细胞肺癌",
+   "phase": "Phase I",
+   "presentation": "Unknown",
+   "listed_company": {
+    "name": "Merck & Co.",
+    "ticker": "MRK",
+    "exchange": "NYSE",
+    "source_url": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=106.MRK&fields1=f1,f2&fields2=f51,f53&klt=101&fqt=1&beg=20261015&end=20261030"
+   }
+  },
+  {
+   "esid": "nr_24_37_p_7baf08db7d6b117183afd23f268263d3_1",
+   "abstract_id": null,
+   "lba": false,
+   "manual": null,
+   "bucket": "early",
+   "tag": "",
+   "title": "SHR-4849 (IDE849), an ADC targeting delta-like ligand 3 (DLL3), in relapsed small cell lung carcinoma (SCLC) and other neuroendocrine carcinomas (NECs): Long-term results from the phase 1 study",
+   "summary": "本次为更新数据：101例可评估复发SCLC接受DLL3 ADC SHR-4849（≥1.8 mg/kg）；确认ORR 55.4%、DCR 94.1%、中位PFS 6.8个月、12个月OS率64.1%；二线亚组（n=51）确认ORR 62.7%、12个月OS率66.4%；2.4 mg/kg组≥3级TRAE 24.2%。",
+   "why": "SCLC二线在拓扑异构酶抑制剂耐药后选择极少，DLL3 ADC是少数能给出持续缓解的方向。该研究在二线人群给出较高确认缓解率与一年的OS率，且血液学毒性可控、停药率低，支持其进入注册研究并可能与现有DLL3药物形成序贯。局限是早期单臂、随访中位不足一年，脑转移亚组样本小，缓解持续时间与耐药机制仍待观察。",
+   "score": 78,
+   "score_parts": {
+    "evidence_strength": 20,
+    "effect_size": 23,
+    "clinical_impact": 20,
+    "novelty": 7,
+    "readout_maturity": 8
+   },
+   "drug": "",
+   "target": "",
+   "indication": "小细胞肺癌, 神经内分泌肿瘤",
+   "phase": "Phase I",
+   "presentation": "Unknown",
+   "listed_company": {
+    "name": "江苏恒瑞医药 Jiangsu Hengrui Pharmaceuticals",
+    "ticker": "600276.SH",
+    "exchange": "SSE",
+    "source_url": "https://markets.ft.markitdigital.com/data/equities/tearsheet/historical?s=600276:SHH.SH"
+   }
+  },
+  {
+   "esid": "nr_24_37_p_4aa29a99bb3ee8e4f9749e4756a4b004_1",
+   "abstract_id": null,
+   "lba": false,
+   "manual": null,
+   "bucket": "early",
+   "tag": "",
+   "title": "A first-in-human phase I study of LBL-034, a GPRC5D/CD3 bispecific antibody, in relapsed/refractory multiple myeloma (RRMM)",
+   "summary": "56例复发/难治多发性骨髓瘤（中位5线、73.2%三类暴露、16.1%既往BCMA CAR-T）接受GPRC5D/CD3双抗LBL-034；400–1200 μg/kg组ORR 82.5%、≥CR 57.5%、中位PFS 15.8个月，髓外病变者ORR 75.0%，≥3级TRAE 83.9%，≥3级CRS仅1例。",
+   "why": "BCMA方向被CAR-T与双抗占满后，GPRC5D成为骨髓瘤最重要的备用靶点，尤其是BCMA治疗后进展的人群。这组首次人体数据在五线、近半三类暴露的患者中给出高缓解率与较长PFS，且CRS以低级别为主，支持其作为序贯或联合骨架。局限是I期单臂、各剂量组样本小、随访不足以判断缓解持久性，GPRC5D相关的皮肤与味觉毒性需要更长观察。",
+   "score": 77,
+   "score_parts": {
+    "evidence_strength": 18,
+    "effect_size": 23,
+    "clinical_impact": 21,
+    "novelty": 7,
+    "readout_maturity": 8
+   },
+   "drug": "",
+   "target": "",
+   "indication": "多发性骨髓瘤",
+   "phase": "Phase I",
+   "presentation": "Unknown",
+   "listed_company": null
+  },
+  {
+   "esid": "24_37_p_f9898fe554d2bfc965091b72c2c749f1_1",
+   "abstract_id": null,
+   "lba": true,
+   "manual": null,
+   "bucket": "early",
+   "tag": "LBA",
+   "title": "Mocertatug rezetecan (Mo-Rez) in patients with platinum-resistant ovarian cancer (PROC): Updated results with longer follow-up from the global BEHOLD-1 study",
+   "summary": "本次为更新数据：136例铂耐药卵巢癌在剂量选择阶段随机接受B7-H4 ADC mocertatug rezetecan；中位随访13.4个月，5.8 mg/kg组确认ORR 62%（28/45）、中位DoR 12.2个月、中位PFS 11.1个月，总体≥3级TRAE 47%（5.8 mg/kg组71%）。",
+   "why": "铂耐药卵巢癌在ADC涌入后仍缺持久缓解，现有FRα ADC受表达阈值限制。B7-H4在卵巢癌表达更普遍，这组数据在既往多线人群中显示缓解持续时间超过一年，并呈现清晰的剂量-效应关系。局限是随机化仅用于剂量比较而非疗效对照，5.8 mg/kg组≥3级毒性偏高，注册研究的获益风险仍需III期确认。",
+   "score": 77,
+   "score_parts": {
+    "evidence_strength": 20,
+    "effect_size": 22,
+    "clinical_impact": 20,
+    "novelty": 7,
+    "readout_maturity": 8
+   },
+   "drug": "",
+   "target": "",
+   "indication": "卵巢癌",
+   "phase": "Phase I",
+   "presentation": "Late-breaking Oral",
+   "listed_company": {
+    "name": "GSK plc",
+    "ticker": "GSK",
+    "exchange": "NYSE",
+    "source_url": "https://stockanalysis.com/stocks/gsk/history/"
+   }
+  },
+  {
+   "esid": "24_37_p_81a20307a3f83cf9de60eda8fc104aeb_1",
+   "abstract_id": null,
+   "lba": false,
+   "manual": null,
+   "bucket": "early",
+   "tag": "",
+   "title": "Safety and efficacy of SYS6043, a novel B7-H3—targeting antibody-drug conjugate, in patients with advanced breast cancer",
+   "summary": "137例晚期乳腺癌（HR+/HER2− 82例、TNBC 34例、HER2+ 21例，45.3%既往≥3线治疗）接受B7-H3 ADC SYS6043；HR+/HER2−可评估70例ORR 45.7%，TNBC ORR 70.6%，HER2+ ORR 71.4%，≥3级TRAE 24.1%。",
+   "why": "乳腺癌ADC集中在HER2与TROP2两个靶点，多线之后交叉耐药使后续选择迅速枯竭。B7-H3提供新的载荷入口，该研究在三种亚型同时看到缓解而≥3级毒性仅约四分之一，提示治疗窗可能优于同类。局限是早期单臂、各亚型样本小、随访短，且该药此前泛瘤种读数与本队列存在差异，人群构成变化对ORR的影响需注意。",
+   "score": 75,
+   "score_parts": {
+    "evidence_strength": 20,
+    "effect_size": 22,
+    "clinical_impact": 20,
+    "novelty": 6,
+    "readout_maturity": 7
+   },
+   "drug": "",
+   "target": "",
+   "indication": "三阴性乳腺癌, HR阳性乳腺癌",
+   "phase": "Phase I/II",
+   "presentation": "Unknown",
+   "listed_company": {
+    "name": "石药集团 CSPC Pharmaceutical",
+    "ticker": "01093.HK",
+    "exchange": "HKEX",
+    "source_url": "https://www.cbbc.hangseng.com/zh-hk/market/stock/code/01093"
+   }
+  },
+  {
+   "esid": "24_37_p_64b091fe0f0387ed33609bcea6812dd6_1",
+   "abstract_id": null,
+   "lba": false,
+   "manual": null,
+   "bucket": "early",
+   "tag": "",
+   "title": "Efficacy and safety of cosibelimab in advanced cutaneous squamous cell carcinoma (CSCC): Update from a pivotal open-label study with a median follow-up of ≥2.5 years",
+   "summary": "本次为更新数据：205例晚期皮肤鳞癌接受cosibelimab，中位随访至少2.5年；一线组（n=78）ORR 51.3%、CR 16.7%、中位DoR 45.9个月，另两组ORR 44.4%与53.1%，免疫相关不良事件30.2%、≥3级2.9%。",
+   "why": "皮肤鳞癌的PD-1选择已多，差异化空间在长期缓解与安全性而非缓解率本身。这项随访接近四年的更新显示缓解极为持久、严重免疫相关事件罕见，为该药在老年与合并症较多人群中的应用提供依据。局限是单臂、队列定义复杂（不同组对应不同既往治疗），无法与其他PD-1横向比较，部分队列OS仍未成熟。",
+   "score": 75,
+   "score_parts": {
+    "evidence_strength": 20,
+    "effect_size": 22,
+    "clinical_impact": 20,
+    "novelty": 4,
+    "readout_maturity": 9
+   },
+   "drug": "",
+   "target": "",
+   "indication": "皮肤鳞状细胞癌",
+   "phase": "Phase I",
+   "presentation": "Unknown",
+   "listed_company": {
+    "name": "Sun Pharmaceutical Industries (owns cosibelimab via Checkpoint Therapeutics)",
+    "ticker": "SUNPHARMA",
+    "exchange": "NSE",
+    "source_url": "https://www.nasdaq.com/articles/sun-pharmaceutical-industries-agrees-acquire-checkpoint-therapeutics"
+   }
+  },
+  {
+   "esid": "24_37_p_7d7d7dc927fe04f9bb767bea184061a6_1",
+   "abstract_id": null,
+   "lba": false,
+   "manual": null,
+   "bucket": "early",
+   "tag": "",
+   "title": "Dalpiciclib plus Pyrotinib-based chemotherapy-free regimens as first line treatment in Trastuzumab-Sensitive, HER2-positive metastatic breast cancer (DAP-HER-02): A dual-cohort, phase II study",
+   "summary": "120例曲妥珠单抗敏感、未治疗的HER2阳性转移性乳腺癌接受达尔西利+吡咯替尼联合氟维司群或伊尼妥单抗的去化疗方案；队列A（n=41）确认ORR 70.7%、中位PFS 23.9个月，队列B（n=79）确认ORR 88.6%、中位PFS 29.1个月，≥3级中性粒细胞减少为56.1%与36.7%。",
+   "why": "HER2阳性一线的核心矛盾是疗效与化疗毒性，去化疗方案一直缺少足够强的PFS支撑。这组II期数据在未经治疗人群中把中位PFS推到两年以上，为口服、免化疗的维持策略提供可行性证据，也为不能耐受化疗的患者提供替代思路。局限是双队列、非随机、样本小，血液学毒性较高，与THP等标准方案的头对头比较仍是必要条件。",
+   "score": 74,
+   "score_parts": {
+    "evidence_strength": 21,
+    "effect_size": 21,
+    "clinical_impact": 17,
+    "novelty": 8,
+    "readout_maturity": 7
+   },
+   "drug": "",
+   "target": "",
+   "indication": "HR阳性乳腺癌, HER2阳性乳腺癌",
+   "phase": "Phase II",
+   "presentation": "Unknown",
+   "listed_company": {
+    "name": "江苏恒瑞医药 Jiangsu Hengrui Pharmaceuticals",
+    "ticker": "600276.SH",
+    "exchange": "SSE",
+    "source_url": "https://markets.ft.markitdigital.com/data/equities/tearsheet/historical?s=600276:SHH.SH"
+   }
+  },
+  {
+   "esid": "24_37_p_90fa981db898681146bfc9f13d19cc58_1",
+   "abstract_id": null,
+   "lba": false,
+   "manual": null,
+   "bucket": "early",
+   "tag": "",
+   "title": "HH2853, an EZH1/2 inhibitor, in patients with epithelioid sarcoma: Promising anti-tumor activity results from the pivotal phase II (HH2853-G101 cohort 2) study",
+   "summary": "94例上皮样肉瘤（52.1%既往≥2线治疗）接受EZH1/2抑制剂HH2853 400 mg bid；BIRC评估ORR 40.0%（95%CI 28.9–52.0）、DCR 77.3%、中位DoR 15.6个月、中位PFS 13.1个月，≥3级TRAE以贫血（12.8%）与淋巴细胞减少（11.7%）为主。",
+   "why": "上皮样肉瘤是INI1缺失驱动的超罕见瘤种，后线几乎没有标准治疗，既往证据多为小样本回顾数据。这项关键II期给出四成缓解率与超过一年的中位PFS，且为口服给药，若获监管认可会填补明确空白。局限是单臂、单国、样本不足百例，与历史对照的比较易受选择偏倚影响，缓解持续时间仍需更长随访。",
+   "score": 74,
+   "score_parts": {
+    "evidence_strength": 21,
+    "effect_size": 20,
+    "clinical_impact": 18,
+    "novelty": 8,
+    "readout_maturity": 7
+   },
+   "drug": "",
+   "target": "",
+   "indication": "上皮样肉瘤",
+   "phase": "Phase II",
+   "presentation": "Unknown",
+   "listed_company": null
+  },
+  {
+   "esid": "24_37_p_c6b11649f0978af13e0b253fd4805a11_1",
+   "abstract_id": null,
+   "lba": false,
+   "manual": null,
+   "bucket": "early",
+   "tag": "",
+   "title": "Raludotatug deruxtecan (R-DXd) in patients (pts) with platinum-resistant ovarian cancer (PROC): An updated analysis of efficacy and tolerability from the Ph 2 part of REJOICE-Ovarian01",
+   "summary": "本次为更新数据：210例铂耐药卵巢癌接受CDH6 ADC raludotatug deruxtecan；随访至少13.9个月，可评估者ORR 50.0%（99/198）、DCR 78.8%，中位DoR 6.9个月、中位PFS 6.9个月；5.6 mg/kg组≥3级TRAE 39.1%，治疗相关ILD 5.8%（均为1–2级）。",
+   "why": "铂耐药卵巢癌的ADC竞争已很拥挤，CDH6是其中表达最普遍的新靶点之一，可绕开FRα表达限制。这项II期在绝大多数CDH6阳性人群中显示半数缓解并改善胃肠与疼痛症状，支持其进入III期。局限是单臂、缓解持续时间约七个月，ILD虽轻但需警惕累积风险，且入组以表达阳性人群为主，真实世界筛检率仍待确认。",
+   "score": 73,
+   "score_parts": {
+    "evidence_strength": 22,
+    "effect_size": 20,
+    "clinical_impact": 17,
+    "novelty": 7,
+    "readout_maturity": 7
+   },
+   "drug": "",
+   "target": "",
+   "indication": "卵巢癌",
+   "phase": "Phase II",
+   "presentation": "Unknown",
+   "listed_company": {
+    "name": "Daiichi Sankyo",
+    "ticker": "4568.T",
+    "exchange": "TSE",
+    "source_url": "https://stockanalysis.com/quote/tyo/4568/"
+   }
+  }
+ ],
+ "coverage_notes": [
+  "data_type（首次公布/更新/长期随访/亚组·事后分析）按摘要正文逐条判断，判不出的写「未判定」，不猜；本清单中 INTerpath-001、AZUR-1、TroFuse-005、VOLGA 等首次公布，LIBRETTO-531、CheckMate 8HW、PEARLS/KEYNOTE-091、KEYNOTE-630、LEAP-012、calderasib、SHR-4849、BEHOLD-1、CK-301-101、R-DXd 为更新或长期随访，SigVie-002 另含事后二线亚组分析。",
+  "覆盖边界：会议库 ESMO 2026 共 1097 条结果记录，机械筛后 592 条进入三桶判读（early 200 / pivotal 306 / failed 86），本清单只从中收敛到 30 条，不代表全量覆盖；约一半记录未列 p 值或 HR，同一试验也常拆成多篇摘要，卡片只引用该条记录自身原文印出的数字，未印出的数值一律不写。",
+  "外部讨论但会议库无对应记录、因而未纳入卡片的研究：MOIO（LBA10，减少给药频率的非劣效III期）与 HARMONY-GI001（一线胆道癌），二者在 rows.json 中查无对应 esid，故只在此说明。",
+  "manual（人工核对/流水线抽取）在平台内取不到（featured 字段不可选），因此全部卡片记 null，生产方式未知。",
+  "abstract_id 在平台内恒为 null（结果表无摘要号列、无会议摘要库工具），卡片保留该键但不编造编号。"
+ ]
+}

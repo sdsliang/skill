@@ -208,7 +208,6 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
 |---|---|
 | 会议现场热度 | `"<会议> <药名/试验名> results"` |
 | 适应症内定位 | `"<药名> <适应症> data <会议> <年份>"` |
-| 股价/公司 | `"<ticker> 收盘 <YYYY年M月D日> 涨跌幅"`（deepseek 源直接给券商页的收盘+涨跌幅；bocha 源常返回过期行情快照） |
 | 未被收录的热点 | `"<会议> late-breaking abstract <适应症> most anticipated"` |
 | 上市公司 | `"<公司名> listed ticker exchange"`（再用 `web_fetch` 打开交易所/公司 IR 页确认） |
 
@@ -216,31 +215,11 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
 
 **允许 `promote`（外部热议但初选漏了）**：前提是它在 `work/rows.json` 里 —— 卡片上的数字必须有原文出处。写卡时标 `"promoted": "web"`，并在 `why` 里点明外部讨论的是什么（例：多项报道把该读数列为该适应症本届最受关注的口头报告）。**`rows.json` 里根本没有的研究一律不进卡**，只在 `coverage_notes` 里写一句"外部讨论了 X，但会议库无对应记录，未纳入"。`check_cards.py --rows` 会按 `rows.json` 校验这类卡片；没有 `promoted` 标记却在池子外的 esid 直接拒绝。
 
-**查上市公司**：每张卡都要落 `listed_company` 字段。上市 ⇒ 对象 `{name, ticker, exchange, reaction?, source_url}`，`source_url` 必须是你真的打开过的页面；未上市或查不到 ⇒ `null`（**不要猜、不要用同名母公司顶替**）。
+**查上市公司**：每张卡都要落 `listed_company` 字段。上市 ⇒ 对象 `{name, ticker, exchange, source_url}`，`source_url` 必须是你真的打开过的页面；未上市或查不到 ⇒ `null`（**不要猜、不要用同名母公司顶替**）。这个字段只回答"谁在做这个药"，**不夹带任何行情**（v0.9 起）。
 
-`reaction` **不是**「披露当日 +4.1%」这种短句，而是一个带口径的结构化对象 —— 涨跌幅不是自然存在的量，**会议期间大盘同时在动**：
+**为什么没有股价**：v0.8 曾要求每张卡印「会议期首个交易日 vs 会议前最后收盘」的涨跌幅，并逐条对账。v0.9 把整层删掉，理由是实测数据而不是口味——①按每条摘要自己的披露日重算后，24 条行情里 **18 条落在所属板块基准的 ±0.6% 以内**，即那个数字是板块 beta，"因为这条摘要涨了 X"不成立；②同一公司的多张卡拿到**同一个**数字（MRK 的 8 张卡都是 −3.83%），因为涨跌属于公司，不属于任何一条读数。会议当天的股价既不能归因于这条摘要，也不是推荐依据，留在清单里只会被读成信号。
 
-```json
-"reaction": {"from_date": "2026-10-22", "to_date": "2026-10-23",
-             "prev_close": 147.24, "close": 145.27, "change_pct": -1.34,
-             "basis": "会议期首个交易日 vs 会议前最后收盘（非归因）",
-             "source_url": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=105.TNGX&…"}
-```
-
-取数只有两条正路，**都别再打开公司 IR 落地页**（那些页只有代码/交易所/股东服务，没有某一天的涨跌 —— v0.7 实跑 29 次 `web_fetch` 全落在这种页面上，一条涨跌幅都没拿到）：
-
-1. **行情接口（首选，确定性最高）**：`web_fetch` 直接读东财 kline 的 JSON，无需 JS、无需登录：
-   `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=<mkt>.<code>&fields1=f1,f2&fields2=f51,f53&klt=101&fqt=1&beg=YYYYMMDD&end=YYYYMMDD`
-   返回 `{"rc":0,"data":{"klines":["2026-10-23,145.270",…]}}`（日期,收盘）。**secid 前缀**：NASDAQ `105` · NYSE `106` · AMEX `107` · HKEX `116`（代码补零到 5 位，`1093`→`01093`）· LSE `155`。`rc:100` = 该市场无此代码，`rc:102` = 市场不覆盖（**SIX/瑞士没有覆盖**，Roche/Novartis 这类只能留空）。
-2. **检索取收盘**：`web_search` 查 `"<ticker> 收盘 <日期> 涨跌幅"`。deepseek 源会直接给出券商/财经页的「收盘价 + 涨跌幅」，把那条 URL 填进 `reaction.source_url`；先核 `change_pct` 与页面数字一致。
-
-**基准日按市场各自取**，不要统一成一个日历日：各交易所休市日不同（台风、黄金周、日本祝日都会让某一天的 K 线直接缺席），硬套某一天会算错或抛错。取法固定为：**该市场早于会议首日的最后一个收盘 → 该市场 ∈ 会议窗口的第一个收盘**。会议首日要真的查过（ESMO 2026 = **2026-10-23 至 10-27，IFEMA Madrid**），不要按"十月中下旬"猜。
-
-**`ticker` 只写代码本体，市场写 `exchange`**：`09966` + `HKEX`，不是 `09966.HK` + `HKEX`（`check_cards.py` 会拒这类后缀——同一事实印两遍，还让「市场 + 裸代码」的行情查询没法复用）。
-
-**印出去的每个涨跌幅都要能对上账**：把取数结果按行追加到 `work/web/quotes.jsonl`（`{"ticker","exchange","from_date","to_date","prev_close","close","change_pct","url"}`），交付时给 `check_cards.py --quotes-evidence work/web/quotes.jsonl`。脚本会验两件事：`change_pct` 是否真的由 `prev_close→close` 算出、以及能否在证据文件里逐条对上（同 ticker + 同 `to_date`）。**拿不到的交易所就省略 `reaction`**（或整张卡 `listed_company: null`），不许拿 OTC ADR 顶替本土上市股；省掉的要在 `coverage_notes` 里记一句「哪几只没有行情、为什么」（SIX 不覆盖 / 未上市 / 取数失败），否则读者分不清「查过没有」与「没查」（`RHHBY` ≠ `ROG.SW`，流动性池不同，涨跌幅会骗人）。
-
-**本地预计算**（在 WSL 侧跑，平台沙箱无网所以这一步不能进回合）：`python3 scripts/fetch_quotes.py --cards output/watchlist.json --meeting-start 2026-10-23 --out work/quotes.json --evidence work/web/quotes.jsonl`，然后 `make_cards.py --quotes work/quotes.json` 会把 `reaction` 折进 `listed_company`。平台内回合请按上面第 1 条自己 `web_fetch` 同一端点，不要假设本地脚本跑过。
+**`ticker` 只写代码本体，市场写 `exchange`**：`09966` + `HKEX`，不是 `09966.HK` + `HKEX`（`check_cards.py` 会拒这类后缀——同一事实印两遍，也让「市场 + 裸代码」的查询没法复用）。
 
 **联网失败是降级条件，不是中止条件**（v0.7 实跑教训）：`web_search` 无返回、`web_fetch` 单个站点 403/超时、IR 页打不开 —— 都只影响这一层，**清单照出**。处理顺序是：①换查询词/换源再试（检索结果里的标题与 URL 本身就能填 `listed_company.source_url`，不必打开页面）；②仍不行就按判读分收敛到 10 条，`listed_company` 一律 `null`；③在 `coverage_notes` 写一句「联网核实未完成（原因）」再交付。**绝对不要因为查不到上市公司或外部热度就"暂不交付 JSON"** —— 那等于用一个可选的增强步骤否决整份清单。已实测过：`web_search` 正常返回 12 条来源，模型却因为 `web_fetch` 打开 amgen.com 失败，写下"搜索无可用返回"并结束回合、零交付。
 
@@ -256,15 +235,13 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
    "title": "…", "summary": "…", "why": "…",
    "promoted": "web",
    "listed_company": {"name": "Tango Therapeutics", "ticker": "TNGX", "exchange": "NASDAQ",
-                      "reaction": {"from_date": "2026-10-22", "to_date": "2026-10-23",
-                                   "prev_close": 147.24, "close": 145.27, "change_pct": -1.34,
-                                   "basis": "会议期首个交易日 vs 会议前最后收盘（非归因）",
-                                   "source_url": "https://push2his.eastmoney.com/…"},
                       "source_url": "https://investors.tangotx.com/"}}
 ]}
 ```
 
 `title` / `summary` / `why` / `score` / `listed_company` 五条必填（`listed_company` 可以是 `null`，但键必须在），缺一条脚本直接停（`score_parts` 没给就沿用判读阶段的值）。
+
+**模型必须在输出前对每桶按 `score` 降序排好**：`make_cards.py` 只按 `plan.json` 的顺序渲染，**不会替你排**（v0.8 的 e2e7 就跑出过 failed 桶 `[…,63,66]` 的升序尾巴，事实项 `A-P4-score-order` 判失败）。分桶内部一律降序，桶与桶之间的顺序没有意义（`early → pivotal → failed` 只是为了读者阅读）。
 
 `summary` 写**报告了什么**（带数字）；`why` 写**这项研究值什么**，2–4 句、**≥60 字**，按「未满足需求 → 这次数据的定位 → 对治疗格局或后续研发的影响 → 主要局限」铺开，**不要复述 `summary` 的数字**，也不要写"数据很好、值得关注"这种空话。判读分不写进 `why`。
 
@@ -275,23 +252,57 @@ python3 $S/make_cards.py --pool /workspace/work/pool_labeled.json \
     --plan /workspace/work/plan.json --out /workspace/output/watchlist.json --pretty \
     --rows /workspace/work/rows.json
 python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
-    --pool /workspace/work/pool_labeled.json --rows /workspace/work/rows.json \
-    --quotes-evidence /workspace/work/web/quotes.jsonl
+    --pool /workspace/work/pool_labeled.json --rows /workspace/work/rows.json
 ```
 
-`--rows` 只在有 `promoted` 卡片时才必需；给了它，池子外的 esid 必须带 `"promoted": "web"` 才放行。`--quotes-evidence` 在**任何卡片印了 `reaction` 时**都是必需项（不给就报「印了一个无法核实的涨跌幅」）；一张都没印时它可有可无。
+`--rows` 只在有 `promoted` 卡片时才必需；给了它，池子外的 esid 必须带 `"promoted": "web"` 才放行。
 
-`check_cards.py` **必须 exit 0** 才能交付。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字、**每桶超过 10 条 / 全场超过 30 条**、**`score` 不是 0–100 整数或五维相加不等于总分**、**`why` 少于 60 字或只是复述 `summary`**、**`listed_company` 键缺失或给了假 ticker/假链接**、**`reaction` 的涨跌幅与自己的 `prev_close→close` 不符或对不上 `work/web/quotes.jsonl`**、**池子外的卡片没有 `promoted` 标记**、**`coverage_notes` 缺失或没写到两条边界**。
+`check_cards.py` **必须 exit 0** 才能交付。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字、**每桶超过 10 条 / 全场超过 30 条**、**`score` 不是 0–100 整数或五维相加不等于总分**、**`why` 少于 60 字或只是复述 `summary`**、**`listed_company` 键缺失或给了假 ticker/假链接**、**任何行情字段回潮（`stock` / `reaction` / `change_pct` / `excess_pct`）**、**池子外的卡片没有 `promoted` 标记**、**`coverage_notes` 缺失或没写到两条边界**。
 
 `coverage_notes` 必须写在交付 JSON 的顶层（见下「两个必须写进清单的诚实声明」）。v0.5 的实跑把它写成了别的字段名、v0.6 的实跑把边界写在 `coverage.boundary` 里 ⇒ 事实层 `A-H1` 两次都判失败：**边界只写在聊天回复里，下个月读 JSON 的人看不到**。所以这一条从"建议"升级成闸门，措辞不查（`无 p 或 HR` / `未列p或HR` / `没给 p 值或 HR` 都算），只查事实有没有落到交付物里。
 
-「研发公司是否上市」用 `listed_company` 字段表达（见 Step 5B），不要塞进 `stock`：`stock` 是**当日行情快照**，`listed_company` 是**身份 + 可核实的披露反应**，两者混在一起会让"没查到涨跌"看起来像"没上市"。
+「研发公司是否上市」只用 `listed_company` 表达（见 Step 5B）：它回答"谁在做这个药"，不含任何价格。v0.8 时期把当日行情塞进 `stock` / `reaction`，结果是"没查到涨跌"被读成"没上市"、板块 beta 被读成对这条摘要的反应，两件事一起错，所以整层移除。
 
-股票涨跌是同一天的市场数据，结果库里没有。给了 `--quotes`（`{"<esid>": {"ticker": "…", "change_pct": 5.2, "date": "2026-10-19"}}`）就附在对应卡片上；没给就留 `null`，**绝不用其它日期的涨跌顶替**。
+### Step 7 — 写报告并交付
 
-### Step 7 — 交付
+交付物是 **`/workspace/output/report.md`**（`watchlist.json` 是它的数据底稿，一起留着）。报告是 Markdown + 顶部 frontmatter，宿主靠 `skills` 数组决定用哪个布局渲染：
 
-`present_artifact` 指向 `/workspace/output/watchlist.json`。这是唯一终端动作，不要改成把 JSON 贴进对话。
+```markdown
+---
+skills: [conference-result-triage]
+title: ESMO 2026 临床结果推荐阅读清单
+date: 2026-10-23
+lang: zh-CN
+---
+
+# ESMO 2026 …
+
+## 早期机会提示（10）
+- **<title>**（<drug> / <target> / <phase> / <presentation>）
+  报告了什么：<summary>
+  推荐理由：<why>
+
+## 重磅 II/III 期（10）
+…
+
+## 失败的研究（10）
+…
+
+## 覆盖与边界
+- <coverage_notes 逐条>
+```
+
+硬规则：
+
+- `skills` **必须是非空数组**，且只写**这一回合真的用过**的 skill。`conference-result-triage` 是必须项（它是产出这份清单的那个 skill）；没有实际调用的 skill 一个都不许写——宿主会拿它选主题，写错就是骗下游。
+- **不要用旧的业务字段 `type` 标识结果**（`type: 临床结果推荐` 这种）。宿主不再认它，写了也只是多一个不生效的键。
+- `date` 用 `YYYY-MM-DD`；`lang` 写实际语言（`zh-CN` / `en`）。
+- **引用机制可选，但声明了就必须对得上**：`citations: /workspace/output/citations.json` 里的键必须与正文的 `{{ref_N}}` **双向一一对应**（正文有 N 就必有 `ref_N` 条目，反之亦然），每个条目要有 `title` + http(s) `link`。平台内拿不到摘要原文链接，**没有任何可引用的外部来源时就不要写 `citations` 这一行，也不要在正文里留 `{{ref_…}}`** —— 编一个引用比不给引用糟得多。
+- 正文**只写内容**，标题/链接/日期这些元数据留在 `citations.json`，不要在正文里重复贴 URL 列表。
+- 一次请求只交**一套**最终产物（除用户明确要多语言版本）；不要在报告里同时放中英文两份清单。
+- `report.md` 和 `watchlist.json` 用 `write_file(overwrite=True)` 覆盖写。
+
+`present_artifact` 指向 `/workspace/output/report.md`。这是唯一终端动作，不要改成把 JSON 或 Markdown 全文贴进对话。
 
 ## Deliverable schema
 
@@ -311,9 +322,8 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
    "drug": "…", "target": "…", "indication": "…",
    "phase": "Phase III", "presentation": "Late-breaking Oral",
    "listed_company": {"name": "…", "ticker": "…", "exchange": "…",
-                      "reaction": "…", "source_url": "https://…"},
-   "promoted": "web",
-   "stock": null}
+                      "source_url": "https://…"},
+   "promoted": "web"}
 ]}
 ```
 
@@ -321,10 +331,10 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 - `esid` 是结果记录 id（用户要的"对应的结果id"）；`abstract_id` 是会议摘要号，平台内**恒为 `null`**（见 Step 3），有外网补库时才有值。
 - `score` / `score_parts` 是判读结论（Step 4 给的分），不是脚本算的；总分只用来决定阅读顺序，`why` 里不出现分数。
 - `why` 是**价值判断**（2–4 句、≥60 字），不是 `summary` 的改写：它要回答"这项研究为什么重要"，而 `summary` 回答"报告了什么"。
-- `listed_company` **每张卡都有这个键**：上市填 `{name, ticker, exchange, reaction?, source_url}`，未上市/查不到填 `null`。`null` 是"查过、没有"，不是"没查"。
+- `listed_company` **每张卡都有这个键**：上市填 `{name, ticker, exchange, source_url}`，未上市/查不到填 `null`。`null` 是"查过、没有"，不是"没查"。**该字段不含价格**——`stock` / `reaction` / `change_pct` 等键一旦出现，`check_cards.py` 直接判失败。
 - `promoted` 只在**联网终选把池子外的记录提进来**时出现，值是 `"web"`；这类卡片必须能对上 `work/rows.json` 的 esid。
 - `manual` 是生产方式标记（人工核对 / 流水线抽取），**不是**推荐等级。平台内**恒为 `null`**（`featured` 不可选），`check_cards.py` 会拒绝把它改成 `true`/`false`。
-- 路径固定为 `/workspace/output/watchlist.json`：后端硬编码读取，改名即断链。同一工作区复跑就覆盖。
+- 路径固定：交付物 `/workspace/output/report.md`，数据底稿 `/workspace/output/watchlist.json`（`check.py` 与宿主都按这两个路径取，改名即断链）。同一工作区复跑就覆盖。
 - `write_file` 一律带 `overwrite=True`，包括首次写入。
 
 ## 两个必须写进清单的诚实声明
@@ -370,6 +380,7 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 
 ## 版本
 
+- **v0.9** — **删掉整个行情层，并把交付物改成带 `skills` frontmatter 的 Markdown 报告**。①**行情移除**：`reaction` / `stock` / `excess` / `fetch_quotes.py` / `work/web/quotes.jsonl` / `check_cards.py --quotes-evidence` / 事实项 `A-F7` 全部删除。依据是重算而不是偏好：按每条摘要自己的披露日重算后 **24 条行情里 18 条落在所属板块基准的 ±0.6% 内**（那个数字是 beta），同一公司多张卡拿同一个数字（MRK 8 张卡都是 −3.83%）。`listed_company` 保留为纯身份字段 `{name, ticker, exchange, source_url}`；新增**防回潮闸门**（`check_cards.py` + 事实项 `A-N1-no-price-claims`，双 mutation）：任何卡片再出现 `stock`/`reaction`/`change_pct`/`excess_pct`/`bench_change_pct`/`price_source` 即判失败。②**对齐 chat 联动约定**（《产品经理使用 Skill 的通用约束》）：交付物从纯 JSON 改为 **`/workspace/output/report.md`**（YAML frontmatter：`skills` 非空数组且含 `conference-result-triage`、`title`、`date`、`lang`；有引用时加 `citations: /workspace/output/citations.json`），正文只写 `{{ref_N}}`，标题/链接/日期只进引文文件，**双向一一对应**；不再用业务字段 `type` 标识结果。`present_artifact` 指向 `report.md`。新增事实项 `A-C2-report-frontmatter`（双 mutation：用 `type` 顶替 `skills` / 正文 `{{ref_1}}` 无对应条目）+ NEG「声明引文且对得上仍绿」。**不带引用是合法的**（平台内拿不到摘要链接，编一个就是造假），闸门只查"声明了就必须对得上"。事实层 24 → **25 条 fail + 1 warn**，NEG 7 条不变。
 - **v0.8** — **`reaction` 从自由短句变成带口径的结构化对象**。起因是一条真实提问：「怎么只查到了股票代码，没有对应的事件日增长幅」。复盘 e2e6：108 次工具调用里 **29 次 `web_fetch` 全落在公司 IR 落地页**（`merck.com/investor-relations/stockholder-services/` 这类只有代码与股东服务的页），`web_search` 一次没调，28 张卡一个涨跌幅都没有。①**给出端点**：东财 kline `push2his.eastmoney.com/api/qt/stock/kline/get?secid=<mkt>.<code>&…` 返回纯 JSON（`klines:["2026-10-23,145.270"]`），`web_fetch` 直接可读，附 secid 前缀表（105/106/107/116 补零 5 位/155）与 `rc:100`/`rc:102` 语义；检索改查「`<ticker> 收盘 <日期> 涨跌幅`」（deepseek 源直接给券商页数字，bocha 源常给过期快照）。②**口径钉死**：涨跌幅 = **该市场早于会议首日的最后一个收盘 → 该市场 ∈ 会议窗口的第一个收盘**，`from_date/to_date/basis` 必须印进 JSON；**不许说成「因为这条摘要涨了 X%」**（e2e7 同一批 30 张卡里 MRK −1.34%、LLY −2.54%，板块整体在跌，这个对照本身就是信息）。③**基准日按市场各自取**：各市场休市日不同，统一成一个日历日就会算错；会议首日必须真的查过（ESMO 2026 = 10-23 至 10-27，Madrid）。④**不覆盖就留空**：SIX（Roche/Novartis）东财不覆盖，`reaction` 省略、不许拿 OTC ADR `RHHBY` 顶替 `ROG.SW`。⑤**可审计**：取数结果落 `work/web/quotes.jsonl`，`check_cards.py --quotes-evidence` 验「涨跌幅能否由两个收盘算出」+「能否逐条对上证据」，新增事实项 `A-F7-reaction-traceable`（fail，双 mutation：涨跌幅篡改 / 证据文件缺失）+ NEG「完全不印 reaction 仍绿」（增强项不否决清单）。⑥**本地预计算**：`scripts/fetch_quotes.py --meeting-start` 一次算完（沙箱无网，只能在 WSL 侧跑），`make_cards.py --quotes` 折进 `listed_company`。⑦顺手修掉一个真 bug：占位符扫描原来扫 `json.dumps(card)`，于是**任何把嵌套对象放最后一张卡都会因字面量 `}}` 被判泄漏**，改成只扫叶子字符串。事实层 23 → **24 条 fail + 1 warn**，NEG 6 → **7**。
 - **v0.7** — 三道改动，都是「清单自己长出来的问题」。①**两段收敛**：机器短名单仍是每桶 15 / 全场 45，但交付清单收成**每桶 10 / 全场 30**（无上限的清单不再是阅读清单），中间插一道**联网终选**（每桶 ≥6 次检索，证据落 `work/web/<bucket>.jsonl`）；允许把机器筛掉但外部热议的研究提上来，条件是它在 `rows.json` 里、且卡片标 `promoted: "web"`、`why` 说明为什么破格——开门，但能查账。②**`why` 从标签变判断**：≥60 字、2–4 句，按「未满足需求 → 这次数据的定位 → 对格局的影响 → 局限」铺开，**不许复写 `summary`**；原来那种「报告了主要终点读数」等于没写。③**新增 `listed_company`**：这类读数披露当天常常就是股价的重定价日，每张卡都要这个键，上市填 `{name,ticker,exchange,reaction?,source_url}`、未上市或查不到填 `null`（`null` 是「查过、没有」）。踩过的坑：平台的 `web_search`（部分模型显示成 `web.run`）有**双重开关** —— 项目能力 `web=true` **且** 回合带 `enable_web=true`，缺一个就静默不可用，模型会一路编；发现工具不在工具表里必须停下让用户开联网。事实层 19 → **23 条 fail 项 + 1 warn**（新增 `A-P5-why-depth` / `A-F5-listed-company` / `A-F6-promotion-traceable` / `A-W1-web-evidence`，各配 mutation + 5 条 NEG）。**首次端到端（`cards-e2e5`）零交付**：1097 行取数、592 条判读全过，但 `web_fetch` 打开一个 IR 页失败后模型把「检索查不到」当成中止条件，写"暂未交付最终 JSON"就结束回合。所以三处文档补上**联网层失败只降级、不中止**：换词换源再试 → 仍不行就按判读分收敛、`listed_company` 全 `null`、`coverage_notes` 写明「联网核实未完成」→ 照常交付；`A-W1` 同时开了这条唯一例外通道（声明可用即通过，但清单必须存在）。第二次端到端（`cards-e2e6`）交付成功：1097 行 → 592 条判读 → **pivotal 10 / failed 10 / early 8**，26 行检索证据（18 行带 URL），`listed_company` 26/28 填实，`facts 23/23 -> PASS`。
     同日 `A-W1` 又修了一次：原来要求"每条记录都有 URL"，把"检索执行了但没结果"这种如实记录的检索判成漏证（`cards-e2e6` 就因此先假红）；现改成"总行数 ≥6 且带 URL 的行 ≥6，无 URL 的行必须写 note"。

@@ -1,5 +1,29 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.9（2026-11-13）：删掉整个行情层，交付物改成带 `skills` frontmatter 的 Markdown 报告
+
+两条需求都来自用户，方向相反于 v0.8：**v0.8 花了一整版把涨跌幅做精确，v0.9 把它整块删掉。**
+
+**需求 1（用户）**：「查股价」这个功能跟会议结果压根没关系 → 移除。**需求 2（用户）**：后续 `ts` 系列 skill 不再各带系统提示词，统一挂「PharmCube AI Chat SP」，细节全部下沉到 SKILL.md；同时结果识别改用 `skills` 数组 + 独立 `citations.json`（依据《产品经理使用 Skill 的通用约束》）。
+
+**为什么是删而不是修口径**（这条要留档，否则下一版会重新长出来）：按每条摘要自己的披露日重锚、并扣掉所属市场板块基准后，**24 条行情里 18 条落在 ±0.6% 内**；同一公司的多张卡拿到**同一个**数字（MRK 8 张卡全是 −3.83%），因为涨跌属于公司那一刻，不属于任何一条读数。精确的 beta 仍是 beta，且越精确越容易被读成信号。
+
+| 面 | 内容 |
+|---|---|
+| 删除 | `scripts/fetch_quotes.py`（整文件）、`listed_company.reaction`、卡片 `stock`、`work/web/quotes.jsonl`、`check_cards.py --quotes-evidence` 与 `_check_reactions()`/`REACTION_FIELDS`/`REACTION_TOLERANCE`、事实项 `A-F7-reaction-traceable`、`build_review_page.py` 的行情 chip、SKILL/review-protocol 里的东财 kline 端点与 secid 前缀表 |
+| 保留 | `listed_company` = 纯身份 `{name, ticker, exchange, source_url}`；`ticker` 仍只写裸代码，`MARKET_SUFFIXES` 闸门不变 |
+| 防回潮 | `check_cards.py` 扫 `PRICE_KEYS`（`stock`/`reaction`/`change_pct`/`excess_pct`/`bench_change_pct`/`price_source`）→ 卡片与 `listed_company` 任一处出现即 FAIL；事实项 **`A-N1-no-price-claims`**（mutation：把 `reaction` 塞回一张卡；NEG：只写身份字段仍绿） |
+| 交付物 | `/workspace/output/report.md`（Markdown + YAML frontmatter `skills`/`title`/`date`/`lang`[/`citations`]），`watchlist.json` 降为数据底稿。`present_artifact` 指向 `report.md` |
+| 结果识别 | **`skills` 非空数组，只写这一回合真跑过的 skill**，取代旧的业务 `type`；`A-C2-report-frontmatter` 双 mutation（用 `type` 顶替 `skills` / 正文 `{{ref_1}}` 无条目）+ NEG「声明引文且双向对得上仍绿」 |
+| 引文 | 正文只写 `{{ref_N}}`，标题/链接/日期只在 `/workspace/output/citations.json`，双向一一对应；**没有可引用来源就不写 `citations`、不留 `{{ref_…}}`**（平台拿不到摘要链接，编一个更糟） |
+| 排序 | 每桶输出前按 `score` 降序（`A-P4-score-order` 的根因是模型漏排，不是评分规则错）；`make_cards.py` 只渲染不排序 |
+| 打包 | `pack-dist.py` `VERSION=v0.9`，并把 `scripts/make_watchlist.py` 列入 `EXCLUDE`（v0.1 的 md/csv 渲染器，不认识 cards/`listed_company`/`promoted`，留在仓库但不发布）→ **16 entries** |
+
+**验证**：`evals/test_check_cards.py` **20 case 全绿**（identity-only 通过 / `reaction` 回潮被拒 / `stock` 回潮被拒）·
+`mutations.py` **coverage 25/25 fail items + 7 NEG green** · `pack-dist.py` → `dist/conference-result-triage-v0.9.zip` **16 entries / 111674 B / sha256=dc88978b67b2d6c9**。
+
+**遗留（待用户拍板）**：项目 `prompt_id` 是否切到「PharmCube AI Chat SP」`d08570e93c17466ca6a0308f69afdb5d`（v1.1 仅 3268 chars，不含交付物规范——规范已全部搬进 SKILL.md，但切换是平台写动作，需授权）；不切则继续用本仓库 `system-prompts/` 的 v0.9 版本。
+
 ## v0.8（2026-11-12）：`reaction` 从短句变成带口径的行情对象
 
 **起因**：用户看完 v0.7 的复核页只问了一句「怎么只查到股票代码，没有对应的事件日涨幅」。
@@ -62,7 +86,7 @@ SIX（Roche）东财完全不覆盖（`rc:102` × 12 个候选前缀）、`make_
 `e2e6` 未出现 `promoted` 卡片：外部讨论没有改变入选集，模型把 CS2009 的外部更新写进 `coverage_notes`（"会议库只有初步小队列，未用外部数字补写卡片"）。
 NEG 从 4 条加到 **6 条**（新增「检索零结果但已注明」「联网不可用但已声明」）。
 
-**未做**：`featured` 白名单仍是 dev ticket；`stock` 数据源仍未接通；`make_watchlist.py` 尚未同步 `listed_company` / `promoted`，`plan.json` 的 `editorial_policy.max_cards_per_bucket` 仍是 15。
+**未做**：`featured` 白名单仍是 dev ticket（`manual` 恒 `null`）；`scripts/make_watchlist.py` 已从发布包 `EXCLUDE`（v0.1 遗留，不发布即不需同步）；`plan.json` 的 `editorial_policy.max_cards_per_bucket` 仍是 15（机器短名单上限，交付上限在 `check_cards.py` 里是 10，两者不再混用）。
 
 ## v0.6.1（2026-11-12）：原地重跑两次，facts 19/19 全绿
 

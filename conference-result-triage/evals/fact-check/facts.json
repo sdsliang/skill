@@ -112,9 +112,16 @@
     {
       "id": "A-T1-present-artifact",
       "op": "present_artifact",
-      "suffix": "output/watchlist.json",
+      "suffix": "output/report.md",
       "severity": "fail",
-      "rationale": "交付动作是 present_artifact 指向固定路径。口头说「已生成」不算交付。"
+      "rationale": "交付动作是 `present_artifact` 指向 `/workspace/output/report.md`（v0.9 起交付物是有 frontmatter 的 Markdown，宿主要靠 `skills` 数组选渲染主题）。口头说「已生成」不算交付。"
+    },
+    {
+      "id": "A-C2-report-frontmatter",
+      "op": "report_meta",
+      "skill": "conference-result-triage",
+      "severity": "fail",
+      "rationale": "结果要能被宿主识别成「这个 skill 的产物」：`report.md` 顶部必须有 frontmatter，`skills` 是非空数组且含 `conference-result-triage`，`title`/`date`(YYYY-MM-DD)/`lang` 齐全；声明了 `citations` 就必须写在 `/workspace/output` 下、并且正文 `{{ref_N}}` 与引文文件双向一一对应。**不使用引用机制是合法的**（平台内没有摘要链接，编一个就是造假），但一旦声明就得对得上；旧的业务字段 `type` 不能顶替 `skills`。"
     },
     {
       "id": "A-T2-no-json-paste",
@@ -170,10 +177,10 @@
       "min_urls": 6
     },
     {
-      "id": "A-F7-reaction-traceable",
-      "op": "reaction_traceable",
+      "id": "A-N1-no-price-claims",
+      "op": "no_price_claims",
       "severity": "fail",
-      "rationale": "`listed_company.reaction` 一旦印出来就是对外部世界的断言：涨跌幅必须与 `prev_close→close` 自洽，且能在 `work/web/quotes.jsonl` 里逐条对上（同 ticker + 同 to_date）。不给 reaction 是合法的（增强项，不能否决清单），但给了就必须可审计——否则清单读起来像「因为这条数据涨了 6.76%」，而实际上只是会议期首个交易日的相对前收盘变化。"
+      "rationale": "v0.9 把行情层整段删掉：会议当天个股涨跌主要是板块 beta（按每条摘要自己的 release 日重算后，24 条里 18 条落在基准 ±0.6% 内），而且同一公司多条摘要拿到同一个数字（MRK 8 张卡都是 −3.83%）。这条事实项是防回潮闸门：任何卡片（含 `listed_company`）再出现 `stock`/`reaction`/`change_pct`/`excess_pct` 等行情字段即判失败。"
     }
   ]
 }

@@ -108,7 +108,7 @@ p_value, outcome_p_value, hazard_ratio, hazard_ratio_ci, odd_ratio, relative_ris
 | `dist/ESMO2026-watchlist.csv` | 30 条定榜 |
 | `dist/ESMO2026-watchlist.md` | 三桶报告 |
 
-## 6.5 交付卡片的字段契约（v0.8）
+## 6.5 交付卡片的字段契约（v0.9）
 
 每张卡（`output/watchlist.json` → `cards[]`）：
 
@@ -118,13 +118,45 @@ p_value, outcome_p_value, hazard_ratio, hazard_ratio_ci, odd_ratio, relative_ris
 | `title` / `summary` | ✅ | `summary` 至少要有一个带单位的数字 |
 | `why` | ✅ | **判断**，≥60 字、2–4 句；不许复述 `summary`；不写分数 |
 | `score` / `score_parts` | ✅ | 模型判读；五维各不超上限且相加等于总分 |
-| `listed_company.ticker` | **只写代码本体**（`09966`），市场信息只在 `exchange`（`HKEX`）。`09966.HK` + `exchange=HKEX` 是同一事实印两遍，且让按「市场 + 裸代码」取行情的路径无法复用；`check_cards.py` 直接拒 `.HK/.SH/.SS/.SZ/.T/.L/.DE/.PA/.AS/.SW` 后缀 |
-| `listed_company` | ✅（可以是 `null`） | 上市：`{name, ticker, exchange, reaction?, source_url}`，`source_url` 必须 http(s)；未上市/查不到：`null`。**缺键 = 没查** |
-| `listed_company.reaction` | 可选 | 一旦印出就必须是对象 `{from_date, to_date, prev_close, close, change_pct, basis, source_url}`：`change_pct` 要由 `prev_close→close` 算出（容差 0.05pp），且能在 `work/web/quotes.jsonl` 里按 `ticker + to_date` 找到对应行。省略 = 没核实到，合法 |
+| `listed_company.ticker` | **只写代码本体**（`09966`），市场信息只在 `exchange`（`HKEX`）。`09966.HK` + `exchange=HKEX` 是同一事实印两遍，也让按「市场 + 裸代码」查询的路径无法复用；`check_cards.py` 直接拒 `.HK/.SH/.SS/.SZ/.T/.L/.DE/.PA/.AS/.SW` 后缀 |
+| `listed_company` | ✅（可以是 `null`） | 上市：`{name, ticker, exchange, source_url}`，`source_url` 必须 http(s)；未上市/查不到：`null`。**缺键 = 没查**。**纯身份字段**：v0.9 起不含任何价格（见下一行） |
+| 任何行情字段 | ❌ | `stock` / `reaction` / `change_pct` / `excess_pct` / `bench_change_pct` / `price_source` 在卡片或 `listed_company` 上出现即判失败（`A-N1-no-price-claims`） |
 | `promoted` | 仅破格入榜 | 固定 `"web"` |
 | `lba` / `manual` / `abstract_id` | ✅（值可为 null） | `manual`、`abstract_id` 在平台上恒 `null`，不猜 |
 
 上限：**每桶 10 / 全场 30**（机器短名单 15/45 是另一回事，`work/shortlist.json`）。
+
+### 6.5.1 行情为什么不在卡片里
+
+v0.8 曾要求每张卡带 `listed_company.reaction`（会议窗口涨跌幅，含 `prev_close`/`close`/`basis`）并逐条对账。v0.9 整层删除，依据是重算：
+
+- 按**每条摘要自己的披露日**重新锚定、并扣掉所属市场板块基准后，24 条行情里 **18 条落在 ±0.6% 内** —— 那个数字本来就是板块 beta，与这条摘要无关。
+- 同一公司的多张卡拿到**同一个**数字：MRK 的 8 张卡全是 −3.83%，因为涨跌属于公司那一刻，不属于任何一条读数。
+- 结果库里没有价格，价格也不是"该不该读这条摘要"的判断依据；把 beta 印成 reaction，读者会把它读成信号。
+
+`listed_company` 保留（身份信息：谁在做这个药、能不能对上交易所披露），字段固定为 `{name, ticker, exchange, source_url}`。防回潮由两道闸门守着：`check_cards.py` 的 `PRICE_KEYS` 扫描，与事实项 `A-N1-no-price-claims`（mutation：`reaction` 回潮；NEG：只写身份字段仍绿）。
+
+### 6.5.2 结果本身怎么被识别（`report.md`）
+
+交付物是 `/workspace/output/report.md`，`watchlist.json` 是它的数据底稿。报告顶部 frontmatter：
+
+```markdown
+---
+skills: [conference-result-triage]
+title: ESMO 2026 临床结果推荐阅读清单
+date: 2026-10-23
+lang: zh-CN
+citations: /workspace/output/citations.json   # 仅当确实有可引用来源
+---
+```
+
+- **`skills` 取代业务 `type`**：非空数组、只写这一回合真的用过的 skill（本 skill 必在其列）。宿主按它选渲染主题；未识别的 skill 由宿主报错或用通用布局，**不允许静默退回普通 Markdown**。为了命中主题而编一个没执行过的 skill 名，是把下游骗到底。
+- `title` / `date`（`YYYY-MM-DD`）/ `lang` 必填。
+- **引文与正文分离**：正文只写 `{{ref_N}}`，`title`/`link`/`date` 只在 `citations.json`；键集与正文标记**双向一一对应**，任一侧缺项即失败。路径必须以 `/workspace/output` 开头。
+- **没有可引用来源就不写 `citations`、也不留 `{{ref_…}}`**（平台内拿不到摘要原文链接，编一个引用比不给引用糟）。
+- 一次请求一套最终产物（除明确要求多语言）。
+
+审计落在事实项 `A-C2-report-frontmatter`（mutation：用 `type` 顶替 `skills` / 正文 `{{ref_1}}` 无对应条目；NEG：声明引文且双向对得上仍绿）。
 
 ## 7. 会议摘要库（`medicalMeeting`）—— **仅限本地/有外网，平台内不可用**
 

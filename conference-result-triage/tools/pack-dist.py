@@ -6,6 +6,9 @@ deployed zip against this output by member and by bytes.
 
 Contract
   - entries: SKILL.md + references/*.md + templates/*.md + scripts/*.py
+  - EXCLUDED: scripts/make_watchlist.py -- it renders the v0.1 markdown/csv pair and
+    knows nothing about cards, `listed_company` or `promoted`; shipping it invites a run
+    that silently produces a list in the wrong shape
   - arcname prefix ``conference-result-triage/`` (what the platform unpacks under
     /workspace/skills/, so every path in SKILL.md starts with that name)
   - fixed date_time stamp, 0644, deflate level 6
@@ -28,13 +31,16 @@ import zipfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "skill", "conference-result-triage")
-VERSION = "v0.8"
+VERSION = "v0.9"
 NAME = "conference-result-triage"
 OUT = os.path.join(REPO, "dist", f"{NAME}-{VERSION}.zip")
 PREFIX = NAME + "/"
 STAMP = (2026, 11, 11, 0, 0, 0)
 COMPRESS_LEVEL = 6
 FORBIDDEN = ("__pycache__", ".pyc", ".DS_Store", ".git")
+# Stale renderers stay in the repo for history but must not ship: the platform would
+# happily run them and hand back a watchlist without scores, cards or provenance.
+EXCLUDE = ("make_watchlist.py",)
 
 
 def collect() -> list[tuple[str, bytes]]:
@@ -47,7 +53,7 @@ def collect() -> list[tuple[str, bytes]]:
         if not os.path.isdir(d):
             raise SystemExit(f"missing directory: {d}")
         for fn in sorted(os.listdir(d)):
-            if fn.endswith(ext):
+            if fn.endswith(ext) and fn not in EXCLUDE:
                 rels.append(f"{sub}/{fn}")
     for rel in rels:
         path = os.path.join(SRC, rel)

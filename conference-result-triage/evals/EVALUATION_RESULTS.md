@@ -223,3 +223,27 @@ VOLGA / KRASCENDO-1 / CLARITY-Gastric01 三条都在榜上（pivotal 96 / 94 / �
 **结论**：v0.8 的 `reaction` 链路在真实回合里成立——模型自己 `web_fetch` 东财 JSON + `web_search` 券商页，
 25/30 张卡拿到带口径的窗口涨跌幅，数值与本地 kline 逐字对得上，且 `--quotes-evidence` 能逐行验账。
 闸门在这一轮抓到的是**排序倒挂**（真缺陷），不是行情造假。
+
+---
+
+## R8b — v0.9 拆除复验（2026-11-13，无新端到端，改以 e2e7 产物重放）
+
+v0.9 是**减法版本**，验证目标是"删干净了、且删掉的东西回不来"。本轮没有跑新的平台回合（行情层删除不影响取数、判读、收敛任一步），
+复验由三组本地闸门 + 一次产物重放组成。
+
+| 面 | 命令 | 结果 |
+|---|---|---|
+| 卡片闸门 | `python3 evals/test_check_cards.py` | **20 case 全绿**：identity-only `listed_company` 通过；`listed_company.reaction` 回潮 → `listed_company.reaction is a price field …`；卡片 `stock` 回潮 → `stock is a price field …`；`ticker="09966.HK"` 仍被 `MARKET_SUFFIXES` 拒 |
+| 事实层 | `python3 evals/fact-check/mutations.py` | **coverage 25/25 fail items have a mutation; 7 negative controls green**。新 `A-N1-no-price-claims` / `A-C2-report-frontmatter` 各有 mutation，NEG「声明引文且双向对得上」保持绿 |
+| 打包 | `python3 tools/pack-dist.py --check` | `OK 16 entries, sha256=dc88978b67b2d6c9`（`fetch_quotes.py` 与 `make_watchlist.py` 均不入包） |
+| 产物重放 | `build_review_page.py dist/review/esmo2026-watchlist-v09.json` | e2e7 原始产物剥掉 55 个价格键后重建复核页，**30 卡 10/10/10**，页面无任何涨跌幅 chip，身份 chip（`GSK · NYSE` / `600276.SH · SSE`）仍在 |
+
+**`cards-e2e7` 的 4 条 `verification.md` FAIL 定性**（上一轮遗留，现明确）：`report contains nonempty content` /
+`present_artifact is the final successful call for output/report.md` / `prose gate ran` / `no tool errors`
+—— 前三项是**仓库通用 profile 的预期不适用**（e2e7 在 v0.8 契约下交付 `watchlist.json`，那时还没有 `report.md`）；
+`no tool errors` 对应 `[unmatched-retry] pyd_ai_172e08d3336c4550a3` 一次平台侧重试，无工具报错回传。
+**v0.9 起这三项不再"预期不适用"**：交付物就是 `output/report.md`，下一次端到端必须让它们真绿。
+
+**留档**：`/tmp/e2e7-orig.json` 是 e2e7 的**原始未改**产物（含被闸门抓到的 failed 桶排序倒挂，以及 25 张卡的价格字段）；
+`dist/review/esmo2026-watchlist-v09.json/.html` 是它的**剥价格重建版**，用于说明"删掉行情后页面长什么样"。两者都不代表 v0.9 的端到端结果——
+v0.9 的端到端（E2E #8）尚未跑。

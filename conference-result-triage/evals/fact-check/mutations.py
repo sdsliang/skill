@@ -89,13 +89,8 @@ def build_fixture(root):
         # `listed_company` is mandatory on every card; one card carries a fully
         # sourced company so the shape check has something legal to accept.
         card["listed_company"] = (
+            # Identity only (v0.9): who is developing it, not what the stock did.
             {"name": "Tango Therapeutics", "ticker": "TNGX", "exchange": "NASDAQ",
-             # A window move, not an attribution: the `basis` string travels with the
-             # number so a reader cannot mistake it for "rose because of the abstract".
-             "reaction": {"from_date": "2026-10-16", "to_date": "2026-10-19",
-                          "prev_close": 22.04, "close": 23.53, "change_pct": 6.76,
-                          "basis": "meeting-window first session vs prior close (not attributed)",
-                          "source_url": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=105.TNGX"},
              "source_url": "https://investors.tangotx.com/"} if n == 0 else None)
         cards.append(card)
 
@@ -142,17 +137,23 @@ def build_fixture(root):
             for r in recs:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
-    # Quote evidence shares the web surface but records market calls, not searches.
-    with open(os.path.join(root, "artifacts", "work", "web", "quotes.jsonl"),
+    # v0.9: the delivered result is a Markdown report whose frontmatter names the
+    # skill that produced it -- no `type`, and no citations when nothing is citable.
+    report = (
+        "---\n"
+        "skills: [conference-result-triage]\n"
+        "title: ESMO 2026 临床结果推荐阅读清单\n"
+        "date: 2026-11-13\n"
+        "lang: zh-CN\n"
+        "---\n\n"
+        "# ESMO 2026\n\n" + "".join(f"- {c['title']}: {c['summary']}\n" for c in cards))
+    with open(os.path.join(root, "artifacts", "output", "report.md"),
               "w", encoding="utf-8") as f:
-        f.write(json.dumps({"ticker": "TNGX", "exchange": "NASDAQ", "secid": "105.TNGX",
-                            "from_date": "2026-10-16", "to_date": "2026-10-19",
-                            "prev_close": 22.04, "close": 23.53, "change_pct": 6.76,
-                            "url": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=105.TNGX"},
-                           ensure_ascii=False) + "\n")
+        f.write(report)
 
     with open(os.path.join(root, "artifacts.json"), "w", encoding="utf-8") as f:
-        json.dump([{"path": "/workspace/output/watchlist.json"},
+        json.dump([{"path": "/workspace/output/report.md"},
+                   {"path": "/workspace/output/watchlist.json"},
                    {"path": "/workspace/work/pool/pool.json"},
                    {"path": "/workspace/work/rows.json"}], f)
 
@@ -162,7 +163,7 @@ def build_fixture(root):
                       "args": {"esids": [f"id{i}" for i in range(150)], "meeting_tags": "ESMO 2026"},
                       "part_kind": "tool-call"})
     calls.append({"tool_name": "present_artifact",
-                  "args": {"path": "/workspace/output/watchlist.json"},
+                  "args": {"path": "/workspace/output/report.md"},
                   "part_kind": "tool-call"})
     hist = {"raw_model_messages": [{"parts": calls, "usage": {}}]}
     with open(os.path.join(root, "debug-history.json"), "w", encoding="utf-8") as f:
@@ -393,16 +394,31 @@ def m_web_no_urls(root):
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
 
-def m_reaction_skewed(root):
-    """A percentage that does not follow from its own two closes."""
+def m_price_returned(root):
+    """The regression v0.9 guards: a price move creeping back onto a card."""
     w = read(root, "artifacts/output/watchlist.json")
-    w["cards"][0]["listed_company"]["reaction"]["change_pct"] = 12.4
+    w["cards"][0]["listed_company"]["reaction"] = {"to_date": "2026-10-19",
+                                                   "change_pct": 6.76}
     write(root, "artifacts/output/watchlist.json", w)
 
 
-def m_reaction_untraced(root):
-    """A price move with nothing durable behind it: the file it should point at is gone."""
-    os.remove(os.path.join(root, "artifacts", "work", "web", "quotes.jsonl"))
+def m_no_skills(root):
+    """A result identified by the old business `type` instead of the skills array."""
+    p = os.path.join(root, "artifacts", "output", "report.md")
+    text = open(p, encoding="utf-8").read()
+    text = text.replace("skills: [conference-result-triage]", "type: 临床结果推荐")
+    with open(p, "w", encoding="utf-8") as f:
+        f.write(text)
+
+
+def m_citation_dangling(root):
+    """A `{{ref_1}}` in the body with no entry behind it -- the reader cannot follow it."""
+    p = os.path.join(root, "artifacts", "output", "report.md")
+    text = open(p, encoding="utf-8").read()
+    text = text.replace("lang: zh-CN", "lang: zh-CN\ncitations: /workspace/output/citations.json")
+    text += "\n见 {{ref_1}}。\n"
+    with open(p, "w", encoding="utf-8") as f:
+        f.write(text)
 
 
 def ngen_web_declared(root):
@@ -445,8 +461,9 @@ MUTATIONS = [
     ("A-F6-promotion-traceable", m_promoted_missing),
     ("A-W1-web-evidence", m_web_missing),
     ("A-W1-web-evidence", m_web_no_urls),
-    ("A-F7-reaction-traceable", m_reaction_skewed),
-    ("A-F7-reaction-traceable", m_reaction_untraced),
+    ("A-N1-no-price-claims", m_price_returned),
+    ("A-C2-report-frontmatter", m_no_skills),
+    ("A-C2-report-frontmatter", m_citation_dangling),
 ]
 
 # Legal variations that must stay green: the scorer should test facts, not formatting.
@@ -487,11 +504,17 @@ def ngen_web_empty_url_noted(root):
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
 
-def ngen_reaction_absent(root):
-    """Omitting the move entirely is legal -- it is an enhancement, not a requirement."""
-    w = read(root, "artifacts/output/watchlist.json")
-    w["cards"][0]["listed_company"].pop("reaction", None)
-    write(root, "artifacts/output/watchlist.json", w)
+def ngen_citations_legal(root):
+    """Declaring citations is legal when body markers and entries match one-to-one."""
+    p = os.path.join(root, "artifacts", "output", "report.md")
+    text = open(p, encoding="utf-8").read().replace(
+        "lang: zh-CN", "lang: zh-CN\ncitations: /workspace/output/citations.json")
+    text += "\n本场会议日程见 {{ref_1}}。\n"
+    with open(p, "w", encoding="utf-8") as f:
+        f.write(text)
+    write(root, "artifacts/output/citations.json",
+          {"ref_1": {"title": "ESMO 2026 Congress", "link": "https://www.esmo.org/meetings/esmo-congress-2026",
+                     "date": "2026-10-23"}})
 
 
 def ngen_heat_hit(root):
@@ -507,7 +530,7 @@ NEGATIVES = [("legal bucket reorder", ngen_legal_reorder),
              ("fully sourced HK company", ngen_listed_legal),
              ("web down but declared in coverage_notes", ngen_web_declared),
              ("search with no usable result, noted", ngen_web_empty_url_noted),
-             ("reaction omitted entirely", ngen_reaction_absent)]
+             ("citations declared and consistent", ngen_citations_legal)]
 
 
 def main() -> int:
