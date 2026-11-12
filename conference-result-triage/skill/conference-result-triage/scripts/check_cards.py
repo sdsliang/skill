@@ -59,6 +59,9 @@ TOTAL_CAP = 30
 # roughly two sentences -- enough for "unmet need -> what this readout changes".
 MIN_WHY_CHARS = 60
 LISTED_FIELDS = ("name", "ticker", "exchange", "source_url")
+# v0.8: `09966.HK` + `exchange=HKEX` prints one fact twice and cannot be fed back into
+# a quote lookup that keys on market + bare code, so the suffix is rejected outright.
+MARKET_SUFFIXES = (".HK", ".SH", ".SS", ".SZ", ".T", ".L", ".DE", ".PA", ".AS", ".SW")
 PROMOTE_REASONS = ("web",)
 REACTION_FIELDS = ("from_date", "to_date", "prev_close", "close", "change_pct",
                    "basis", "source_url")
@@ -412,6 +415,11 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
         ticker = str(company.get("ticker") or "")
         if ticker and not re.search(r"[0-9A-Za-z]", ticker):
             fails.append(f"{tag}: listed_company.ticker={ticker!r} has no alphanumerics")
+        hit = next((sfx for sfx in MARKET_SUFFIXES if ticker.upper().endswith(sfx)), None)
+        if hit:
+            fails.append(f"{tag}: listed_company.ticker={ticker!r} carries the market suffix "
+                         f"{hit} while exchange={company.get('exchange')!r} -- the ticker holds "
+                         f"the bare code, the exchange field holds the market")
     fails.extend(_check_reactions(cards, quote_evidence or [], evidence_given))
     return fails, notes
 

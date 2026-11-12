@@ -182,3 +182,44 @@ VOLGA / KRASCENDO-1 / CLARITY-Gastric01 三条都在榜上（pivotal 96 / 94 / �
 `prose gate … tell-scan.py` / `tool_results receipts archived` 仍为 FAIL：前三条是仓库通用 profile 期望
 `output/report.md`，本 skill 的交付物是 `output/watchlist.json`（同一 profile 在其它 skill 上是 PASS）；
 最后一条是 runner 把 `web_fetch` 抓回的 HTML 正文里形如路径的行判成"unsafe receipt path"，属 runner 侧误报。
+
+---
+
+## R8 — v0.8 端到端（2026-11-12，`cards-e2e7` 通过，闸门先抓到一处排序倒挂）
+
+`20261112-135332-cards-e2e7`，`DeepSeek Flash`，56 polls / 1159.6 s / 146 次工具调用，
+`web=ON`（`--web`），provider 已切 **deepseek**。
+
+| 维度 | 实测 |
+|---|---|
+| 交付 | `output/watchlist.json`，`count = 30`（**pivotal 10 / failed 10 / early 10**），`present_artifact` 为最后一次调用 |
+| 事实层 | **`facts 24/24 warn 1/1 -> PASS`**（首判 `23/24`，`A-P4-score-order` 红，见下） |
+| `reaction` | **25/30 张卡带结构化涨跌幅**（26 张有 `listed_company`），`work/web/quotes.jsonl` 13 行 |
+| 口径 | 全部 `2026-10-22 → 2026-10-23`，`basis` 写「会议首日(2026-10-23)收盘 vs 会议前最后收盘」，**未归因** |
+| 取数路径 | 东财 kline（`106.MRK` / `116.01093`）+ `web_search` 券商页（stockanalysis / ycharts / moomoo / 恒生 / FT）；两个来源交叉值一致 |
+| `promoted` | 0 条；外部讨论到的 MOIO（LBA10）、HARMONY-GI001 因 `rows.json` 里查无对应 esid，改写进 `coverage_notes`（正是 v0.7 定的语义） |
+| `why` | 全部 ≥60 字且不复写 `summary` |
+
+**会议首日先查过再算**：模型用 10-23 作窗口首日，与 ESMO 官方口径一致（2026-10-23 至 10-27，IFEMA Madrid，
+经 `POST /api/tools/web/debug` 检索 Elsevier / Dana-Farber 两处独立确认）。本地抽查三条行情与东财 kline 逐字相同：
+`106.MRK` 147.24 → 145.27（−1.34%）、`105.AMGN` 447.28 → 439.26（−1.79%）、`116.01093` 8.355 → 8.345（−0.12%）。
+
+**闸门抓到的真缺陷（非噪声）**：初判 `A-P4-score-order` 红——failed 桶分数序列 `…72, 71, 63, 66`，
+末两条倒挂（`IROCAS` 63 排在 `KEYNOTE-B49` 66 之前）。这是排序错误，不是编辑决定（`why` 里没有覆盖理由）。
+人工按判读分纠正为 `…71, 66, 63` 后复判 **24/24 绿**；原文件留档 `/tmp/e2e7-orig.json`，
+`transcript.md` 未改动。**注意这一条正是"定榜以判读分为主序"的可观测证据：闸门能抓倒挂，但抓不到"分数本身打偏"**。
+
+**同一轮内已修的两处**
+
+1. **`ticker` 与 `exchange` 语义重叠**：e2e7 出现 `ticker="09966.HK"` + `exchange="HKEX"`、`"600276.SH"` + `"SSE"`、
+   `"4568.T"` + `"TSE"`。信息没错，但同一事实印了两遍，且 `fetch_quotes.py` 的 `MARKETS` 只认 `HKEX/LSE/NASDAQ/NYSE/AMEX`，
+   这些带后缀的写法无法直接回灌预计算。已钉死：`data-contract §6.5` 写「`ticker` 只写代码本体，市场只在 `exchange`」，`check_cards.py` 新增 `MARKET_SUFFIXES` 直接拒后缀（`test_check_cards.py` 第 20 例），e2e7 的 7 张卡与 6 行证据同步纠正后复判仍 24/24。
+2. **`coverage_notes` 没有写行情口径与未覆盖交易所**：本轮 30 张卡里 5 张无 `reaction`（含 SIX 的 Roche/Novartis 与
+   两只无公开行情的标的），清单里没有任何一句说明。已在 SKILL.md Step 5B 与系统提示词补「省掉的要在 `coverage_notes` 里记一句哪几只没有行情、为什么」——`A-F7` 只能验"印了就自洽"，验不到"没印的为什么没印"，所以这条靠流程而不是闸门。
+
+**`verification.md` 的 4 条 FAIL 仍为仓库通用 profile 噪声**（期望 `output/report.md` / `tell-scan.py` / receipt 路径），
+与 R7 完全同源，本 skill 的交付物是 `output/watchlist.json`。
+
+**结论**：v0.8 的 `reaction` 链路在真实回合里成立——模型自己 `web_fetch` 东财 JSON + `web_search` 券商页，
+25/30 张卡拿到带口径的窗口涨跌幅，数值与本地 kline 逐字对得上，且 `--quotes-evidence` 能逐行验账。
+闸门在这一轮抓到的是**排序倒挂**（真缺陷），不是行情造假。

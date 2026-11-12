@@ -118,6 +118,7 @@ p_value, outcome_p_value, hazard_ratio, hazard_ratio_ci, odd_ratio, relative_ris
 | `title` / `summary` | ✅ | `summary` 至少要有一个带单位的数字 |
 | `why` | ✅ | **判断**，≥60 字、2–4 句；不许复述 `summary`；不写分数 |
 | `score` / `score_parts` | ✅ | 模型判读；五维各不超上限且相加等于总分 |
+| `listed_company.ticker` | **只写代码本体**（`09966`），市场信息只在 `exchange`（`HKEX`）。`09966.HK` + `exchange=HKEX` 是同一事实印两遍，且让按「市场 + 裸代码」取行情的路径无法复用；`check_cards.py` 直接拒 `.HK/.SH/.SS/.SZ/.T/.L/.DE/.PA/.AS/.SW` 后缀 |
 | `listed_company` | ✅（可以是 `null`） | 上市：`{name, ticker, exchange, reaction?, source_url}`，`source_url` 必须 http(s)；未上市/查不到：`null`。**缺键 = 没查** |
 | `listed_company.reaction` | 可选 | 一旦印出就必须是对象 `{from_date, to_date, prev_close, close, change_pct, basis, source_url}`：`change_pct` 要由 `prev_close→close` 算出（容差 0.05pp），且能在 `work/web/quotes.jsonl` 里按 `ticker + to_date` 找到对应行。省略 = 没核实到，合法 |
 | `promoted` | 仅破格入榜 | 固定 `"web"` |

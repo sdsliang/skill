@@ -221,8 +221,8 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
 `reaction` **不是**「披露当日 +4.1%」这种短句，而是一个带口径的结构化对象 —— 涨跌幅不是自然存在的量，**会议期间大盘同时在动**：
 
 ```json
-"reaction": {"from_date": "2026-10-16", "to_date": "2026-10-19",
-             "prev_close": 22.04, "close": 23.53, "change_pct": 6.76,
+"reaction": {"from_date": "2026-10-22", "to_date": "2026-10-23",
+             "prev_close": 147.24, "close": 145.27, "change_pct": -1.34,
              "basis": "会议期首个交易日 vs 会议前最后收盘（非归因）",
              "source_url": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=105.TNGX&…"}
 ```
@@ -231,14 +231,16 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
 
 1. **行情接口（首选，确定性最高）**：`web_fetch` 直接读东财 kline 的 JSON，无需 JS、无需登录：
    `https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=<mkt>.<code>&fields1=f1,f2&fields2=f51,f53&klt=101&fqt=1&beg=YYYYMMDD&end=YYYYMMDD`
-   返回 `{"rc":0,"data":{"klines":["2026-10-19,23.530",…]}}`（日期,收盘）。**secid 前缀**：NASDAQ `105` · NYSE `106` · AMEX `107` · HKEX `116`（代码补零到 5 位，`1093`→`01093`）· LSE `155`。`rc:100` = 该市场无此代码，`rc:102` = 市场不覆盖（**SIX/瑞士没有覆盖**，Roche/Novartis 这类只能留空）。
+   返回 `{"rc":0,"data":{"klines":["2026-10-23,145.270",…]}}`（日期,收盘）。**secid 前缀**：NASDAQ `105` · NYSE `106` · AMEX `107` · HKEX `116`（代码补零到 5 位，`1093`→`01093`）· LSE `155`。`rc:100` = 该市场无此代码，`rc:102` = 市场不覆盖（**SIX/瑞士没有覆盖**，Roche/Novartis 这类只能留空）。
 2. **检索取收盘**：`web_search` 查 `"<ticker> 收盘 <日期> 涨跌幅"`。deepseek 源会直接给出券商/财经页的「收盘价 + 涨跌幅」，把那条 URL 填进 `reaction.source_url`；先核 `change_pct` 与页面数字一致。
 
-**基准日按市场各自取**，不要统一用会议首日：港股 2026-10-19 因台风停市，`01093` 的 K 线从 10-16 直接跳到 10-20，硬套 10-19 会算错或直接抛错。取法固定为：**该市场早于会议首日的最后一个收盘 → 该市场 ∈ 会议窗口的第一个收盘**。
+**基准日按市场各自取**，不要统一成一个日历日：各交易所休市日不同（台风、黄金周、日本祝日都会让某一天的 K 线直接缺席），硬套某一天会算错或抛错。取法固定为：**该市场早于会议首日的最后一个收盘 → 该市场 ∈ 会议窗口的第一个收盘**。会议首日要真的查过（ESMO 2026 = **2026-10-23 至 10-27，IFEMA Madrid**），不要按"十月中下旬"猜。
 
-**印出去的每个涨跌幅都要能对上账**：把取数结果按行追加到 `work/web/quotes.jsonl`（`{"ticker","exchange","from_date","to_date","prev_close","close","change_pct","url"}`），交付时给 `check_cards.py --quotes-evidence work/web/quotes.jsonl`。脚本会验两件事：`change_pct` 是否真的由 `prev_close→close` 算出、以及能否在证据文件里逐条对上（同 ticker + 同 `to_date`）。**拿不到的交易所就省略 `reaction`**（或整张卡 `listed_company: null`），不许拿 OTC ADR 顶替本土上市股（`RHHBY` ≠ `ROG.SW`，流动性池不同，涨跌幅会骗人）。
+**`ticker` 只写代码本体，市场写 `exchange`**：`09966` + `HKEX`，不是 `09966.HK` + `HKEX`（`check_cards.py` 会拒这类后缀——同一事实印两遍，还让「市场 + 裸代码」的行情查询没法复用）。
 
-**本地预计算**（在 WSL 侧跑，平台沙箱无网所以这一步不能进回合）：`python3 scripts/fetch_quotes.py --cards output/watchlist.json --meeting-start 2026-10-17 --out work/quotes.json --evidence work/web/quotes.jsonl`，然后 `make_cards.py --quotes work/quotes.json` 会把 `reaction` 折进 `listed_company`。平台内回合请按上面第 1 条自己 `web_fetch` 同一端点，不要假设本地脚本跑过。
+**印出去的每个涨跌幅都要能对上账**：把取数结果按行追加到 `work/web/quotes.jsonl`（`{"ticker","exchange","from_date","to_date","prev_close","close","change_pct","url"}`），交付时给 `check_cards.py --quotes-evidence work/web/quotes.jsonl`。脚本会验两件事：`change_pct` 是否真的由 `prev_close→close` 算出、以及能否在证据文件里逐条对上（同 ticker + 同 `to_date`）。**拿不到的交易所就省略 `reaction`**（或整张卡 `listed_company: null`），不许拿 OTC ADR 顶替本土上市股；省掉的要在 `coverage_notes` 里记一句「哪几只没有行情、为什么」（SIX 不覆盖 / 未上市 / 取数失败），否则读者分不清「查过没有」与「没查」（`RHHBY` ≠ `ROG.SW`，流动性池不同，涨跌幅会骗人）。
+
+**本地预计算**（在 WSL 侧跑，平台沙箱无网所以这一步不能进回合）：`python3 scripts/fetch_quotes.py --cards output/watchlist.json --meeting-start 2026-10-23 --out work/quotes.json --evidence work/web/quotes.jsonl`，然后 `make_cards.py --quotes work/quotes.json` 会把 `reaction` 折进 `listed_company`。平台内回合请按上面第 1 条自己 `web_fetch` 同一端点，不要假设本地脚本跑过。
 
 **联网失败是降级条件，不是中止条件**（v0.7 实跑教训）：`web_search` 无返回、`web_fetch` 单个站点 403/超时、IR 页打不开 —— 都只影响这一层，**清单照出**。处理顺序是：①换查询词/换源再试（检索结果里的标题与 URL 本身就能填 `listed_company.source_url`，不必打开页面）；②仍不行就按判读分收敛到 10 条，`listed_company` 一律 `null`；③在 `coverage_notes` 写一句「联网核实未完成（原因）」再交付。**绝对不要因为查不到上市公司或外部热度就"暂不交付 JSON"** —— 那等于用一个可选的增强步骤否决整份清单。已实测过：`web_search` 正常返回 12 条来源，模型却因为 `web_fetch` 打开 amgen.com 失败，写下"搜索无可用返回"并结束回合、零交付。
 
@@ -254,8 +256,8 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
    "title": "…", "summary": "…", "why": "…",
    "promoted": "web",
    "listed_company": {"name": "Tango Therapeutics", "ticker": "TNGX", "exchange": "NASDAQ",
-                      "reaction": {"from_date": "2026-10-16", "to_date": "2026-10-19",
-                                   "prev_close": 22.04, "close": 23.53, "change_pct": 6.76,
+                      "reaction": {"from_date": "2026-10-22", "to_date": "2026-10-23",
+                                   "prev_close": 147.24, "close": 145.27, "change_pct": -1.34,
                                    "basis": "会议期首个交易日 vs 会议前最后收盘（非归因）",
                                    "source_url": "https://push2his.eastmoney.com/…"},
                       "source_url": "https://investors.tangotx.com/"}}
@@ -368,7 +370,7 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 
 ## 版本
 
-- **v0.8** — **`reaction` 从自由短句变成带口径的结构化对象**。起因是一条真实提问：「怎么只查到了股票代码，没有对应的事件日增长幅」。复盘 e2e6：108 次工具调用里 **29 次 `web_fetch` 全落在公司 IR 落地页**（`merck.com/investor-relations/stockholder-services/` 这类只有代码与股东服务的页），`web_search` 一次没调，28 张卡一个涨跌幅都没有。①**给出端点**：东财 kline `push2his.eastmoney.com/api/qt/stock/kline/get?secid=<mkt>.<code>&…` 返回纯 JSON（`klines:["2026-10-19,23.530"]`），`web_fetch` 直接可读，附 secid 前缀表（105/106/107/116 补零 5 位/155）与 `rc:100`/`rc:102` 语义；检索改查「`<ticker> 收盘 <日期> 涨跌幅`」（deepseek 源直接给券商页数字，bocha 源常给过期快照）。②**口径钉死**：涨跌幅 = **该市场早于会议首日的最后一个收盘 → 该市场 ∈ 会议窗口的第一个收盘**，`from_date/to_date/basis` 必须印进 JSON；**不许说成「因为这条摘要涨了 X%」**（同日 MRK −1.59% 说明板块整体在跌，这个对照本身就是信息）。③**基准日按市场各自取**：港股 2026-10-19 台风停市，K 线从 10-16 跳到 10-20，统一用 10-19 会算错。④**不覆盖就留空**：SIX（Roche/Novartis）东财不覆盖，`reaction` 省略、不许拿 OTC ADR `RHHBY` 顶替 `ROG.SW`。⑤**可审计**：取数结果落 `work/web/quotes.jsonl`，`check_cards.py --quotes-evidence` 验「涨跌幅能否由两个收盘算出」+「能否逐条对上证据」，新增事实项 `A-F7-reaction-traceable`（fail，双 mutation：涨跌幅篡改 / 证据文件缺失）+ NEG「完全不印 reaction 仍绿」（增强项不否决清单）。⑥**本地预计算**：`scripts/fetch_quotes.py --meeting-start` 一次算完（沙箱无网，只能在 WSL 侧跑），`make_cards.py --quotes` 折进 `listed_company`。⑦顺手修掉一个真 bug：占位符扫描原来扫 `json.dumps(card)`，于是**任何把嵌套对象放最后一张卡都会因字面量 `}}` 被判泄漏**，改成只扫叶子字符串。事实层 23 → **24 条 fail + 1 warn**，NEG 6 → **7**。
+- **v0.8** — **`reaction` 从自由短句变成带口径的结构化对象**。起因是一条真实提问：「怎么只查到了股票代码，没有对应的事件日增长幅」。复盘 e2e6：108 次工具调用里 **29 次 `web_fetch` 全落在公司 IR 落地页**（`merck.com/investor-relations/stockholder-services/` 这类只有代码与股东服务的页），`web_search` 一次没调，28 张卡一个涨跌幅都没有。①**给出端点**：东财 kline `push2his.eastmoney.com/api/qt/stock/kline/get?secid=<mkt>.<code>&…` 返回纯 JSON（`klines:["2026-10-23,145.270"]`），`web_fetch` 直接可读，附 secid 前缀表（105/106/107/116 补零 5 位/155）与 `rc:100`/`rc:102` 语义；检索改查「`<ticker> 收盘 <日期> 涨跌幅`」（deepseek 源直接给券商页数字，bocha 源常给过期快照）。②**口径钉死**：涨跌幅 = **该市场早于会议首日的最后一个收盘 → 该市场 ∈ 会议窗口的第一个收盘**，`from_date/to_date/basis` 必须印进 JSON；**不许说成「因为这条摘要涨了 X%」**（e2e7 同一批 30 张卡里 MRK −1.34%、LLY −2.54%，板块整体在跌，这个对照本身就是信息）。③**基准日按市场各自取**：各市场休市日不同，统一成一个日历日就会算错；会议首日必须真的查过（ESMO 2026 = 10-23 至 10-27，Madrid）。④**不覆盖就留空**：SIX（Roche/Novartis）东财不覆盖，`reaction` 省略、不许拿 OTC ADR `RHHBY` 顶替 `ROG.SW`。⑤**可审计**：取数结果落 `work/web/quotes.jsonl`，`check_cards.py --quotes-evidence` 验「涨跌幅能否由两个收盘算出」+「能否逐条对上证据」，新增事实项 `A-F7-reaction-traceable`（fail，双 mutation：涨跌幅篡改 / 证据文件缺失）+ NEG「完全不印 reaction 仍绿」（增强项不否决清单）。⑥**本地预计算**：`scripts/fetch_quotes.py --meeting-start` 一次算完（沙箱无网，只能在 WSL 侧跑），`make_cards.py --quotes` 折进 `listed_company`。⑦顺手修掉一个真 bug：占位符扫描原来扫 `json.dumps(card)`，于是**任何把嵌套对象放最后一张卡都会因字面量 `}}` 被判泄漏**，改成只扫叶子字符串。事实层 23 → **24 条 fail + 1 warn**，NEG 6 → **7**。
 - **v0.7** — 三道改动，都是「清单自己长出来的问题」。①**两段收敛**：机器短名单仍是每桶 15 / 全场 45，但交付清单收成**每桶 10 / 全场 30**（无上限的清单不再是阅读清单），中间插一道**联网终选**（每桶 ≥6 次检索，证据落 `work/web/<bucket>.jsonl`）；允许把机器筛掉但外部热议的研究提上来，条件是它在 `rows.json` 里、且卡片标 `promoted: "web"`、`why` 说明为什么破格——开门，但能查账。②**`why` 从标签变判断**：≥60 字、2–4 句，按「未满足需求 → 这次数据的定位 → 对格局的影响 → 局限」铺开，**不许复写 `summary`**；原来那种「报告了主要终点读数」等于没写。③**新增 `listed_company`**：这类读数披露当天常常就是股价的重定价日，每张卡都要这个键，上市填 `{name,ticker,exchange,reaction?,source_url}`、未上市或查不到填 `null`（`null` 是「查过、没有」）。踩过的坑：平台的 `web_search`（部分模型显示成 `web.run`）有**双重开关** —— 项目能力 `web=true` **且** 回合带 `enable_web=true`，缺一个就静默不可用，模型会一路编；发现工具不在工具表里必须停下让用户开联网。事实层 19 → **23 条 fail 项 + 1 warn**（新增 `A-P5-why-depth` / `A-F5-listed-company` / `A-F6-promotion-traceable` / `A-W1-web-evidence`，各配 mutation + 5 条 NEG）。**首次端到端（`cards-e2e5`）零交付**：1097 行取数、592 条判读全过，但 `web_fetch` 打开一个 IR 页失败后模型把「检索查不到」当成中止条件，写"暂未交付最终 JSON"就结束回合。所以三处文档补上**联网层失败只降级、不中止**：换词换源再试 → 仍不行就按判读分收敛、`listed_company` 全 `null`、`coverage_notes` 写明「联网核实未完成」→ 照常交付；`A-W1` 同时开了这条唯一例外通道（声明可用即通过，但清单必须存在）。第二次端到端（`cards-e2e6`）交付成功：1097 行 → 592 条判读 → **pivotal 10 / failed 10 / early 8**，26 行检索证据（18 行带 URL），`listed_company` 26/28 填实，`facts 23/23 -> PASS`。
     同日 `A-W1` 又修了一次：原来要求"每条记录都有 URL"，把"检索执行了但没结果"这种如实记录的检索判成漏证（`cards-e2e6` 就因此先假红）；现改成"总行数 ≥6 且带 URL 的行 ≥6，无 URL 的行必须写 note"。
 - **v0.1** — 首版，ESMO 2026 全量实跑（467 候选 → 30 条）。

@@ -15,7 +15,7 @@ SIX（Roche）东财完全不覆盖（`rc:102` × 12 个候选前缀）、`make_
 |---|---|
 | 端点 | SKILL.md / 系统提示词 / review-protocol 三处都写进东财 kline JSON：`push2his.eastmoney.com/api/qt/stock/kline/get?secid=<mkt>.<code>&fields1=f1,f2&fields2=f51,f53&klt=101&fqt=1&beg=&end=`，附 secid 前缀表（105/106/107/116 补零 5 位/155）与 `rc:100`/`rc:102` 语义 |
 | 口径 | 涨跌幅 = **该市场**早于会议首日的最后收盘 → **该市场** ∈ 会议窗口的第一个收盘；`from_date`/`to_date`/`basis` 必须印进 JSON，`basis` 写「非归因」。**不许写成"因为这条摘要涨了 X%"** |
-| 分市场基准 | 港股 2026-10-19 台风停市，`01093` K 线从 10-16 跳到 10-20，统一用会议首日会算错 |
+| 分市场基准 | 各市场休市日不同（台风/黄金周/祝日都会让某天的 K 线直接缺席），一个全局基准日会静默算错；会议首日必须查（ESMO 2026 = **10-23 至 10-27，IFEMA Madrid**） |
 | 不覆盖就留空 | SIX 省略 `reaction`；**禁止**用 OTC ADR `RHHBY` 近似 `ROG.SW` |
 | 数据形状 | `listed_company.reaction` = `{from_date,to_date,prev_close,close,change_pct,basis,source_url}`（7 键）；省略合法 |
 | 闸门 | `check_cards.py --quotes-evidence` 验「`change_pct` 能否由 `prev_close→close` 算出（0.05pp 容差）」+「能否在 `work/web/quotes.jsonl` 里按 `ticker + to_date` 对上」；不给证据文件却印了数字 → 直接 FAIL |

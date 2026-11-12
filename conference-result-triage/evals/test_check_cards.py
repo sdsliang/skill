@@ -252,6 +252,13 @@ if [f for f in fails if "reaction" in f]:
 else:
     print("  ok  no reaction is legal (enhancement, not a gate)")
 
+# 20. `09966.HK` + exchange=HKEX is the same fact twice and breaks quote lookup by bare
+# code -- the suffix belongs nowhere near the ticker
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(base[0], listed_company=dict(listed, ticker="09966.HK"))],
+                              "coverage_notes": NOTES}, by_esid)
+expect("ticker carries a market suffix", fails, "market suffix")
+
 if failures:
     print(f"\nFAIL ({len(failures)}):")
     for f in failures:
