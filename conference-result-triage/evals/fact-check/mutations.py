@@ -127,14 +127,11 @@ def build_fixture(root):
     # The web-curation step has to leave re-checkable evidence: one JSON line per
     # query, per bucket. Without it the step is unverifiable after the turn ends.
     for bucket in ("pivotal", "early", "failed"):
-        recs = [{"query": f"ESMO 2026 {bucket} trial results",
-                 "title": f"ESMO 2026 {bucket} round-up",
-                 "url": f"https://example.org/esmo-2026/{bucket}-1",
-                 "published_at": "2026-10-20", "note": "media coverage"},
-                {"query": f"ESMO 2026 {bucket} sponsor stock reaction",
-                 "title": f"{bucket} sponsor listed?",
-                 "url": f"https://example.org/esmo-2026/{bucket}-2",
-                 "published_at": "2026-10-21", "note": "listed-company check"}]
+        recs = [{"query": f"ESMO 2026 {bucket} trial results {n}",
+                 "title": f"ESMO 2026 {bucket} round-up {n}",
+                 "url": f"https://example.org/esmo-2026/{bucket}-{n}",
+                 "published_at": "2026-10-20", "note": "media coverage"}
+                for n in (1, 2, 3, 4)]
         with open(os.path.join(root, "artifacts", "work", "web", f"{bucket}.jsonl"),
                   "w", encoding="utf-8") as f:
             for r in recs:
@@ -367,6 +364,31 @@ def m_web_missing(root):
     shutil.rmtree(os.path.join(root, "artifacts", "work", "web"), ignore_errors=True)
 
 
+def m_web_no_urls(root):
+    """Recording searches without their sources is not evidence of searching."""
+    wdir = os.path.join(root, "artifacts", "work", "web")
+    for name in os.listdir(wdir):
+        if not name.endswith(".jsonl"):
+            continue
+        p = os.path.join(wdir, name)
+        rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
+        for r in rows:
+            r["url"] = ""
+        with open(p, "w", encoding="utf-8") as f:
+            for r in rows:
+                f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+
+def ngen_web_declared(root):
+    """A dead provider may degrade the deliverable -- but only by saying so in it."""
+    shutil.rmtree(os.path.join(root, "artifacts", "work", "web"), ignore_errors=True)
+    w = read(root, "artifacts/output/watchlist.json")
+    w.setdefault("coverage_notes", []).append(
+        "联网检索不可用（provider 无返回），本次未做外部热度校正与上市公司核实，"
+        "listed_company 一律留空。")
+    write(root, "artifacts/output/watchlist.json", w)
+
+
 MUTATIONS = [
     ("A-D1-full-coverage", m_coverage),
     ("A-D2-sliced-pulls", m_wide_pull),
@@ -391,6 +413,7 @@ MUTATIONS = [
     ("A-F5-listed-company", m_listed_missing),
     ("A-F6-promotion-traceable", m_promoted_missing),
     ("A-W1-web-evidence", m_web_missing),
+    ("A-W1-web-evidence", m_web_no_urls),
 ]
 
 # Legal variations that must stay green: the scorer should test facts, not formatting.
@@ -419,6 +442,18 @@ def ngen_listed_legal(root):
     write(root, "artifacts/output/watchlist.json", w)
 
 
+def ngen_web_empty_url_noted(root):
+    """A search that returned nothing usable still counts -- if it says so."""
+    wdir = os.path.join(root, "artifacts", "work", "web")
+    p = os.path.join(wdir, "pivotal.jsonl")
+    rows = [json.loads(l) for l in open(p, encoding="utf-8") if l.strip()]
+    rows[0]["url"] = ""
+    rows[0]["note"] = "检索已执行；无可用外部读数"
+    with open(p, "w", encoding="utf-8") as f:
+        for r in rows:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+
 def ngen_heat_hit(root):
     """Putting a heat trial on the list must satisfy the warn item, not break a fail one."""
     w = read(root, "artifacts/output/watchlist.json")
@@ -429,7 +464,9 @@ def ngen_heat_hit(root):
 NEGATIVES = [("legal bucket reorder", ngen_legal_reorder),
              ("heat trial titled", ngen_heat_hit),
              ("why at the length floor", ngen_why_varied),
-             ("fully sourced HK company", ngen_listed_legal)]
+             ("fully sourced HK company", ngen_listed_legal),
+             ("web down but declared in coverage_notes", ngen_web_declared),
+             ("search with no usable result, noted", ngen_web_empty_url_noted)]
 
 
 def main() -> int:
@@ -447,8 +484,9 @@ def main() -> int:
     print(f"baseline: PASS facts {sc.get('ok')}/{sc.get('total')}")
 
     covered, bad = set(), []
-    for item_id, mutate in MUTATIONS:
-        root = os.path.join(WORK, item_id)
+    for n, (item_id, mutate) in enumerate(MUTATIONS):
+        # Two mutations may target the same fact (one per branch); the dir has to differ.
+        root = os.path.join(WORK, f"{n:02d}-{item_id}")
         shutil.copytree(base_dir, root)
         mutate(root)
         code, sc, out = run_check(root)

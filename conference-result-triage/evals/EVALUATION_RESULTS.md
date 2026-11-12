@@ -138,3 +138,47 @@ VOLGA / KRASCENDO-1 / CLARITY-Gastric01 三条都在榜上（pivotal 96 / 94 / �
 
 **已知风险**：`A-W1` 会把「做了检索但忘记落盘」判成失败，从而挡住交付。这是有意的：宁可一次跑批失败重跑，
 也不要一份无法追溯来源的"热点"清单。
+
+---
+
+## R7 — v0.7 端到端（2026-11-12，`cards-e2e5` 失败 / `cards-e2e6` 通过）
+
+### e2e5：零交付（暴露的是文档缺陷，不是数据缺陷）
+
+`20261112-105154-cards-e2e5`，1097 行取数完成、592 条判读完成，然后 **`output/watchlist.json` 不存在**：
+`web_search` 实际返回了 12 条来源（medthority / oncodaily / urotoday / esmo.org），随后
+`web_fetch https://www.amgen.com/investors` 失败，模型写下"目前搜索无可用返回，公开网页抓取失败"并结束回合，
+理由写着"暂未交付最终 JSON 清单"。
+
+- 三层错误叠在一条链上：**一次 `web_fetch` 失败 = 检索整体不可用**、**可选增强 = 交付前置条件**、**放弃时连已有判读一起作废**。
+- 判定：**不是模型的锅**。SKILL.md 只写了"要联网核实"，没写"核实不了怎么办"，最保守的读法就是"不交付"。
+
+**处置**：SKILL.md Step 5B / 系统提示词 rule 9 / `review-protocol.md §7` 三处补「降级不中止」——
+换词换源再试 → 仍不行按判读分收敛、`listed_company` 全 `null`、`coverage_notes` 写「联网核实未完成（原因）」→ 照常交付。
+事实层 `A-W1` 同步开唯一例外通道（声明可用即通过，但清单必须存在）。
+
+### e2e6：通过
+
+`20261112-111250-cards-e2e6`，`GPT 6.1 Sol`，47 polls / 2932.6 s / 108 次工具调用
+（`web_fetch` 29 · `task` 25 · `execute` 22 · `write_file` 4 · `present_artifact` 1）。
+
+| 维度 | 实测 |
+|---|---|
+| 交付 | `output/watchlist.json`，`count = 28`（pivotal 10 / failed 10 / early 8），`present_artifact` 为最后一次调用 |
+| 事实层 | **`facts 23/23 -> PASS`**，warn `A-C1` 亦过 |
+| 联网证据 | `work/web/{early,failed,pivotal}.jsonl` 共 26 行，其中 18 行带真实 URL |
+| `listed_company` | 26/28 填实（TNGX/NASDAQ 等），2 条 `null`；`stock` 全 `null` 且已在 `coverage_notes` 声明 |
+| `why` | 132–160 字，全部为判断（未满足需求 → 定位 → 影响 → 局限），无 `summary` 复写 |
+| `promoted` | 0 条——本轮外部讨论未改变入选集，模型改在 `coverage_notes` 里说明"CS2009 外部更新未纳入" |
+| 分桶诚实性 | early 只给 8 条，明确写"不以扩样预告或跨试验汇总补齐数量" |
+
+**`A-W1` 同日第二次修**：原实现要求"每条检索记录都带 URL"，把「检索执行了但没结果」这种如实记录判成漏证
+（e2e6 的 26 行里 8 行 `url` 为空正是这种情况，导致先假红一次）。改为三条联合约束：
+总行数 ≥6、带 URL 的行 ≥6、无 URL 的行必须写 `note`；`m_web_no_urls` + NEG「零结果但已注明」各测一侧。
+
+### 仍为非事实层的 runner 噪声（与本 skill 无关）
+
+`verification.md` 里 `report contains nonempty content` / `present_artifact … output/report.md` /
+`prose gate … tell-scan.py` / `tool_results receipts archived` 仍为 FAIL：前三条是仓库通用 profile 期望
+`output/report.md`，本 skill 的交付物是 `output/watchlist.json`（同一 profile 在其它 skill 上是 PASS）；
+最后一条是 runner 把 `web_fetch` 抓回的 HTML 正文里形如路径的行判成"unsafe receipt path"，属 runner 侧误报。

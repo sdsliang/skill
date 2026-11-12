@@ -379,17 +379,38 @@ def op_promotion_traceable(sv, spec):
 
 
 def op_web_evidence(sv, spec):
-    """The web step must leave re-checkable evidence, not just a claim in the reply."""
+    """The web step must leave re-checkable evidence, not just a claim in the reply.
+
+    A dead provider is not a licence to ship silently, but it is also not a reason to
+    ship nothing: the degrade path is to say so in `coverage_notes` and keep the list.
+    Which is why the declared-unavailable branch exists -- otherwise a 403 on one
+    investor-relations page turns into "no deliverable at all" (observed in cards-e2e5).
+    """
     files = sv.get("web_evidence") or {}
     if not files:
+        notes = " ".join(str(n) for n in ((sv["watchlist"] or {}).get("coverage_notes") or []))
+        if re.search(spec.get("unavailable_pattern", r"联网"), notes) and \
+                re.search(spec.get("unavailable_why", r"不可用|失败|未完成|未启用|无返回|超时"), notes):
+            return True, "web step declared unavailable in coverage_notes"
         return False, "no work/web/*.jsonl -- the web curation step left no trace"
     lines = sum(len(v) for v in files.values())
     if lines < spec.get("min_lines", 6):
         return False, f"only {lines} search record(s) across {len(files)} file(s)"
-    bad = [f"{k}:{i}" for k, v in files.items() for i, r in enumerate(v, 1)
-           if not str(r.get("url") or "").startswith("http")]
-    return not bad, (f"{len(files)} file(s)/{lines} record(s), {len(bad)} without url"
-                     if not bad else f"{len(bad)} record(s) without a URL")
+    # A search that returned nothing usable has no URL -- that is an honest record, not
+    # a fabricated one. What it may not be is silent: a URL-less row must say why, and
+    # the evidence as a whole still has to carry real sources (min_urls).
+    rows = [(k, i, r) for k, v in files.items() for i, r in enumerate(v, 1)]
+    url_rows = [x for x in rows if str(x[2].get("url") or "").startswith("http")]
+    silent = [f"{k}:{i}" for k, i, r in rows
+              if not str(r.get("url") or "").startswith("http")
+              and not str(r.get("note") or "").strip()]
+    if silent:
+        return False, f"{len(silent)} record(s) with neither URL nor note"
+    min_urls = spec.get("min_urls", 6)
+    if len(url_rows) < min_urls:
+        return False, (f"{len(url_rows)} record(s) with a URL < min_urls={min_urls} "
+                       f"({lines} record(s) total)")
+    return True, (f"{len(files)} file(s)/{lines} record(s), {len(url_rows)} with a URL")
 
 
 def op_count_matches(sv, spec):

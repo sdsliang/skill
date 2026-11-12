@@ -21,7 +21,17 @@
 （合法的桶间重排、热点标题、`why` 踩 60 字下限、带交易所来源的港股公司）。`EVALUATOR_REVISION = 2026-11-12-r2`。
 基线 `facts 23/23`，`mutations.py` 输出 `coverage: 23/23 fail items have a mutation; 4 negative controls green`。
 
-**未做**：E2E #5（v0.7 未发布，尚未实跑）；`featured` 白名单仍是 dev ticket；`stock` 数据源仍未接通。
+**端到端（2026-11-12）**：v0.7 原地发布（prompt v1.0 in-place / skill v0.3.0 in-place，`STATUS: in sync`）后跑了两轮。
+
+| 轮次 | 结果 | 暴露的缺陷 |
+|---|---|---|
+| `cards-e2e5` `20261112-105154` | **零交付**（1097 行取数 + 592 条判读都完成，`output/watchlist.json` 不存在） | `web_fetch` 打开 amgen.com 失败后，模型把「一个 IR 页打不开」读成「检索整体不可用」，写下"暂未交付最终 JSON"并结束回合。**文档只写了"要联网核实"，没写"核实不了怎么办"** → 三处补「降级不中止」条款 |
+| `cards-e2e6` `20261112-111250` | **`facts 23/23 -> PASS`**；28 卡（10/10/8）；`work/web/*.jsonl` 26 行 / 18 行带 URL；`listed_company` 26/28；`why` 132–160 字 | `A-W1` 原要求「每条检索记录都带 URL」，把「查了但没结果」的如实记录判成漏证（先假红一次）→ 改为「总行数 ≥6 ∧ 带 URL 行 ≥6 ∧ 无 URL 行必须写 note」，并补 `m_web_no_urls` mutation + NEG「零结果但已注明」 |
+
+`e2e6` 未出现 `promoted` 卡片：外部讨论没有改变入选集，模型把 CS2009 的外部更新写进 `coverage_notes`（"会议库只有初步小队列，未用外部数字补写卡片"）。
+NEG 从 4 条加到 **6 条**（新增「检索零结果但已注明」「联网不可用但已声明」）。
+
+**未做**：`featured` 白名单仍是 dev ticket；`stock` 数据源仍未接通；`make_watchlist.py` 尚未同步 `listed_company` / `promoted`，`plan.json` 的 `editorial_policy.max_cards_per_bucket` 仍是 15。
 
 ## v0.6.1（2026-11-12）：原地重跑两次，facts 19/19 全绿
 

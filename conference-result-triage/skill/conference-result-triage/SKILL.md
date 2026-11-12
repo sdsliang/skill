@@ -212,11 +212,13 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
 | 未被收录的热点 | `"<会议> late-breaking abstract <适应症> most anticipated"` |
 | 上市公司 | `"<公司名> listed ticker exchange"`（再用 `web_fetch` 打开交易所/公司 IR 页确认） |
 
-**证据要落盘**：每次检索追加一行到 `work/web/<bucket>.jsonl`（`{"query","title","url","published_at","note"}`）。回合结束 `/workspace/tool_results/` 会清空，只有这个文件留下来能复核。
+**证据要落盘**：每次检索追加一行到 `work/web/<bucket>.jsonl`（`{"query","title","url","published_at","note"}`）。回合结束 `/workspace/tool_results/` 会清空，只有这个文件留下来能复核。**检索跑了但一条能用的来源都没有**时，也要写一行、`url` 留空、在 `note` 里写清"无可用返回"——空 `note` 的裸记录会被判为凑数；整份证据里**至少 6 行要带真实 http URL**。
 
 **允许 `promote`（外部热议但初选漏了）**：前提是它在 `work/rows.json` 里 —— 卡片上的数字必须有原文出处。写卡时标 `"promoted": "web"`，并在 `why` 里点明外部讨论的是什么（例：多项报道把该读数列为该适应症本届最受关注的口头报告）。**`rows.json` 里根本没有的研究一律不进卡**，只在 `coverage_notes` 里写一句"外部讨论了 X，但会议库无对应记录，未纳入"。`check_cards.py --rows` 会按 `rows.json` 校验这类卡片；没有 `promoted` 标记却在池子外的 esid 直接拒绝。
 
 **查上市公司**：每张卡都要落 `listed_company` 字段。上市 ⇒ 对象 `{name, ticker, exchange, reaction, source_url}`，`source_url` 必须是你真的打开过的页面；未上市或查不到 ⇒ `null`（**不要猜、不要用同名母公司顶替**）。为什么要这个字段：这类读数披露当天常常就是股价的重定价日，`reaction` 写"披露当日 +4.1%"这种可核实的短句，没有核实到就省略该键。
+
+**联网失败是降级条件，不是中止条件**（v0.7 实跑教训）：`web_search` 无返回、`web_fetch` 单个站点 403/超时、IR 页打不开 —— 都只影响这一层，**清单照出**。处理顺序是：①换查询词/换源再试（检索结果里的标题与 URL 本身就能填 `listed_company.source_url`，不必打开页面）；②仍不行就按判读分收敛到 10 条，`listed_company` 一律 `null`；③在 `coverage_notes` 写一句「联网核实未完成（原因）」再交付。**绝对不要因为查不到上市公司或外部热度就"暂不交付 JSON"** —— 那等于用一个可选的增强步骤否决整份清单。已实测过：`web_search` 正常返回 12 条来源，模型却因为 `web_fetch` 打开 amgen.com 失败，写下"搜索无可用返回"并结束回合、零交付。
 
 **终选原则**：每桶 ≤10 条。分数仍是内部定榜的主要依据，但**外部信号可以覆盖它**，覆盖了要在 `why` 里写清（"外部讨论集中在 X，而初选按分数把它排在 12 位"）。同机制仍最多 2 条。宁可 8 条也不要用 `weak` 补到 10。
 
@@ -339,7 +341,8 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 
 ## 版本
 
-- **v0.7** — 三道改动，都是「清单自己长出来的问题」。①**两段收敛**：机器短名单仍是每桶 15 / 全场 45，但交付清单收成**每桶 10 / 全场 30**（无上限的清单不再是阅读清单），中间插一道**联网终选**（每桶 ≥6 次检索，证据落 `work/web/<bucket>.jsonl`）；允许把机器筛掉但外部热议的研究提上来，条件是它在 `rows.json` 里、且卡片标 `promoted: "web"`、`why` 说明为什么破格——开门，但能查账。②**`why` 从标签变判断**：≥60 字、2–4 句，按「未满足需求 → 这次数据的定位 → 对格局的影响 → 局限」铺开，**不许复写 `summary`**；原来那种「报告了主要终点读数」等于没写。③**新增 `listed_company`**：这类读数披露当天常常就是股价的重定价日，每张卡都要这个键，上市填 `{name,ticker,exchange,reaction?,source_url}`、未上市或查不到填 `null`（`null` 是「查过、没有」）。踩过的坑：平台的 `web_search`（部分模型显示成 `web.run`）有**双重开关** —— 项目能力 `web=true` **且** 回合带 `enable_web=true`，缺一个就静默不可用，模型会一路编；发现工具不在工具表里必须停下让用户开联网。事实层 19 → **23 条 fail 项 + 1 warn**（新增 `A-P5-why-depth` / `A-F5-listed-company` / `A-F6-promotion-traceable` / `A-W1-web-evidence`，各配 mutation + 4 条 NEG）。
+- **v0.7** — 三道改动，都是「清单自己长出来的问题」。①**两段收敛**：机器短名单仍是每桶 15 / 全场 45，但交付清单收成**每桶 10 / 全场 30**（无上限的清单不再是阅读清单），中间插一道**联网终选**（每桶 ≥6 次检索，证据落 `work/web/<bucket>.jsonl`）；允许把机器筛掉但外部热议的研究提上来，条件是它在 `rows.json` 里、且卡片标 `promoted: "web"`、`why` 说明为什么破格——开门，但能查账。②**`why` 从标签变判断**：≥60 字、2–4 句，按「未满足需求 → 这次数据的定位 → 对格局的影响 → 局限」铺开，**不许复写 `summary`**；原来那种「报告了主要终点读数」等于没写。③**新增 `listed_company`**：这类读数披露当天常常就是股价的重定价日，每张卡都要这个键，上市填 `{name,ticker,exchange,reaction?,source_url}`、未上市或查不到填 `null`（`null` 是「查过、没有」）。踩过的坑：平台的 `web_search`（部分模型显示成 `web.run`）有**双重开关** —— 项目能力 `web=true` **且** 回合带 `enable_web=true`，缺一个就静默不可用，模型会一路编；发现工具不在工具表里必须停下让用户开联网。事实层 19 → **23 条 fail 项 + 1 warn**（新增 `A-P5-why-depth` / `A-F5-listed-company` / `A-F6-promotion-traceable` / `A-W1-web-evidence`，各配 mutation + 5 条 NEG）。**首次端到端（`cards-e2e5`）零交付**：1097 行取数、592 条判读全过，但 `web_fetch` 打开一个 IR 页失败后模型把「检索查不到」当成中止条件，写"暂未交付最终 JSON"就结束回合。所以三处文档补上**联网层失败只降级、不中止**：换词换源再试 → 仍不行就按判读分收敛、`listed_company` 全 `null`、`coverage_notes` 写明「联网核实未完成」→ 照常交付；`A-W1` 同时开了这条唯一例外通道（声明可用即通过，但清单必须存在）。第二次端到端（`cards-e2e6`）交付成功：1097 行 → 592 条判读 → **pivotal 10 / failed 10 / early 8**，26 行检索证据（18 行带 URL），`listed_company` 26/28 填实，`facts 23/23 -> PASS`。
+    同日 `A-W1` 又修了一次：原来要求"每条记录都有 URL"，把"检索执行了但没结果"这种如实记录的检索判成漏证（`cards-e2e6` 就因此先假红）；现改成"总行数 ≥6 且带 URL 的行 ≥6，无 URL 的行必须写 note"。
 - **v0.1** — 首版，ESMO 2026 全量实跑（467 候选 → 30 条）。
 - **v0.2** — Results 不截断 + 会议摘要库并列数据源 + 报告形式加权 + 人群难度分档；候选 532，evidence 逐字 100%，专家 7 条 keep 3/7 → 5/7。
 - **v0.3** — 改为平台内执行：取数唯一走 MCP（`pull_results.py` 两阶段切片），补 `clinical_result.lba`（v0.2 漏选导致整类 LBA 丢失），`PRESENTATION_RANK` 修正（Presidential/LBA 不再被压到普通口头之下），会议库标题 join 补回 LBA 编号（57/57），交付物改为 `/workspace/output/watchlist.json` 卡片清单。候选 551（early 200 / pivotal 292 / failed 59）。

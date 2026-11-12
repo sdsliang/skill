@@ -164,7 +164,10 @@
    "op": "web_evidence",
    "min_lines": 6,
    "severity": "fail",
-   "rationale": "联网终选是本版新增的判断来源，它的证据必须能独立存在：`work/web/<bucket>.jsonl` 一行一次检索（query/title/url）。回合结束 tool_results 就被清空，回复里说「查过」不算证据。"
+   "rationale": "联网终选的全部产出是「检索到了什么」。平台 /workspace/tool_results/ 回合结束即清空，回复里写「查过」无法复核，所以证据必须是 work/web/<bucket>.jsonl（一行一次检索）。例外只有一条：检索能力本身不可用 —— 那时必须在清单的 coverage_notes 里写明，而不是中止交付。cards-e2e5 里模型因为 web_fetch 单站失败就说「暂不交付」，把「证据缺失」升级成了「产物缺失」；这条闸门同时防这两件事。",
+   "unavailable_pattern": "联网|检索",
+   "unavailable_why": "不可用|失败|未完成|未启用|无返回|超时|不可达",
+   "min_urls": 6
   }
  ]
 }
