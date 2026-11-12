@@ -32,14 +32,15 @@ def entry(idx, c):
         chips.append(f'<span class="chip solid">{esc(c["tag"])}</span>')
     if c.get("phase"):
         chips.append(f'<span class="chip">{esc(c["phase"])}</span>')
-    if c.get("presentation") and c["presentation"] != "Unknown":
+    # "LBA" and "Late-breaking Oral" are the same fact in two fields — print it once
+    if c.get("presentation") and c["presentation"] != "Unknown" and not c.get("tag"):
         chips.append(f'<span class="chip">{esc(c["presentation"])}</span>')
     who = " · ".join(x for x in [c.get("drug"), c.get("target"), c.get("indication")] if x)
     if who:
         chips.append(f'<span class="chip who">{esc(who)}</span>')
-    if c.get("data_type"):
+    # "未判定" is the honest default, not information — it stays in the JSON only
+    if c.get("data_type") and c["data_type"] != "未判定":
         chips.append(f'<span class="chip ghost">{esc(c["data_type"])}</span>')
-    nums = "".join(f'<span class="num">{esc(x)}</span>' for x in (c.get("key_numbers") or []))
     return f"""
     <article class="item">
       <div class="idx"><div class="sc">{c['score']}</div><div class="no">#{idx:02d}</div></div>
@@ -48,7 +49,6 @@ def entry(idx, c):
         <div class="chips">{''.join(chips)}</div>
         <p class="sum">{esc(c['summary'])}</p>
         <p class="why">{esc(c['why'])}</p>
-        <div class="nums">{nums}</div>
         <div class="ev">{esc(c.get('evidence') or '')}</div>
       </div>
     </article>"""
@@ -107,8 +107,6 @@ HTML = f"""<!doctype html>
   .sum{{font-size:13px;line-height:1.7;color:var(--ink);max-width:900px}}
   .why{{font-size:12.5px;line-height:1.7;color:var(--l2);margin-top:7px;max-width:900px}}
   .why:before{{content:'为什么在榜上 · ';font-weight:700;color:var(--muted);letter-spacing:.02em}}
-  .nums{{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}}
-  .num{{font-size:10.5px;font-weight:700;padding:3px 8px;border-radius:6px;background:#E7E6E0}}
   .ev{{font-size:10.5px;line-height:1.6;color:var(--muted);margin-top:10px;max-width:900px;
     border-left:2px solid var(--grid);padding-left:10px}}
 </style>
