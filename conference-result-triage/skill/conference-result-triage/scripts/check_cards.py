@@ -36,11 +36,17 @@ Checks
      promoted by the web-curation step (``promoted == "web"``); it is then verified
      against ``work/rows.json`` instead, since promotion exists precisely to reach
      records the mechanical screen cut
+ 15. ``listed_company.reaction``, when present, is internally consistent
+     (``change_pct`` really is the move from ``prev_close`` to ``close``, both dates
+     real and ordered) **and** traceable: a matching line in ``work/web/quotes.jsonl``
+     carrying an http source. A printed percentage is a factual claim about the outside
+     world, so it needs the same evidence surface as any other number here
 """
 
 from __future__ import annotations
 
 from collections import Counter
+from datetime import date
 
 # The rubric from references/review-protocol.md §2.5. These are *ceilings*, not
 # weights: the reviewer decides how much of each to award, and the only thing
@@ -54,6 +60,11 @@ TOTAL_CAP = 30
 MIN_WHY_CHARS = 60
 LISTED_FIELDS = ("name", "ticker", "exchange", "source_url")
 PROMOTE_REASONS = ("web",)
+REACTION_FIELDS = ("from_date", "to_date", "prev_close", "close", "change_pct",
+                   "basis", "source_url")
+# Rounding, not analysis: two independent sources for the same close disagree in the
+# last decimals all the time. 0.05 pp is below any reaction worth writing down.
+REACTION_TOLERANCE = 0.05
 BUCKETS = ("early", "pivotal", "failed")
 SCORE_CAPS = {"evidence_strength": 30, "effect_size": 25, "clinical_impact": 25,
               "novelty": 10, "readout_maturity": 10}
@@ -93,6 +104,21 @@ PLACEHOLDERS = ("TODO", "TBD", "XXX", "FIXME", "None", "nan", "{{", "}}", "占�
 # good card -- a false positive here is worse than a missed one, because the gate
 # is fail-closed and stops the whole run.
 _WORD_PLACEHOLDERS = {ph for ph in PLACEHOLDERS if ph.replace("_", "").isalnum()}
+
+
+def leaf_text(value: Any) -> str:
+    """All scalar strings inside a card, never the JSON punctuation around them.
+
+    Scanning ``json.dumps(card)`` for ``}}`` flags every card whose last key is a
+    nested object -- i.e. the well-formed case. Placeholders live in leaves.
+    """
+    if isinstance(value, dict):
+        return "\n".join(leaf_text(v) for v in value.values())
+    if isinstance(value, (list, tuple)):
+        return "\n".join(leaf_text(v) for v in value)
+    if value is None or isinstance(value, bool):
+        return ""
+    return str(value)
 
 
 def placeholder_hits(text: str) -> List[str]:
@@ -150,8 +176,96 @@ def record_text(item: Dict[str, Any]) -> str:
     return " ".join(flat)
 
 
+def load_quote_evidence(path: Optional[str]) -> List[Dict[str, Any]]:
+    """Rows of ``work/web/quotes.jsonl``; a missing file is "no evidence", not an error."""
+    rows: List[Dict[str, Any]] = []
+    if not path:
+        return rows
+    with open(path, encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(row, dict):
+                rows.append(row)
+    return rows
+
+
+def _check_reactions(cards: List[Dict[str, Any]], evidence: List[Dict[str, Any]],
+                     evidence_given: bool) -> List[str]:
+    """Check 15. The gate is on the *claim*, so a card with no reaction always passes."""
+    fails: List[str] = []
+    index = {(str(r.get("ticker") or "").upper(), str(r.get("to_date") or "")): r
+             for r in evidence}
+    for card in cards:
+        tag = f"{card.get('bucket')}/{str(card.get('esid'))[-6:]}"
+        company = card.get("listed_company")
+        if not isinstance(company, dict):
+            continue
+        reaction = company.get("reaction")
+        if reaction is None:
+            continue
+        if not isinstance(reaction, dict):
+            fails.append(f"{tag}: listed_company.reaction must be an object")
+            continue
+        missing = [k for k in REACTION_FIELDS if reaction.get(k) in (None, "")]
+        if missing:
+            fails.append(f"{tag}: reaction missing {','.join(missing)}")
+            continue
+        try:
+            from_date = date.fromisoformat(str(reaction["from_date"]))
+            to_date = date.fromisoformat(str(reaction["to_date"]))
+        except ValueError:
+            fails.append(f"{tag}: reaction dates must be YYYY-MM-DD")
+            continue
+        if from_date >= to_date:
+            fails.append(f"{tag}: reaction from_date {from_date} is not before {to_date}")
+        try:
+            prev_close = float(reaction["prev_close"])
+            close = float(reaction["close"])
+            claimed = float(reaction["change_pct"])
+        except (TypeError, ValueError):
+            fails.append(f"{tag}: reaction prev_close/close/change_pct must be numbers")
+            continue
+        if prev_close <= 0 or close <= 0:
+            fails.append(f"{tag}: reaction prices must be positive")
+            continue
+        implied = (close / prev_close - 1) * 100
+        if abs(implied - claimed) > REACTION_TOLERANCE:
+            fails.append(f"{tag}: reaction change_pct={claimed} does not follow from "
+                         f"{prev_close}->{close} ({implied:.2f}%)")
+        url = str(reaction.get("source_url") or "")
+        if not re.match(r"^https?://\S+$", url):
+            fails.append(f"{tag}: reaction.source_url is not an http(s) URL: {url!r}")
+        if not evidence_given:
+            fails.append(f"{tag}: reaction printed without --quotes-evidence "
+                         f"(work/web/quotes.jsonl) -- an unverifiable move")
+            continue
+        row = index.get((str(company.get("ticker") or "").upper(), str(reaction["to_date"])))
+        if row is None:
+            fails.append(f"{tag}: reaction {company.get('ticker')} {reaction['to_date']} "
+                         f"has no line in work/web/quotes.jsonl")
+            continue
+        try:
+            if abs(float(row.get("change_pct")) - claimed) > REACTION_TOLERANCE:
+                fails.append(f"{tag}: reaction change_pct={claimed} != evidence "
+                             f"{row.get('change_pct')}")
+        except (TypeError, ValueError):
+            fails.append(f"{tag}: evidence line has no numeric change_pct")
+        if not re.match(r"^https?://\S+$",
+                        str(row.get("url") or row.get("source_url") or "")):
+            fails.append(f"{tag}: evidence line for {company.get('ticker')} has no http source")
+    return fails
+
+
 def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
-          by_rows: Optional[Dict[str, Dict[str, Any]]] = None) -> Tuple[List[str], List[str]]:
+          by_rows: Optional[Dict[str, Dict[str, Any]]] = None,
+          quote_evidence: Optional[List[Dict[str, Any]]] = None,
+          evidence_given: bool = False) -> Tuple[List[str], List[str]]:
     fails: List[str] = []
     notes: List[str] = []
     cards = payload.get("cards")
@@ -257,7 +371,7 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
                     if sum(parts.values()) != score:
                         fails.append(f"{tag}: score_parts sum {sum(parts.values())} "
                                      f"!= score {score}")
-        body = json.dumps(card, ensure_ascii=False)
+        body = leaf_text(card)
         for ph in placeholder_hits(body):
             fails.append(f"{tag}: placeholder {ph!r} leaked into the card")
         if not UNIT_NUM.search(str(card.get("summary") or "")):
@@ -298,6 +412,7 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
         ticker = str(company.get("ticker") or "")
         if ticker and not re.search(r"[0-9A-Za-z]", ticker):
             fails.append(f"{tag}: listed_company.ticker={ticker!r} has no alphanumerics")
+    fails.extend(_check_reactions(cards, quote_evidence or [], evidence_given))
     return fails, notes
 
 
@@ -307,13 +422,17 @@ def main(argv: List[str] | None = None) -> int:
     ap.add_argument("--pool", required=True)
     ap.add_argument("--rows", help="work/rows.json -- required only when a card was "
                                    "promoted from outside the machine pools")
+    ap.add_argument("--quotes-evidence", help="work/web/quotes.jsonl -- required as soon "
+                                              "as any card prints a price move")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args(argv)
 
     payload = json.load(open(args.cards, encoding="utf-8"))
     by_esid = load_pool(args.pool)
     by_rows = load_rows(args.rows) if args.rows else None
-    fails, notes = check(payload, by_esid, by_rows)
+    evidence = load_quote_evidence(args.quotes_evidence)
+    fails, notes = check(payload, by_esid, by_rows, evidence,
+                         evidence_given=bool(args.quotes_evidence))
 
     if notes and args.verbose:
         for n in notes:

@@ -108,7 +108,7 @@ p_value, outcome_p_value, hazard_ratio, hazard_ratio_ci, odd_ratio, relative_ris
 | `dist/ESMO2026-watchlist.csv` | 30 条定榜 |
 | `dist/ESMO2026-watchlist.md` | 三桶报告 |
 
-## 6.5 交付卡片的字段契约（v0.7）
+## 6.5 交付卡片的字段契约（v0.8）
 
 每张卡（`output/watchlist.json` → `cards[]`）：
 
@@ -119,6 +119,7 @@ p_value, outcome_p_value, hazard_ratio, hazard_ratio_ci, odd_ratio, relative_ris
 | `why` | ✅ | **判断**，≥60 字、2–4 句；不许复述 `summary`；不写分数 |
 | `score` / `score_parts` | ✅ | 模型判读；五维各不超上限且相加等于总分 |
 | `listed_company` | ✅（可以是 `null`） | 上市：`{name, ticker, exchange, reaction?, source_url}`，`source_url` 必须 http(s)；未上市/查不到：`null`。**缺键 = 没查** |
+| `listed_company.reaction` | 可选 | 一旦印出就必须是对象 `{from_date, to_date, prev_close, close, change_pct, basis, source_url}`：`change_pct` 要由 `prev_close→close` 算出（容差 0.05pp），且能在 `work/web/quotes.jsonl` 里按 `ticker + to_date` 找到对应行。省略 = 没核实到，合法 |
 | `promoted` | 仅破格入榜 | 固定 `"web"` |
 | `lba` / `manual` / `abstract_id` | ✅（值可为 null） | `manual`、`abstract_id` 在平台上恒 `null`，不猜 |
 

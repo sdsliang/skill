@@ -40,7 +40,7 @@ import re
 import sys
 from typing import Dict, List
 
-EVALUATOR_REVISION = "2026-11-12-r2"
+EVALUATOR_REVISION = "2026-11-12-r3"
 
 # Presidential / late-breaking trials the X discussion concentrated on. Used by the
 # heat-coverage item, which is `warn`: the list must never be bent toward what was
@@ -56,6 +56,8 @@ PER_BUCKET_CAP = 10
 TOTAL_CAP = 30
 MIN_WHY_CHARS = 60
 LISTED_FIELDS = ("name", "ticker", "exchange", "source_url")
+REACTION_FIELDS = ("from_date", "to_date", "prev_close", "close", "change_pct",
+                   "basis", "source_url")
 NUM_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(%|mo|months?|月|HR|hazard|OR\b|p\s*[=<>]|P\s*[=<>])")
 
 
@@ -399,7 +401,14 @@ def op_web_evidence(sv, spec):
     # A search that returned nothing usable has no URL -- that is an honest record, not
     # a fabricated one. What it may not be is silent: a URL-less row must say why, and
     # the evidence as a whole still has to carry real sources (min_urls).
-    rows = [(k, i, r) for k, v in files.items() for i, r in enumerate(v, 1)]
+    # `quotes.jsonl` shares the evidence surface but records *market* calls, not
+    # searches. Its rows carry close + change_pct; counting them here would let a
+    # handful of quote fetches satisfy the search-evidence floor.
+    def _is_quote(row):
+        return "close" in row and "change_pct" in row
+
+    rows = [(k, i, r) for k, v in files.items() for i, r in enumerate(v, 1)
+            if not _is_quote(r)]
     url_rows = [x for x in rows if str(x[2].get("url") or "").startswith("http")]
     silent = [f"{k}:{i}" for k, i, r in rows
               if not str(r.get("url") or "").startswith("http")
@@ -411,6 +420,64 @@ def op_web_evidence(sv, spec):
         return False, (f"{len(url_rows)} record(s) with a URL < min_urls={min_urls} "
                        f"({lines} record(s) total)")
     return True, (f"{len(files)} file(s)/{lines} record(s), {len(url_rows)} with a URL")
+
+
+def op_reaction_traceable(sv, spec):
+    """A printed price move needs: arithmetic that closes, and a line to point at.
+
+    Same rule as every other number in the card -- if it is not re-checkable from a
+    durable artifact, it is a claim the reader cannot audit. Omitting `reaction`
+    entirely is legal; the field is an enhancement, and a missing enhancement may not
+    veto the list (pitfalls §24).
+    """
+    evidence = (sv.get("web_evidence") or {}).get("quotes.jsonl") or []
+    index = {}
+    for row in evidence:
+        if isinstance(row, dict) and row.get("ticker"):
+            index[(str(row["ticker"]).upper(), str(row.get("to_date") or ""))] = row
+    bad, seen = [], 0
+    for i, c in enumerate((sv["watchlist"] or {}).get("cards") or [], 1):
+        co = c.get("listed_company")
+        if not isinstance(co, dict):
+            continue
+        react = co.get("reaction")
+        if react is None:
+            continue
+        seen += 1
+        if not isinstance(react, dict):
+            bad.append(f"card{i} reaction not an object")
+            continue
+        missing = [k for k in REACTION_FIELDS if react.get(k) in (None, "")]
+        if missing:
+            bad.append(f"card{i} reaction missing {','.join(missing)}")
+            continue
+        try:
+            prev_close = float(react["prev_close"])
+            close = float(react["close"])
+            claimed = float(react["change_pct"])
+        except (TypeError, ValueError):
+            bad.append(f"card{i} reaction numbers unparsable")
+            continue
+        if prev_close <= 0:
+            bad.append(f"card{i} prev_close not positive")
+            continue
+        if abs((close / prev_close - 1) * 100 - claimed) > 0.05:
+            bad.append(f"card{i} change_pct {claimed} != {prev_close}->{close}")
+        if not re.match(r"^https?://\S+$", str(react.get("source_url") or "")):
+            bad.append(f"card{i} reaction source_url not http(s)")
+        row = index.get((str(co.get("ticker") or "").upper(), str(react["to_date"])))
+        if row is None:
+            bad.append(f"card{i} reaction has no quotes.jsonl line")
+        else:
+            try:
+                if abs(float(row.get("change_pct")) - claimed) > 0.05:
+                    bad.append(f"card{i} reaction {claimed} != evidence {row.get('change_pct')}")
+            except (TypeError, ValueError):
+                bad.append(f"card{i} evidence row has no change_pct")
+    if bad:
+        return False, "; ".join(bad[:4])
+    return True, (f"{seen} price move(s) traced to work/web/quotes.jsonl"
+                  if seen else "no price move printed (legal: reaction is optional)")
 
 
 def op_count_matches(sv, spec):
@@ -606,6 +673,7 @@ OPS = {
     "listed_company_shape": op_listed_company_shape,
     "promotion_traceable": op_promotion_traceable,
     "web_evidence": op_web_evidence,
+    "reaction_traceable": op_reaction_traceable,
     "heat_coverage": op_heat_coverage,
 }
 

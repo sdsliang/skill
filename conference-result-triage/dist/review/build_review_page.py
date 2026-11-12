@@ -50,6 +50,15 @@ def entry(idx, c, bucket):
             else str(co["ticker"])
         chips.append(f'<span class="chip stock" title="{esc(co.get("name") or "")}">'
                      f'{esc(label)}</span>')
+    # v0.8: the move is a dated window, so it is rendered as one string built only from
+    # the card's own fields — no derived arithmetic, no "rose because of the abstract".
+    react = co.get("reaction")
+    if isinstance(react, dict) and react.get("change_pct") is not None:
+        pct = float(react["change_pct"])
+        sign = "+" if pct > 0 else ""
+        span = f'{react.get("from_date","")}→{react.get("to_date","")}'
+        chips.append(f'<span class="chip stock" title="{esc(react.get("basis") or "")}">'
+                     f'{sign}{pct:.2f}% · {esc(span)}</span>')
     if c.get("promoted"):
         chips.append('<span class="chip ghost">网页补录</span>')
     return f"""

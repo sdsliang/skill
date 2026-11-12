@@ -182,7 +182,7 @@ expect("listed_company url", fails, "not an http(s) URL")
 fails, _ = check_cards.check({"conference": "T", "count": 1,
                               "cards": [dict(base[0], listed_company={
                                   "name": "Roche Holding AG", "ticker": "ROG",
-                                  "exchange": "SIX", "reaction": "披露当日 +4.1%",
+                                  "exchange": "SIX",
                                   "source_url": "https://www.roche.com/investors"})],
                               "coverage_notes": NOTES}, by_esid)
 if [f for f in fails if "listed_company" in f]:
@@ -209,6 +209,48 @@ if left:
     failures.append(f"promoted card rejected: {left}")
 else:
     print("  ok  web-promoted card resolves against rows.json")
+
+# 16/17/18. a printed price move is a claim about the outside world, so it needs both
+# arithmetic that closes and a line in work/web/quotes.jsonl to point at
+REACTION = {"from_date": "2026-10-16", "to_date": "2026-10-19",
+            "prev_close": 22.04, "close": 23.53, "change_pct": 6.76,
+            "basis": "meeting-window first session vs prior close (not attributed)",
+            "source_url": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=105.TNGX"}
+EVIDENCE = [{"ticker": "TNGX", "to_date": "2026-10-19", "change_pct": 6.76,
+             "source_url": REACTION["source_url"]}]
+listed = {"name": "Tango Therapeutics", "ticker": "TNGX", "exchange": "NASDAQ",
+          "source_url": "https://investors.tangotx.com/", "reaction": REACTION}
+
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(base[0], listed_company=dict(listed))],
+                              "coverage_notes": NOTES}, by_esid,
+                             quote_evidence=list(EVIDENCE), evidence_given=True)
+if [f for f in fails if "reaction" in f]:
+    failures.append(f"traced reaction rejected: {[f for f in fails if 'reaction' in f]}")
+else:
+    print("  ok  reaction with matching evidence passes")
+
+skewed = dict(listed, reaction=dict(REACTION, change_pct=7.66))
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(base[0], listed_company=skewed)],
+                              "coverage_notes": NOTES}, by_esid,
+                             quote_evidence=list(EVIDENCE), evidence_given=True)
+expect("reaction arithmetic", fails, "does not follow from")
+
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(base[0], listed_company=dict(listed))],
+                              "coverage_notes": NOTES}, by_esid)
+expect("reaction without evidence", fails, "without --quotes-evidence")
+
+# 19. a card with no reaction at all is still legal: the field is an enhancement
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(base[0], listed_company={
+                                  k: v for k, v in listed.items() if k != "reaction"})],
+                              "coverage_notes": NOTES}, by_esid)
+if [f for f in fails if "reaction" in f]:
+    failures.append(f"reaction-free card rejected: {fails}")
+else:
+    print("  ok  no reaction is legal (enhancement, not a gate)")
 
 if failures:
     print(f"\nFAIL ({len(failures)}):")

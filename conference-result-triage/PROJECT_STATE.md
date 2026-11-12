@@ -1,5 +1,36 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.8（2026-11-12）：`reaction` 从短句变成带口径的行情对象
+
+**起因**：用户看完 v0.7 的复核页只问了一句「怎么只查到股票代码，没有对应的事件日涨幅」。
+
+**复盘 e2e6（108 次工具调用）**：`web_search` **0 次**，`web_fetch` **29 次全部**落在公司 IR 落地页
+（`merck.com/investor-relations/stockholder-services` 这类只有代码、交易所、过户代理的页），
+所以不是"没查"，是**查错了页面**。另有 3 个真实障碍叠加：`106.AMGN/JAZZ/ELTX` 的 secid 前缀不对（`rc:100`）、
+SIX（Roche）东财完全不覆盖（`rc:102` × 12 个候选前缀）、`make_cards.py` 需要 `--quotes` 才有 `stock`。
+
+**改了什么**
+
+| 面 | 内容 |
+|---|---|
+| 端点 | SKILL.md / 系统提示词 / review-protocol 三处都写进东财 kline JSON：`push2his.eastmoney.com/api/qt/stock/kline/get?secid=<mkt>.<code>&fields1=f1,f2&fields2=f51,f53&klt=101&fqt=1&beg=&end=`，附 secid 前缀表（105/106/107/116 补零 5 位/155）与 `rc:100`/`rc:102` 语义 |
+| 口径 | 涨跌幅 = **该市场**早于会议首日的最后收盘 → **该市场** ∈ 会议窗口的第一个收盘；`from_date`/`to_date`/`basis` 必须印进 JSON，`basis` 写「非归因」。**不许写成"因为这条摘要涨了 X%"** |
+| 分市场基准 | 港股 2026-10-19 台风停市，`01093` K 线从 10-16 跳到 10-20，统一用会议首日会算错 |
+| 不覆盖就留空 | SIX 省略 `reaction`；**禁止**用 OTC ADR `RHHBY` 近似 `ROG.SW` |
+| 数据形状 | `listed_company.reaction` = `{from_date,to_date,prev_close,close,change_pct,basis,source_url}`（7 键）；省略合法 |
+| 闸门 | `check_cards.py --quotes-evidence` 验「`change_pct` 能否由 `prev_close→close` 算出（0.05pp 容差）」+「能否在 `work/web/quotes.jsonl` 里按 `ticker + to_date` 对上」；不给证据文件却印了数字 → 直接 FAIL |
+| 事实层 | 新增 `A-F7-reaction-traceable`（fail，双 mutation：涨跌幅篡改 / 证据文件缺失）→ **24 fail + 1 warn**；NEG「reaction omitted entirely」保证「拿不到行情」不会退化成「暂不交付」（6 → **7** 条 NEG） |
+| 本地预计算 | 新增 `scripts/fetch_quotes.py`（3 次重试，实测 24/26 张卡拿到行情，2 张 RO/SIX 按设计 skip）；`make_cards.py --quotes` 把 `reaction` 折进 `listed_company` |
+| 顺手修的 bug | 占位符扫描原来对 `json.dumps(card)` 做子串匹配 → **任何把嵌套对象放最后的卡都因字面量 `}}` 被判"占位符泄漏"**；改成只扫叶子字符串 `leaf_text()` |
+
+**验证**：`evals/test_check_cards.py` **19 case 全绿**（新增 4 条 reaction 用例）·
+`mutations.py` **coverage 24/24 fail items + 7 NEG green** · e2e6 旧产物重判 **facts 24/24 warn 1/1 -> PASS**（无 reaction 走合法分支）·
+`pack-dist.py` → `dist/conference-result-triage-v0.8.zip` **18 entries / 116751 B** · `toolsmith-publish publish` 原地更新后 **STATUS: in sync**
+（prompt v1.0 21856 B sha `04ab6bf97e76`；skill v0.3.0 18/18 identical）。
+
+**为什么 `reaction` 是增强项而不是必填**：行情端点会挂、交易所会不覆盖、公司可能根本没上市。
+把它设成必填，代价是又一次「查不到 → 暂不交付」（pitfalls §24 的原始教训）。
+
 ## v0.7（2026-11-12）：15 → 10 的编辑收敛、`why` 变判断、上市公司字段
 
 三处改动都来自「45 张卡交出去之后读者会问什么」，而不是脚本能算出来的东西。

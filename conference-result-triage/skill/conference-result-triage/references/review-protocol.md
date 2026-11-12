@@ -195,7 +195,7 @@ else: 保留机器分桶
 |---|---|---|
 | 会议现场热度 | `"<会议> <药名/试验名> results"` | 多家专业媒体单独成文 = 热点 |
 | 适应症内定位 | `"<药名> <适应症> data <会议> <年份>"` | 是否被写成"该适应症本届最受关注" |
-| 股价/公司 | `"<药名 或 公司> stock reaction <月份>"` | 只能引可核实的涨跌幅 |
+| 股价/公司 | `"<ticker> 收盘 <YYYY年M月D日> 涨跌幅"` | 必须能对上 `prev_close→close`，口径见下 |
 | 未被收录的热点 | `"<会议> late-breaking abstract <适应症> most anticipated"` | 用来发现机制上被漏掉的研究 |
 
 **证据落 `work/web/<bucket>.jsonl`**，一行一次检索：`{"query","title","url","published_at","note"}`。平台 `/workspace/tool_results/` 回合结束即清空，只有这个文件能让复核者回到原始来源。
@@ -203,7 +203,7 @@ else: 保留机器分桶
 **两种用法**：
 
 1. **纠偏（promote）**：外部热议、但初选漏了的研究可以提上来，**前提是它在 `work/rows.json` 里** —— 卡片上的每个数字都必须在那条记录自己的原文里出现。写卡时标 `"promoted": "web"`，并在 `why` 里写明外部讨论的是什么。会议库根本没有这条记录时**不能进卡**，只能写进 `coverage_notes`（"外部讨论了 X，会议库无对应记录，未纳入"）。`check_cards.py --rows` 会反查。
-2. **上市公司（`listed_company`）**：每张卡都要这个键。上市 ⇒ `{name, ticker, exchange, reaction, source_url}`，`source_url` 必须是真打开过的 IR/交易所/行情页；未上市或查不到 ⇒ `null`。**不要用同名母公司顶替**（一个管线属于子公司，股价反应落在母公司 ticker 上时要在 `name` 里写清这一层）。`reaction` 只写核实过的短句（"披露当日 +4.1%"），没核实就省掉这个键。
+2. **上市公司（`listed_company`）**：每张卡都要这个键。上市 ⇒ `{name, ticker, exchange, reaction, source_url}`，`source_url` 必须是真打开过的 IR/交易所/行情页；未上市或查不到 ⇒ `null`。**不要用同名母公司顶替**（一个管线属于子公司，股价反应落在母公司 ticker 上时要在 `name` 里写清这一层）。**`reaction` 是对象，不是短句**（v0.8）：`{from_date, to_date, prev_close, close, change_pct, basis, source_url}`。取数两条正路 —— ①`web_fetch` 东财 kline JSON：`https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=<mkt>.<code>&fields1=f1,f2&fields2=f51,f53&klt=101&fqt=1&beg=YYYYMMDD&end=YYYYMMDD`（前缀 NASDAQ 105 / NYSE 106 / AMEX 107 / HKEX 116 补零 5 位 / LSE 155；`rc:102` = 市场不覆盖，SIX 就在这一类）；②`web_search` 查 `"<ticker> 收盘 <日期> 涨跌幅"`，deepseek 源直接返回券商页的收盘与涨跌幅。口径固定为「**该市场**早于会议首日的最后收盘 → **该市场** ∈ 会议窗口的第一个收盘」，`basis` 必须写明"非归因"；基准日按市场各自取（港股 2026-10-19 台风停市，只能用 10-16 → 10-20）。取数结果逐行落 `work/web/quotes.jsonl`，交付时 `check_cards.py --quotes-evidence`。没核实到就**省掉 `reaction`**（合法），**不许拿 OTC ADR 顶替本土上市股**（`RHHBY` ≠ `ROG.SW`）。
 
 **联网层失败只降级、不中止**：检索无返回、IR/交易所页 403 或超时，都不允许拿"查不到"当理由不出清单。顺序是：换词换源再试（检索结果里的标题和 URL 已经够填 `listed_company.source_url`，不必打开页面）→ 仍不行就按判读分收敛到 10 条、`listed_company` 全填 `null` → 在 `coverage_notes` 写「联网核实未完成（原因）」→ 照常交付。`cards-e2e5` 就是这么废掉的：`web_search` 明明返回了 12 条来源，`web_fetch` 打开 amgen.com 失败后模型写"搜索无可用返回"，结束回合、零交付。
 

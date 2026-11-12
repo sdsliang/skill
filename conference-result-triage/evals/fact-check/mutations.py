@@ -89,9 +89,14 @@ def build_fixture(root):
         # `listed_company` is mandatory on every card; one card carries a fully
         # sourced company so the shape check has something legal to accept.
         card["listed_company"] = (
-            {"name": "Roche Holding AG", "ticker": "ROG", "exchange": "SIX",
-             "reaction": "披露当日 +4.1%",
-             "source_url": "https://www.roche.com/investors"} if n == 0 else None)
+            {"name": "Tango Therapeutics", "ticker": "TNGX", "exchange": "NASDAQ",
+             # A window move, not an attribution: the `basis` string travels with the
+             # number so a reader cannot mistake it for "rose because of the abstract".
+             "reaction": {"from_date": "2026-10-16", "to_date": "2026-10-19",
+                          "prev_close": 22.04, "close": 23.53, "change_pct": 6.76,
+                          "basis": "meeting-window first session vs prior close (not attributed)",
+                          "source_url": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=105.TNGX"},
+             "source_url": "https://investors.tangotx.com/"} if n == 0 else None)
         cards.append(card)
 
     watchlist = {"conference": "ESMO 2026", "count": len(cards), "cards": cards,
@@ -136,6 +141,15 @@ def build_fixture(root):
                   "w", encoding="utf-8") as f:
             for r in recs:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
+
+    # Quote evidence shares the web surface but records market calls, not searches.
+    with open(os.path.join(root, "artifacts", "work", "web", "quotes.jsonl"),
+              "w", encoding="utf-8") as f:
+        f.write(json.dumps({"ticker": "TNGX", "exchange": "NASDAQ", "secid": "105.TNGX",
+                            "from_date": "2026-10-16", "to_date": "2026-10-19",
+                            "prev_close": 22.04, "close": 23.53, "change_pct": 6.76,
+                            "url": "https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=105.TNGX"},
+                           ensure_ascii=False) + "\n")
 
     with open(os.path.join(root, "artifacts.json"), "w", encoding="utf-8") as f:
         json.dump([{"path": "/workspace/output/watchlist.json"},
@@ -379,10 +393,27 @@ def m_web_no_urls(root):
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
 
+def m_reaction_skewed(root):
+    """A percentage that does not follow from its own two closes."""
+    w = read(root, "artifacts/output/watchlist.json")
+    w["cards"][0]["listed_company"]["reaction"]["change_pct"] = 12.4
+    write(root, "artifacts/output/watchlist.json", w)
+
+
+def m_reaction_untraced(root):
+    """A price move with nothing durable behind it: the file it should point at is gone."""
+    os.remove(os.path.join(root, "artifacts", "work", "web", "quotes.jsonl"))
+
+
 def ngen_web_declared(root):
     """A dead provider may degrade the deliverable -- but only by saying so in it."""
     shutil.rmtree(os.path.join(root, "artifacts", "work", "web"), ignore_errors=True)
     w = read(root, "artifacts/output/watchlist.json")
+    # If the web layer never ran, no quote was fetched either: printing a move would
+    # be claiming a number whose evidence this same variation just deleted.
+    for card in w["cards"]:
+        if isinstance(card.get("listed_company"), dict):
+            card["listed_company"].pop("reaction", None)
     w.setdefault("coverage_notes", []).append(
         "联网检索不可用（provider 无返回），本次未做外部热度校正与上市公司核实，"
         "listed_company 一律留空。")
@@ -414,6 +445,8 @@ MUTATIONS = [
     ("A-F6-promotion-traceable", m_promoted_missing),
     ("A-W1-web-evidence", m_web_missing),
     ("A-W1-web-evidence", m_web_no_urls),
+    ("A-F7-reaction-traceable", m_reaction_skewed),
+    ("A-F7-reaction-traceable", m_reaction_untraced),
 ]
 
 # Legal variations that must stay green: the scorer should test facts, not formatting.
@@ -454,6 +487,13 @@ def ngen_web_empty_url_noted(root):
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
 
+def ngen_reaction_absent(root):
+    """Omitting the move entirely is legal -- it is an enhancement, not a requirement."""
+    w = read(root, "artifacts/output/watchlist.json")
+    w["cards"][0]["listed_company"].pop("reaction", None)
+    write(root, "artifacts/output/watchlist.json", w)
+
+
 def ngen_heat_hit(root):
     """Putting a heat trial on the list must satisfy the warn item, not break a fail one."""
     w = read(root, "artifacts/output/watchlist.json")
@@ -466,7 +506,8 @@ NEGATIVES = [("legal bucket reorder", ngen_legal_reorder),
              ("why at the length floor", ngen_why_varied),
              ("fully sourced HK company", ngen_listed_legal),
              ("web down but declared in coverage_notes", ngen_web_declared),
-             ("search with no usable result, noted", ngen_web_empty_url_noted)]
+             ("search with no usable result, noted", ngen_web_empty_url_noted),
+             ("reaction omitted entirely", ngen_reaction_absent)]
 
 
 def main() -> int:
