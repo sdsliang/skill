@@ -89,6 +89,13 @@ coverage: 1097/1097 ids present
 
 若出现 `WARNING: … N missing`，把 `MISSING_IDS` 那批单独再查一次，**不要带着缺口建池**。
 
+`rows.json` 自带 `sources`（每个 dump 名 + 它贡献了多少行）。这是分片有没有真的分过的**唯一持久证据**：分片调用常发生在 `task` 子代理里，父回合的 `debug-history.json` 看不到，而 `tool_results/` 在回合结束时被清空。v0.5 曾要求另写一份 `slice_counts.json` 账本，实跑里被漏掉 → 审计无从下口，所以改成让数据文件自己带出处。
+
+```json
+{"conference": "ESMO 2026", "rows": [...], "requested": 1097, "missing": [],
+ "sources": [{"dump": "slice_01.jsonl", "rows": 150}, … 共 8 条]}
+```
+
 **两个已知拿不到的东西，别浪费时间：**
 
 - **`featured`（人工/AI 生产标记）不在白名单**，`with-params` 选不出来；`TEST_execute-sql` 又**不能绑定到项目**（`400 MCP tools unavailable for pharmcube: pharmcube-TEST_execute-sql`）。所以平台内 `manual` 恒为 `null`，卡片上写「生产方式未知」，不要猜。
@@ -140,7 +147,7 @@ python3 $S/triage.py /workspace/work/rows.json --out-dir /workspace/work/pool --
 | `ePoster` | 后缀 `eP` | 5 |
 | `Unknown` | 三个信号都没有（平台内的绝大多数） | 9 |
 
-ESMO 2026 实测：551 候选里 **51 条**拿到 `lba`（early 6 / pivotal 45 / failed 6），其余 500 条是 `Unknown` —— 这是诚实结果，不要为了"看起来有层级"去造。
+ESMO 2026 实测：592 候选里 **51 条**拿到 `lba`（early 6 / pivotal 45 / failed 6），其余 541 条是 `Unknown` —— 这是诚实结果，不要为了"看起来有层级"去造。
 
 `abstract_id` 在平台内**恒为 `null`**，卡片照常输出该字段（schema 固定）；有外网且配了 `PHARMCUBE_MCP_APP_KEY` 时才可选用会议库补号：
 
@@ -215,7 +222,9 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
     --pool /workspace/work/pool_labeled.json
 ```
 
-`check_cards.py` **必须 exit 0** 才能交付。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字、**每桶超过 15 条**、**`score` 不是 0–100 整数或五维相加不等于总分**。
+`check_cards.py` **必须 exit 0** 才能交付。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字、**每桶超过 15 条**、**`score` 不是 0–100 整数或五维相加不等于总分**、**`coverage_notes` 缺失或没写到两条边界**。
+
+`coverage_notes` 必须写在交付 JSON 的顶层（见下「两个必须写进清单的诚实声明」）。v0.5 的实跑把它写成了别的字段名、v0.6 的实跑把边界写在 `coverage.boundary` 里 ⇒ 事实层 `A-H1` 两次都判失败：**边界只写在聊天回复里，下个月读 JSON 的人看不到**。所以这一条从"建议"升级成闸门，措辞不查（`无 p 或 HR` / `未列p或HR` / `没给 p 值或 HR` 都算），只查事实有没有落到交付物里。
 
 股票涨跌是同一天的市场数据，结果库里没有。给了 `--quotes`（`{"<esid>": {"ticker": "…", "change_pct": 5.2, "date": "2026-10-19"}}`）就附在对应卡片上；没给就留 `null`，**绝不用其它日期的涨跌顶替**。
 
@@ -226,7 +235,12 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 ## Deliverable schema
 
 ```json
-{"conference": "ESMO 2026", "count": 30, "cards": [
+{"conference": "ESMO 2026", "count": 30,
+ "coverage_notes": [
+   "data_type 按摘要正文判断首次/更新/亚组，判不出的写「未判定」，不猜。",
+   "约一半记录没有 p 或 HR，同一试验常拆成多篇；本清单不是会议书全覆盖。"
+ ],
+ "cards": [
   {"esid": "24_37_p_...", "abstract_id": null, "lba": true, "manual": null,
    "bucket": "pivotal", "tag": "LBA",
    "score": 78,
@@ -239,6 +253,7 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 ]}
 ```
 
+- `coverage_notes` 是**必填**的字符串数组，上面两条声明各至少一条；`check_cards.py` 会按语义（不是字面措辞）校验它。
 - `esid` 是结果记录 id（用户要的"对应的结果id"）；`abstract_id` 是会议摘要号，平台内**恒为 `null`**（见 Step 3），有外网补库时才有值。
 - `score` / `score_parts` 是判读结论（Step 4 给的分），不是脚本算的；总分只用来决定阅读顺序，`why` 里不出现分数。
 - `manual` 是生产方式标记（人工核对 / 流水线抽取），**不是**推荐等级。平台内**恒为 `null`**（`featured` 不可选），`check_cards.py` 会拒绝把它改成 `true`/`false`。

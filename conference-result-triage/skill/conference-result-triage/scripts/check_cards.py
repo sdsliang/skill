@@ -23,6 +23,9 @@ Checks
  10. list size is within a sane band for a reading list
  11. ``score`` is a real 0-100 integer and ``score_parts`` sums to it -- the score
      is the reviewer's judgement, so this gate checks self-consistency, not merit
+ 12. ``coverage_notes`` states the two honest limits (``data_type`` undetermined,
+     abstracts without p/HR) -- the JSON is what gets read next month, so a limit
+     that lives only in the chat reply is a limit nobody will see
 """
 
 from __future__ import annotations
@@ -36,6 +39,22 @@ PER_BUCKET_CAP = 15
 BUCKETS = ("early", "pivotal", "failed")
 SCORE_CAPS = {"evidence_strength": 30, "effect_size": 25, "clinical_impact": 25,
               "novelty": 10, "readout_maturity": 10}
+
+# The two claims the deliverable itself must carry. Kept in sync with
+# `evals/fact-check/facts.json` -> A-H1-two-honest-claims (that item audits a finished
+# run; this one stops the run from being delivered in the first place).
+COVERAGE_CLAIMS = {
+    "data_type":
+        r"(?s)(?=.*(?:data_?type|数据类型|首次/更新))"
+        r"(?=.*(?:未判定|未知|无法判定|不确定|判不出|不猜))",
+    # "no p or HR" gets written at least five ways across runs ("无 p 或 HR" /
+    # "未列p或HR" / "没给 p 值或 HR"). The gate is for the fact, not the wording.
+    "p_hr":
+        r"(?s)(?=.*(?:覆盖|全量|完整|不代表|并非))"
+        r"(?=.*(?:p\s*值?\s*(?:[或/、,和与]|and)\s*(?:HR|风险比)"
+        r"|(?:HR|风险比)\s*(?:[或/、,和与]|and)\s*p\s*值?"
+        r"|(?:未列|无|缺|未给出|没有|没给|不含)\s*p\s*值?))",
+}
 
 import argparse
 import json
@@ -103,6 +122,17 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]]) -> Tuple[
         fails.append("envelope: missing conference")
     if not 10 <= len(cards) <= 45:
         fails.append(f"size: {len(cards)} cards (expected a 10-45 item reading list)")
+    claims = payload.get("coverage_notes")
+    if not isinstance(claims, list) or not claims:
+        fails.append("envelope: `coverage_notes` missing -- the two honest limits "
+                     "(data_type undetermined / abstracts without p or HR) must live "
+                     "in the delivered JSON, not only in the reply")
+    else:
+        joined = "\n".join(str(x) for x in claims if str(x).strip())
+        for name, pattern in COVERAGE_CLAIMS.items():
+            if not re.search(pattern, joined):
+                fails.append(f"envelope: coverage_notes does not state the {name} limit")
+
     per_bucket = Counter(c.get("bucket") for c in cards)
     for name, num in per_bucket.items():
         if name not in BUCKETS:

@@ -89,7 +89,7 @@ else:                                                excluded
 | `ePoster` | 后缀 `eP` | 5 |
 | `Unknown` | 无信号（平台内的绝大多数） | 9 |
 
-ESMO 2026 实测：551 候选里 51 条拿到 `lba`（early 6 / pivotal 45 / failed 6），其余 500 条 `Unknown`。**这是诚实的覆盖现状**，不要为了"看起来有层级"造信号。
+ESMO 2026 实测：592 候选里 51 条拿到 `lba`（early 6 / pivotal 45 / failed 6），其余 541 条 `Unknown`。**这是诚实的覆盖现状**，不要为了"看起来有层级"造信号。
 
 ### 3.1b `featured` ≠ 头条（重要更正）
 

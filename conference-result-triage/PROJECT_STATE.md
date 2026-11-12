@@ -1,5 +1,25 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.6.1（2026-11-12）：原地重跑两次，facts 19/19 全绿
+
+v0.6 发布后原地跑全量（592 候选 / 40 批），**第一次 `facts 16/19`，暴露的三个面全部修掉后第二次 `19/19`**。
+
+| 失败项 | 现象 | 性质 |
+|---|---|---|
+| `A-D4` | `73 lba rows … 19 dropped` | **审计脚本 bug**：比对键用 `extra_esid`（无 `nr_`），池内键是 `_id`（带 `nr_`）→ 归一后 73/73 |
+| `A-D2` | `0 sliced calls` | 分片在 `task` 子代理里跑，父回合只看到 id-only 调用；v0.5 依赖的 `slice_counts.json` 这次没写 |
+| `A-H1` | `0 notes` | 模型把边界写进 `coverage.boundary`；而 `coverage_notes` **在 SKILL.md 里从没定义过**（v0.5 是运气通过） |
+
+修法（一律修面，不修阈值）：
+
+1. `pull_results.py` 让 `rows.json` 自带 `sources`（每 dump 名 + 行数）——分片证据随数据走，不再依赖调用方记得写账本。
+2. `check.py` 分片项改三级回退：`work/slices/slice_*.json` → `rows.json.sources` → 父回合调用；并要求切片 id 与 `rows.json` id **双向相等**。
+3. 两条诚实声明升级成闸门：`check_cards.py` 要求顶层 `coverage_notes`（措辞不查，只查事实），同时把 schema 补进 SKILL.md / 系统提示词 / `Deliverable schema`——先有定义才有闸门。`evals/test_check_cards.py` 加 3 例（缺字段 / 少一条 / 合法改写必须过）。
+
+**交付基线**：prompt `conference-result-triage-v0.6.md`（v1.0 原地更新，sha `4a65bf34c51a`）、skill v0.3.0 / dist 17 项、`status: in sync`。
+**run 2 `cards-e2e4`**：1520 s、55 次工具调用、45 卡（15/15/15）、17 个不同分数、`facts 19/19 warn 1/1 -> PASS`、VOLGA / KRASCENDO-1 / CLARITY-Gastric01 全部进榜。
+**未做**：45 张卡的人工可读性复核；`featured` 白名单（`manual` 恒 `null`）。
+
 ## v0.6（2026-11-11）：排除规则的静默删除 + 事实层首次落地
 
 **被外部热度对照逼出来的真缺陷**：`excluded_reason()` 用 `evidence_source` 判断研究类型，

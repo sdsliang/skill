@@ -12,6 +12,11 @@ obviously wrong:
     script cannot check whether 78 is the *right* number. What it can check is
     that the five parts add up to it and none exceeds its ceiling; a total that
     does not add up means the number was invented rather than judged.
+
+It also checks `coverage_notes`: the run that shipped 40 cards with the limits
+stated only in its chat reply is why that became a gate. The shape must be
+strict, the prose must not be -- case 8 pins a legal paraphrase as passing, so
+the rule is testing a fact rather than a wording.
 """
 import json
 import os
@@ -77,8 +82,12 @@ if len(items) < 2:
 print("check_cards fixture:")
 
 # 1. a hand-made card passes (proves the rest of the gate is not the thing failing)
+NOTES = ["data_type 无明确首次/更新依据则未判定。",
+         "部分摘要未列p或HR；本榜并非会议书全覆盖。"]
+
 base = [card(items[0], score=60)]
-fails, _ = check_cards.check({"conference": "T", "count": 1, "cards": base}, by_esid)
+fails, _ = check_cards.check({"conference": "T", "count": 1, "cards": base,
+                              "coverage_notes": NOTES}, by_esid)
 size_only = [f for f in fails if not f.startswith("size:")]
 if size_only:
     failures.append(f"clean card should pass: {size_only}")
@@ -87,19 +96,22 @@ else:
 
 # 2. score_parts that do not sum to score
 broken = dict(base[0], score=90)
-fails, _ = check_cards.check({"conference": "T", "count": 1, "cards": [broken]}, by_esid)
+fails, _ = check_cards.check({"conference": "T", "count": 1, "cards": [broken],
+                             "coverage_notes": NOTES}, by_esid)
 expect("parts sum != score", fails, "score_parts sum")
 
 # 3. a part above its ceiling -- this is what a reviewer does when award-happy
 over = card(items[0], score=60,
             parts={"evidence_strength": 40, "effect_size": 10, "clinical_impact": 5,
                    "novelty": 3, "readout_maturity": 2})
-fails, _ = check_cards.check({"conference": "T", "count": 1, "cards": [over]}, by_esid)
+fails, _ = check_cards.check({"conference": "T", "count": 1, "cards": [over],
+                             "coverage_notes": NOTES}, by_esid)
 expect("part over ceiling", fails, "must be an integer 0-30")
 
 # 4. score outside 0-100
 fails, _ = check_cards.check({"conference": "T", "count": 1,
-                              "cards": [dict(base[0], score=140)]}, by_esid)
+                              "cards": [dict(base[0], score=140)],
+                              "coverage_notes": NOTES}, by_esid)
 expect("score out of range", fails, "must be an integer 0-100")
 
 # 5. per-bucket cap 15: sixteen cards in one bucket must be refused
@@ -107,8 +119,29 @@ many = [card(items[i % len(items)]) for i in range(check_cards.PER_BUCKET_CAP + 
 same_bucket = many[0]["bucket"]
 for c in many:
     c["bucket"] = same_bucket
-fails, _ = check_cards.check({"conference": "T", "count": len(many), "cards": many}, by_esid)
+fails, _ = check_cards.check({"conference": "T", "count": len(many), "cards": many,
+                             "coverage_notes": NOTES}, by_esid)
 expect(f"{same_bucket} over 15", fails, "> cap 15")
+
+# 6. no coverage_notes at all -- the exact defect of the 40-card ESMO 2026 run
+fails, _ = check_cards.check({"conference": "T", "count": 1, "cards": base}, by_esid)
+expect("no coverage_notes", fails, "coverage_notes` missing")
+
+# 7. notes that never state the data_type limit
+fails, _ = check_cards.check({"conference": "T", "count": 1, "cards": base,
+                              "coverage_notes": [NOTES[1]]}, by_esid)
+expect("data_type limit unstated", fails, "does not state the data_type limit")
+
+# 8. NEG: a different wording for the same two facts must still pass
+legal = ["多数记录的 data_type 无法判定，按未判定处理，不猜首次或更新。",
+         "摘要普遍没给 p 值或 HR，且本榜不代表会议全量。"]
+fails, _ = check_cards.check({"conference": "T", "count": 1, "cards": base,
+                              "coverage_notes": legal}, by_esid)
+paraphrase = [f for f in fails if "coverage_notes" in f]
+if paraphrase:
+    failures.append(f"legal paraphrase rejected: {paraphrase}")
+else:
+    print("  ok  legal paraphrase of the notes passes")
 
 if failures:
     print(f"\nFAIL ({len(failures)}):")

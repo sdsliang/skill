@@ -62,6 +62,7 @@ def build_fixture(root):
     """A legal run: 12 cards, descending scores, traceable numbers, artifact presented."""
     os.makedirs(os.path.join(root, "artifacts", "output"), exist_ok=True)
     os.makedirs(os.path.join(root, "artifacts", "work", "pool"), exist_ok=True)
+    os.makedirs(os.path.join(root, "artifacts", "work", "slices"), exist_ok=True)
 
     raw = []
     for i, (bucket, scores, name) in enumerate((
@@ -88,16 +89,28 @@ def build_fixture(root):
     # One pivotal card stands in for an LBA row: the shape that used to vanish
     # when `evidence_source` carried "前瞻性研究" instead of a phase.
     pool["pools"]["pivotal"]["items"][0]["lba"] = True
-    rows = [{"clinical_result_extra_esid": pool["pools"]["pivotal"]["items"][0]["esid"],
+    rows = [{"clinical_result__id": pool["pools"]["pivotal"]["items"][0]["esid"],
              "clinical_result_lba": "LBA"}]
-    rows += [{"clinical_result_extra_esid": c["esid"], "clinical_result_lba": None}
+    rows += [{"clinical_result__id": c["esid"], "clinical_result_lba": None}
              for c in cards[1:]]
 
     for rel, obj in (("artifacts/output/watchlist.json", watchlist),
                      ("artifacts/work/pool/pool.json", pool),
-                     ("artifacts/work/rows.json", {"rows": rows})):
+                     ("artifacts/work/rows.json", {"rows": rows,
+                                                   "sources": [{"dump": f"slice_{n:02d}.jsonl", "rows": 1}
+                                                               for n in range(1, 9)]})):
         with open(os.path.join(root, rel), "w", encoding="utf-8") as f:
             json.dump(obj, f, ensure_ascii=False, indent=1)
+    # The split itself is the primary slicing evidence: 8 slice files, each far below
+    # the truncation threshold, whose union is every id in rows.json.
+    ids = [r["clinical_result__id"] for r in rows]
+    per = max(1, len(ids) // 8)
+    for n in range(8):
+        chunk = ids[n * per:(n + 1) * per] if n < 7 else ids[7 * per:]
+        with open(os.path.join(root, "artifacts", "work", "slices", f"slice_{n + 1:02d}.json"),
+                  "w", encoding="utf-8") as f:
+            json.dump(chunk, f)
+
     with open(os.path.join(root, "artifacts.json"), "w", encoding="utf-8") as f:
         json.dump([{"path": "/workspace/output/watchlist.json"},
                    {"path": "/workspace/work/pool/pool.json"},
@@ -268,13 +281,19 @@ def m_coverage(root):
 
 
 def m_wide_pull(root):
-    h = read(root, "debug-history.json")
-    parts = [p for p in h["raw_model_messages"][0]["parts"]]
-    for p in parts:
-        if p["tool_name"].startswith("pharmcube-query"):
-            p["args"] = {"meeting_tags": "ESMO 2026"}
-    h["raw_model_messages"][0]["parts"] = parts
-    write(root, "debug-history.json", h)
+    """The defect: skip `plan_slices.py` and ask for the whole conference at once.
+
+    One giant slice (all 1097 ids in slice_01.json) is exactly what a `--size 5000`
+    run looks like, and it is the call shape that silently truncates.
+    """
+    sdir = os.path.join(root, "artifacts", "work", "slices")
+    ids = []
+    for name in sorted(os.listdir(sdir)):
+        if name.startswith("slice_"):
+            ids.extend(json.load(open(os.path.join(sdir, name), encoding="utf-8")))
+            os.remove(os.path.join(sdir, name))
+    with open(os.path.join(sdir, "slice_01.json"), "w", encoding="utf-8") as f:
+        json.dump(ids, f)
 
 
 def m_direct_es(root):

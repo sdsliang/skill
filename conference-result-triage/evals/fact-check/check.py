@@ -118,17 +118,32 @@ def load_run(run_dir: str) -> dict:
         with open(tpath, encoding="utf-8", errors="replace") as f:
             transcript = f.read()
 
+    rows_path = pick("work/rows.json")
     ledger_path = pick("work/slice_counts.json")
     ledger = _load_json(ledger_path) if ledger_path else None
 
-    rows_path = pick("work/rows.json")
-    rows = _load_json(rows_path) if rows_path else None
-    if isinstance(rows, dict):
-        rows = rows.get("rows")
+    # `plan_slices.py` writes one `slice_NN.json` per slice into work/slices/. It is the
+    # only surface that proves the corpus was actually split: subagent tool calls never
+    # reach the parent transcript, and `tool_results/` is wiped at turn end.
+    slices: List[List[str]] = []
+    sdir = os.path.join(os.path.dirname(rows_path), "slices") if rows_path else ""
+    if sdir and os.path.isdir(sdir):
+        for name in sorted(os.listdir(sdir)):
+            if name.startswith("slice_") and name.endswith(".json"):
+                doc = _load_json(os.path.join(sdir, name))
+                if isinstance(doc, list):
+                    slices.append([str(x) for x in doc])
+
+    rows_doc = _load_json(rows_path) if rows_path else None
+    rows = rows_doc
+    if isinstance(rows_doc, dict):
+        rows = rows_doc.get("rows")
 
     return {"watchlist": watchlist, "pool": pool, "calls": calls, "reply": reply,
             "slice_counts": ledger if isinstance(ledger, list) else None,
             "rows": rows if isinstance(rows, list) else None,
+            "rows_doc": rows_doc if isinstance(rows_doc, dict) else None,
+            "slices": slices,
             "transcript": transcript,
             "paths": {"watchlist": watchlist_path, "pool": pool_path}}
 
@@ -175,20 +190,53 @@ def value_traceable(value: float, unit: str, src: str) -> bool:
 # ops
 # --------------------------------------------------------------------------- #
 def op_query_slicing(sv, spec):
-    """Every data pull must slice by `esids`; a wide pull truncates silently.
+    """Every data pull must slice by `esids`; a wide pull truncates at ~458/1097 rows.
 
-    The pulls are often delegated to a `task` subagent, whose tool calls never reach
-    this turn's debug-history. In that case the per-slice ledger `slice_counts.json`
-    is the evidence: one dump per slice, every requested id returned.
+    Three surfaces, best first, because none of them is always there:
+
+    1. `work/slices/slice_NN.json` -- the split itself, durable, and independent of
+       who performed the pull (the pulls are usually delegated to a `task`
+       subagent, whose calls never reach this turn's debug-history);
+    2. `rows.json.sources` -- one entry per dump with the rows it contributed;
+    3. the parent turn's own tool calls -- only when nobody delegated.
     """
+    min_calls = spec.get("min_calls", 7)
+    max_slice = spec.get("max_slice", 300)
+
+    slices = sv.get("slices") or []
+    if slices:
+        biggest = max((len(x) for x in slices), default=0)
+        union = {i for x in slices for i in x}
+        rows = sv.get("rows") or []
+        have = {str(r.get("clinical_result__id") or r.get("clinical_result_extra_esid") or "")
+                .removeprefix("nr_") for r in rows}
+        uncovered = sorted(i for i in union if i.removeprefix("nr_") not in have)
+        # Both directions matter: a slice set that misses rows hides a lost pull, and
+        # one that invents ids means rows.json was not the output of these slices.
+        unsliced = sorted(i for i in have if i and i not in {u.removeprefix("nr_") for u in union})
+        sources = (sv.get("rows_doc") or {}).get("sources") or []
+        ok = (len(slices) >= min_calls and 0 < biggest <= max_slice
+              and not uncovered and not unsliced)
+        return ok, (f"{len(slices)} slices (largest {biggest} ids, {len(union)} distinct), "
+                    f"{len(sources)} dumps recorded in rows.json, "
+                    f"{len(uncovered)} slice ids missing from rows, "
+                    f"{len(unsliced)} rows ids not in any slice")
+
+    sources = (sv.get("rows_doc") or {}).get("sources")
+    if isinstance(sources, list) and sources:
+        dumps = [x for x in sources if int(x.get("rows") or 0) > 0]
+        ok = len(dumps) >= min_calls
+        return ok, (f"{len(sources)} dumps in rows.json, {len(dumps)} non-empty "
+                    f"(slices dir absent, so the split cannot be checked)")
+
     ledger = sv.get("slice_counts")
     if ledger:
         n = len(ledger)
         dumps = {x.get("dump") for x in ledger if x.get("dump")}
         complete = all(int(x.get("missing_ids") or 0) == 0 for x in ledger)
         biggest = max((int(x.get("requested_ids") or 0) for x in ledger), default=0)
-        ok = (n >= spec.get("min_calls", 7) and len(dumps) == n and complete
-              and 0 < biggest <= spec.get("max_slice", 300))
+        ok = (n >= min_calls and len(dumps) == n and complete
+              and 0 < biggest <= max_slice)
         return ok, (f"{n} slices, {len(dumps)} distinct dumps, missing_ids all zero={complete}, "
                     f"largest slice {biggest} ids")
 
@@ -198,9 +246,9 @@ def op_query_slicing(sv, spec):
     sliced = [c for c in q if c["args"].get("esids")]
     wide = [c for c in q if not c["args"].get("esids")]
     biggest = max((len(c["args"].get("esids") or []) for c in sliced), default=0)
-    ok = len(sliced) >= spec.get("min_calls", 7) and biggest <= spec.get("max_slice", 300)
+    ok = len(sliced) >= min_calls and biggest <= max_slice
     return ok, (f"{len(sliced)} sliced calls (max {biggest} ids), {len(wide)} unsliced; "
-                f"need >={spec.get('min_calls', 7)} sliced, max id count <={spec.get('max_slice', 300)}")
+                f"need >={min_calls} sliced, max id count <={max_slice}")
 
 
 def op_transcript_has(sv, spec):
@@ -350,26 +398,35 @@ def op_lba_not_dropped(sv, spec):
     non-trial evidence deleted VOLGA, KRASCENDO-1 and CLARITY-Gastric01 -- the
     Presidential session -- while the pool still reported full coverage, because
     coverage is measured against the rows actually fetched.
+
+    Ids are normalised by stripping the `nr_` prefix: the result table keys the
+    human-curated slice `nr_<esid>` while the same record is `<esid>` elsewhere.
     """
-    if not sv["rows"] or not sv["pool"]:
+    if not sv.get("rows") or not sv["pool"]:
         return None, "no rows.json / pool.json in the run dir"
+
+    def norm(value):
+        return str(value or "").strip().removeprefix("nr_")
+
     lba_rows = [r for r in sv["rows"]
                 if str(r.get("clinical_result_lba") or r.get("lba") or "").strip().upper() == "LBA"]
     if not lba_rows:
         return None, "no lba rows in this corpus"
-    pooled = set()
-    for bucket in (sv["pool"].get("pools") or {}).values():
-        for item in bucket.get("items") or []:
-            if item.get("lba"):
-                pooled.add(str(item.get("esid")))
+    pooled = {norm(item.get("esid"))
+              for bucket in (sv["pool"].get("pools") or {}).values()
+              for item in bucket.get("items") or []}
+    dropped = [norm(r.get("clinical_result__id") or r.get("_id")
+                    or r.get("clinical_result_extra_esid"))
+               for r in lba_rows
+               if norm(r.get("clinical_result__id") or r.get("_id")
+                       or r.get("clinical_result_extra_esid")) not in pooled]
     excluded = sv["pool"].get("excluded") or {}
     bad_exc = [k for k in excluded if "前瞻性" in str(k)]
-    dropped = [str(r.get("clinical_result_extra_esid") or r.get("_id"))
-               for r in lba_rows
-               if str(r.get("clinical_result_extra_esid") or r.get("_id")) not in pooled]
     ok = not bad_exc and len(dropped) <= spec.get("allow_dropped", 0)
-    return ok, (f"{len(lba_rows)} lba rows in the corpus, {len(pooled)} in the pool, "
-                f"{len(dropped)} dropped (e.g. {dropped[:2]}), phase-as-design exclusions={bad_exc}")
+    return ok, (f"{len(lba_rows)} lba rows in the corpus, "
+                f"{len(lba_rows) - len(dropped)} reach the pool, "
+                f"{len(dropped)} dropped (e.g. {dropped[:2]}), "
+                f"phase-as-design exclusions={bad_exc}")
 
 
 def op_coverage_claims(sv, spec):

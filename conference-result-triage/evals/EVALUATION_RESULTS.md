@@ -80,7 +80,40 @@
 
 ---
 
+## R5 — v0.6 真实跑批（两次，第一次暴露三个面）
+
+发布 v0.6 后原地重跑全量（592 候选 / 40 批），两次都跑完，第一次 `facts 16/19`，第二次 `19/19`。
+
+**run 1 `cards-e2e3`（`20261112-090453`，1883 s，56 次工具调用，40 卡 15/14/11）**
+
+| 失败项 | 输出现象 | 判定 |
+|---|---|---|
+| `A-D4-lba-not-dropped` | `73 lba rows … 19 dropped` | **op 的 bug**：比对键取 `extra_esid`（无 `nr_` 前缀），池内键是 `_id`（带前缀）。归一到 73/73 后转绿——这是 pitfalls 里记过的 `nr_` 陷阱在审计脚本里复发 |
+| `A-D2-sliced-pulls` | `0 sliced calls` | 分片调用发生在 `task` 子代理内，父回合只看到 1 次 id-only 调用；v0.5 依赖的 `slice_counts.json` 账本这次没写 → 审计无面可读 |
+| `A-H1-two-honest-claims` | `0 notes` | 模型把两条边界写进了 `coverage.boundary`，不是 `coverage_notes`；而 `coverage_notes` **在 SKILL.md 里从未被定义过**——v0.5 那次只是模型恰好这么写，`A-H1` 是运气通过 |
+
+**三处修法（都修"面"，不修阈值）**
+
+1. `pull_results.py` 让 `rows.json` 自带出处：`"sources": [{"dump": "slice_01.jsonl", "rows": 150}, …]`。数据文件自己证明自己被分过片，不再依赖调用方记得写账本——分片是唯一会静默丢数据的步骤，证据必须随数据走。
+2. `check.py` 的分片项改成三级回退：`work/slices/slice_*.json`（切分本身）→ `rows.json.sources` → 父回合调用记录；并要求切片 id 集合与 `rows.json` 的 id 集合**双向相等**（漏了是丢数据，多了是伪造）。
+3. 把两条诚实声明从"建议"升级成闸门：`check_cards.py` 要求顶层 `coverage_notes` 是字符串数组且语义上写到两条边界，措辞不查（`无 p 或 HR` / `未列p或HR` / `没给 p 值或 HR` 都算）。同时补上 SKILL.md 与系统提示词里的 schema——**先有定义，才有闸门**。
+
+**run 2 `cards-e2e4`（`20261112-094222`，1520 s，55 次工具调用，45 卡 15/15/15）**
+
+```
+facts 19/19 warn 1/1 -> PASS
+A-D2  8 slices (largest 150 ids, 1097 distinct), 10 dumps recorded, 0 missing
+A-D4  73 lba rows in the corpus, 73 reach the pool, 0 dropped
+A-C1  7/12 heat trials on the list
+```
+
+VOLGA / KRASCENDO-1 / CLARITY-Gastric01 三条都在榜上（pivotal 96 / 94 / …），`score_parts` 全部自洽，17 个不同分数。
+
+**结论**：v0.6 的 19 项事实层全绿。两次跑批之间差异只来自"面"的补齐，事实规则一条没松——第一次的 16/19 里有 1 项是真缺陷（诚实声明无定义）、2 项是审计脚本与审计面自己的问题。
+
+---
+
 ## 待测
 
-- **R5 — v0.6 真实跑批**：本文的 12/12 是池内结论，不是榜单结论。发布 v0.6 后需重跑一次 E2E，目标 `facts 19/19`。
+- **v0.6 已发布并验证**；剩余项是人工复核（45 张卡的可读性、分数分布）与 `featured` 白名单（`manual` 恒 `null`）。
 - 失败桶 vs 热度：阴性 query 两次 502，数据缺失，不给结论。

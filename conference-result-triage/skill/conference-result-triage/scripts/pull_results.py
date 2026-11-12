@@ -243,7 +243,7 @@ def load_tool_result_rows(paths: List[str]) -> List[Dict[str, Any]]:
             if isinstance(parsed, list):
                 for row in parsed:
                     if isinstance(row, dict):
-                        rows.append(row)
+                        rows.append({**row, "__source_dump": os.path.basename(path)})
                 continue
         for line in blob.splitlines():
             line = line.strip()
@@ -254,7 +254,7 @@ def load_tool_result_rows(paths: List[str]) -> List[Dict[str, Any]]:
             except json.JSONDecodeError:
                 continue
             if isinstance(row, dict):
-                rows.append(row)
+                rows.append({**row, "__source_dump": os.path.basename(path)})
     return rows
 
 
@@ -270,6 +270,28 @@ def load_tool_result_flags(paths: List[str]) -> Dict[str, Any]:
             "lba": row.get("lba"),
         }
     return flags
+
+
+def dump_provenance(paths: List[str], rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Per-dump row counts, written into ``rows.json`` as ``sources``.
+
+    The slicing step is the one that silently loses data: one wide pull returns
+    ``ok: true`` with 458 of 1097 rows. The only durable proof that the corpus was
+    sliced is what the merge itself saw, so it travels *inside* ``rows.json``
+    instead of in a sidecar the caller has to remember to write (the v0.5 workflow
+    asked for ``slice_counts.json`` and a run skipped it, leaving the audit with
+    nothing to read).
+    """
+    counts: Dict[str, int] = {}
+    for row in rows:
+        src = str(row.get("__source_dump") or "")
+        if src:
+            counts[src] = counts.get(src, 0) + 1
+    out = []
+    for path in _expand(paths):
+        name = os.path.basename(path)
+        out.append({"dump": name, "rows": counts.get(name, 0)})
+    return out
 
 
 def dedupe_rows(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
@@ -398,7 +420,13 @@ def main(argv: List[str] | None = None) -> int:
 
 def _main_from_dumps(args: argparse.Namespace, fields: List[str]) -> int:
     """Platform path: assemble ``rows.json`` from what the MCP offload directory holds."""
-    rows = dedupe_rows(load_tool_result_rows(args.from_tool_results))
+    raw = load_tool_result_rows(args.from_tool_results)
+    sources = dump_provenance(args.from_tool_results, raw)
+    # Bookkeeping only: `__source_dump` must not survive into rows.json, or it would
+    # leak into every pool item and every card.
+    for row in raw:
+        row.pop("__source_dump", None)
+    rows = dedupe_rows(raw)
     if not rows:
         print(f"ERROR: no rows parsed from {args.from_tool_results}", file=sys.stderr)
         return 2
@@ -428,7 +456,7 @@ def _main_from_dumps(args: argparse.Namespace, fields: List[str]) -> int:
                   file=sys.stderr)
 
     payload = {"conference": conference, "rows": rows, "requested": len(rows),
-               "missing": []}
+               "missing": [], "sources": sources}
     out_dir = os.path.dirname(os.path.abspath(args.out))
     os.makedirs(out_dir, exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as fh:
