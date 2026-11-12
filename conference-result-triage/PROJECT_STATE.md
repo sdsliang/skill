@@ -22,6 +22,8 @@
 **验证**：`evals/test_check_cards.py` **20 case 全绿**（identity-only 通过 / `reaction` 回潮被拒 / `stock` 回潮被拒）·
 `mutations.py` **coverage 25/25 fail items + 7 NEG green** · `pack-dist.py` → `dist/conference-result-triage-v0.9.zip` **16 entries / 111674 B / sha256=dc88978b67b2d6c9**。
 
+**平台侧问题单（2026-11-13，已全文交用户转开发）**：用户要求把系统提示词改挂共享的「PharmCube AI Chat SP」（`d08570e93c17466ca6a0308f69afdb5d`，owner 文超），核查「我们能不能改到它」时查出平台缺陷 —— **prompt 只有一把全局 `prompt:write`，服务端零 owner 校验**（`prompt_routes.py` 四个写接口只到权限层），而 `project_manager` 角色恰好持有它；同一角色还带 `skill:manage`，按 `_ensure_editable` 的实现也可绕过技能 owner 判定。附带两条：无 `is_current` 行时原地更新静默返回 200（`update_current_prompt_content` 的 bool 被 route 丢弃）；`current_version_id` 可指向版本号更小的行（实测该 SP current=1.0 而 1.1 存在），「取最大版本号」的调用方会拿错。全文与证据（文件:行号）在 Obsidian `03-技术与VibeCoding/01-AI与LLM/TS平台问题单-提示词资源缺ownership维度-项目管理员跨作者可写-2026-11-13.md`，仓库只留此摘要。**自保**：runner 三重护栏（CLI family 必须等于配置 / `owned: true` / 平台 owner 比对）+ 不把共享 family 写进任何写目标位 + 对共享 SP 钉 sha 做漂移检测。
+
 **遗留（待用户拍板）**：项目 `prompt_id` 是否切到「PharmCube AI Chat SP」`d08570e93c17466ca6a0308f69afdb5d`（v1.1 仅 3268 chars，不含交付物规范——规范已全部搬进 SKILL.md，但切换是平台写动作，需授权）；不切则继续用本仓库 `system-prompts/` 的 v0.9 版本。
 
 ## v0.8（2026-11-12）：`reaction` 从短句变成带口径的行情对象
