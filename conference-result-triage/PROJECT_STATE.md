@@ -1,5 +1,40 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.9.2（2026-11-13）：E2E #8 全绿，并修掉「交付前闸门比事后校验宽」
+
+E2E #8（`cards-e2e8`）是项目改挂共享 SP 后第一个跑通的回合（831.5 s / 74 steps / `succeeded`），`verification.md`
+`24 PASS / 0 FAIL / 0 WARN`。事实层暴露一个真缺陷：`A-F4-numbers-traceable` 抓到 4 个数字（`44%` / `24%` / `16 个月` / `43 个月`，
+原文分别是 `44.7` / `24.5` / `16.1 mo` / `43.6 mo`，模型自己四舍五入），而**同一份 JSON 在平台内 `check_cards.py` 是 exit 0**
+—— 因为卡片闸门当时用子串匹配（`"44" in "44.7"`）、事实层用数值相等。修法两侧同源：
+
+- `check_cards.py` 数字溯源改**数值比对**；新增 case 21–23（prefix 陷阱、逐字小数通过、中文月单位）⇒ 23 case 全绿；
+  对 e2e8 原产物重跑 `FAIL (4)` ⇒ **fail-closed 恢复**。
+- 事实层 `NUM_RE` 单位枚举补 `个?月`（原来只认 `月`，「16 个月」整段被跳过；英文 `16.1 mo` 却能抓到）⇒ `A-F4` 2→4 条。
+- `mutations.py` 加 `m_number_round` + NEG `ngen_decimal_places` ⇒ 25/25 + 8 负控全绿；`EVALUATOR_REVISION` → `r5`。
+- `SKILL.md` / `pitfalls.md §28` 记下口径：**照抄原文小数位**，要写"约/逾"就把原数原样放进去（`16.1 个月`，不写 `16 个月`）。
+- `toolsmith-publish` 的三处验证器缺陷同轮修完（`prose_gate: false` 声明、manifest 以 shipped zip 为准、
+  `--resume` 的 receipts 继承与重建、`web tools` 头部以 `run.json.enable_web` 为准）。
+
+v0.9 包重新打包：`dist/conference-result-triage-v0.9.zip` 113079 B / 16 entries / sha256 `4f2ac9e5aefc67a1`。
+**未改版本号**（原地更新语义）。下一步：重新 publish + E2E #9，以 `facts 26/26` 为通过条件。
+
+## v0.9.1（2026-11-13）：项目改挂共享系统提示词，按「只读它、绝不写它」重建护栏
+
+用户已自行完成平台侧动作：项目 `d1c193d7809d4c04ba5423942523f91c` 的 `prompt_id` 改绑到**「PharmCube AI Chat SP」的当前版本**（family `d08570e93c17466ca6a0308f69afdb5d`，owner 文超，`current_version_id=41132120…` = v1.0，29169 B / sha `a2b1581ef7cd`），**我们原来的 prompt family `3fa0f27e…` 已删除（GET → 404）**。平台侧修 ownership 无望（问题单已交，见下），于是改为本地自保。
+
+| 面 | 改法 |
+|---|---|
+| 硬阻断 | runner 新增 `FOREIGN_PROMPTS = {d08570e9…}`：`assert_owned_targets` **第一段**就拒，且同时检查 `a.prompt_family` 与命令行传进来的 `cli_prompt_family`；`do_push_prompt` 再兜一层。**拦的是 id 本身**，不是配置路径——`--prompt-family d08570e9…` 也 abort（实测两种入口都 `ERROR: refusing to write`） |
+| 配置 | `~/.config/toolsmith/projects.json` 本项目条目：`prompt_family: null` + `shared_prompt_family: d08570e9…` + `shared_prompt_pin: {version: "1.0", version_id, sha256: a2b1581ef7cd…, bytes: 29169}` |
+| `publish` | shared 模式下**跳过 prompt 推送**（打印 SKIPPED + 原因），只推 skill；`guard OK` 行改为「skill family 是我们的；prompt 是共享 SP（owner 文超，v1.0，sha），只读、永不写」 |
+| `status` | 新增 `status_shared_prompt()` 三段证明：① 线上 current 版本 sha == 钉住的 sha（**owner 原地改内容会在这里炸**，因为平台不会升版本号）；② 项目仍绑在那个 version id；③ `agent/info.instructions` **仍以该 SP 文本开头**（证明 agent 真的跑在这个提示词上）。缺失的面 → SKIP，不自动 PASS |
+| `run` 断言 | 「deployed system prompt == local」在 shared 模式下会**永远假失败**（我们不再发布那个文件）→ 换成两条：`deployed system prompt == shared SP`（首字节前缀）+ `project prompt is the shared SP, not our repo file`（`system-prompts/*.md` 只是本地参考，不得出现在 deployed 里） |
+| 仓库里的 v0.9 系统提示词 | 降级为**本地参考**：内容已全部搬进 `SKILL.md`，不再发布。留着它是为了让「skill 自己承载规范」可审计（哪天要切回自管 prompt 还能用） |
+
+**发布结果（原地更新，未新建版本）**：`toolsmith-publish publish` → prompt SKIPPED，skill `v0.3.0` / skill_id `230463cbc03d4fe5ba0e2e8964fe91dd` / `POST /api/skills/update_skill_file → 200`，回读 **16 entries / identical=16 / differing=0**，`STATUS: in sync`。
+
+**平台侧问题单**（prompt 无 owner 校验、`project_manager` 带 `skill:manage`、`is_current` 缺失时静默 200、`current_version_id` 可指向更小的版本号）全文在 Obsidian `03-技术与VibeCoding/01-AI与LLM/TS平台问题单-提示词资源缺ownership维度-项目管理员跨作者可写-2026-11-13.md`。
+
 ## v0.9（2026-11-13）：删掉整个行情层，交付物改成带 `skills` frontmatter 的 Markdown 报告
 
 两条需求都来自用户，方向相反于 v0.8：**v0.8 花了一整版把涨跌幅做精确，v0.9 把它整块删掉。**

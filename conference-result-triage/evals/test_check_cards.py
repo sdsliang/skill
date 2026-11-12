@@ -244,6 +244,35 @@ fails, _ = check_cards.check({"conference": "T", "count": 1,
                               "coverage_notes": NOTES}, by_esid)
 expect("ticker carries a market suffix", fails, "market suffix")
 
+# 21/22/23. Number traceability compares values, not digit strings. e2e8 shipped
+# "12 个月 PFS 率 44% vs 24%" (the abstract printed 44.7 / 24.5 only) and "随访约 16 个月"
+# (the abstract said 16.1 mo); a substring test answered yes to both, so the delivered
+# JSON passed its own gate while the offline fact layer said no.
+import copy  # noqa: E402
+
+trap = copy.deepcopy(items[0])
+trap["results_text"] = ("Kras trap met its endpoint with confirmed ORR 44.7% versus "
+                        "24.5% for the comparator; median follow-up 16.1 mo.")
+trap_by = {str(trap["esid"]): trap}
+
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(base[0], summary="确认 ORR 44% 对比 25%。")],
+                              "coverage_notes": NOTES}, trap_by)
+expect("rounded figure is not traceable", fails, "figure '44%' not found")
+
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(base[0], summary="确认 ORR 44.7% 对比 24.5%。")],
+                              "coverage_notes": NOTES}, trap_by)
+if [f for f in fails if "figure" in f]:
+    failures.append(f"verbatim figures rejected: {fails}")
+else:
+    print("  ok  verbatim figures pass (44.7 / 24.5)")
+
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(base[0], summary="ORR 44.7%，随访约 16 个月。")],
+                              "coverage_notes": NOTES}, trap_by)
+expect("chinese month unit is scanned", fails, "figure '16 个月' not found")
+
 if failures:
     print(f"\nFAIL ({len(failures)}):")
     for f in failures:

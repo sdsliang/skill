@@ -130,7 +130,7 @@ def placeholder_hits(text: str) -> List[str]:
             hits.append(ph)
     return hits
 UNIT_NUM = re.compile(r"\d+(?:\.\d+)?\s*(?:%|个月|月|mo|months?|年|HR|OR|CI)", re.I)
-FIGURE = re.compile(r"\d+(?:\.\d+)?\s*(?:%|mo|months?|个月)", re.I)
+FIGURE = re.compile(r"\d+(?:\.\d+)?\s*(?:%|mo|months?|个?月)", re.I)
 
 
 def load_pool(path: str) -> Dict[str, Dict[str, Any]]:
@@ -289,9 +289,18 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
         if not UNIT_NUM.search(str(card.get("summary") or "")):
             fails.append(f"{tag}: summary has no unit-bearing number")
         text = record_text(item)
-        for fig in set(FIGURE.findall(f"{card.get('summary')} {card.get('why')}")):
-            num = re.sub(r"[^\d.]", "", fig)
-            if num and num not in text:
+        # Compare values, not substrings. `"44" in text` was true whenever the abstract
+        # said 44.7% or n=144, so "12 个月 PFS 率 44% vs 24%" (a press-release figure the
+        # abstract never printed) sailed through this gate while the offline fact layer
+        # caught it. The two must agree, and this is the weaker side by design: the
+        # delivered JSON has to fail before it is presented, not after.
+        src_nums = {float(m.group(0)) for m in re.finditer(r"\d+(?:\.\d+)?", text)}
+        for fig in sorted(set(FIGURE.findall(f"{card.get('summary')} {card.get('why')}"))):
+            try:
+                num = float(re.sub(r"[^\d.]", "", fig))
+            except ValueError:
+                continue
+            if num not in src_nums:
                 fails.append(f"{tag}: figure {fig!r} not found in the record text")
         for key in PRICE_KEYS:
             if key in card and card.get(key) not in (None, "", {}):

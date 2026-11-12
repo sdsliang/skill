@@ -39,7 +39,8 @@ conference-result-triage/
 ├── references/                    # 数据契约、筛选手则、复核协议、坑清单
 ├── templates/watchlist-report.md
 ├── scripts/                       # 随包 ship 到 /workspace/skills/<name>/scripts/
-├── system-prompts/…v0.3.md        # 部署到 TS 的系统提示词
+├── system-prompts/…v0.9.md        # 本地参考：规范已下沉进 SKILL.md，本文件不再部署
+│                                  #   项目现挂共享的「PharmCube AI Chat SP」（只读，见下方）
 ├── tools/pack-dist.py             # 确定性打包 -> dist/*.zip
 └── dist/                          # 包 + ESMO 2026 实跑样例
 ```
@@ -56,6 +57,16 @@ conference-result-triage/
 | `make_cards.py` | 按 plan 顺序渲染卡片 JSON（只渲染不排序） |
 | `check_cards.py` | 交付前 fail-closed 校验，exit 3 = 有问题 |
 | `history_for.py` | 同资产历次会议对照 |
+
+## 系统提示词：本项目挂共享 SP，只读
+
+项目 `d1c193d7809d4c04ba5423942523f91c` 绑定的是公司共享的「PharmCube AI Chat SP」（family `d08570e93c17466ca6a0308f69afdb5d`，owner 文超），**不是本仓库的文件**。因为平台对 prompt 写操作只有一把全局 `prompt:write`、没有 owner 校验，自保全部落在本地 runner：
+
+- `FOREIGN_PROMPTS` 硬阻断：该 id 无论是配置里还是 `--prompt-family` 传进来，写动作一律 `ERROR: refusing to write`；
+- `publish` 在 shared 模式下跳过 prompt，只推 skill；
+- `status` 用三件事证明绑定没漂：钉住的 sha 未变、项目仍指向该 version、`agent/info.instructions` 仍以 SP 文本开头。
+
+要换绑定或对方改了内容，`status` 会先报出来，而不是让 skill 静默换行为。
 
 ## 快速开始（在平台工作区）
 

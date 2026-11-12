@@ -40,7 +40,7 @@ import re
 import sys
 from typing import Dict, List
 
-EVALUATOR_REVISION = "2026-11-13-r4"
+EVALUATOR_REVISION = "2026-11-13-r5"
 
 # Presidential / late-breaking trials the X discussion concentrated on. Used by the
 # heat-coverage item, which is `warn`: the list must never be bent toward what was
@@ -60,7 +60,10 @@ LISTED_FIELDS = ("name", "ticker", "exchange", "source_url")
 PRICE_KEYS = ("stock", "reaction", "change_pct", "excess_pct", "bench_change_pct",
               "price_source")
 FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.S)
-NUM_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(%|mo|months?|月|HR|hazard|OR\b|p\s*[=<>]|P\s*[=<>])")
+# `个?月` and not just `月`: Chinese abstracts write "16 个月", and a unit alternation that
+# only knew "月" skipped every one of those figures -- "随访约 16 个月" (the record says 16.1)
+# went unchecked while the same mistake in English was caught.
+NUM_RE = re.compile(r"(\d+(?:\.\d+)?)\s*(%|mo|months?|个?月|HR|hazard|OR\b|p\s*[=<>]|P\s*[=<>])")
 
 
 # --------------------------------------------------------------------------- #

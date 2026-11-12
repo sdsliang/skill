@@ -13,7 +13,7 @@ description: Use when someone names a conference and asks what is worth reading 
 
 - `scripts/` 负责去重、排除非试验证据、分桶、切批、校验、渲染。零第三方依赖，确定性。
 - 模型负责逐条读摘要，判 `keep | weak | drop`，写出理由与**逐字摘录**的证据。
-- 卡片上的每个数字都必须能回指该条记录原文，不能回指的一律不写。
+- 卡片上的每个数字都必须能回指该条记录原文，不能回指的一律不写。**照抄原文的写法与小数位**：原文 `44.7%` 就写 `44.7%`，写成 `44%` 是自算（四舍五入），闸门按**数值**比对，`44` 不等于 `44.7`；想写「随访约 16 个月」就把原数钉进去（`16.1 mo` → 「随访约 16.1 个月」）。
 
 ## Input
 
@@ -257,7 +257,7 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 
 `--rows` 只在有 `promoted` 卡片时才必需；给了它，池子外的 esid 必须带 `"promoted": "web"` 才放行。
 
-`check_cards.py` **必须 exit 0** 才能交付。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字、**每桶超过 10 条 / 全场超过 30 条**、**`score` 不是 0–100 整数或五维相加不等于总分**、**`why` 少于 60 字或只是复述 `summary`**、**`listed_company` 键缺失或给了假 ticker/假链接**、**任何行情字段回潮（`stock` / `reaction` / `change_pct` / `excess_pct`）**、**池子外的卡片没有 `promoted` 标记**、**`coverage_notes` 缺失或没写到两条边界**。
+`check_cards.py` **必须 exit 0** 才能交付。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字（**按数值比对，不是子串**：`44%` 不会因为原文有 `44.7%` 或 `n=144` 而通过；`个月` 与 `mo` 一样会被扫描出来）、**每桶超过 10 条 / 全场超过 30 条**、**`score` 不是 0–100 整数或五维相加不等于总分**、**`why` 少于 60 字或只是复述 `summary`**、**`listed_company` 键缺失或给了假 ticker/假链接**、**任何行情字段回潮（`stock` / `reaction` / `change_pct` / `excess_pct`）**、**池子外的卡片没有 `promoted` 标记**、**`coverage_notes` 缺失或没写到两条边界**。
 
 `coverage_notes` 必须写在交付 JSON 的顶层（见下「两个必须写进清单的诚实声明」）。v0.5 的实跑把它写成了别的字段名、v0.6 的实跑把边界写在 `coverage.boundary` 里 ⇒ 事实层 `A-H1` 两次都判失败：**边界只写在聊天回复里，下个月读 JSON 的人看不到**。所以这一条从"建议"升级成闸门，措辞不查（`无 p 或 HR` / `未列p或HR` / `没给 p 值或 HR` 都算），只查事实有没有落到交付物里。
 

@@ -247,3 +247,53 @@ v0.9 是**减法版本**，验证目标是"删干净了、且删掉的东西回�
 **留档**：`/tmp/e2e7-orig.json` 是 e2e7 的**原始未改**产物（含被闸门抓到的 failed 桶排序倒挂，以及 25 张卡的价格字段）；
 `dist/review/esmo2026-watchlist-v09.json/.html` 是它的**剥价格重建版**，用于说明"删掉行情后页面长什么样"。两者都不代表 v0.9 的端到端结果——
 v0.9 的端到端（E2E #8）尚未跑。
+
+## R9 — E2E #8（2026-11-13，共享 SP 原地更新后首次全链路）
+
+**回合**：`cards-e2e8`，thread `c60b14c7-1ebc-4cd6-8c1e-1df330ac60c1`，turn `98388943-1189-4fa2-b594-c85b0bcc046a`，
+DeepSeek Flash，`web=true`。831.5 s / 74 steps / 111 attempts（108 返回 + 3 `write_file` 参数被拒）/ `outcome: succeeded`。
+交付 `output/report.md` + `output/watchlist.json`。**首个在"项目不再有自己的系统提示词、只装配共享 SP"下跑通的回合。**
+
+> 一次被中止的尝试（`20261112-173950`，thread `e2bf6508`）不计入：`run` 的 `--web` 默认 off，
+> 联网类 skill 必须显式传 `--web`，否则检索层整段消失。已 `POST /api/chat/stop` 停掉并以 `--web` 重跑。
+
+| 面 | 结果 |
+|---|---|
+| `verification.md`（`--resume` 重建） | **24 PASS / 0 FAIL / 0 WARN**；头部 `web tools: enabled`；`receipts` 10 个持久 pointer 全部存档并 hash 校验 |
+| 事实层 `check.py` | `facts 24/25 warn 1/1 -> FAIL`，唯一失败 `A-F4-numbers-traceable`（见下） |
+| 交付规模 | 30 卡 `10/10/10`；`coverage: 1097/1097`；8 个切片 / 1097 distinct；`lba 73/73`；`abstract_id` 与 `manual` 全 `null`；20 个不同 `score`；每桶降序 |
+| 报告 | `report.md` frontmatter `skills: [conference-result-triage]` / 正文口径 `1097 条登记 → 592 候选 → 30 条` |
+
+### 本轮的三个验证器缺陷（都已修）
+
+1. **`prose gate ran`** 永久 FAIL：本仓库契约里没有 `scripts/tell-scan.py`，而 `toolsmith-publish` 默认
+   `prose_gate=True`。→ 在 `projects.json` 显式声明 `prose_gate: false`，输出改为
+   `prose gate not part of this repo's contract — skipped`（"不适用"，不是"静默禁用"）。
+2. **`deployed support-file manifest matches local`** 永久 FAIL：校验器按 `os.walk(worktree)` 算期望文件集，
+   而 `pack-dist.py` 刻意 `EXCLUDE=("make_watchlist.py",)` → 每次运行都把该文件报成"平台缺文件"。
+   → 期望集改以 **shipped zip 的 `namelist()`** 为准（`from conference-result-triage-v0.9.zip`）。
+3. **`tool_results receipts archived`** FAIL：`/workspace/tool_results/` 是**回合运行期**目录，resume 时窗口已关；
+   且原 run 的 `run.json` 因为报告阶段崩溃根本没写 `receipts` 键。→ `--resume` 时把上一个 run 的
+   `tool_results/` **copy**（不是 move）到新目录，并**从 `receipts.jsonl` 的 fetch log 重建 manifest**
+   （size 来自 log、sha256 来自冻结副本，不一致才 warn），`inherited_from` 写进 `run.json`。
+   顺带修 `web tools: disabled` 误报（`--resume` 不传 `--web`，改从 `run.json.enable_web` 兜底）。
+
+### `A-F4-numbers-traceable` —— 交付前闸门比事后校验宽（已修）
+
+失败明细：`44%` / `24%`（esid `24_37_p_60b6645907f2bcd7747db53774088cbb_1`，Krascendo 1）。
+原文只有 `44.7` / `24.5`，模型自己四舍五入成 `44%` / `24%`。**同一次运行里 `check_cards.py` 是 exit 0**：
+它当时用子串判断（`"44" in "44.7"` 为真），而离线事实层用数值相等。两个闸门口径不一致 → 交付前放行、事后判死，
+而 `present_artifact` 是终端动作，读者先看到、评估后打分。
+
+**修法（两侧同源）**：
+
+- `check_cards.py`：数字溯源改成**数值比对**（与 `A-F4` 同语义），新增 3 条 case（prefix 陷阱 `44%` vs `44.7%`、
+  逐字 `44.7%` 仍通过、中文 `16 个月` 会被扫到）⇒ 卡片闸门 **23 case 全绿**；对 e2e8 原产物重跑得
+  `FAIL (4): figure '16 个月' / '44%' / '24%' / '43 个月' not found` ⇒ **fail-closed 恢复**（现在它会挡住那次交付）。
+- `check.py`：`NUM_RE` 的单位枚举补 `个?月`。原来只认 `月`，于是「随访约 16 个月」「随访逾 43 个月」**整个数字被跳过**
+  （`月` 前面有 `个`），而同样的错误写成英文（`16.1 mo`）就会被抓。修后 `A-F4` 从 2 条升到 4 条。
+- `mutations.py`：新增 `m_number_round`（`ORR 3%` 而原文 `30.0%` / 标题 `DeLLphi-305`，数字出现过、数值没有）
+  与 NEG `ngen_decimal_places`（`30.00%` 与 `30.0%` 同值，必须仍绿）⇒ **25/25 fail items 有 mutation，8 个负控全绿**。
+
+**`EVALUATOR_REVISION` → `2026-11-13-r5`。** e2e8 的产物**不修**（它是这一轮的证据）；下一次端到端（R10）以
+`facts 26/26` 为通过条件。

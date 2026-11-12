@@ -287,6 +287,20 @@ def m_number(root):
     write(root, "artifacts/output/watchlist.json", w)
 
 
+def m_number_round(root):
+    """Rounding a figure keeps its digits, not its value.
+
+    e2e8 shipped "随访约 16 个月" where the abstract said 16.1 mo, and "12 个月 PFS 率
+    44% vs 24%" where 44/24 were only ever printed inside 44.7 / 24.5 -- rounding *down*
+    to a value the record never states. A substring test (`"44" in text`) says yes to
+    both; a value test says no. The fixture's title is "DeLLphi-305", so "ORR 3%" is the
+    same trap in miniature: the digit occurs (inside 305), the value does not.
+    """
+    w = read(root, "artifacts/output/watchlist.json")
+    w["cards"][0]["summary"] = "ORR 3% with HR 0.50"
+    write(root, "artifacts/output/watchlist.json", w)
+
+
 def m_no_present(root):
     h = read(root, "debug-history.json")
     parts = [p for p in h["raw_model_messages"][0]["parts"] if p["tool_name"] != "present_artifact"]
@@ -452,6 +466,7 @@ MUTATIONS = [
     ("A-F2-manual-null", m_manual),
     ("A-F3-esid-in-pool", m_esid),
     ("A-F4-numbers-traceable", m_number),
+    ("A-F4-numbers-traceable", m_number_round),
     ("A-T1-present-artifact", m_no_present),
     ("A-T2-no-json-paste", m_json_paste),
     ("A-H1-two-honest-claims", m_notes),
@@ -471,6 +486,13 @@ def ngen_legal_reorder(root):
     """Reverse the order *between* buckets -- order is only meaningful inside one."""
     w = read(root, "artifacts/output/watchlist.json")
     w["cards"].sort(key=lambda c: c["bucket"])
+    write(root, "artifacts/output/watchlist.json", w)
+
+
+def ngen_decimal_places(root):
+    """Same value, more decimals: traceability is numeric, so this must stay green."""
+    w = read(root, "artifacts/output/watchlist.json")
+    w["cards"][0]["summary"] = "ORR 30.00% with HR 0.50"
     write(root, "artifacts/output/watchlist.json", w)
 
 
@@ -527,6 +549,7 @@ def ngen_heat_hit(root):
 NEGATIVES = [("legal bucket reorder", ngen_legal_reorder),
              ("heat trial titled", ngen_heat_hit),
              ("why at the length floor", ngen_why_varied),
+             ("same value with more decimals", ngen_decimal_places),
              ("fully sourced HK company", ngen_listed_legal),
              ("web down but declared in coverage_notes", ngen_web_declared),
              ("search with no usable result, noted", ngen_web_empty_url_noted),
