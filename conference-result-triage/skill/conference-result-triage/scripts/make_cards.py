@@ -184,6 +184,15 @@ def main(argv: Optional[List[str]] = None) -> int:
         "count": len(cards),
         "cards": cards,
     }
+    # v0.11: the envelope carries two statements that belong to the deliverable, not to
+    # the chat reply -- the honest limits, and the ledger of every skip that overrode the
+    # judgement ranking. Passing them through means the model states them once, in the
+    # plan, instead of hand-editing the rendered JSON afterwards (which is how v0.5/v0.6
+    # shipped `coverage.boundary` and failed A-H1 twice).
+    if plan.get("coverage_notes"):
+        payload["coverage_notes"] = plan["coverage_notes"]
+    if plan.get("editorial_overrides"):
+        payload["editorial_overrides"] = plan["editorial_overrides"]
     os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
     with open(args.out, "w", encoding="utf-8") as fh:
         json.dump(payload, fh, ensure_ascii=False,

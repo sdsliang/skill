@@ -189,8 +189,30 @@ def load_run(run_dir: str) -> dict:
                 if isinstance(doc, dict):
                     citations[name] = doc
 
+    # v0.11: the judgement records. `selection_order` compares what the reviewer
+    # scored against what the deliverable listed, and that comparison is the only
+    # place the *editorial* hop is checked -- every other gate asks whether a listed
+    # record is legal, none asks whether it is the better one.
+    judged: Dict[str, dict] = {}
+    root_dir = os.path.dirname(rows_path) if rows_path else ""
+    if root_dir and os.path.isdir(root_dir):
+        for name in sorted(os.listdir(root_dir)):
+            if not (name.startswith("judged") and name.endswith(".json")):
+                continue
+            doc = _load_json(os.path.join(root_dir, name))
+            items = doc.get("items") if isinstance(doc, dict) else doc
+            for it in items or []:
+                if not isinstance(it, dict) or it.get("verdict") is None:
+                    continue
+                if not isinstance(it.get("score"), int) or isinstance(it.get("score"), bool):
+                    continue
+                esid = str(it.get("esid") or "").strip()
+                if esid:
+                    judged[esid] = it
+
     return {"watchlist": watchlist, "pool": pool, "calls": calls, "reply": reply,
             "report": report, "citations": citations,
+            "judged": judged,
             "web_evidence": web_evidence,
             "slice_counts": ledger if isinstance(ledger, list) else None,
             "rows": rows if isinstance(rows, list) else None,
@@ -268,7 +290,10 @@ def op_query_slicing(sv, spec):
         # one that invents ids means rows.json was not the output of these slices.
         unsliced = sorted(i for i in have if i and i not in {u.removeprefix("nr_") for u in union})
         sources = (sv.get("rows_doc") or {}).get("sources") or []
-        ok = (len(slices) >= min_calls and 0 < biggest <= max_slice
+        # How many calls are "enough" is a property of the corpus, not a constant:
+        # 1097 ids cannot arrive in one 300-id request, 191 can arrive in two.
+        need = max(1, -(-len(union) // max_slice)) if union else min_calls
+        ok = (len(slices) >= need and 0 < biggest <= max_slice
               and not uncovered and not unsliced)
         return ok, (f"{len(slices)} slices (largest {biggest} ids, {len(union)} distinct), "
                     f"{len(sources)} dumps recorded in rows.json, "
@@ -639,6 +664,53 @@ def op_score_order(sv, spec):
     return not breaks, f"ascending inside {breaks}" if breaks else "each bucket descends by score"
 
 
+def op_selection_order(sv, spec):
+    """The list inside a bucket must be the top of that bucket's own ranking.
+
+    E2E #11 (EASL 2026) shipped a 35-score pivotal card next to an unused judged-85
+    PBC phase III. `A-P4-score-order` was green (the list descended), `A-P2-score-parts`
+    was green (the parts added up) -- because "ordered" and "legal" say nothing about
+    "better". What matters is `judged keep score > lowest listed score`, and a skip is
+    only forgivable when the deliverable itself says why in `editorial_overrides`.
+    """
+    judged = sv.get("judged") or {}
+    if not judged:
+        return False, ("no judged records carrying esid+verdict+score under work/ -- "
+                       "the selection cannot be graded, and an ungradable editorial "
+                       "step is a failing one")
+    w = sv["watchlist"] or {}
+    cards = w.get("cards") or []
+    waived = set()
+    for entry in w.get("editorial_overrides") or []:
+        if not isinstance(entry, dict):
+            continue
+        reason = " ".join(str(entry.get("reason") or "").split())
+        if len(reason) >= spec.get("min_reason_chars", 10) and str(entry.get("esid") or "").strip():
+            waived.add(str(entry["esid"]).strip())
+    floors, fails, checked = {}, [], 0
+    for bucket in ("early", "pivotal", "failed"):
+        chosen = [c for c in cards if str(c.get("bucket") or "") == bucket]
+        if not chosen:
+            continue
+        floor = min(int(c.get("score") or 0) for c in chosen)
+        floors[bucket] = floor
+        listed = {str(c.get("esid") or "") for c in chosen}
+        for esid, item in judged.items():
+            if str(item.get("verdict") or "").lower() != "keep":
+                continue
+            if str(item.get("bucket") or "") != bucket:
+                continue
+            checked += 1
+            score = int(item["score"])
+            if esid in listed or score <= floor or esid in waived:
+                continue
+            fails.append(f"{bucket}: kept {floor}-score card, judged-keep {esid} scores {score}")
+    detail = f"floors {floors}, {checked} judged keeps compared, {len(waived)} declared overrides"
+    if fails:
+        return False, "; ".join(fails[:4]) + (f" (+{len(fails) - 4} more)" if len(fails) > 4 else "")
+    return True, detail
+
+
 def op_null_field(sv, spec):
     field = spec["field"]
     bad = [str(c.get("esid")) for c in (sv["watchlist"] or {}).get("cards") or []
@@ -687,6 +759,55 @@ def op_reply_mentions(sv, spec):
     return len(hits) >= need, f"{len(hits)}/{len(pats)} of {pats} found"
 
 
+# `evidence_source` is the only phase signal the platform has, so a blank phase tells
+# us nothing about whether a record is a trial. Only these values actually do.
+NON_TRIAL_VALUES = ("回顾性研究", "真实世界研究", "汇总分析", "Not Applicable", "其他")
+PENDING_RESULT_MARKERS = ("尚未披露", "尚未公布", "未披露结果", "结果未公布", "正在进行")
+
+
+def _declared_non_trial(row):
+    """The library itself must say why a record is not a trial (or has no result yet)."""
+    # `evidence_source` arrives as a list (["回顾性研究", "真实世界研究"]) on most rows and
+    # as a bare string on the rest; comparing str(list) to a value silently never matches,
+    # which turns every explained drop into an unexplained one.
+    raw = row.get("clinical_result_evidence_source")
+    if raw is None:
+        raw = row.get("phase")
+    values = raw if isinstance(raw, list) else [raw]
+    if any(str(v or "").strip() in NON_TRIAL_VALUES for v in values):
+        return True
+    results = str(row.get("clinical_result_study_results") or row.get("study_results") or "")
+    return any(m in results for m in PENDING_RESULT_MARKERS)
+
+
+def op_records_accounted(sv, spec):
+    """No fetched record may vanish silently between rows.json and the pool.
+
+    Every distinct esid in rows.json has to end up somewhere: inside a bucket, kept as
+    a dedupe alias of an entry that is in a bucket, or listed under an exclusion reason.
+    This is the domain-neutral version of "the pool has no hole" -- it does not care
+    how many records a meeting has, only that the arithmetic closes.
+    """
+    if not sv.get("rows") or not sv["pool"]:
+        return None, "no rows.json / pool.json in the run dir"
+
+    def norm(value):
+        return str(value or "").strip().removeprefix("nr_")
+
+    have = {norm(r.get("clinical_result__id") or r.get("_id")
+                 or r.get("clinical_result_extra_esid")) for r in sv["rows"]}
+    have.discard("")
+    buckets = (sv["pool"].get("pools") or {}).values()
+    pooled = {norm(i.get("esid")) for b in buckets for i in b.get("items") or []}
+    aliases = {norm(a) for b in buckets for i in b.get("items") or []
+               for a in (i.get("alias_esids") or [])}
+    excluded = sum(int(v or 0) for v in (sv["pool"].get("excluded") or {}).values())
+    accounted = len(pooled) + len(aliases) + excluded
+    ok = accounted == len(have)
+    return ok, (f"{len(have)} distinct ids in rows.json = {len(pooled)} pooled "
+                f"+ {len(aliases)} dedupe aliases + {excluded} excluded = {accounted}")
+
+
 def op_lba_not_dropped(sv, spec):
     """A late-breaking abstract must never be dropped for having a blank phase.
 
@@ -709,21 +830,34 @@ def op_lba_not_dropped(sv, spec):
                 if str(r.get("clinical_result_lba") or r.get("lba") or "").strip().upper() == "LBA"]
     if not lba_rows:
         return None, "no lba rows in this corpus"
+    # Dedupe losers are not holes: `build_pools` keeps the losing esid as an alias of the
+    # entry that won, so an LBA reached through a split trial must count as pooled.
     pooled = {norm(item.get("esid"))
               for bucket in (sv["pool"].get("pools") or {}).values()
               for item in bucket.get("items") or []}
-    dropped = [norm(r.get("clinical_result__id") or r.get("_id")
+    pooled |= {norm(a)
+               for bucket in (sv["pool"].get("pools") or {}).values()
+               for item in bucket.get("items") or []
+               for a in (item.get("alias_esids") or [])}
+    def ident(r):
+        return norm(r.get("clinical_result__id") or r.get("_id")
                     or r.get("clinical_result_extra_esid"))
-               for r in lba_rows
-               if norm(r.get("clinical_result__id") or r.get("_id")
-                       or r.get("clinical_result_extra_esid")) not in pooled]
+
+    dropped_rows = [r for r in lba_rows if ident(r) not in pooled]
+    dropped = [ident(r) for r in dropped_rows]
+
+    # Domain neutral: an LBA may leave the pool only when the library says it is not a
+    # trial (retrospective / real world / pooled analysis / not applicable) or when the
+    # results are still pending. "The phase column was blank" is not a reason -- that is
+    # exactly how VOLGA, KRASCENDO-1 and CLARITY-Gastric01 disappeared.
+    unexplained = [ident(r) for r in dropped_rows if not _declared_non_trial(r)]
     excluded = sv["pool"].get("excluded") or {}
     bad_exc = [k for k in excluded if "前瞻性" in str(k)]
-    ok = not bad_exc and len(dropped) <= spec.get("allow_dropped", 0)
+    ok = not bad_exc and len(unexplained) <= spec.get("allow_dropped", 0)
     return ok, (f"{len(lba_rows)} lba rows in the corpus, "
                 f"{len(lba_rows) - len(dropped)} reach the pool, "
-                f"{len(dropped)} dropped (e.g. {dropped[:2]}), "
-                f"phase-as-design exclusions={bad_exc}")
+                f"{len(dropped)} dropped of which {len(unexplained)} unexplained "
+                f"(e.g. {unexplained[:2]}), phase-as-design exclusions={bad_exc}")
 
 
 def op_coverage_claims(sv, spec):
@@ -762,12 +896,14 @@ OPS = {
     "score_parts": op_score_parts,
     "score_varied": op_score_varied,
     "score_order": op_score_order,
+    "selection_order": op_selection_order,
     "null_field": op_null_field,
     "esids_in_pool": op_esids_in_pool,
     "numbers_traceable": op_numbers_traceable,
     "no_json_paste": op_no_json_paste,
     "reply_mentions": op_reply_mentions,
     "lba_not_dropped": op_lba_not_dropped,
+    "records_accounted": op_records_accounted,
     "coverage_claims": op_coverage_claims,
     "why_depth": op_why_depth,
     "listed_company_shape": op_listed_company_shape,
@@ -782,6 +918,15 @@ OPS = {
 def score(sv: dict, facts: dict, verbose: bool = False) -> dict:
     rows, fails = [], []
     for item in facts["items"]:
+        # A few items encode one corpus (ESMO's 1097 records, its 73 LBAs). Grading
+        # them against another meeting would report a data-quality failure where the
+        # only fact is that this is a different conference -- and a fake FAIL is worse
+        # than an honest SKIP, because it hides the real ones.
+        bound = item.get("scenario")
+        if bound and bound != facts.get("scenario"):
+            rows.append({"id": item["id"], "state": "SKIP", "severity": item.get("severity", "fail"),
+                         "detail": f"scenario-bound to {bound}", "rationale": item.get("rationale", "")})
+            continue
         fn = OPS.get(item["op"])
         if fn is None:
             rows.append({"id": item["id"], "state": "ERROR", "detail": f"unknown op {item['op']}"})
@@ -814,6 +959,7 @@ def main(argv=None) -> int:
     ap.add_argument("--facts", default=os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                                     "facts.json"))
     ap.add_argument("--json", help="write the full result here")
+    ap.add_argument("--scenario", help="grade as another meeting (default: facts.json's")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args(argv)
 
@@ -824,6 +970,8 @@ def main(argv=None) -> int:
     if not facts or "items" not in facts:
         print(f"facts file unusable: {args.facts}")
         return 4
+    if args.scenario:
+        facts["scenario"] = args.scenario
     sv = load_run(args.run)
     if not sv["watchlist"]:
         print(f"no watchlist.json artifact in {args.run} — the run never produced a deliverable")

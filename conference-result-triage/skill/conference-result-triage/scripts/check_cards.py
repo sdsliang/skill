@@ -43,6 +43,11 @@ Checks
      promoted by the web-curation step (``promoted == "web"``); it is then verified
      against ``work/rows.json`` instead, since promotion exists precisely to reach
      records the mechanical screen cut
+ 16. **selection is the top-k of the judgements** (v0.11): inside one bucket you may
+     not drop a ``keep`` that scores higher than the lowest card you kept. Every such
+     skip has to be declared in ``editorial_overrides`` with a reason, because "why is
+     the better-scored trial missing" is the question a reader asks first. Same-score
+     ties are free to break either way.
 """
 
 from __future__ import annotations
@@ -289,6 +294,110 @@ def recompute_pool(by_rows: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, An
     return out
 
 
+def load_judged(path: str) -> Dict[str, Dict[str, Any]]:
+    """Per-item judgement records, keyed by esid.
+
+    v0.11 requires ``esid`` on every judged entry. Before that the records carried
+    only a batch-local ``i``, so "which record did the reviewer score 85" could only be
+    answered by re-reading the batch file -- and a hand-made batch could answer it
+    differently. An identity the *judgement* states is an identity the gate can hold
+    it to, and ``selection_order`` is exactly that gate.
+    """
+    files: List[str] = []
+    if os.path.isdir(path):
+        files = [os.path.join(path, f) for f in sorted(os.listdir(path))
+                 if f.startswith("judged") and f.endswith(".json")]
+    elif os.path.exists(path):
+        files = [path]
+    out: Dict[str, Dict[str, Any]] = {}
+    for f in files:
+        payload = json.load(open(f, encoding="utf-8"))
+        items = payload.get("items") if isinstance(payload, dict) else payload
+        for item in items or []:
+            if not isinstance(item, dict):
+                continue
+            # Only real judgement records: a `selected.json` or a plan file in the
+            # same directory must not be mistaken for one (it carries esid but no
+            # verdict), or the gate would read "nobody was judged keep" as "nothing
+            # to compare" and pass on an empty set -- the classic empty-vs-empty trap.
+            if item.get("verdict") is None or item.get("score") is None:
+                continue
+            esid = str(item.get("esid") or "").strip()
+            if esid:
+                out[esid] = item
+    return out
+
+
+def selection_order(cards: List[Dict[str, Any]], judged: Dict[str, Dict[str, Any]],
+                    overrides: Any) -> Tuple[List[str], List[str]]:
+    """A bucket list must be the top of its own ranking.
+
+    E2E #11 (EASL 2026) shipped a 35-score pivotal card while a judged-85 PBC trial sat
+    unused in the same bucket: every other gate was green, because they all ask "is what
+    you listed legal", never "is what you listed better". The judgement layer already
+    answered that -- this compares its answers against the delivered set.
+
+    Overrides are a ledger, not a loophole: an entry without a readable reason does not
+    count, so the only way past a higher-scored skip is to say why in the deliverable.
+    """
+    fails: List[str] = []
+    notes: List[str] = []
+    waived: Dict[str, str] = {}
+    if overrides is not None:
+        if not isinstance(overrides, list):
+            fails.append("envelope: editorial_overrides must be a list")
+        else:
+            for entry in overrides:
+                if not isinstance(entry, dict):
+                    fails.append("envelope: editorial_overrides entries must be objects")
+                    continue
+                esid = str(entry.get("esid") or "").strip()
+                reason = " ".join(str(entry.get("reason") or "").split())
+                if not esid:
+                    fails.append("envelope: editorial_overrides entry without esid")
+                    continue
+                if len(reason) < 10:
+                    fails.append(f"envelope: editorial_overrides[{esid}] reason is "
+                                 f"{len(reason)} chars -- say what made you skip it")
+                    continue
+                waived[esid] = reason
+    kept = {str(c.get("esid") or ""): c for c in cards}
+    by_bucket: Dict[str, List[Dict[str, Any]]] = {}
+    for esid, item in judged.items():
+        if str(item.get("verdict") or "").lower() != "keep":
+            continue
+        score = item.get("score")
+        if not isinstance(score, int) or isinstance(score, bool):
+            continue
+        bucket = str(item.get("bucket") or "")
+        by_bucket.setdefault(bucket, []).append(
+            {"esid": esid, "score": score, "title": str(item.get("reason") or "")})
+    if not by_bucket:
+        fails.append("selection: not one judged record landed in a bucket -- the "
+                     "judgement records need `esid` + `bucket` + `verdict` + `score` "
+                     "(v0.11), otherwise the editorial step cannot be checked at all")
+        return fails, notes
+    for bucket, items in by_bucket.items():
+        chosen = [c for e, c in kept.items() if str(c.get("bucket") or "") == bucket]
+        if not chosen:
+            notes.append(f"selection: bucket {bucket} kept nothing; nothing to compare")
+            continue
+        floor = min(int(c.get("score") or 0) for c in chosen)
+        for item in sorted(items, key=lambda x: -x["score"]):
+            if item["esid"] in kept or item["score"] <= floor:
+                continue
+            if item["esid"] in waived:
+                notes.append(f"selection: {bucket} skipped {item['esid']} "
+                             f"({item['score']} > floor {floor}) under a declared "
+                             f"override")
+                continue
+            fails.append(
+                f"selection: {bucket} kept a {floor}-score card while judged-keep "
+                f"{item['esid']} scores {item['score']} -- take the higher one, or "
+                f"declare it in editorial_overrides with a reason ({item['title'][:40]})")
+    return fails, notes
+
+
 def load_rows(path: str) -> Dict[str, Dict[str, Any]]:
     """Raw workspace rows, flattened exactly like ``triage.py`` does.
 
@@ -323,6 +432,7 @@ def record_text(item: Dict[str, Any]) -> str:
 def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
           by_rows: Optional[Dict[str, Dict[str, Any]]] = None,
           by_calc: Optional[Dict[str, Dict[str, Any]]] = None,
+          judged: Optional[Dict[str, Dict[str, Any]]] = None,
           ) -> Tuple[List[str], List[str]]:
     fails: List[str] = []
     notes: List[str] = []
@@ -353,6 +463,16 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
         elif num > PER_BUCKET_CAP:
             fails.append(f"bucket {name}: {num} cards > cap {PER_BUCKET_CAP} "
                          f"-- cut by score, do not pad the list")
+
+    if judged:
+        sfails, snotes = selection_order(cards, judged,
+                                        payload.get("editorial_overrides"))
+        fails += sfails
+        notes += snotes
+    else:
+        notes.append("selection: no judged records passed in -- the editorial hop "
+                     "from judgement to list is unchecked (the CLI always passes "
+                     "`--judged`, so this only happens in-process)")
 
     seen = set()
     for n, card in enumerate(cards, 1):
@@ -500,6 +620,10 @@ def main(argv: List[str] | None = None) -> int:
                     help="work/rows.json -- always required: the pool membership "
                          "gate is rebuilt from it, so a hand-edited pool file cannot "
                          "widen the candidate set")
+    ap.add_argument("--judged", required=True,
+                    help="work/judged_*.json (or their directory) -- every judged entry "
+                         "needs an `esid` so the selection can be compared against the "
+                         "scores the reviewer actually gave")
     ap.add_argument("--report", help="output/report.md -- also gate the markdown: "
                                      "frontmatter keys, `{{ref_N}}` <-> citations.json "
                                      "in both directions, and the exact entry schema")
@@ -510,12 +634,23 @@ def main(argv: List[str] | None = None) -> int:
     by_esid = load_pool(args.pool)
     by_rows = load_rows(args.rows)
     by_calc = recompute_pool(by_rows)
+    judged = load_judged(args.judged)
+    if not judged:
+        # Fail closed: the path exists but nothing in it is usable. Passing here would
+        # mean "nobody was judged keep", which is indistinguishable from "the check
+        # never ran" -- and an unchecked editorial step is precisely what shipped the
+        # EASL 2026 list with a 35-score card above an unused 85-score one.
+        judged = None
+        sel_fail = (f"selection: {args.judged} holds no usable judgement record "
+                    f"(needs esid + bucket + verdict + score per entry)")
+    (fails, notes) = check(payload, by_esid, by_rows, by_calc, judged)
+    if judged is None:
+        fails.append(sel_fail)
     if set(by_calc) != set(by_esid):
         notes.append(
             f"pool file holds {len(by_esid)} records, a fresh triage build over "
             f"rows.json gives {len(by_calc)} -- membership is judged on the rebuild, "
             f"so re-run triage.py instead of editing the pool by hand")
-    fails, notes = check(payload, by_esid, by_rows, by_calc)
     if args.report:
         rfails, rnotes = check_report(args.report)
         fails += rfails

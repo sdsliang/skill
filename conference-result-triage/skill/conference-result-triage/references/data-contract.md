@@ -146,6 +146,17 @@ v0.8 曾要求每张卡带 `listed_company.reaction`（会议窗口涨跌幅，�
 
 `listed_company` 保留（身份信息：谁在做这个药、能不能对上交易所披露），字段固定为 `{name, ticker, exchange, source_url}`。防回潮由两道闸门守着：`check_cards.py` 的 `PRICE_KEYS` 扫描，与事实项 `A-N1-no-price-claims`（mutation：`reaction` 回潮；NEG：只写身份字段仍绿）。
 
+### 6.5.3 交付 JSON 的顶层还有两个键
+
+| 键 | 谁写 | 内容 |
+|---|---|---|
+| `coverage_notes` | 模型（`plan.json` 顶层） | 两条诚实边界（`data_type` 未判定 / 摘要无 p 或 HR 或覆盖不全），v0.10 起第三条（期别是按设计推断的） |
+| `editorial_overrides` | 模型（`plan.json` 顶层） | 每桶里被舍弃的 `keep` 比入选卡最低分更高时的理由清单：`[{"esid","reason"}]`，`reason` ≥10 字 |
+
+两个键都由 `make_cards.py` 从 `plan.json` 原样搬进 `output/watchlist.json`，不要渲染完再手改。
+
+`editorial_overrides` 为什么必须是交付物的一部分：桶内榜单的默认规则是**按判读分取前 k**。E2E #11（EASL 2026）实际交付里，pivotal 桶出现「入选 35 分 / 舍弃 85 分的 PBC 三期」，而当时 `A-P4`（桶内降序）、`A-P2`（五维相加）都是绿的 —— 那两条只证明「排序整齐、分数自洽」，证不了「该选的那条被选了」。把理由写进 JSON，取舍才是可复核的；写在聊天回复里，下个月读 JSON 的人看不到。
+
 ### 6.5.2 结果本身怎么被识别（`report.md`）
 
 交付物是 `/workspace/output/report.md`，`watchlist.json` 是它的数据底稿。报告顶部 frontmatter：

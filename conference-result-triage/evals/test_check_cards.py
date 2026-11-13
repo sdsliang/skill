@@ -6,12 +6,16 @@
 The gate gained two rules that exist because a list can be wrong without being
 obviously wrong:
 
-  - **per-bucket cap 15** -- a 40-card bucket is not a reading list, and padding
-    it with `weak` items is how a shortlist turns into a dump;
+  - **per-bucket cap 10 / 30 overall** -- a 40-card bucket is not a reading list, and
+    padding it with `weak` items is how a shortlist turns into a dump;
   - **score self-consistency** -- the score is the reviewer's judgement, so the
     script cannot check whether 78 is the *right* number. What it can check is
     that the five parts add up to it and none exceeds its ceiling; a total that
     does not add up means the number was invented rather than judged.
+
+v0.11 adds **selection monotonicity**: inside a bucket the delivered cards must be the
+top of the judgements' own ranking, and a skip of a higher-scored keep is only legal when
+the deliverable declares it in `editorial_overrides`.
 
 It also checks `coverage_notes`: the run that shipped 40 cards with the limits
 stated only in its chat reply is why that became a gate. The shape must be
@@ -365,6 +369,71 @@ expect("marker without citations line", fails, "no `citations:` line")
 fails = report_case("no-skill", "title: T\ndate: 2026-11-12\nlang: zh-CN",
                     "没有引用。", {})
 expect("skills not listed", fails, "conference-result-triage")
+
+# --- selection monotonicity (v0.11) -------------------------------------- #
+# The defect these pin: EASL 2026 delivered a 35-score pivotal card while a judged-85
+# PBC phase III sat unused in the same bucket, and every other rule was green because
+# they all ask "is what you listed legal", never "is it the better one".
+def sel_case(cards, judged, overrides=None):
+    payload = {"conference": "T", "count": len(cards), "cards": cards}
+    if overrides is not None:
+        payload["editorial_overrides"] = overrides
+    return check_cards.selection_order(cards, judged, payload.get("editorial_overrides"))[0]
+
+
+sel_cards = [{"esid": "a", "bucket": "pivotal", "score": 70},
+             {"esid": "b", "bucket": "pivotal", "score": 55}]
+sel_judged = {"a": {"esid": "a", "bucket": "pivotal", "verdict": "keep", "score": 70},
+              "b": {"esid": "b", "bucket": "pivotal", "verdict": "keep", "score": 55},
+              "c": {"esid": "c", "bucket": "pivotal", "verdict": "keep", "score": 50},
+              "d": {"esid": "d", "bucket": "pivotal", "verdict": "weak", "score": 90}}
+fails = sel_case(sel_cards, sel_judged)
+if fails:
+    failures.append(f"a skip below the floor is legal: {fails}")
+else:
+    print("  ok  selection: keeps below the bucket floor may be skipped")
+
+fails = sel_case(sel_cards, dict(sel_judged,
+                                 e={"esid": "e", "bucket": "pivotal",
+                                    "verdict": "keep", "score": 95}))
+expect("selection: higher-scored keep skipped", fails, "judged-keep e scores 95")
+
+fails = sel_case(sel_cards, dict(sel_judged,
+                                 e={"esid": "e", "bucket": "pivotal",
+                                    "verdict": "keep", "score": 95}),
+                 [{"esid": "e", "reason": "与已入选的 a 同机制同适应症，压同质只留一条"}])
+if fails:
+    failures.append(f"a reason-bearing override should clear it: {fails}")
+else:
+    print("  ok  selection: declared override with a reason clears the skip")
+
+fails = sel_case(sel_cards, dict(sel_judged,
+                                 e={"esid": "e", "bucket": "pivotal",
+                                    "verdict": "keep", "score": 95}),
+                 [{"esid": "e", "reason": "同机制"}])
+expect("selection: override reason too short", fails, "reason is 3 chars")
+expect("selection: short override does not waive", fails, "judged-keep e scores 95")
+
+fails = sel_case(sel_cards, {})
+expect("selection: no usable judgements", fails, "not one judged record landed")
+
+# A plan/selected file in the same directory carries `esid` but no verdict -- if the
+# loader kept it, `judged` would look non-empty and both checks above would pass on an
+# empty set (the "empty vs empty" trap).
+tmpdir = os.path.join(HERE, ".tmp-judged")
+os.makedirs(tmpdir, exist_ok=True)
+with open(os.path.join(tmpdir, "judged_01.json"), "w", encoding="utf-8") as f:
+    json.dump([{"i": 1, "esid": "a", "bucket": "pivotal", "verdict": "keep", "score": 70}], f)
+with open(os.path.join(tmpdir, "selected.json"), "w", encoding="utf-8") as f:
+    json.dump({"items": [{"esid": "b", "bucket": "pivotal"}, {"esid": "c", "bucket": "pivotal"}]}, f)
+loaded = check_cards.load_judged(tmpdir)
+if list(loaded) != ["a"]:
+    failures.append(f"load_judged kept non-judgement records: {sorted(loaded)}")
+else:
+    print("  ok  selection: only verdict-carrying records are loaded")
+for name in os.listdir(tmpdir):
+    os.unlink(os.path.join(tmpdir, name))
+os.rmdir(tmpdir)
 
 if failures:
     print(f"\nFAIL ({len(failures)}):")

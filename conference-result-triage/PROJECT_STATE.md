@@ -1,5 +1,46 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.11（2026-11-13）：同场评分暴露「判读对、选择错」——定榜必须按判读分取前 k
+
+v0.10（多疾病领域三场并行）之后，把同一份 skill 在 ADA / ESC / EASL 2026 三场重跑一遍（run dirs
+`20261113-092008-cards-*-v10`），按「**同场**评分」逐场核：卡片 `score` 与判读 `score` **62/62 全相等**
+（ADA 14/14、EASL 24/24、ESC 24/24），所以缺陷不在「分被改写」，而在**「选了谁」**：
+
+| 会议 | 桶 | 入选卡 | floor | 被舍弃、但判读 `keep` 且分更高的条目 |
+|---|---|---|---|---|
+| ADA 2026 | pivotal / failed | 10 / 2 | 71 / 52 | **5**（77 `HR17031-301`、74、73、73；failed 1 条 72） |
+| EASL 2026 | pivotal | 10 | 74 | **3**（85 `PEMA-PBC`、79、76 `TRUTH`） |
+| ESC 2026 | pivotal | 10 | 54 | **8**（73 `SYH2053-002`、65 `FINO-HF`、65 `VICTORION-Difference`…） |
+
+三场 16 条，全都没有一句解释。**所有闸门只问「合不合法」，没有一条问「是不是最优的那一版」。**
+
+同轮 GT 比对（同源 web provider，按 esid 匹配，三态「上榜 / 库内有未上榜 / 库里没有」）：ADA 9→4、
+ESC 7→5、EASL 11→4；逐条读下来 14 条「真漏」里 12 条是**判读正确地判低**（`ASSURE` 只看血脂 → drop 32、
+`NAVIGATE` 主终点未达 → weak 35、`ACHIEVE-2` 差 1 分落榜），另 2 条可争议。唯一确凿的判读错误是
+`ENSURE`（随机、功能治愈 17% vs 6%、n=55）因「每组仅 18 例」被打成 `weak` 65，而同场「单臂 22 例 45.5%」
+是 keep 68 —— **用 n 当了判决器**，与「`n` 不是纳入闸门」直接冲突。
+
+改动（四项 + 文档）：
+
+1. **判读契约加 `esid`（八键 → 九键）**：三场判读产物都没有 `esid`，`i` 是批次内序号（ADA 每批从 1 重数、
+   ESC 全局 1..164），「85 分那条去哪了」只能靠猜批次对齐 —— 定榜的人反过来能换一份批次改答案。
+2. **`check_cards.py --judged` 必传 + `selection_order()`**：逐桶算 `floor = min(入选卡 score)`，任何
+   `keep` 分 > floor 却没上榜、且没进 `editorial_overrides`（`reason` ≥10 字才算）→ 判失败；CLI 侧拿不到
+   可用判读 → **fail-closed**（in-process 侧只记 note，因为 CLI 才是交付路径）。`load_judged()` 只认
+   `startswith("judged")` 且带 `verdict`+`score`+`esid` 的文件，避免把同目录 `selected.json` 读成「没人被判 keep」
+   的**空对空通过**。
+3. **`make_cards.py` 从 `plan.json` 顶层搬 `coverage_notes` / `editorial_overrides`**，不许渲染完手改 JSON。
+4. **事实层 `A-P6-selection-order`（28 项）+ `m_selection_order`**：mutation 抬**被跳过者**的分（抬已入选卡会
+   先被 `A-P4` 抓，验不到新项）；夹具里另放两条「合法输掉」的 keep（低于本桶 floor）当负控。
+5. **判读纪律**：`review-protocol.md §2.5` + `SKILL.md` Step 4 写死「样本量只进 `evidence_strength`，不进
+   `verdict`、不压 `effect_size`；`weak`/`drop` 的 `reason` 里只有『仅 N 例』不算理由」；`pitfalls.md §34`；
+   `data-contract.md §6.5.3`（两个顶层键）；`watchlist-report.md` 硬规则第 6 条。
+
+测试：`test_check_cards` 33 → **40 case**（7 条选择用例，含 `load_judged` 不许读 `selected.json`）；
+`mutations.py` **27/27 + 8 负控绿**；`test_triage` 仍绿。
+v0.11 包：`dist/conference-result-triage-v0.11.zip` **133052 B / 16 entries / sha256 `a666c62a49f36d02`**。
+**待用户授权后 publish，再用 v0.11 重跑三场 E2E（判读必须带 `esid`，否则新闸门会拒）。**
+
 ## v0.10（2026-11-13）：跨疾病领域三场并行 E2E 暴露的问题，一次修到底
 
 用户要求「多试几个不同疾病领域的会议推荐清单，拿 TS 的推荐与本地联网查到的大会热议内容比对，不符合就优化 skill」。

@@ -334,3 +334,112 @@ run dirs `20261112-181722-cards-{ADA,ESC,EASL}26`，全部 `--web`，同一份�
 
 **待办**：publish v0.10 → 三场用新代码重跑 → 逐条列「热议但漏推 / 推荐但无人提」的比对表（当前只做了三态计数：
 ADA `5/5/5`、ESC `7/1/6`、EASL `6/4/1` = 上榜 / 库内有未上榜 / 库里没有）。
+
+## R11（2026-11-13）：同场评分 + GT 比对 + 选择缺陷归因（v0.10 代码，三场重跑）
+
+R10 之后的三场用 **v0.10 代码**重跑（pool 已修好，`无法归类` 归零），本轮要回答的是**同场评分下
+推荐质量到底差在哪**：不跨会议比分数，只看「这场会议自己的判读 → 这场会议自己的榜单」是否自洽、
+以及和本地联网查到的「热议」差多少。
+
+运行：`20261113-092008-cards-{ADA,ESC,EASL}-26-v10`（并行，DeepSeek Flash，`--web`）。
+
+| 会议 | 行数 | 候选池 (early/pivotal/failed) | 交付卡 | 平台断言 | 事实层 |
+|---|---|---|---|---|---|
+| ADA 2026 | 191 | **138** (47/87/4) | 14 (10/2/2) | 24 PASS / 0 FAIL | **25/25 PASS** |
+| EASL 2026 | 214 | **136** (56/70/10) | 24 (10/10/4) | 24 PASS / 0 FAIL | **24/24 PASS** |
+| ESC 2026 | 242 | **164** (56/85/23) | 24 (10/9/5) | 22 PASS / **2 FAIL** | 24/25 FAIL |
+
+ESC 那 2 条 FAIL 都是「deployed skill ≠ 本地 SKILL.md / 支持文件清单」，原因是**我在它跑的过程中
+改本地文件**（v0.11 的 `check_cards.py`/文档），归档里比对的是当时的线上版 —— 属于评测方法噪声，
+不是产物缺陷；ESC 的事实层唯一 FAIL 是新增的 `A-P6-selection-order`，**FAIL 的原因正是它的判读文件
+没有 `esid`**（见下），闸门按要求拒了。
+
+### 1. 判读分与榜单分：62/62 相等，问题不在「分被改写」
+
+| 会议 | 卡片 `score` == 该 `esid` 的判读 `score` |
+|---|---|
+| ADA | 14/14 |
+| EASL | 24/24 |
+| ESC | 24/24 |
+
+`make_cards.py` 只渲染不排序的判断成立。**所以缺陷只能出在「选了谁」。**
+
+### 2. 选择缺陷：三场共 16 条「被判 keep 且分数高于本桶最低入选卡」的条目被舍弃
+
+逐桶取 `floor = min(入选卡 score)`，再看同桶 `keep` 里被舍弃且分数 > floor 的条目：
+
+| 会议 | 桶 | 入选卡 | floor | 被舍弃的更高分 keep |
+|---|---|---|---|---|
+| ADA 2026 | pivotal | 10 | 71 | **4**：77 `HR17031-301`、74 `HRS9531-T-201`、73 `ACCESS II`、73 `ACCESS` |
+| ADA 2026 | failed | 2 | 52 | **1**：72 |
+| EASL 2026 | pivotal | 10 | 74 | **3**：85 `PEMA-PBC`、79、76 `TRUTH` |
+| ESC 2026 | pivotal | 10 | 54 | **8**：73 `SYH2053-002`、66 `Early tirzepatide after kidney…`、65 `FINO-HF`、65 `VICTORION-Difference`、63 `BETAMI-DANBLOCK`、62 `DIALY-MRA`… |
+| ESC/EASL | early / failed | — | — | 0 |
+
+三种会议都中，说明不是某场会议的特例。EASL 的 pivotal 缺口从 R10 的「7 条全高于 35 分卡」缩到
+「3 条高于 74 分卡」，是 v0.10 池子修好后**有更多高分卡填满 10 个位子**的结果 —— 但 85 分那条
+（`PEMA-PBC`）仍然输给了 74 分的卡，没有任何文字解释。
+
+### 3. GT 比对（同源 web provider）：漏推的多半是「判读正确地判低了」
+
+GT 由平台自己的 web provider 取（`POST /api/tools/web/debug`, provider=deepseek），匹配按 esid 而非
+字符串，分三态：上榜 / 库内有但没上榜（真漏）/ 库里根本没有（覆盖缺口，不是排序问题）。
+
+| 会议 | GT 热议 | 库内有 | 上榜 | 真漏 | 库里没有 |
+|---|---|---|---|---|---|
+| ADA 2026 | 40 | 9 | 4 | 5 | 83 |
+| ESC 2026 | 40 | 7 | 5 | 2 | 116 |
+| EASL 2026 | 40 | 11 | 4 | 7 | 152 |
+
+逐条看那 14 条「真漏」的判读结论（这是本轮最有价值的一段）：
+
+| 热议条目 | 判读 | 分 | 判读对不对 |
+|---|---|---|---|
+| `ACHIEVE-2`（orforglipron vs 达格列净） | keep | 70 | **对**，pivotal floor 71，差 1 分落榜 |
+| `SOLSTICE` / `RESPONSE` | keep | 74 / 54 | **对**，两条都已上榜（GT 按旧试验名记的，属于匹配噪声） |
+| `ASSURE`（seladelpar 开放标签延展，只看血脂/肌痛） | drop | 32 | **对**：已获批药的长期安全性，无新疗效 |
+| `NAVIGATE`（belapectin，主要终点未达） | weak | 35 | **对**：终点没打成 |
+| `AT HOME-HF`（皮下呋塞米） | drop | 28 | 对，次要读数 |
+| `DAN-RSV` / `MILOS` | drop 25 / weak 34 | | 对，亚组/早期 |
+| `DREAMS-3`（mazdutide vs 司美，头对头） | weak | 64 | **可争议**：头对头优效但 me-too，novelty 扣分可以理解 |
+| `SELECT`（司美哮喘相关不良事件） | weak | 53 | 对，不是那个 CVOT，是二次分析 |
+| **`ENSURE`（elebsiran+PEG-IFN，随机，功能治愈 17% vs 6%，n=55）** | **weak** | **65** | **错**，见下 |
+
+`ENSURE` 的 `reason` 是「NA 经治CHB，随机48周加停药24周，功能治愈17%对6%，**每组仅18例**」，
+`score_parts = evidence 14 / effect 16 / impact 20 / novelty 8 / maturity 7`。同一个会议里：
+
+| 记录 | 设计 | 效应 | 判读 |
+|---|---|---|---|
+| `ENSURE` n=55 | **随机对照** | FC 17% vs 6%（3 倍、+11 pt） | **weak** 65，effect 16 |
+| 单臂 n=22 长期延展 | 单臂 | 45.5% 清除 | **keep** 68 |
+| 开放小队列 n=56 | 开放 | 清除率最高 80% | **keep** 62 |
+| `B-Sure` n=44 停药随访 | 应答者随访 | 80% 维持 FC，各时点分母 1–10 | weak 60（**这个 weak 是对的**） |
+
+**同一个「小样本」量出了三种结论** —— 判读在用 `n` 当判决器，而 skill 明写「`n` 不是纳入闸门」。
+扫描三场判读理由，把样本量写进 `weak`/`drop` 理由的占 31/138、43/136、42/164（约 1/4），多数是合理
+的证据强度描述，但 `ENSURE` 这种「随机 + 主终点达成 + 效应 3 倍」被 n 打成 weak 属于自伤。
+
+### 4. 不能只事后记，必须交付前就挡
+
+`A-P4-score-order` 只查「卡内排序是否降序」（榜单里 10 张卡自己是降序的），`A-P6` 是本轮新增的
+「被舍弃者高于入选者」检查，两者都是**事后**复核。真正能挡住的是交付前的
+`check_cards.py --judged`：`selection_order()` 逐桶算 floor，任何 `keep` 分数 > floor 却没上榜、
+也没写进 `editorial_overrides` 的，直接失败；写了但 `reason` < 10 字的不算豁免。
+
+三场 run 的判读产物（`judged_A..G.json` / `judged_01..23.json`）**都没有 `esid`**，`i` 又是批次内
+序号（ADA 每批从 1 重数，ESC 却是全局 1..164），所以「85 分那条去哪了」只能靠猜批次对齐 ——
+这就是判读契约从八键加到九键的原因。**这三场不能当 v0.11 的证据**，要重跑。
+
+### 5. 本轮结论与改动
+
+1. `check_cards.py`：判读必须带 `esid`；`--judged` 必传；`selection_order()` 逐桶比 floor；
+   `editorial_overrides` 逐条校 `reason` ≥10 字；CLI 侧拿不到可用判读 → **fail-closed**。
+2. 事实层加 `A-P6-selection-order`（28 项）+ `m_selection_order` mutation（抬**被跳过者**的分，
+   抬已入选卡会先被 `A-P4` 抓，验不到新项）。
+3. `make_cards.py` 从 `plan.json` 顶层搬 `coverage_notes` / `editorial_overrides`。
+4. `review-protocol.md §2.5` + `SKILL.md` Step 4：**样本量只进 `evidence_strength`**，不进
+   `verdict`、不压 `effect_size`；`weak`/`drop` 的 `reason` 里只有「仅 N 例」不算理由。
+5. `pitfalls.md §34`：所有闸门全绿，榜单仍然可能是「次优的那一版」。
+
+**未修**：`ENSURE` 这类判读偏差只能靠规则 + 重跑观测，没有机器闸门（判定「这个 weak 合不合理」需要
+读摘要，不给脚本做 NLP 判官）。下一轮重跑时检查 HBV/功能治愈这一类是否还出现 n 驱动的降档。

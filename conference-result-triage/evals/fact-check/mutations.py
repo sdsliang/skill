@@ -114,6 +114,26 @@ def build_fixture(root):
                                                                for n in range(1, 9)]})):
         with open(os.path.join(root, rel), "w", encoding="utf-8") as f:
             json.dump(obj, f, ensure_ascii=False, indent=1)
+    # v0.11: the judgement records. Every judged entry must carry `esid`, because
+    # `A-P6-selection-order` compares the scores the reviewer gave against the cards
+    # that were actually delivered; a judgement that cannot be attributed to a record
+    # makes that comparison impossible (and an impossible check must not read as green).
+    judged = [{"i": n + 1, "esid": c["esid"], "bucket": c["bucket"], "verdict": "keep",
+               "score": c["score"], "score_parts": c["score_parts"],
+               "reason": "主要终点阳性且效应量足以改变这一线", "evidence": "",
+               "key_numbers": []}
+              for n, c in enumerate(cards)]
+    # Two keeps that legitimately lost: they sit *below* their bucket's floor, so a
+    # correct editorial cut is free to leave them out.
+    judged += [{"i": 900 + n, "esid": f"nr_24_37_below{n}_floor0000000000000000",
+                "bucket": bucket, "verdict": "keep", "score": score,
+                "score_parts": parts_for(score), "reason": "次要终点改善",
+                "evidence": "", "key_numbers": []}
+               for n, (bucket, score) in enumerate((("pivotal", 60), ("early", 45)))]
+    with open(os.path.join(root, "artifacts", "work", "judged_all.json"), "w",
+              encoding="utf-8") as f:
+        json.dump(judged, f, ensure_ascii=False, indent=1)
+
     # The split itself is the primary slicing evidence: 8 slice files, each far below
     # the truncation threshold, whose union is every id in rows.json.
     ids = [r["clinical_result__id"] for r in rows]
@@ -322,6 +342,20 @@ def m_lba_dropped(root):
     write(root, "artifacts/work/pool/pool.json", p)
 
 
+def m_records_lost(root):
+    """Silently dropping a pooled record is what breaks the arithmetic of coverage.
+
+    A record that leaves the pool without becoming an alias or an exclusion reason is a
+    hole nobody sees: the deliverable still looks full, and coverage is computed against
+    whatever was fetched. Delete one card-less pooled record and nothing else.
+    """
+    rows = read(root, "artifacts/work/rows.json")
+    rows["rows"].append({"clinical_result__id": "MUT-UNACCOUNTED-1",
+                         "clinical_result_evidence_source": ["Phase III"],
+                         "clinical_result_evaluation": "积极"})
+    write(root, "artifacts/work/rows.json", rows)
+
+
 def m_notes(root):
     """Dropping the honest limits turns the JSON into a claim of full coverage."""
     w = read(root, "artifacts/output/watchlist.json")
@@ -347,13 +381,36 @@ def m_wide_pull(root):
         if name.startswith("slice_"):
             ids.extend(json.load(open(os.path.join(sdir, name), encoding="utf-8")))
             os.remove(os.path.join(sdir, name))
+    # The fixture corpus is small, so "all ids in one request" is not oversized by itself.
+    # Pad past the 300-id ceiling: that is what the real defect looks like once a meeting
+    # has a few hundred abstracts, and it is the shape that truncates at ~6 MB.
+    padded = ids + [f"OVERFLOW-{i:04d}" for i in range(301)]
     with open(os.path.join(sdir, "slice_01.json"), "w", encoding="utf-8") as f:
-        json.dump(ids, f)
+        json.dump(padded, f)
 
 
 def m_direct_es(root):
     p = os.path.join(root, "transcript.md")
     open(p, "a", encoding="utf-8").write("\ncurl -s $ES_HOST/np_clinical/_search?size=10\n")
+
+
+def m_selection_order(root):
+    """A better-scored keep left off the list is the E2E #11 defect, exactly.
+
+    EASL 2026 kept a 35-score pivotal card while a judged-85 PBC phase III sat unused;
+    `A-P4` (descending) and `A-P2` (parts add up) were both green. So the mutation has to
+    raise a *skip's* score above the floor -- raising a listed card's score would make the
+    bucket descend wrongly and get caught by the older item instead.
+    """
+    p = os.path.join(root, "artifacts", "work", "judged_all.json")
+    judged = read(root, "artifacts/work/judged_all.json")
+    judged.append({"i": 950, "esid": "nr_24_37_hot95_skipped000000000000000",
+                   "bucket": "pivotal", "verdict": "keep", "score": 95,
+                   "score_parts": parts_for(95), "reason": "随机对照主要终点阳性",
+                   "evidence": "", "key_numbers": []})
+    with open(p, "w", encoding="utf-8") as f:
+        json.dump(judged, f, ensure_ascii=False, indent=1)
+    return p
 
 
 def m_why_depth(root):
@@ -462,6 +519,7 @@ MUTATIONS = [
     ("A-P2-score-parts", m_score_parts),
     ("A-P3-score-varied", m_score_flat),
     ("A-P4-score-order", m_score_order),
+    ("A-P6-selection-order", m_selection_order),
     ("A-F1-abstract-id-null", m_abstract_id),
     ("A-F2-manual-null", m_manual),
     ("A-F3-esid-in-pool", m_esid),
@@ -471,6 +529,7 @@ MUTATIONS = [
     ("A-T2-no-json-paste", m_json_paste),
     ("A-H1-two-honest-claims", m_notes),
     ("A-D4-lba-not-dropped", m_lba_dropped),
+    ("A-D5-rows-accounted", m_records_lost),
     ("A-P5-why-depth", m_why_depth),
     ("A-F5-listed-company", m_listed_missing),
     ("A-F6-promotion-traceable", m_promoted_missing),
