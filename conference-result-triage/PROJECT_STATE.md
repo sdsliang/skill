@@ -38,8 +38,14 @@ ESC 7→5、EASL 11→4；逐条读下来 14 条「真漏」里 12 条是**判�
 
 测试：`test_check_cards` 33 → **40 case**（7 条选择用例，含 `load_judged` 不许读 `selected.json`）；
 `mutations.py` **27/27 + 8 负控绿**；`test_triage` 仍绿。
-v0.11 包：`dist/conference-result-triage-v0.11.zip` **133052 B / 16 entries / sha256 `a666c62a49f36d02`**。
-**待用户授权后 publish，再用 v0.11 重跑三场 E2E（判读必须带 `esid`，否则新闸门会拒）。**
+v0.11 包：`dist/conference-result-triage-v0.11.zip` **133599 B / 16 entries / sha256 `7389e00880a6a85f`**。
+**已原地发布（in-place，平台 v0.3.0，`status` → in sync，16/16 identical）。**
+
+重跑验证（R12）：EASL 2026 `…094709-cards-EASL-26-v11`、ESC 2026 `…094710-cards-ESC-26-v11`。
+两场判读 **136/136、164/164 全部带 `esid`**；pivotal floor 74→**81**（EASL）、54→**62**（ESC）；
+舍弃更高分 keep 的违规 3→**0**、8→**1（已写 `editorial_overrides`，reason 78 字）**；事实层两场
+**25/25 PASS**（含新增 `A-P6-selection-order`）。EASL 唯一那条平台 FAIL 是交付后又调 `write_todos`
+（`present_artifact` 不再是最后一个成功调用）→ 已写进 `pitfalls.md §35` + `SKILL.md` Step 7。
 
 ## v0.10（2026-11-13）：跨疾病领域三场并行 E2E 暴露的问题，一次修到底
 

@@ -496,3 +496,18 @@ ADA 2026 同时段同代码：pivotal 入选最低 71，舍弃的 keep 里 4 条
 5. 闸门三处同源：`check_cards.py --judged`（交付前，必传）、事实项 `A-P6-selection-order`（事后）、`evals/fact-check/mutations.py` 的 `m_selection_order`（把一条未入选的 keep 抬到 95 分，验证真的会翻红）。
 
 **顺带记一笔**：这轮另一类「榜单不理想」不是选择错，而是判读尺宽严 —— 例如 EASL 头部那张 93 分是重症酒精性肝炎的牛初乳 III 期（n=174，90 天生存 86.5% vs 43.5%，p<0.0001），按「主要终点 + 效应量」它确实该高分。**不要把「我不喜欢这条」写成「判读错了」**：判读错误看 `evidence`/`reason` 能不能落到摘要原文，选择错误看 `score` 排序有没有被吃住。
+
+## 35. 「最后一个动作」也是契约的一部分
+
+v0.11 在 EASL 2026 重跑时，产物、闸门、事实层全绿（`check_cards.py` exit 0、事实层 25/25），平台却红了一条：
+
+```
+[FAIL] present_artifact is the final successful call for output/report.md
+       — last='write_todos' args={'todos': [...]} status='success'
+```
+
+模型在 `present_artifact` 之后又调了一次 `write_todos` 把待办勾成 completed。**报告已经交付，但"终端动作"被它自己打破了。**
+这类红最容易误判成「交付物有问题」——因为同一份产物在别的 run 里是绿的，差别只在工具调用顺序。
+
+规则：待办清单在交付**之前**收尾（或干脆别勾最后一项），`present_artifact` 之后不再调任何工具。
+改的不是断言，是行为：断言说得对，`present_artifact` 就该是最后一个成功调用。

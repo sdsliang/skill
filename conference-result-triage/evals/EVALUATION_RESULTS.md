@@ -443,3 +443,45 @@ GT 由平台自己的 web provider 取（`POST /api/tools/web/debug`, provider=d
 
 **未修**：`ENSURE` 这类判读偏差只能靠规则 + 重跑观测，没有机器闸门（判定「这个 weak 合不合理」需要
 读摘要，不给脚本做 NLP 判官）。下一轮重跑时检查 HBV/功能治愈这一类是否还出现 n 驱动的降档。
+
+## R12（2026-11-13）：v0.11 原地发布后重跑 EASL / ESC 2026 —— 闸门在真 run 上确实生效
+
+R11 的结论要求「判读带 `esid` + 定榜按判读分取前 k」。发布 v0.11（in-place）后用**同一份 skill**重跑两场：
+
+| 会议 | run | 墙钟 | 工具调用 | 平台断言 | 事实层 | 交付卡 |
+|---|---|---|---|---|---|---|
+| EASL 2026 | `20261113-094709-cards-EASL-26-v11` | ~19 min | — | **23 PASS / 1 FAIL** | **25/25 PASS**（含 `A-P6`） | 25 (10/10/5) |
+| ESC 2026 | `20261113-094710-cards-ESC-26-v11` | ~20 min | — | **24 PASS / 0 FAIL** | **25/25 PASS**（含 `A-P6`） | 22 (10/6/6) |
+
+对照 R11（v0.10 代码跑同样两场）：
+
+| 指标 | EASL v10 | EASL v11 | ESC v10 | ESC v11 |
+|---|---|---|---|---|
+| 判读条目带 `esid` | 0/136 | **136/136** | 0/164 | **164/164** |
+| pivotal 入选最低分（floor） | 74 | **81** | 54 | **62** |
+| 舍弃的更高分 `keep`（违规） | 3 | **0** | 8 | **1（已声明）** |
+| `editorial_overrides` 条数 | 0 | 0 | 0 | **1** |
+| 事实层 `A-P6-selection-order` | FAIL（无 `esid`） | **PASS** | FAIL（无 `esid`） | **PASS** |
+
+ESC 那唯一一条「舍弃更高分」被写进了交付 JSON 顶层：
+
+```json
+{"esid": "24_37_d0c8a8812ed1d2f31ea96153ae1f483b_1",
+ "reason": "VICTORION-Difference 为探索性二次分析，与已入选的 VICTORION-Challenge 同属 inclisiran 策略、
+            同适应症，压同质只留一条 PCSK9 siRNA 头对头；改选同为 62 分的 LIRA-HF（HFrEF 合并肥胖的事件终点）
+            以覆盖心衰方向。"}
+```
+
+这正是 v0.11 想要的形态：**要么按分数取前 k，要么把「为什么不」写成账**。`check_cards.py --judged <work 目录>`
+在 ESC 上 exit 0（同一次调用换成旧 run 的 `judged_all.json` → exit 3 `holds no usable judgement record`，
+fail-closed 双向都验到）。
+
+EASL 那条 FAIL 不是产物问题：模型在 `present_artifact` 之后又调了一次 `write_todos`，平台断言
+「`present_artifact` 必须是最后一个成功调用」判红。已写进 `pitfalls.md §35` + `SKILL.md` Step 7 行为约束。
+
+**EASL v11 的 pivotal 榜**（floor 81，含之前被错标的 85 分 AHB-137 现在标题也对了）：95 牛初乳重症酒精肝 /
+88 贺普拉肽丁肝 / 87 HSK31679 MASH / 86 saroglitazar EPICS-III / 86 APACHE / 85 AHB-137 —— R11 里被舍弃的
+85 `PEMA-PBC`、79、76 `TRUTH` 一类不再有「比它们低的卡占位」。
+
+**尚未验证**：`ENSURE` 那类「用 n 当判决器」的判读偏差，这两轮没有同名记录可对照；HF/HBV 领域要等下一轮
+GT 比对才看得出规则文字是否真的改了判读行为。

@@ -350,6 +350,8 @@ lang: zh-CN
 
 `present_artifact` 指向 `/workspace/output/report.md`。这是唯一终端动作，不要改成把 JSON 或 Markdown 全文贴进对话。
 
+**交付前把待办先收尾：`present_artifact` 之后不要再调任何工具**（包括 `write_todos`）。EASL 2026 v0.11 那轮就是交付后又补了一次待办勾选，平台断言 `present_artifact is the final successful call` 直接判红——产物没问题，但“最后一个动作”这个契约破了。
+
 ## Deliverable schema
 
 ```json
