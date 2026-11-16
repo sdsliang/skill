@@ -29,7 +29,7 @@ Checks
      that lives only in the chat reply is a limit nobody will see
  12. ``tag`` is a slot label, not a badge: only "" or "LBA". v0.13 stopped rendering
      ``is_recommand`` as a chip -- the flag still decides *placement* (it leads its
-     bucket, see rule 18), but a "推荐" chip on a judged list reads as our own
+     bucket, see rule 17), but a "推荐" chip on a judged list reads as our own
      endorsement of a row the data owner flagged
  13. no market data survives anywhere -- no price (``stock`` / ``reaction`` /
      ``change_pct`` / ``excess_pct``) and no company code (``listed_company`` /
