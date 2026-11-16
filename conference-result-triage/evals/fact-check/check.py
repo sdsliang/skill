@@ -55,10 +55,11 @@ SCORE_CAPS = {"evidence_strength": 30, "effect_size": 25, "clinical_impact": 25,
 PER_BUCKET_CAP = 10
 TOTAL_CAP = 30
 MIN_WHY_CHARS = 60
-LISTED_FIELDS = ("name", "ticker", "exchange", "source_url")
 # v0.9: the quote layer is gone. These keys are what a regression would look like.
 PRICE_KEYS = ("stock", "reaction", "change_pct", "excess_pct", "bench_change_pct",
               "price_source")
+# v0.13: the ticker left with the quote. Cards answer what was reported.
+COMPANY_CODE_KEYS = ("listed_company", "ticker", "exchange")
 FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.S)
 # `个?月` and not just `月`: Chinese abstracts write "16 个月", and a unit alternation that
 # only knew "月" skipped every one of those figures -- "随访约 16 个月" (the record says 16.1)
@@ -379,27 +380,6 @@ def op_why_depth(sv, spec):
     return not bad, "; ".join(bad[:4]) if bad else "every why is a judgement, not a label"
 
 
-def op_listed_company_shape(sv, spec):
-    """`listed_company` is mandatory; a non-null one must carry ticker + source URL."""
-    bad = []
-    for i, c in enumerate((sv["watchlist"] or {}).get("cards") or [], 1):
-        if "listed_company" not in c:
-            bad.append(f"card{i} key missing")
-            continue
-        co = c["listed_company"]
-        if co is None:
-            continue
-        if not isinstance(co, dict):
-            bad.append(f"card{i} not an object")
-            continue
-        for key in LISTED_FIELDS:
-            if not str(co.get(key) or "").strip():
-                bad.append(f"card{i} .{key} empty")
-        if not re.match(r"^https?://\S+$", str(co.get("source_url") or "")):
-            bad.append(f"card{i} source_url not http(s)")
-    return not bad, "; ".join(bad[:4]) if bad else "listed_company present and sourced"
-
-
 def op_promotion_traceable(sv, spec):
     """A card outside the machine pools may only enter as a `promoted: "web"` record,
     and the esid must exist in `rows.json` -- otherwise the numbers have no source."""
@@ -510,14 +490,17 @@ def _frontmatter(text: str):
     return meta
 
 
-def op_no_price_claims(sv, spec):
-    """v0.9 removed the quote layer; this item is what keeps it removed.
+def op_no_market_claims(sv, spec):
+    """No price, and since v0.13 no company code -- both are market data on a card.
 
-    The reason is not taste. Re-measured on the 30-card e2e run, anchoring each card on
-    its *own* abstract release date and printing the excess over that market's sector
-    benchmark left 18 of 24 quotes inside +/-0.6% -- i.e. the number was the sector's
-    beta, not a view on the abstract. Eight Merck cards all received the same -3.83%,
-    because the move belongs to the company, not to any one readout.
+    The quote layer went in v0.9 for a measured reason: anchoring each card on its *own*
+    abstract release date and printing the excess over that market's benchmark left 18
+    of 24 quotes inside +/-0.6%, i.e. the number was the sector's beta, and eight Merck
+    cards all received the same -3.83% because the move belongs to the company.
+
+    v0.13 removed what v0.9 left behind: ``listed_company`` with ``ticker``/``exchange``.
+    On a rendered card the code is still read as "how did this trade", so the honest fix
+    is not a smaller chip but no code at all -- the company name lives in prose.
     """
     cards = (sv["watchlist"] or {}).get("cards") or []
     hits = []
@@ -525,14 +508,12 @@ def op_no_price_claims(sv, spec):
         for k in PRICE_KEYS:
             if k in c and c.get(k) not in (None, "", {}):
                 hits.append(f"card{i}.{k}")
-        co = c.get("listed_company")
-        if isinstance(co, dict):
-            for k in PRICE_KEYS:
-                if k in co and co.get(k) not in (None, "", {}):
-                    hits.append(f"card{i}.listed_company.{k}")
+        for k in COMPANY_CODE_KEYS:
+            if k in c:
+                hits.append(f"card{i}.{k}")
     if hits:
-        return False, f"price fields came back: {', '.join(hits[:5])}"
-    return True, f"no price claim on {len(cards)} card(s)"
+        return False, f"market data came back: {', '.join(hits[:5])}"
+    return True, f"no price / company code on {len(cards)} card(s)"
 
 
 def op_report_meta(sv, spec):
@@ -1027,11 +1008,10 @@ OPS = {
     "records_accounted": op_records_accounted,
     "coverage_claims": op_coverage_claims,
     "why_depth": op_why_depth,
-    "listed_company_shape": op_listed_company_shape,
     "promotion_traceable": op_promotion_traceable,
     "web_evidence": op_web_evidence,
     "report_meta": op_report_meta,
-    "no_price_claims": op_no_price_claims,
+    "no_market_claims": op_no_market_claims,
     "heat_coverage": op_heat_coverage,
 }
 

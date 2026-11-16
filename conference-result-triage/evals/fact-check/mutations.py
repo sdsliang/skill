@@ -95,12 +95,8 @@ def build_fixture(root):
     cards = []
     for n, c in enumerate(raw):
         card = {k: v for k, v in c.items() if not k.startswith("_")}
-        # `listed_company` is mandatory on every card; one card carries a fully
-        # sourced company so the shape check has something legal to accept.
-        card["listed_company"] = (
-            # Identity only (v0.9): who is developing it, not what the stock did.
-            {"name": "Tango Therapeutics", "ticker": "TNGX", "exchange": "NASDAQ",
-             "source_url": "https://investors.tangotx.com/"} if n == 0 else None)
+        # v0.13: no `listed_company` / ticker on a card at all -- the fixture is the
+        # legal shape, so if this ever comes back by reflex the NEG goes red.
         cards.append(card)
 
     watchlist = {"conference": "ESMO 2026", "count": len(cards), "cards": cards,
@@ -449,16 +445,19 @@ def m_why_depth(root):
     write(root, "artifacts/output/watchlist.json", w)
 
 
-def m_listed_missing(root):
+def m_ticker_returned(root):
+    """v0.13 removed the identity layer; this is what its return looks like."""
     w = read(root, "artifacts/output/watchlist.json")
-    w["cards"][0].pop("listed_company", None)
+    w["cards"][0]["ticker"] = "TNGX"
     write(root, "artifacts/output/watchlist.json", w)
 
 
-def m_listed_bare(root):
+def m_listed_returned(root):
+    """The fuller regression: the whole `listed_company` object comes back."""
     w = read(root, "artifacts/output/watchlist.json")
-    w["cards"][0]["listed_company"] = {"name": "某公司", "ticker": "",
-                                       "exchange": "HKEX", "source_url": "n/a"}
+    w["cards"][0]["listed_company"] = {"name": "Tango Therapeutics", "ticker": "TNGX",
+                                       "exchange": "NASDAQ",
+                                       "source_url": "https://investors.tangotx.com/"}
     write(root, "artifacts/output/watchlist.json", w)
 
 
@@ -494,8 +493,7 @@ def m_web_no_urls(root):
 def m_price_returned(root):
     """The regression v0.9 guards: a price move creeping back onto a card."""
     w = read(root, "artifacts/output/watchlist.json")
-    w["cards"][0]["listed_company"]["reaction"] = {"to_date": "2026-10-19",
-                                                   "change_pct": 6.76}
+    w["cards"][0]["reaction"] = {"to_date": "2026-10-19", "change_pct": 6.76}
     write(root, "artifacts/output/watchlist.json", w)
 
 
@@ -558,11 +556,12 @@ MUTATIONS = [
     ("A-D4-lba-not-dropped", m_lba_dropped),
     ("A-D5-rows-accounted", m_records_lost),
     ("A-P5-why-depth", m_why_depth),
-    ("A-F5-listed-company", m_listed_missing),
     ("A-F6-promotion-traceable", m_promoted_missing),
     ("A-W1-web-evidence", m_web_missing),
     ("A-W1-web-evidence", m_web_no_urls),
-    ("A-N1-no-price-claims", m_price_returned),
+    ("A-N1-no-market-claims", m_price_returned),
+    ("A-N1-no-market-claims", m_ticker_returned),
+    ("A-N1-no-market-claims", m_listed_returned),
     ("A-C2-report-frontmatter", m_no_skills),
     ("A-C2-report-frontmatter", m_citation_dangling),
 ]
@@ -591,12 +590,12 @@ def ngen_why_varied(root):
     write(root, "artifacts/output/watchlist.json", w)
 
 
-def ngen_listed_legal(root):
-    """A different but fully sourced company shape must stay green."""
+def ngen_company_in_prose(root):
+    """v0.13 removed the code, not the company: naming the sponsor in prose stays legal."""
     w = read(root, "artifacts/output/watchlist.json")
-    w["cards"][1]["listed_company"] = {"name": "四川科伦博泰生物医药股份有限公司",
-                                       "ticker": "06990", "exchange": "HKEX",
-                                       "source_url": "https://www.hkexnews.hk/"}
+    c = w["cards"][1]
+    c["why"] = ("科伦博泰这项随机对照把主要终点打成阳性，缓解深度与既往同类 ADC 相比"
+                "有明显提升；若总生存获益在后继随访中成立，会直接改变这一线的治疗选择。")
     write(root, "artifacts/output/watchlist.json", w)
 
 
@@ -638,7 +637,7 @@ NEGATIVES = [("legal bucket reorder", ngen_legal_reorder),
              ("heat trial titled", ngen_heat_hit),
              ("why at the length floor", ngen_why_varied),
              ("same value with more decimals", ngen_decimal_places),
-             ("fully sourced HK company", ngen_listed_legal),
+             ("company named in prose, no code", ngen_company_in_prose),
              ("web down but declared in coverage_notes", ngen_web_declared),
              ("search with no usable result, noted", ngen_web_empty_url_noted),
              ("citations declared and consistent", ngen_citations_legal)]

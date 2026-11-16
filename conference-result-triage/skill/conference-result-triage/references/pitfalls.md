@@ -315,14 +315,14 @@ v0.8 花了整整一版去做 `listed_company.reaction`：给出东财 kline 端
 v0.8 的所有口径工作（端点、基准日、`basis: 非归因`）都是**在把一个不该展示的量做得更精确**。
 精确的 beta 仍然是 beta，而且越精确越容易被读成信号。所以 v0.9 的处置不是"加免责声明"，
 而是整层删除：`reaction` / `stock` / `excess` / `fetch_quotes.py` / `--quotes-evidence` / 事实项 `A-F7`
-全部移除，`listed_company` 退回纯身份字段 `{name, ticker, exchange, source_url}`。
+全部移除。**当时的处置还留了一层**：`listed_company` 退回纯身份字段
+`{name, ticker, exchange, source_url}` —— 那一层后来也被 v0.13 删掉（见 §39）。
 
-**留下的三道防线**（因为删掉的功能会回潮）：
+**留下的一道防线**（因为删掉的功能会回潮）：
 
 - `check_cards.py` 扫 `PRICE_KEYS`（`stock` / `reaction` / `change_pct` / `excess_pct` /
-  `bench_change_pct` / `price_source`），卡片或 `listed_company` 上出现即失败；
-- 事实项 `A-N1-no-price-claims`（mutation：把 `reaction` 放回一张卡；NEG：只写身份字段仍绿）；
-- `ticker` 仍只写裸代码（`09966` + `exchange=HKEX`），因为身份字段也有自己的精度要求。
+  `bench_change_pct` / `price_source`），卡片上出现即失败；
+- 事实项 `A-N1-no-market-claims`（v0.13 起同时拦公司代码；三条 mutation + 一条 NEG）。
 
 **顺带修掉一个真 bug**（v0.8 遗留）：占位符扫描原来对 `json.dumps(card)` 做子串匹配，于是**任何把嵌套对象放在最后的卡**
 都会因为字面量 `}}` 被判定"占位符泄漏"—— 而那是完全合法的 JSON。改成只扫**叶子字符串**
@@ -546,3 +546,27 @@ v0.11 在 EASL 2026 重跑时，产物、闸门、事实层全绿（`check_cards
 - `recommand_gate`：标星行不在榜 = fail；标星卡排在未标星卡之后 = fail。**没有豁免通道**。
 
 同时它**不改 `score`**：`LBA7`/`CLARITY-Gastric01` 判读 41 分，就印 41 分并置顶。强制位决定"读不读"，判读分回答"这项研究有多强"——两件事混在一起，卡片就会开始为一个字段编分数。
+
+## 39. 删掉「行情」不等于删掉「股票的读法」—— v0.13 把代码层也删了
+
+v0.9 的判断是对的（会议当天涨跌是板块 beta，不是对这条摘要的反应），但它只切掉了**数字**，
+把 `listed_company` / `ticker` / `exchange` 留成了"身份信息"，理由是"谁在做这个药总得有据可查"。
+两轮以后回看复核页，问题很清楚：卡面上最显眼的彩色 chip 之一就是 `AZN · NASDAQ`，
+读者第一眼看到的是**股票标签**，不是读数。误读的载体是「代码出现在卡片上」这件事本身，
+与旁边有没有印涨跌幅无关 —— 少一个百分号并不会让人少读一层。
+
+同时它还在悄悄付成本：每张卡都要去查交易所/IR 页，ESMO 2026 那轮 22 次 `web_search` 里
+相当一部分是喂这一层的。删掉后检索面收窄，且没有任何一条事实性内容丢失——公司名写进正文散文就够
+（"科伦博泰的 SKB264…"），能不能对上交易所披露本来也不是这份清单的职责。
+
+**教训（比字段本身更重要）**：删一层功能时，要问的是「**读者会怎么读它**」，而不是「这个字段还有没有信息量」。
+信息量不足以否决，读法才是。同理见 §37（`is_recommand` 的三态）与 §38（强制位不可议价）：
+一个字段的意义取决于它在页面上的位置，不取决于它在 schema 里的注释。
+
+**v0.13 落在代码里的形状**：
+
+- `check_cards.py`：`COMPANY_CODE_KEYS = ("listed_company", "ticker", "exchange")`，**键存在即失败**（`null` 也算——
+  那只是同一句话的小声版本）；`TAGS = ("", "LBA")`，`tag="推荐"` 判失败；
+- 事实项：`A-F5-listed-company` 删除，`A-N1-no-price-claims` → **`A-N1-no-market-claims`**，
+  三条 mutation（价格回潮 / 裸 `ticker` / 整个对象回来）+ NEG「公司名写进正文散文仍绿」；
+- `make_cards.py`：`tag` 只由 `lba` 推出（`_auto_tag`），旧 plan 里残留的代码字段打一行 `!` 后丢弃，不静默带走。

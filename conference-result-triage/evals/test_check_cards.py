@@ -77,7 +77,6 @@ def card(item, score=60, parts=None):
         "why": ("该读数首次在随机对照中验证这一机制，缓解深度与既往同类药物相比"
                 "有明显提升；若总生存获益在后继随访中成立，会直接改变这一线的标准治疗，"
                 "但入组人群经过高度筛选，外推需谨慎。"),
-        "listed_company": None,
         "score": score,
         "score_parts": parts or {"evidence_strength": 20, "effect_size": 15,
                                  "clinical_impact": 15, "novelty": 5,
@@ -169,35 +168,29 @@ fails, _ = check_cards.check({"conference": "T", "count": 1, "cards": [dup],
                               "coverage_notes": NOTES}, by_esid)
 expect("why repeats summary", fails, "repeats summary")
 
-# 11. missing listed_company -- the field is the record that somebody looked
+# 11/12/13. v0.13 removed the identity layer: the ticker went with the quote. Presence
+# is a regression, and so is the quieter `null` form -- "checked and not listed" is the
+# same market claim as a filled ticker.
 fails, _ = check_cards.check({"conference": "T", "count": 1,
-                              "cards": [{k: v for k, v in base[0].items()
-                                         if k != "listed_company"}],
+                              "cards": [dict(base[0], listed_company=None)],
                               "coverage_notes": NOTES}, by_esid)
-expect("listed_company missing", fails, "missing listed_company")
+expect("listed_company returns (null form)", fails, "company-code field")
+expect("listed_company returns (null form)", fails, "v0.13 removed it")
 
-# 12. a listed company with no verifiable ticker/source is a rumour, not a fact
 fails, _ = check_cards.check({"conference": "T", "count": 1,
-                              "cards": [dict(base[0], listed_company={
-                                  "name": "某公司", "ticker": "", "exchange": "HKEX",
-                                  "source_url": "not-a-url"})],
+                              "cards": [dict(base[0], ticker="TNGX")],
                               "coverage_notes": NOTES}, by_esid)
-expect("listed_company ticker", fails, "listed_company.ticker missing")
-expect("listed_company url", fails, "not an http(s) URL")
+expect("bare ticker returns", fails, "company-code field")
 
-# 13. NEG: a fully sourced listed company passes
-fails, _ = check_cards.check({"conference": "T", "count": 1,
-                              "cards": [dict(base[0], listed_company={
-                                  "name": "Roche Holding AG", "ticker": "ROG",
-                                  "exchange": "SIX",
-                                  "source_url": "https://www.roche.com/investors"})],
+# 14. NEG: the legal card carries no company code at all
+fails, _ = check_cards.check({"conference": "T", "count": 1, "cards": [base[0]],
                               "coverage_notes": NOTES}, by_esid)
-if [f for f in fails if "listed_company" in f]:
-    failures.append(f"legal listed_company rejected: {fails}")
+if [f for f in fails if "company-code" in f]:
+    failures.append(f"legal card rejected for a missing company code: {fails}")
 else:
-    print("  ok  sourced listed_company passes")
+    print("  ok  card without any company code passes")
 
-# 14/15. a card the mechanical screen cut may only enter via a web promotion
+# 15. a card the mechanical screen cut may only enter via a web promotion
 promoted_row = {"esid": "nr_post_hoc_1", "lba": False, "manual": None,
                 "summary": "ORR 40%", "study_results": ["ORR 40%"]}
 promo_card = dict(base[0], esid="nr_post_hoc_1", lba=False, bucket="pivotal")
@@ -217,24 +210,12 @@ if left:
 else:
     print("  ok  web-promoted card resolves against rows.json")
 
-# 16/17/18. v0.9 deleted the quote layer, so the field's reappearance is the defect:
-# a meeting-day move is mostly the sector's own beta, and one company's move is
-# shared by every card that names it -- neither says anything about an abstract.
-listed = {"name": "Tango Therapeutics", "ticker": "TNGX", "exchange": "NASDAQ",
-          "source_url": "https://investors.tangotx.com/"}
-
+# 16/17. v0.9 deleted the quote layer; v0.13 deleted what it left behind. A
+# meeting-day move is mostly the sector's own beta, and a ticker invites exactly that
+# reading -- so both shapes are defects, not decoration.
 fails, _ = check_cards.check({"conference": "T", "count": 1,
-                              "cards": [dict(base[0], listed_company=dict(listed))],
-                              "coverage_notes": NOTES}, by_esid)
-if [f for f in fails if "price" in f]:
-    failures.append(f"identity-only company rejected: {fails}")
-else:
-    print("  ok  identity-only listed_company passes (no price needed)")
-
-fails, _ = check_cards.check({"conference": "T", "count": 1,
-                              "cards": [dict(base[0], listed_company=dict(
-                                  listed, reaction={"to_date": "2026-10-19",
-                                                    "change_pct": 6.76}))],
+                              "cards": [dict(base[0], reaction={"to_date": "2026-10-19",
+                                                               "change_pct": 6.76})],
                               "coverage_notes": NOTES}, by_esid)
 expect("reaction field returns", fails, "price field")
 
@@ -244,12 +225,22 @@ fails, _ = check_cards.check({"conference": "T", "count": 1,
                               "coverage_notes": NOTES}, by_esid)
 expect("stock field returns", fails, "price field")
 
-# 20. `09966.HK` + exchange=HKEX is the same fact twice and breaks quote lookup by bare
-# code -- the suffix belongs nowhere near the ticker
+# 20. v0.13 keeps the flag out of the label: `is_recommand` still decides placement
+# (it leads its bucket), but a chip on a judged list reads as our endorsement of a row
+# the data owner flagged.
 fails, _ = check_cards.check({"conference": "T", "count": 1,
-                              "cards": [dict(base[0], listed_company=dict(listed, ticker="09966.HK"))],
+                              "cards": [dict(base[0], tag="推荐")],
                               "coverage_notes": NOTES}, by_esid)
-expect("ticker carries a market suffix", fails, "market suffix")
+expect("is_recommand rendered as a badge", fails, "keeps the flag out of the label")
+
+legit = dict(base[0], tag="LBA", lba=True)
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [legit], "coverage_notes": NOTES},
+                             {**by_esid, legit["esid"]: {**by_esid[legit["esid"]], "lba": True}})
+if [f for f in fails if "label" in f]:
+    failures.append(f"legal LBA label rejected: {fails}")
+else:
+    print("  ok  LBA slot label still legal")
 
 # 21/22/23. Number traceability compares values, not digit strings. e2e8 shipped
 # "12 个月 PFS 率 44% vs 24%" (the abstract printed 44.7 / 24.5 only) and "随访约 16 个月"

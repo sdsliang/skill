@@ -9,7 +9,7 @@ Card shape::
 
     {
       "esid":         "24_37_p_...",      # the clinical-result record id
-      "abstract_id":  null,               # conference abstract number (null on TS)
+      "abstract_id":  "LBA7",             # abstract number, copied from the record (v0.12)
       "lba":          true,               # late-breaking tag
       "manual":       true,               # human-curated? null = unknown (platform can't fetch featured)
       "score":        78,                 # the reviewer's own 0-100 judgement (Step 4), not computed here
@@ -19,8 +19,6 @@ Card shape::
       "title":        "...",              # abstract title, verbatim
       "summary":      "...",              # what was reported, numbers included
       "why":          "...",              # what the result means (>=60 chars, v0.7)
-      "listed_company": {"name": "...", "ticker": "...", "exchange": "...",
-                         "source_url": "https://..."},  # or null
       "promoted":     "web",              # only for cards the web step pulled in
       "drug": "...", "target": "...", "indication": "...", "phase": "Phase III"
     }
@@ -35,6 +33,11 @@ v0.9 dropped the quote fields (``stock`` / ``listed_company.reaction``) entirely
 a card is about the readout, and a per-abstract price move on a conference day is
 mostly the sector's own beta -- 18 of 20 quotes landed inside +/-0.6% of their
 benchmark, i.e. the number said nothing about the abstract.
+
+v0.13 dropped the rest of that layer -- ``listed_company`` with its ``ticker`` and
+``exchange``. The quote went but the code stayed, and on a rendered card the code
+is still read as "how did this trade"; the company name belongs in prose, the
+ticker belongs to a market feed.
 """
 from __future__ import annotations
 
@@ -47,6 +50,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 BUCKETS = ("early", "pivotal", "failed")
 PROMOTE_REASONS = ("web",)
+# v0.13: the identity layer is gone. A plan from an older build can still carry it,
+# and silently copying it would hand `check_cards.py` a field it now rejects.
+COMPANY_CODE_KEYS = ("listed_company", "ticker", "exchange")
 
 try:  # same directory; the CLI runs from scripts/
     import triage
@@ -127,7 +133,7 @@ def build_cards(plan: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
             # "unknown" is the honest value and `false` would be a fabrication.
             "manual": (item["manual"] if "manual" in item else spec.get("manual")),
             "bucket": spec.get("bucket") or item.get("_bucket"),
-            "tag": spec.get("tag") or _auto_tag(item),
+            "tag": _auto_tag(item),
             "title": spec.get("title") or item.get("title") or "",
             "summary": spec.get("summary") or "",
             "why": spec.get("why") or "",
@@ -144,11 +150,12 @@ def build_cards(plan: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
             "phase_inferred": item.get("phase_inferred") or None,
             "presentation": item.get("presentation") or "",
         }
-        # Both keys are carried only when the plan supplies them: an absent
-        # `listed_company` must reach `check_cards.py` as "missing" rather than
-        # silently defaulting to null, which is the value that means "checked".
-        if "listed_company" in spec:
-            card["listed_company"] = spec["listed_company"]
+        # v0.13 removed the identity layer (ticker / exchange / listed_company).
+        # A plan written from an older build may still carry it; say so and drop it
+        # rather than copying a field the checker now rejects.
+        if COMPANY_CODE_KEYS & set(spec):
+            sys.stderr.write(f"  ! {esid}: plan carries {sorted(COMPANY_CODE_KEYS & set(spec))}; "
+                             f"dropped -- v0.13 has no company-code fields\n")
         if spec.get("promoted"):
             card["promoted"] = spec["promoted"]
         cards.append(card)
@@ -162,11 +169,14 @@ def build_cards(plan: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
 def _auto_tag(item: Dict[str, Any]) -> str:
     """Short read-slot label. Never invents one for an unmarked record.
 
-    Only ``lba`` feeds the slot label. ``featured`` is deliberately excluded: it
-    marks human- vs machine-produced rows, so "精选" would be a fabricated claim
-    about editorial importance.
+    Only ``lba`` feeds the slot label. Two things are deliberately excluded:
+    ``featured`` marks human- vs machine-produced rows, so "精选" would be a claim
+    about editorial importance nobody made; and ``is_recommand`` (v0.13) is a
+    *placement* signal, not a badge -- the flagged row still leads its bucket, but
+    the card says nothing extra, because a "推荐" chip on top of a judged list
+    reads as our own endorsement rather than the data owner's flag.
     """
-    return "推荐" if item.get("is_recommand") else ("LBA" if item.get("lba") else "")
+    return "LBA" if item.get("lba") else ""
 
 
 def main(argv: Optional[List[str]] = None) -> int:

@@ -232,19 +232,18 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
 | 会议现场热度 | `"<会议> <药名/试验名> results"` |
 | 适应症内定位 | `"<药名> <适应症> data <会议> <年份>"` |
 | 未被收录的热点 | `"<会议> late-breaking abstract <适应症> most anticipated"` |
-| 上市公司 | `"<公司名> listed ticker exchange"`（再用 `web_fetch` 打开交易所/公司 IR 页确认） |
 
 **证据要落盘**：每次检索追加一行到 `work/web/<bucket>.jsonl`（`{"query","title","url","published_at","note"}`）。回合结束 `/workspace/tool_results/` 会清空，只有这个文件留下来能复核。**检索跑了但一条能用的来源都没有**时，也要写一行、`url` 留空、在 `note` 里写清"无可用返回"——空 `note` 的裸记录会被判为凑数；整份证据里**至少 6 行要带真实 http URL**。
 
 **允许 `promote`（外部热议但初选漏了）**：前提是它在 `work/rows.json` 里 —— 卡片上的数字必须有原文出处。写卡时标 `"promoted": "web"`，并在 `why` 里点明外部讨论的是什么（例：多项报道把该读数列为该适应症本届最受关注的口头报告）。**`rows.json` 里根本没有的研究一律不进卡**，只在 `coverage_notes` 里写一句"外部讨论了 X，但会议库无对应记录，未纳入"。`check_cards.py --rows` 会按 `rows.json` 校验这类卡片；没有 `promoted` 标记却在池子外的 esid 直接拒绝。
 
-**查上市公司**：每张卡都要落 `listed_company` 字段。上市 ⇒ 对象 `{name, ticker, exchange, source_url}`，`source_url` 必须是你真的打开过的页面；未上市或查不到 ⇒ `null`（**不要猜、不要用同名母公司顶替**）。这个字段只回答"谁在做这个药"，**不夹带任何行情**（v0.9 起）。
+**不查上市公司代码**（v0.13）：卡片上**没有** `listed_company` / `ticker` / `exchange`，也不要为了填它们去查交易所。研发公司要写就写进正文散文（"科伦博泰的 SKB264…"），不做交易所身份声明。理由见下一条；`check_cards.py` 见到这三个键直接判失败，`null` 也判失败——"查过、没上市"和"填了个代码"在读者眼里是同一件事：这只股票怎么样。
 
 **为什么没有股价**：v0.8 曾要求每张卡印「会议期首个交易日 vs 会议前最后收盘」的涨跌幅，并逐条对账。v0.9 把整层删掉，理由是实测数据而不是口味——①按每条摘要自己的披露日重算后，24 条行情里 **18 条落在所属板块基准的 ±0.6% 以内**，即那个数字是板块 beta，"因为这条摘要涨了 X"不成立；②同一公司的多张卡拿到**同一个**数字（MRK 的 8 张卡都是 −3.83%），因为涨跌属于公司，不属于任何一条读数。会议当天的股价既不能归因于这条摘要，也不是推荐依据，留在清单里只会被读成信号。
 
-**`ticker` 只写代码本体，市场写 `exchange`**：`09966` + `HKEX`，不是 `09966.HK` + `HKEX`（`check_cards.py` 会拒这类后缀——同一事实印两遍，也让「市场 + 裸代码」的查询没法复用）。
+**为什么 v0.13 连代码也删了**：v0.9 只删了行情，把 `ticker` / `exchange` 留成了"身份信息"。实跑复核页上，这一层被读成的仍然是股票标签（`AZN · NASDAQ`），而且它把卡片的注意力从读数挪到了市场——同一层误读，只是音量小一点。身份靠公司名就够了，代码属于行情源，不属于会议清单。这一层删掉同时省下每次约 1/3 的检索轮次（原来每张卡都要查交易所页）。
 
-**联网失败是降级条件，不是中止条件**（v0.7 实跑教训）：`web_search` 无返回、`web_fetch` 单个站点 403/超时、IR 页打不开 —— 都只影响这一层，**清单照出**。处理顺序是：①换查询词/换源再试（检索结果里的标题与 URL 本身就能填 `listed_company.source_url`，不必打开页面）；②仍不行就按判读分收敛到 10 条，`listed_company` 一律 `null`；③在 `coverage_notes` 写一句「联网核实未完成（原因）」再交付。**绝对不要因为查不到上市公司或外部热度就"暂不交付 JSON"** —— 那等于用一个可选的增强步骤否决整份清单。已实测过：`web_search` 正常返回 12 条来源，模型却因为 `web_fetch` 打开 amgen.com 失败，写下"搜索无可用返回"并结束回合、零交付。
+**联网失败是降级条件，不是中止条件**（v0.7 实跑教训）：`web_search` 无返回、`web_fetch` 单个站点 403/超时、IR 页打不开 —— 都只影响这一层，**清单照出**。处理顺序是：①换查询词/换源再试；②仍不行就按判读分收敛到 10 条，外部热度层留空；③在 `coverage_notes` 写一句「联网核实未完成（原因）」再交付。**绝对不要因为查不到外部热度就"暂不交付 JSON"** —— 那等于用一个可选的增强步骤否决整份清单。已实测过：`web_search` 正常返回 12 条来源，模型却因为 `web_fetch` 打开 amgen.com 失败，写下"搜索无可用返回"并结束回合、零交付。
 
 **终选原则**：每桶 ≤10 条。分数仍是内部定榜的主要依据，但**外部信号可以覆盖它**，覆盖了要在 `why` 里写清（"外部讨论集中在 X，而初选按分数把它排在 12 位"）。
 
@@ -275,13 +274,11 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
                    "clinical_impact": 20, "novelty": 4, "readout_maturity": 6},
    "title": "…", "summary": "…", "why": "…",
    "abstract_id": "LBA7", "is_recommand": true,
-   "promoted": "web",
-   "listed_company": {"name": "Tango Therapeutics", "ticker": "TNGX", "exchange": "NASDAQ",
-                      "source_url": "https://investors.tangotx.com/"}}
+   "promoted": "web"}
 ]}
 ```
 
-`title` / `summary` / `why` / `score` / `listed_company` 五条必填（`listed_company` 可以是 `null`，但键必须在），缺一条脚本直接停（`score_parts` 没给就沿用判读阶段的值）。`coverage_notes` 与 `editorial_overrides` 写在 plan 顶层，`make_cards.py` 会原样搬到交付 JSON 里 —— 不要渲染完再手改 JSON。
+`title` / `summary` / `why` / `score` 四条必填（v0.13 起 `listed_company` 不再是必填键，见下），缺一条脚本直接停（`score_parts` 没给就沿用判读阶段的值）。`coverage_notes` 与 `editorial_overrides` 写在 plan 顶层，`make_cards.py` 会原样搬到交付 JSON 里 —— 不要渲染完再手改 JSON。
 
 **模型必须在输出前把每桶排好：标星卡在前，同类内按 `score` 降序**（v0.12）。`make_cards.py` 只按 `plan.json` 的顺序渲染，**不会替你排**（v0.8 的 e2e7 就跑出过 failed 桶 `[…,63,66]` 的升序尾巴，事实项 `A-P4-score-order` 判失败）。顺序键是 `(is_recommand, -score)`：桶内一律「标星优先、同类降序」，桶与桶之间的顺序没有意义（`early → pivotal → failed` 只是为了读者阅读）。
 
@@ -302,11 +299,11 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 
 **`--rows` 永远必传**（v0.10 起是 `required=True`）。池子成员资格由脚本**用 `rows.json` 现场重算**（`recompute_pool()` 调 `triage.build_pools`）决定，`--pool` 只是展示字段的来源。原因是一次真实翻车：ESC 2026 那轮模型觉得 triage 删多了，自己拼了一个 `pool_ext.json` 当 `--pool`，闸门全绿，而事后事实层按 `work/pool/pool.json` 重算，判出 9 个池外 esid + 61 个查不到出处的数字。**不要手拼、不要手改 pool 文件**：觉得筛错了就重跑 `triage.py`，或在 `coverage_notes` 里写清哪类记录被规则切掉了。池子外的 esid 必须带 `"promoted": "web"` 才放行（且必须在 `rows.json` 里）。
 
-`check_cards.py` **必须 exit 0** 才能交付（`--report` 一起传，否则只剩卡片层的检查）。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字（**按数值比对，不是子串**：`44%` 不会因为原文有 `44.7%` 或 `n=144` 而通过；`个月` 与 `mo` 一样会被扫描出来）、**每桶超过 10 条 / 全场超过 30 条**、**定榜没按判读分取前 k**（见 Step 5B）、**标星行没上榜或排在未标星卡之后**（`recommand_gate`，不吃 override 豁免）、**`abstract_id` 与 `rows.json` 不一致 / rows 有值而卡片留空 / rows 无值而卡片凭空填**、**`score` 不是 0–100 整数或五维相加不等于总分**、**`why` 少于 60 字或只是复述 `summary`**、**`listed_company` 键缺失或给了假 ticker/假链接**、**任何行情字段回潮（`stock` / `reaction` / `change_pct` / `excess_pct`）**、**池子外的卡片没有 `promoted` 标记**（池子成员资格由 `rows.json` **现场重算**，手改或另拼一个 pool 文件不起作用）、**`coverage_notes` 缺失或没写到两条边界**。数字扫描覆盖的**单位**有：`%`、`个百分点`、`个月/周/天/年`、`mo/months`、`mmol/L`、`mg/dL`、`mg/L`、`g/dL`、`ng/mL`、`pg/mL`、`IU/mL`、`U/L`、`mL/min(1.73m2)`、`mL/kg/min`、`mL`、`kg`、`cm`、`mmHg`、`points`、`events/100` —— 单位不在这一列里，那类数字就**不被检查**，所以写数字时别自创单位。
+`check_cards.py` **必须 exit 0** 才能交付（`--report` 一起传，否则只剩卡片层的检查）。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字（**按数值比对，不是子串**：`44%` 不会因为原文有 `44.7%` 或 `n=144` 而通过；`个月` 与 `mo` 一样会被扫描出来）、**每桶超过 10 条 / 全场超过 30 条**、**定榜没按判读分取前 k**（见 Step 5B）、**标星行没上榜或排在未标星卡之后**（`recommand_gate`，不吃 override 豁免）、**`abstract_id` 与 `rows.json` 不一致 / rows 有值而卡片留空 / rows 无值而卡片凭空填**、**`score` 不是 0–100 整数或五维相加不等于总分**、**`why` 少于 60 字或只是复述 `summary`**、**卡片出现公司代码字段（`listed_company` / `ticker` / `exchange`，`null` 也算）**、**`tag` 不是 `""` 或 `LBA`（标星不戴徽章）**、**任何行情字段回潮（`stock` / `reaction` / `change_pct` / `excess_pct`）**、**池子外的卡片没有 `promoted` 标记**（池子成员资格由 `rows.json` **现场重算**，手改或另拼一个 pool 文件不起作用）、**`coverage_notes` 缺失或没写到两条边界**。数字扫描覆盖的**单位**有：`%`、`个百分点`、`个月/周/天/年`、`mo/months`、`mmol/L`、`mg/dL`、`mg/L`、`g/dL`、`ng/mL`、`pg/mL`、`IU/mL`、`U/L`、`mL/min(1.73m2)`、`mL/kg/min`、`mL`、`kg`、`cm`、`mmHg`、`points`、`events/100` —— 单位不在这一列里，那类数字就**不被检查**，所以写数字时别自创单位。
 
 `coverage_notes` 必须写在交付 JSON 的顶层（见下「两个必须写进清单的诚实声明」）。v0.5 的实跑把它写成了别的字段名、v0.6 的实跑把边界写在 `coverage.boundary` 里 ⇒ 事实层 `A-H1` 两次都判失败：**边界只写在聊天回复里，下个月读 JSON 的人看不到**。所以这一条从"建议"升级成闸门，措辞不查（`无 p 或 HR` / `未列p或HR` / `没给 p 值或 HR` 都算），只查事实有没有落到交付物里。
 
-「研发公司是否上市」只用 `listed_company` 表达（见 Step 5B）：它回答"谁在做这个药"，不含任何价格。v0.8 时期把当日行情塞进 `stock` / `reaction`，结果是"没查到涨跌"被读成"没上市"、板块 beta 被读成对这条摘要的反应，两件事一起错，所以整层移除。
+「研发公司是否上市」**不再是卡片的字段**（v0.13 把身份层一起删了）。如果要交代"谁在做这个药"，写进正文散文；`listed_company` / `ticker` / `exchange` 出现在卡片上即判失败。这条路径走过两步：v0.8 把当日行情塞进 `stock` / `reaction`（"没查到涨跌"被读成"没上市"、板块 beta 被读成对这条摘要的反应）；v0.9 删行情但留下代码，实跑复核页上那层仍被读成股票标签。所以不是"缩小一点"，是整层不存在。
 
 ### Step 7 — 写报告并交付
 
@@ -369,25 +366,23 @@ lang: zh-CN
  ],
  "cards": [
   {"esid": "24_37_p_...", "abstract_id": "LBA7", "lba": true, "manual": null,
-   "is_recommand": true, "bucket": "pivotal", "tag": "推荐",
+   "is_recommand": true, "bucket": "pivotal", "tag": "LBA",
    "score": 78,
    "score_parts": {"evidence_strength": 26, "effect_size": 22,
                    "clinical_impact": 20, "novelty": 4, "readout_maturity": 6},
    "title": "…", "summary": "…", "why": "…",
    "drug": "…", "target": "…", "indication": "…",
    "phase": "Phase III", "presentation": "Late-breaking Oral",
-   "listed_company": {"name": "…", "ticker": "…", "exchange": "…",
-                      "source_url": "https://…"},
    "promoted": "web"}
 ]}
 ```
 
 - `coverage_notes` 是**必填**的字符串数组，上面两条声明各至少一条；`check_cards.py` 会按语义（不是字面措辞）校验它。
 - `esid` 是结果记录 id（用户要的"对应的结果id"）；`abstract_id` 是会议摘要号，取自 `clinical_result.abstract_id`，**必须与 `rows.json` 逐字一致**（v0.12）。三种错法都会被 `check_cards.py` 拦：rows 有值而卡片留空、卡片值与 rows 不同、rows 无值而卡片凭空填。空值只在真的没有时出现（会议里偶有缺失），不能靠留空躲检查。
-- `is_recommand` 是布尔，**必须与 `rows.json` 的 `clinical_result.is_recommand` 一致**：数据方标了 `是` 就是 `true`，不能因为「我觉得这条一般」写成 `false`。标星卡片的 `tag` 写 `推荐`（优先于 `LBA`）。
+- `is_recommand` 是布尔，**必须与 `rows.json` 的 `clinical_result.is_recommand` 一致**：数据方标了 `是` 就是 `true`，不能因为「我觉得这条一般」写成 `false`。**标星不戴徽章**（v0.13）：`tag` 只写 `""` 或 `LBA`，标星的作用是**排在桶首**，不是加一个"推荐"标签 —— 判读榜上加自家徽章会被读成我们的背书。
 - `score` / `score_parts` 是判读结论（Step 4 给的分），不是脚本算的；总分只用来决定阅读顺序，`why` 里不出现分数。
 - `why` 是**价值判断**（2–4 句、≥60 字），不是 `summary` 的改写：它要回答"这项研究为什么重要"，而 `summary` 回答"报告了什么"。
-- `listed_company` **每张卡都有这个键**：上市填 `{name, ticker, exchange, source_url}`，未上市/查不到填 `null`。`null` 是"查过、没有"，不是"没查"。**该字段不含价格**——`stock` / `reaction` / `change_pct` 等键一旦出现，`check_cards.py` 直接判失败。
+- **卡片上没有公司代码**（v0.13）：`listed_company` / `ticker` / `exchange` 一个都别写，写了（哪怕是 `null`）`check_cards.py` 判失败；`stock` / `reaction` / `change_pct` 这类行情字段更不行。公司名进正文散文即可。
 - `promoted` 只在**联网终选把池子外的记录提进来**时出现，值是 `"web"`；这类卡片必须能对上 `work/rows.json` 的 esid。
 - **卡片里的 `abstract_id` / `is_recommand` 是照抄，不是判断**：它们的唯一合法来源是 `rows.json`，`make_cards.py` 从池子条目透传；手改一定要能被 rows 对上，否则 `recommand_gate` 与 `A-P7` 都会开火。
 - `manual` 是生产方式标记（人工核对 / 流水线抽取），**不是**推荐等级。平台内**恒为 `null`**（`featured` 不可选），`check_cards.py` 会拒绝把它改成 `true`/`false`。
@@ -439,7 +434,9 @@ lang: zh-CN
 
 ## 版本
 
-- **v0.12** — **两个字段一直都在，是我们没请求；顺带发现「标星」是个强制位**。①**`abstract_id` 从不存在的结论撤销**：`clinical_result.abstract_id` 在白名单内，实测 ESMO 2026 **1097/1097**、ASCO 2026 **1648/1648**、AACR 2026 **288/288** 全非空；错因是 `pull_results.py` 的 `DEFAULT_FIELDS` 从来没写这两个名字，而当时的「表里没有这列」是拿旧 schema dump `grep` 出来的**负向结论**——一次 `selected_fields` 实测就能证伪，它却活了四个版本。现在 `pull_results.py` 请求并在汇总里打印、缺列时告警，`check_cards.py` 校验「卡片值 == `rows.json` 值」三态（缺 / 不符 / 凭空填），事实项 `A-F1-abstract-id-traceable` 取代旧的 `A-F1-abstract-id-null`（那条要求全 null，方向正好相反）。②**`is_recommand` 是强制位不是排序提示**：`是` 的行必须上榜且桶内置顶，**压过判读分**、**不吃 `editorial_overrides` 豁免**、**不进 `score_parts`**；`None`（整列空）与 `column_present=false`（列没拉）必须分开写进 `coverage_notes`——「没人标星」和「没拉这一列」和「没有值得读的」是三件事。`triage.py` 的 `recommand_of()` 只认显式真值（`None` 不当 `False`），`forced` 行绕过排除规则 / TiP 过滤 / 期别启发式并直接落 pivotal，排序键 `(forced, presentation_rank, -n, …)`。③**判读分与强制位分开**：卡上 `score` 仍按五维诚实给（ESMO 2026 唯一标星行 `LBA7`/`CLARITY-Gastric01` 判读只有 41 分，照样置顶），`tag` 优先写 `推荐`。④**闸门**：`check_cards.py` 新增 `recommand_gate(cards, pool)`（覆盖 + 顺序）；`op_score_order` 从「降序」改成「标星优先、同类降序」——旧写法两条都错：要么禁止强制位，要么让标星卡沉底；事实项 `A-P7-recommand-forced` + mutation `m_recommand_dropped`（把标星卡从榜上删掉，卡本身仍然合法），测试 40 → 46 case。
+- **v0.13** — **把「股票」这个读法从卡面上彻底拿掉**，两处改动都是同一件事。①**删公司代码层**：`listed_company` / `ticker` / `exchange` 三个键不再存在（`null` 也判失败），`web_search` 模板里"上市公司"那条查法删掉，`plan.json` 与交付 JSON 的示例同步去掉。理由不是洁癖：v0.9 删了行情，却把代码留成"身份信息"，实跑复核页上那层被读成的仍是股票标签（`AZN · NASDAQ`），读者的注意力从读数挪到了市场——同一层误读，只是音量小一点。身份靠正文里的公司名就够，代码属于行情源。附带收益：不再需要逐卡查交易所页，检索轮次约省 1/3。②**标星不戴徽章**：`is_recommand=是` 的作用只剩**桶内置顶**（`recommand_gate` 与 `op_score_order` 都还在查），`tag` 只允许 `""` 或 `LBA`；原来印「推荐」等于在判读榜上加我们自己的背书。③**闸门与事实项对齐**：`check_cards.py` 新增公司代码字段拦截 + `tag` 白名单；事实项 `A-F5-listed-company` 删除、`A-N1-no-price-claims` 扩成 **`A-N1-no-market-claims`**（价格与代码一起拦），mutation 三条（价格回潮 / 裸 `ticker` 回来 / 整个 `listed_company` 回来），NEG 换成「公司名写进正文散文仍绿」。事实层 29 → **28 条（27 fail + 1 warn）**，测试 46 → 49 case。
+
+- **v0.12** — **两个字段一直都在，是我们没请求；顺带发现「标星」是个强制位**。①**`abstract_id` 从不存在的结论撤销**：`clinical_result.abstract_id` 在白名单内，实测 ESMO 2026 **1097/1097**、ASCO 2026 **1648/1648**、AACR 2026 **288/288** 全非空；错因是 `pull_results.py` 的 `DEFAULT_FIELDS` 从来没写这两个名字，而当时的「表里没有这列」是拿旧 schema dump `grep` 出来的**负向结论**——一次 `selected_fields` 实测就能证伪，它却活了四个版本。现在 `pull_results.py` 请求并在汇总里打印、缺列时告警，`check_cards.py` 校验「卡片值 == `rows.json` 值」三态（缺 / 不符 / 凭空填），事实项 `A-F1-abstract-id-traceable` 取代旧的 `A-F1-abstract-id-null`（那条要求全 null，方向正好相反）。②**`is_recommand` 是强制位不是排序提示**：`是` 的行必须上榜且桶内置顶，**压过判读分**、**不吃 `editorial_overrides` 豁免**、**不进 `score_parts`**；`None`（整列空）与 `column_present=false`（列没拉）必须分开写进 `coverage_notes`——「没人标星」和「没拉这一列」和「没有值得读的」是三件事。`triage.py` 的 `recommand_of()` 只认显式真值（`None` 不当 `False`），`forced` 行绕过排除规则 / TiP 过滤 / 期别启发式并直接落 pivotal，排序键 `(forced, presentation_rank, -n, …)`。③**判读分与强制位分开**：卡上 `score` 仍按五维诚实给（ESMO 2026 唯一标星行 `LBA7`/`CLARITY-Gastric01` 判读只有 41 分，照样置顶），`tag` 优先写 `推荐`（**v0.13 已撤**：标星只决定位置，不再印徽章）。④**闸门**：`check_cards.py` 新增 `recommand_gate(cards, pool)`（覆盖 + 顺序）；`op_score_order` 从「降序」改成「标星优先、同类降序」——旧写法两条都错：要么禁止强制位，要么让标星卡沉底；事实项 `A-P7-recommand-forced` + mutation `m_recommand_dropped`（把标星卡从榜上删掉，卡本身仍然合法），测试 40 → 46 case。
 
 - **v0.11** — **定榜必须吃自己判读出来的排序**。EASL 2026 实跑交付了一张 35 分的 pivotal 卡，而同桶判读 85 分的 PBC 三期（`PEMA-PBC`）没用上；ADA 2026 同代码同病：pivotal 舍弃的 keep 里 4 条高于入选最低分（77 `HR17031-301`、74 `HRS9531-T-201`、73 `ACCESS II`、73 `ACCESS`）。当时所有闸门都绿，因为它们只问「你列的这条合不合法」，从不问「你列的这条是不是比被你砍掉的那条更好」。改动：①判读条目加 `esid`（八键 → 九键），判读与清单的对照不再依赖批次文件反查；②`check_cards.py --judged` 必传，桶内**入选卡最低分不得低于被舍弃的 keep 分**（同分随意），要舍弃更高分的必须写进交付 JSON 顶层 `editorial_overrides`（`reason` ≥10 字），否则拒；③`make_cards.py` 从 `plan.json` 原样搬 `coverage_notes` / `editorial_overrides` 进交付 JSON，不再靠渲染后手改；④事实项 `A-P6-selection-order` + mutation `m_selection_order`（把一条未入选 keep 抬到 95 分验证翻转）、`test_check_cards.py` 加 7 条（含 `load_judged` 不许把 `selected.json` 当判读记录 —— 否则「没人被判 keep」与「没检查」无法区分）。
 - **v0.10** — **三处「按领域/按会议泛化」的必要修正**，都来自同一天跑 ADA / ESC / EASL 三场暴露的问题。①**期别缺失不再丢**：`bucket_of()` 原来在 `phase` 匹配不上时返回 `None`，记录落进 `excluded["无法归类"]` —— ESC 2026 因此丢了 123 条（242 条里 51%，含 `ACACIA-HCM` / `ENRICH-AF` / `SAL003`），ADA 丢 40、EASL 丢 55（含 `bepirovirsen` / `pemvidutide`）。现在尾部**无条件** `return design_bucket(row)`：`随机化` 或 `平行分组/交叉设计/析因设计` → `pivotal`，其余真试验 → `early`，并写 `phase_inferred`；`phase` 保持原样（通常为空）。三场候选量 191→138 / 242→164 / 214→135，`无法归类` 归零。②**成员资格由 `rows.json` 现场重算**：`check_cards.py --rows` 改 `required=True`，`--pool` 降级为展示字段，手拼 `pool_ext.json` 不再能绕过（e2e #10 的作案路径）。③**领域无关化**：数字单位表扩到 `mg/dL` / `mmol/L` / `mL/min` / `IU/mL` / `points` 等，判读 `verdict` 给出六领域水位表，明确「表里没有就按主终点 + 效应量自判，别套肿瘤阈值」。④**引文三键**：`citations.json` 每条固定 `{title, link, paper_release_time_str}`（`YYYY-MM-DD`），`check_cards.py --report` 在交付前按平台同一口径复核。⑤**去重别名**：同试验两条记录合并后，被合并的 esid 记 `alias_esids`，卡写兄弟记录不再被判越界。测试 23 → 33 case；`triage` 夹具 4 → 6 行（补 phase-less 随机化 + phase-less 单臂）。

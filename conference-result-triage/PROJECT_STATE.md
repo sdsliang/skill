@@ -1,5 +1,43 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.13（2026-11-16）：把「股票」这个读法从卡面上彻底拿掉
+
+两处改动是同一件事：卡面上任何能被读成"这只票怎么走了"的东西都不留。
+
+### 起因
+
+v0.12 复核页截图确认：30 张卡里 **16 张有 `listed_company`**（`AZN · NASDAQ` 那种彩色 chip），
+全场唯一标星行 `LBA7` 的卡面上还多了一个「推荐」徽章。两个 chip 都在**卡片最显眼的一行**，
+读者第一眼看到的是股票标签和自家背书，而不是读数。
+
+### 改动（脚本 → 事实层 → 文档）
+
+| 层 | 改动 |
+|---|---|
+| `check_cards.py` | 新增 `COMPANY_CODE_KEYS = ("listed_company","ticker","exchange")`，**键存在即 fail（`null` 也算）**；新增 `TAGS = ("","LBA")`，`tag` 非白名单即 fail；docstring 规则 12 合并为「no market data survives anywhere」，规则数 17 |
+| `make_cards.py` | `tag` 只由 `lba` 推出（`_auto_tag` 不再看 `is_recommand`）；旧 plan 残留的代码字段打 `!` 警告后**丢弃**，不静默复制 |
+| 事实层 | 删 `A-F5-listed-company`（29 → 28 条）；`A-N1-no-price-claims` → **`A-N1-no-market-claims`**，价格与公司代码一起拦；`op_no_price_claims` → `op_no_market_claims`；`op_listed_company_shape` 整段删除 |
+| mutations | `m_listed_missing`/`m_listed_bare` → `m_ticker_returned`/`m_listed_returned`；`m_price_returned` 改在卡片顶层写 `reaction`；NEG「fully sourced HK company」换成 **「company named in prose, no code」**（删掉代码不等于删掉公司） |
+| 测试 | `test_check_cards.py` 46 → **49 case**（`listed_company=null` 也算行情声明、裸 `ticker`、无代码合法卡通过、`tag="推荐"` fail / `tag="LBA"` 合法） |
+| 文档 | `SKILL.md`（Step 5B 删「查上市公司」整段与「`ticker` 只写裸代码」段、交付 JSON 示例、必填四条、checker 拦截项、`## 版本` 新增 v0.13）、`data-contract.md §6.5/§6.5.1`、`pitfalls.md §26` 改口径 + **新增 §39**、`review-protocol.md`（检索三类、删 `listed_company` 用法段）、`templates` 硬规则 7 加「不加徽章」、`README.md` |
+| 复核页 | `build_review_page.py` 删 ident chip 分支与 `.chip.ident` CSS；`tag` 只渲染 `LBA`；产出 `dist/review/esmo2026-watchlist-v13.html`（30 卡） |
+
+### 验证
+
+- 本地全套绿：`test_triage` fixture OK；`test_check_cards` fixture OK（49 case）；`mutations` **coverage 27/27 + 8 NEG green**。
+- **旧产物 fail-closed**：拿 v0.12 的 ESMO 实跑产物跑新闸门 → **EXIT=3**，30 条 `listed_company is a company-code field` + 1 条 tag 越界。
+- **同一批内容去掉身份层即通过**：把 30 张卡删掉代码字段、`tag` 归一到 `LBA/""` → **EXIT=0 `OK cards=30`**。说明删的是形状，不是内容。
+- 复核页 v13 截图确认：`LBA7` 卡只剩 `LBA` + `LBA87`（abstract_id）chip，`AZN · NASDAQ` 类 chip 消失，「推荐」徽章消失。
+
+### dist
+
+`dist/conference-result-triage-v0.13.zip` — **143957 B / 16 entries / sha256 `a61a30d9523b320f`**。
+
+### 待办
+
+- [ ] 平台原地 publish（等授权）+ 用 v0.13 重跑一场 E2E（预期 `web_search` 次数下降约 1/3）
+- [ ] **卡片「期别未标注」丢推断依据**（v0.12 遗留，未修）：`phase_of()` 把 `evidence_source` 里的设计词原样当 `phase`；`phase_inferred` 又带 `not is_lba_row` 豁免 → 7/30 卡印「前瞻性研究」
+
 ## v0.12（2026-11-16）：`abstract_id` / `is_recommand` 一直都在，是我们没请求
 
 ### 诊断：一个活了四个版本的负向结论

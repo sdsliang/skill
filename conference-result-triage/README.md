@@ -21,11 +21,13 @@
 三条硬规则：**n 不作入榜门槛**（只展示）；**真实世界/回顾性/汇总分析不进桶**（单独计 excluded）；**试验期别取 `evidence_source`**（不是疾病分期）。
 
 两道收敛：机器短名单每桶 ≤15 → **交付清单每桶 ≤10 / 全场 ≤30**。`why` 写"这项研究值什么"（≥60 字，不复述数字）；
-每张卡带 `listed_company`（**纯上市身份** `{name, ticker, exchange, source_url}`，查不到就是 `null`）。
+卡面上没有公司代码（v0.13）：`listed_company` / `ticker` / `exchange` 整层删除，公司名只进正文散文；
+`is_recommand=是` 的行仍然桶内置顶，但**不印「推荐」徽章**（`tag` 只允许 `""` 或 `LBA`）。
 
 **卡片里没有股价**（v0.9 删除）：按每条摘要自己的披露日重锚、扣掉板块基准后，24 条行情里 **18 条落在 ±0.6% 内**，
 同一公司的多张卡还拿到同一个数字（MRK 8 张卡全是 −3.83%）—— 那个数字是板块 beta，不是对这条读数的反应。
-`stock` / `reaction` / `change_pct` 等键一旦回潮，`check_cards.py` 与事实项 `A-N1` 都会拒。论证见 `references/pitfalls.md §26`。
+`stock` / `reaction` / `change_pct` 等键一旦回潮，`check_cards.py` 与事实项 `A-N1-no-market-claims` 都会拒。
+v0.13 把同一层剩下的代码也删了：卡面上的 `AZN · NASDAQ` 会被读成"这只股票怎么样"，与 v0.9 的误读同源。论证见 `references/pitfalls.md §26` 与 **§39**。
 
 ## 跑在哪（v0.3）
 

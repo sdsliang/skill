@@ -27,14 +27,16 @@ Checks
  11. ``coverage_notes`` states the two honest limits (``data_type`` undetermined,
      abstracts without p/HR) -- the JSON is what gets read next month, so a limit
      that lives only in the chat reply is a limit nobody will see
- 12. ``listed_company`` is present on every card (``null`` when the sponsor is not
-     listed or could not be verified) and, when present, carries name+ticker+
-     exchange+a resolvable source URL -- identity, no price: v0.9 removed the quote
-     fields because a meeting abstract's readout is not separable from the ticker's
-     sector beta, so a per-card percentage was beta dressed as signal
- 13. no price claim survives anywhere -- ``stock``, ``reaction``, ``change_pct``,
-     ``excess_pct`` on the card or under ``listed_company`` all fail. v0.9 deleted the
-     quote layer deliberately; this is the gate that keeps it deleted
+ 12. ``tag`` is a slot label, not a badge: only "" or "LBA". v0.13 stopped rendering
+     ``is_recommand`` as a chip -- the flag still decides *placement* (it leads its
+     bucket, see rule 18), but a "推荐" chip on a judged list reads as our own
+     endorsement of a row the data owner flagged
+ 13. no market data survives anywhere -- no price (``stock`` / ``reaction`` /
+     ``change_pct`` / ``excess_pct``) and no company code (``listed_company`` /
+     ``ticker`` / ``exchange``). v0.9 deleted the quote layer, v0.13 deleted the
+     ticker: on a conference card the code is read as "how did this trade", the same
+     misreading the quote layer caused, so the field is gone and this gate keeps it
+     gone -- either shape coming back fails
  14. the report, when ``--report`` is given: frontmatter carries ``skills`` (with this
      skill named) / ``title`` / ``date`` / ``lang``; every ``{{ref_N}}`` has a
      ``citations.json`` entry and vice versa; each entry is exactly
@@ -71,15 +73,16 @@ TOTAL_CAP = 30
 # A "why" that is shorter than this is a label, not a judgement. 60 Chinese chars is
 # roughly two sentences -- enough for "unmet need -> what this readout changes".
 MIN_WHY_CHARS = 60
-LISTED_FIELDS = ("name", "ticker", "exchange", "source_url")
-# v0.8: `09966.HK` + `exchange=HKEX` prints one fact twice; the ticker is the bare code,
-# the exchange field is the market, and a tool keyed on (market, code) can only match that.
-MARKET_SUFFIXES = (".HK", ".SH", ".SS", ".SZ", ".T", ".L", ".DE", ".PA", ".AS", ".SW")
 PROMOTE_REASONS = ("web",)
 # What a regression would look like. Kept as a literal list rather than a schema check
 # because the point is to catch the *field coming back*, whatever shape it has.
 PRICE_KEYS = ("stock", "reaction", "change_pct", "excess_pct", "bench_change_pct",
               "price_source")
+# v0.13 removed the identity layer for the same reason the quote layer went in v0.9:
+# a ticker on a conference card gets read as "how did this trade". Names stay in prose.
+COMPANY_CODE_KEYS = ("listed_company", "ticker", "exchange")
+# v0.13: the only legal slot labels. `is_recommand` is not one of them -- it orders.
+TAGS = ("", "LBA")
 BUCKETS = ("early", "pivotal", "failed")
 SCORE_CAPS = {"evidence_strength": 30, "effect_size": 25, "clinical_impact": 25,
               "novelty": 10, "readout_maturity": 10}
@@ -587,6 +590,10 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
             fails.append(f"{tag}: bad bucket {card.get('bucket')!r}")
         elif item.get("_bucket") and card["bucket"] != item.get("_bucket"):
             notes.append(f"{tag}: bucket re-judged {item.get('_bucket')} -> {card['bucket']}")
+        if card.get("tag") not in TAGS:
+            fails.append(f"{tag}: tag={card.get('tag')!r} -- v0.13 keeps the flag out of the "
+                         f"label; a flagged row leads its bucket silently instead of wearing "
+                         f"a badge (legal: {list(TAGS)})")
         why = " ".join(str(card.get("why") or "").split())
         summary = " ".join(str(card.get("summary") or "").split())
         if why and len(why) < MIN_WHY_CHARS:
@@ -670,38 +677,14 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
             if key in card and card.get(key) not in (None, "", {}):
                 fails.append(f"{tag}: {key} is a price field -- v0.9 removed the quote "
                              f"layer; the card is about the readout")
-        # Presence of the key is the contract, not presence of a value: `null` means
-        # "checked and not listed / not verifiable". A missing key silently means the
-        # same thing without anybody having looked, which is the failure mode this
-        # field exists to prevent.
-        if "listed_company" not in card:
-            fails.append(f"{tag}: missing listed_company (null when the sponsor is not "
-                         f"listed or cannot be verified)")
-            continue
-        company = card["listed_company"]
-        if company is None:
-            continue
-        if not isinstance(company, dict):
-            fails.append(f"{tag}: listed_company must be an object or null")
-            continue
-        for key in LISTED_FIELDS:
-            if not str(company.get(key) or "").strip():
-                fails.append(f"{tag}: listed_company.{key} missing")
-        url = str(company.get("source_url") or "")
-        if url and not re.match(r"^https?://\S+$", url):
-            fails.append(f"{tag}: listed_company.source_url is not an http(s) URL: {url!r}")
-        ticker = str(company.get("ticker") or "")
-        if ticker and not re.search(r"[0-9A-Za-z]", ticker):
-            fails.append(f"{tag}: listed_company.ticker={ticker!r} has no alphanumerics")
-        for key in PRICE_KEYS:
-            if key in company and company.get(key) not in (None, "", {}):
-                fails.append(f"{tag}: listed_company.{key} is a price field -- v0.9 keeps "
-                             f"identity only; a meeting-day move is sector beta")
-        hit = next((sfx for sfx in MARKET_SUFFIXES if ticker.upper().endswith(sfx)), None)
-        if hit:
-            fails.append(f"{tag}: listed_company.ticker={ticker!r} carries the market suffix "
-                         f"{hit} while exchange={company.get('exchange')!r} -- the ticker holds "
-                         f"the bare code, the exchange field holds the market")
+        # v0.13: the ticker is gone, not merely quiet. A card that still carries it
+        # (or the exchange) is a regression, so it fails instead of being ignored --
+        # and `null` fails too, because "we checked and it is not listed" is the same
+        # claim in a quieter voice.
+        for key in COMPANY_CODE_KEYS:
+            if key in card:
+                fails.append(f"{tag}: {key} is a company-code field -- v0.13 removed it; "
+                             f"the card answers what was reported, not who trades where")
     return fails, notes
 
 

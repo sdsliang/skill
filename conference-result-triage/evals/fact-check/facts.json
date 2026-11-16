@@ -154,12 +154,6 @@
    "rationale": "`why` 必须承载判断，不是标签：短于 60 字说明只写了「数据好」；开头 20 字与 summary 相同说明只是把数字复述了一遍。v0.6 的卡片两种都有。"
   },
   {
-   "id": "A-F5-listed-company",
-   "op": "listed_company_shape",
-   "severity": "fail",
-   "rationale": "每张卡都要 `listed_company` 键；非 null 时必须带 name/ticker/exchange 与可解析的 source_url。这个字段的用途是「披露当天股价是否重定价」，ticker 假了这条信息就是负资产。null 是「查过、没有」，缺键是「没查」。"
-  },
-  {
    "id": "A-F6-promotion-traceable",
    "op": "promotion_traceable",
    "severity": "fail",
@@ -176,10 +170,10 @@
    "min_urls": 6
   },
   {
-   "id": "A-N1-no-price-claims",
-   "op": "no_price_claims",
+   "id": "A-N1-no-market-claims",
+   "op": "no_market_claims",
    "severity": "fail",
-   "rationale": "v0.9 把行情层整段删掉：会议当天个股涨跌主要是板块 beta（按每条摘要自己的 release 日重算后，24 条里 18 条落在基准 ±0.6% 内），而且同一公司多条摘要拿到同一个数字（MRK 8 张卡都是 −3.83%）。这条事实项是防回潮闸门：任何卡片（含 `listed_company`）再出现 `stock`/`reaction`/`change_pct`/`excess_pct` 等行情字段即判失败。"
+   "rationale": "v0.9 删行情层（会议当天涨跌主要是板块 beta：按每条摘要自己的 release 日重算后 24 条里 18 条落在基准 ±0.6% 内，MRK 8 张卡拿到同一个 −3.83%）；v0.13 把那一层剩下的代码也删掉（`listed_company` / `ticker` / `exchange`）——卡面上留着代码，读者照样会读成「这只股票怎么样」，正是 v0.9 想终结的误读。这条事实项是防回潮闸门：任何卡片出现行情字段或公司代码字段即判失败；公司名只出现在正文散文里，不做交易所身份声明。"
   },
   {
    "id": "A-D5-rows-accounted",

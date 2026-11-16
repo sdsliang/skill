@@ -118,12 +118,12 @@ p_value, outcome_p_value, hazard_ratio, hazard_ratio_ci, odd_ratio, relative_ris
 | `title` / `summary` | ✅ | `summary` 至少要有一个带单位的数字 |
 | `why` | ✅ | **判断**，≥60 字、2–4 句；不许复述 `summary`；不写分数 |
 | `score` / `score_parts` | ✅ | 模型判读；五维各不超上限且相加等于总分 |
-| `listed_company.ticker` | **只写代码本体**（`09966`），市场信息只在 `exchange`（`HKEX`）。`09966.HK` + `exchange=HKEX` 是同一事实印两遍，也让按「市场 + 裸代码」查询的路径无法复用；`check_cards.py` 直接拒 `.HK/.SH/.SS/.SZ/.T/.L/.DE/.PA/.AS/.SW` 后缀 |
-| `listed_company` | ✅（可以是 `null`） | 上市：`{name, ticker, exchange, source_url}`，`source_url` 必须 http(s)；未上市/查不到：`null`。**缺键 = 没查**。**纯身份字段**：v0.9 起不含任何价格（见下一行） |
-| 任何行情字段 | ❌ | `stock` / `reaction` / `change_pct` / `excess_pct` / `bench_change_pct` / `price_source` 在卡片或 `listed_company` 上出现即判失败（`A-N1-no-price-claims`） |
+| `tag` | ✅（`""` / `"LBA"`） | 只表达"是不是 late-breaking"。**v0.13 起 `is_recommand` 不写成徽章**：标星只决定桶内位置，`tag="推荐"` 直接判失败 |
+| 公司代码字段 | ❌ | `listed_company` / `ticker` / `exchange` 在卡片上出现即判失败（`null` 也算）。v0.13 删了这一层：身份写正文散文，代码属于行情源 |
+| 任何行情字段 | ❌ | `stock` / `reaction` / `change_pct` / `excess_pct` / `bench_change_pct` / `price_source` 出现即判失败（同一闸门 `A-N1-no-market-claims`） |
 | `promoted` | 仅破格入榜 | 固定 `"web"` |
 | `abstract_id` | ✅（值可为 null，但**有值必须照抄**） | 来自 `clinical_result.abstract_id`（v0.12 起请求）。必须与 `work/rows.json` 逐字一致：rows 有值而卡片空 / 值与 rows 不同 / rows 无值而卡片凭空填，三种都判失败。空值只允许出现在 rows 本身为空时 |
-| `is_recommand` | ✅（布尔） | 来自 `clinical_result.is_recommand`，`是`→`true`、`否`→`false`、`null`→`false`（并写进 `coverage_notes`）。必须与 rows 一致；标星卡 `tag` 写 `推荐` |
+| `is_recommand` | ✅（布尔） | 来自 `clinical_result.is_recommand`，`是`→`true`、`否`→`false`、`null`→`false`（并写进 `coverage_notes`）。必须与 rows 一致；标星卡的**位置**置顶，**标签不加**（v0.13） |
 | `lba` / `manual` | ✅（值可为 null） | `manual` 在平台上恒 `null`，不猜 |
 | `phase` / `phase_inferred` | ✅ | `phase` 照抄记录（跨领域会议常为 `""`）；`phase_inferred` 只在期别缺失、由设计定桶时非空，取值固定三种（`随机化对照（按设计判定）` / `平行/交叉对照（按设计判定）` / `单臂或未标注设计（按设计判定）`）。**推断值不许写进 `phase`** |
 
@@ -148,7 +148,9 @@ v0.8 曾要求每张卡带 `listed_company.reaction`（会议窗口涨跌幅，�
 - 同一公司的多张卡拿到**同一个**数字：MRK 的 8 张卡全是 −3.83%，因为涨跌属于公司那一刻，不属于任何一条读数。
 - 结果库里没有价格，价格也不是"该不该读这条摘要"的判断依据；把 beta 印成 reaction，读者会把它读成信号。
 
-`listed_company` 保留（身份信息：谁在做这个药、能不能对上交易所披露），字段固定为 `{name, ticker, exchange, source_url}`。防回潮由两道闸门守着：`check_cards.py` 的 `PRICE_KEYS` 扫描，与事实项 `A-N1-no-price-claims`（mutation：`reaction` 回潮；NEG：只写身份字段仍绿）。
+v0.13 把那一层剩下的代码也删了（`listed_company` / `ticker` / `exchange`）。判断理由和行情同源：复核页上 `AZN · NASDAQ` 这样的 chip 被读成的仍是"这只股票怎么样"，读者的注意力从读数挪到市场；而"谁在做这个药"用正文里的公司名就能说清，不需要交易所身份声明。附带收益是不再逐卡查交易所页，检索轮次约省 1/3。
+
+防回潮由两道闸门守着：`check_cards.py` 的 `PRICE_KEYS` + `COMPANY_CODE_KEYS` 扫描，与事实项 **`A-N1-no-market-claims`**（三条 mutation：`reaction` 回潮 / 裸 `ticker` 回来 / 整个 `listed_company` 回来；NEG：公司名写进正文散文仍绿）。
 
 ### 6.5.3 交付 JSON 的顶层还有两个键
 

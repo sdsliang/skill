@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ESMO 2026 · 推荐清单</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#F0EFEB;--ink:#1C1C1A;--muted:#8F8E88;--faint:#C6C5BF;--grid:#DEDDD6;
+        --l2:#4A4944;--l3:#6A6963;--l5:#B0AFA9;--paper:#F0EFEB}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter','Noto Sans SC',sans-serif;
+    -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums lining-nums;padding:56px 28px 80px}
+  html{scroll-behavior:smooth}
+  .sheet{width:1280px;max-width:1280px;margin:0 auto;display:grid;
+    grid-template-columns:206px minmax(0,1fr);gap:44px}
+  .main{min-width:0}
+
+  .nav{position:sticky;top:26px;align-self:start;max-height:calc(100vh - 52px);
+    overflow:auto;padding-right:6px}
+  .nav::-webkit-scrollbar{width:4px}
+  .nav::-webkit-scrollbar-thumb{background:var(--grid);border-radius:9px}
+  .nt{font-size:9.5px;font-weight:700;letter-spacing:.14em;color:var(--muted);
+    line-height:1.7;padding-bottom:12px;border-bottom:1px solid var(--ink)}
+  .nt b{font-size:11px;letter-spacing:.02em;color:var(--ink)}
+  .ng{margin-top:16px}
+  .ng-t{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;
+    color:var(--ink);text-decoration:none;letter-spacing:-.01em;margin-bottom:8px}
+  .ng-t .ladder{width:9px;height:9px;border-radius:3px;flex:none}
+  .nav a{text-decoration:none}
+  .ng a:not(.ng-t){display:flex;gap:7px;align-items:baseline;padding:3px 0;max-width:100%;
+    font-size:10px;color:var(--l2);border-bottom:1px solid transparent}
+  .ng a:not(.ng-t):hover{color:var(--ink)}
+  .ng a:not(.ng-t):hover .nd{text-decoration:underline;text-underline-offset:2px}
+  .nd{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em}
+  .l-early{background:var(--l3)} .l-pivotal{background:var(--ink)} .l-failed{background:var(--l5)}
+  @media (max-width:1320px){
+    body{padding:34px 20px 60px}
+    .sheet{width:auto;max-width:1080px;grid-template-columns:1fr;gap:26px}
+    .nav{position:static;max-height:none;overflow:visible;border-bottom:1px solid var(--grid);padding-bottom:16px}
+    .nav .ng{display:inline-block;vertical-align:top;margin:14px 26px 0 0;
+      width:calc((100% - 60px) / 3);max-width:300px}
+    .nt{display:none}
+  }
+
+  .kick{font-size:9.5px;font-weight:700;letter-spacing:.16em;color:var(--muted)}
+  h1{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:14px 0 0}
+
+  .bucket{margin-top:52px}
+  .bh{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--ink);padding-bottom:10px}
+  .ladder{width:13px;height:13px;border-radius:4px;flex:none}
+  .bh h2{font-size:18px;font-weight:800;letter-spacing:-.02em}
+  .bh .cnt{font-size:11px;font-weight:600;color:var(--muted);margin-left:10px;letter-spacing:.06em}
+
+  .item{padding:24px 0 20px;border-bottom:1px solid var(--grid)}
+  .head{display:flex;align-items:baseline;gap:9px;margin-bottom:7px}
+  .head .no{font-size:9.5px;font-weight:700;color:var(--faint);letter-spacing:.1em}
+  .head .drug{font-size:12.5px;font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+  .item h3{font-size:14.5px;font-weight:700;line-height:1.45;letter-spacing:-.01em;max-width:900px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 11px}
+  .chip{font-size:9.5px;font-weight:600;letter-spacing:.04em;padding:3px 8px;border-radius:99px;
+    border:1px solid var(--grid);color:var(--l2)}
+  .chip.solid{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .chip.who{border-color:var(--l5);color:var(--l2)}
+  .chip.ghost{border-style:dashed;color:var(--muted)}
+  .chip.no-id{font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--l2)}
+  .sum{font-size:13px;line-height:1.7;color:var(--ink);max-width:900px}
+  .why{font-size:12.5px;line-height:1.7;color:var(--l2);margin-top:7px;max-width:900px}
+  .why:before{content:'推荐理由 · ';font-weight:700;color:var(--muted);letter-spacing:.02em}
+  .ev{font-size:10.5px;line-height:1.6;color:var(--muted);margin-top:10px;max-width:900px;
+    border-left:2px solid var(--grid);padding-left:10px}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <nav class="nav">
+    <div class="nt">ESMO 2026<br><b>30 张推荐卡片</b></div>
+    <div class="ng"><a class="ng-t" href="#b-early"><span class="ladder l-early"></span>早期机会提示</a><a href="#c-early-1" title="Clinical complete response with dostarlimab monotherapy in dMMR/MSI-H locally advanced rectal cancer (LARC): First results from the global registrational AZUR-1 trial"><span class="nd">dostarlimab</span></a><a href="#c-early-2" title="Phase II study of izalontamab brengitecan (Iza-bren) plus osimertinib in patients with EGFR mutant locally advanced or metastatic non-small cell lung cancer (NSCLC)"><span class="nd">iza-bren（伦康依隆妥单抗）+ 奥希替尼</span></a><a href="#c-early-3" title="Radiation therapy followed by intrathecal (IT) trastuzumab/pertuzumab in the management of HER2+ breast leptomeningeal metastasis: Results from a phase II multi-institutional study, (INSPIRE-LM)"><span class="nd">鞘内曲妥珠单抗/帕妥珠单抗</span></a><a href="#c-early-4" title="Mocertatug rezetecan (Mo-Rez) in patients with platinum-resistant ovarian cancer (PROC): Updated results with longer follow-up from the global BEHOLD-1 study"><span class="nd">mocertatug rezetecan (Mo-Rez)</span></a><a href="#c-early-5" title="SHR-4849 (IDE849), an ADC targeting delta-like ligand 3 (DLL3), in relapsed small cell lung carcinoma (SCLC) and other neuroendocrine carcinomas (NECs): Long-term results from the phase 1 study"><span class="nd">SHR-4849 (IDE849)</span></a><a href="#c-early-6" title="Phase I study of C-CAR031, a GPC3-targeted TGFβRIIDN armored autologous CAR-T, in advanced hepatocellular carcinoma (aHCC): Updated results"><span class="nd">C-CAR031</span></a><a href="#c-early-7" title="Calderasib (MK-1084), alone or in combination, for KRAS G12C-mutant metastatic non-small cell lung cancer (mNSCLC)"><span class="nd">calderasib (MK-1084)</span></a><a href="#c-early-8" title="First-in-human study of MRG007 (ARR-217), a CDH17-directed exatecan ADC, in patients with locally advanced or metastatic solid tumors"><span class="nd">ARR-217 (MRG007)</span></a><a href="#c-early-9" title="Latest efficacy and safety analysis of surufatinib combined with EP regimen and serplulimab as first-line treatment for extrapulmonary neuroendocrine carcinoma"><span class="nd">索凡替尼 + 斯鲁利单抗 + EP</span></a><a href="#c-early-10" title="Sintilimab in combination with cetuximab and chemotherapy as first-line treatment for MSS/pMMR and RAS/BRAF wild-type metastatic colorectal cancer (CALLIOPSIS): A phase Ib/II dose escalation and expansion trial"><span class="nd">信迪利单抗 + 西妥昔单抗 + 化疗</span></a></div><div class="ng"><a class="ng-t" href="#b-pivotal"><span class="ladder l-pivotal"></span>重磅 II/III 期</a><a href="#c-pivotal-1" title="CLARITY-Gastric 01 (CG-01): A phase 3 study of sonesitatug vedotin (Sone-Ve) in second or later-line (2L+) advanced or metastatic Claudin 18.2 (CLDN18.2)-positive gastroesophageal carcinoma (GEC)"><span class="nd">sonesitatug vedotin (Sone-Ve)</span></a><a href="#c-pivotal-2" title="Tarlatamab plus durvalumab (durva) vs durva as 1L maintenance (1LM) therapy following durva, platinum, and etoposide (1L durva + EP) in extensive-stage small cell lung cancer (ES-SCLC): Primary analysis of the phase 3 DeLLphi-305 trial"><span class="nd">tarlatamab</span></a><a href="#c-pivotal-3" title="INTerpath-001: Phase 3 study of the mRNA-based individualized neoantigen therapy (INT) intismeran autogene (intismeran) plus pembrolizumab (pembro) vs pembro alone for adjuvant treatment of resected stage IIB-IV melanoma (MEL)"><span class="nd">intismeran autogene (mRNA-4157/V940)</span></a><a href="#c-pivotal-4" title="STARBOARD phase 3: A randomized, double-blind study of first-line (1L) encorafenib (enco), binimetinib (bini), and pembrolizumab (pembro) vs placebo (pbo) and pembro for unresectable locally advanced or metastatic BRAF V600-mutant melanoma"><span class="nd">encorafenib + binimetinib + 帕博利珠单抗</span></a><a href="#c-pivotal-5" title="Savolitinib or placebo combined with osimertinib in treatment-naïve advanced NSCLC with EGFR mutation and MET overexpression: Results from the phase 3 SANOVO study"><span class="nd">savolitinib + 奥希替尼</span></a><a href="#c-pivotal-6" title="Perioperative durvalumab with or without tremelimumab plus neoadjuvant enfortumab vedotin in muscle-invasive bladder cancer: Results from the phase 3 VOLGA trial"><span class="nd">度伐利尤单抗 + 恩诺单抗</span></a><a href="#c-pivotal-7" title="Trastuzumab rezetecan (SHR-A1811) in HER2-low advanced breast cancer (BC): A randomized, phase 3 study (HORIZON-Breast06)"><span class="nd">trastuzumab rezetecan (SHR-A1811)</span></a><a href="#c-pivotal-8" title="Updated results of randomized phase 3 study of selpercatinib vs cabozantinib or vandetanib (C/V) in advanced, kinase inhibitor-naïve, RET-mutant medullary thyroid cancer (MTC)"><span class="nd">selpercatinib</span></a><a href="#c-pivotal-9" title="Final overall survival (OS) results from BEATcc (ENGOT-Cx10/GEICO 68-C/JGOG1084/GOG-3030), a randomised phase 3 trial of first-line atezolizumab (atezo), chemotherapy (CT) and bevacizumab (bev) for metastatic, persistent or recurrent cervical cancer (R/M CC)"><span class="nd">阿替利珠单抗 + 贝伐珠单抗</span></a><a href="#c-pivotal-10" title="Final OS analysis of sacituzumab tirumotecan (sac-TMT) versus platinum-based chemotherapy in EGFR-mutated non-small cell lung cancer (NSCLC) after progression on EGFR-TKI: Phase III OptiTROP-Lung04 study"><span class="nd">sac-TMT（芦康沙妥珠单抗）</span></a></div><div class="ng"><a class="ng-t" href="#b-failed"><span class="ladder l-failed"></span>失败的研究</a><a href="#c-failed-1" title="End-of-trial results of the phase 3 KEYNOTE-630 trial of adjuvant pembrolizumab (pembro) versus placebo (pbo) for high-risk locally advanced cutaneous squamous cell carcinoma (LA cSCC)"><span class="nd">帕博利珠单抗（辅助）</span></a><a href="#c-failed-2" title="First-line pembrolizumab + lenvatinib + belzutifan or MK-1308A + lenvatinib in advanced RCC: Randomized open-label phase 3 LITESPARK-012 study"><span class="nd">帕博利珠单抗 + 仑伐替尼 + belzutifan</span></a><a href="#c-failed-3" title="IROCAS: A randomized phase III trial of adjuvant treatment intensification with mFOLFIRINOX versus mFOLFOX6 in high-risk stage III (T4 and/or N2) colon cancer"><span class="nd">mFOLFIRINOX（辅助强化）</span></a><a href="#c-failed-4" title="Phase 3 study of sigvotatug vedotin (SV) vs docetaxel (DTX) in previously treated nonsquamous non-small cell lung cancer (NSCLC)"><span class="nd">sigvotatug vedotin</span></a><a href="#c-failed-5" title="Perioperative pembrolizumab (pembro) or placebo (pbo) + neoadjuvant cisplatin (cis) and gemcitabine (gem) in participants (pts) with muscle-invasive bladder cancer (MIBC): the double-blind, phase 3 KEYNOTE-866 study"><span class="nd">帕博利珠单抗（围手术期）</span></a><a href="#c-failed-6" title="Pembrolizumab or placebo plus concurrent definitive chemoradiotherapy in esophageal and gastroesophageal junction (GEJ) cancer: The phase 3 randomized KEYNOTE-975 study"><span class="nd">帕博利珠单抗 + 同步放化疗</span></a><a href="#c-failed-7" title="Phase 3 LEAP-012 study of lenvatinib + pembrolizumab vs dual placebo with transarterial chemoembolization (TACE) for unresectable non-metastatic hepatocellular carcinoma: Long-term OS results"><span class="nd">仑伐替尼 + 帕博利珠单抗 + TACE</span></a><a href="#c-failed-8" title="Omega-3 polyunsaturated fatty acid eicosapentaenoic acid (EPA) versus placebo after resection of colorectal cancer liver metastases (EMT2): A multicentre, double-blind, randomised phase 3 trial"><span class="nd">二十碳五烯酸（EPA）</span></a><a href="#c-failed-9" title="Final analysis of adjuvant pembrolizumab (pembro) in resected early-stage non–small-cell lung cancer (NSCLC): Phase 3 PEARLS/KEYNOTE-091 study"><span class="nd">帕博利珠单抗（辅助）</span></a><a href="#c-failed-10" title="Results from a phase 3 trial of neoadjuvant (neoadj) chemotherapy alone vs in combination with nivolumab followed by postsurgical adjuvant nivolumab in patients (pts) with muscle-invasive bladder cancer (MIBC)"><span class="nd">纳武利尤单抗（围手术期）</span></a></div>
+  </nav>
+  <main class="main">
+    <div class="kick">ESMO 2026 · 临床结果推荐</div>
+    <h1>30 张推荐卡片</h1>
+    
+  <section class="bucket" id="b-early">
+    <div class="bh"><span class="ladder l-early"></span><h2>早期机会提示<span class="cnt">10</span></h2></div>
+    
+    <article class="item" id="c-early-1">
+      <div class="body">
+        <div class="head"><span class="no">#01</span><span class="drug">dostarlimab</span></div>
+        <h3>Clinical complete response with dostarlimab monotherapy in dMMR/MSI-H locally advanced rectal cancer (LARC): First results from the global registrational AZUR-1 trial</h3>
+        <div class="chips"><span class="chip solid">LBA</span><span class="chip no-id">LBA87</span><span class="chip">Phase II</span><span class="chip who">PD-1 · 直肠癌, MSI-H或dMMR实体瘤</span></div>
+        <p class="sum">154 例 II/III 期 dMMR/MSI-H 局部晚期直肠癌接受 dostarlimab 单药 9 个周期：随访满 12 个月的 144 例中 68% 达 12 个月持续临床完全缓解，合并病理完全缓解后为 76%，取得缓解者 98% 维持 ≥12 个月且无复发，中位随访 26.3 个月。</p>
+        <p class="why">直肠癌标准治疗是放化疗加手术，功能代价大；单药 PD-1 让三分之二以上患者免于手术和放疗、随访两年内无复发，是「去手术」策略第一次有注册级证据支撑并已支持美国获批。局限是单臂设计，独立中心评估的 12 个月持续缓解率 47% 明显低于研究者评估，影像与内镜判读标准仍在统一过程中。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-2">
+      <div class="body">
+        <div class="head"><span class="no">#02</span><span class="drug">iza-bren（伦康依隆妥单抗）+ 奥希替尼</span></div>
+        <h3>Phase II study of izalontamab brengitecan (Iza-bren) plus osimertinib in patients with EGFR mutant locally advanced or metastatic non-small cell lung cancer (NSCLC)</h3>
+        <div class="chips"><span class="chip no-id">2575P</span><span class="chip">前瞻性研究</span><span class="chip">Poster</span><span class="chip who">EGFR × HER3 · 非小细胞肺癌</span></div>
+        <p class="sum">154 例初治 EGFR 突变晚期非小细胞肺癌接受 iza-bren 联合奥希替尼，2.5 mg/kg 组 40 例的 ORR 为 100%、确认 ORR 97.5%，中位随访 22.8 个月时 18 个月 PFS 率 92.2%，中位 PFS 与缓解持续时间均未达到。</p>
+        <p class="why">EGFR 一线标准是三代 TKI 单药，PFS 以月计而非以年计；把 EGFR×HER3 双抗 ADC 与 TKI 并联后出现罕见的 100% 缓解率与九成以上的 18 个月 PFS 率，若 III 期能复现，会改变一线骨架。局限是单臂、样本以单中心为主且无对照，血液学毒性突出（贫血 93.5%），联合方案的长期耐受性尚未验证。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-3">
+      <div class="body">
+        <div class="head"><span class="no">#03</span><span class="drug">鞘内曲妥珠单抗/帕妥珠单抗</span></div>
+        <h3>Radiation therapy followed by intrathecal (IT) trastuzumab/pertuzumab in the management of HER2+ breast leptomeningeal metastasis: Results from a phase II multi-institutional study, (INSPIRE-LM)</h3>
+        <div class="chips"><span class="chip no-id">1768RO</span><span class="chip">前瞻性研究</span><span class="chip">Rapid Oral</span><span class="chip who">HER2 · 软脑膜癌病, HER2阳性乳腺癌</span></div>
+        <p class="sum">30 例 HER2 阳性乳腺癌软脑膜转移在放疗后接受鞘内曲妥珠单抗/帕妥珠单抗：中位 OS 36.2 个月（95% CI 19.4–未达到），12 个月 OS 率 79%，中位颅内无进展生存 19.3 个月，最佳颅内缓解为完全缓解 5 例（17%）、部分缓解 5 例（17%）。</p>
+        <p class="why">软脑膜转移是 HER2 阳性乳腺癌最凶险的并发症，历史中位生存以月计，且大分子难以透过血脑屏障；鞘内给药绕开屏障后把中位 OS 推到 36.2 个月，说明这条通路值得作为独立治疗场景开发。局限是单臂 30 例、半数基线 KPS ≤70，97% 同时接受过放疗，放疗贡献无法拆分。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-4">
+      <div class="body">
+        <div class="head"><span class="no">#04</span><span class="drug">mocertatug rezetecan (Mo-Rez)</span></div>
+        <h3>Mocertatug rezetecan (Mo-Rez) in patients with platinum-resistant ovarian cancer (PROC): Updated results with longer follow-up from the global BEHOLD-1 study</h3>
+        <div class="chips"><span class="chip solid">LBA</span><span class="chip no-id">LBA41</span><span class="chip">Phase I</span><span class="chip who">B7-H4 · 卵巢癌</span></div>
+        <p class="sum">136 例铂耐药卵巢癌在剂量选择阶段随机接受 B7-H4 ADC mocertatug rezetecan 三个剂量：5.8 mg/kg 组确认 ORR 62%、中位缓解持续时间 12.2 个月、中位 PFS 11.1 个月，中位随访 13.4 个月，该剂量组 3 级以上治疗相关不良事件 71%。</p>
+        <p class="why">铂耐药卵巢癌在铂类失败后缓解率通常只有一成到两成、PFS 三到四个月；B7-H4 ADC 在随机剂量比较中出现 62% 缓解率与 11.1 个月 PFS，量级上足以挑战现有单药化疗。局限是本次只是剂量选择阶段的报告、样本分散在三个剂量组，5.8 mg/kg 组 3 级以上不良事件 71% 偏高，获益风险比要在 III 期确认。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-5">
+      <div class="body">
+        <div class="head"><span class="no">#05</span><span class="drug">SHR-4849 (IDE849)</span></div>
+        <h3>SHR-4849 (IDE849), an ADC targeting delta-like ligand 3 (DLL3), in relapsed small cell lung carcinoma (SCLC) and other neuroendocrine carcinomas (NECs): Long-term results from the phase 1 study</h3>
+        <div class="chips"><span class="chip no-id">3815P</span><span class="chip">Phase I</span><span class="chip">Poster</span><span class="chip who">DLL3 · 小细胞肺癌, 神经内分泌肿瘤</span></div>
+        <p class="sum">122 例复发小细胞肺癌或神经内分泌癌接受 DLL3 ADC SHR-4849：小细胞肺癌 ≥1.8 mg/kg 可评人群 ORR 68.3%（确认 55.4%）、DCR 94.1%，二线人群 ORR 72.5%，中位 PFS 6.8 个月，脑转移患者 ORR 76.9%。</p>
+        <p class="why">小细胞肺癌二线的现实选择只有少数化疗与 tarlatamab，DLL3 方向能否做成 ADC 一直有争议；本研究在二线给出 72.5% 缓解率与 12 个月 OS 率 66.4%，脑转移亚组同样有效，说明载荷与连接子设计可能绕开此前的毒性瓶颈。局限是 I 期单臂、剂量尚未锁定，随访仅 8.7 个月，缓解持久性未定。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-6">
+      <div class="body">
+        <div class="head"><span class="no">#06</span><span class="drug">C-CAR031</span></div>
+        <h3>Phase I study of C-CAR031, a GPC3-targeted TGFβRIIDN armored autologous CAR-T, in advanced hepatocellular carcinoma (aHCC): Updated results</h3>
+        <div class="chips"><span class="chip no-id">1680RO</span><span class="chip">Phase I</span><span class="chip">Rapid Oral</span><span class="chip who">GPC3 CAR-T · 肝细胞癌</span></div>
+        <p class="sum">36 例晚期肝细胞癌接受 GPC3 靶向 C-CAR031（4 个剂量水平）：中位 4 线治疗、92% 用过免疫与 TKI，ORR 44%、DCR 92%，89% 患者肿瘤缩小（中位缩小 42%），细胞因子释放综合征 94%（3 级 6%）。</p>
+        <p class="why">肝癌系统治疗已进入联合免疫时代，但多线失败后几乎没有有效选项，CAR-T 在实体瘤又长期受制于微环境；本研究报告 44% 缓解率与 92% 疾病控制，且未出现 ICANS 与剂量限制毒性，提示 TGFβ 装甲设计可能改善实体瘤浸润。局限是 I 期 36 例、无对照，3 级以上血细胞减少普遍，1 例因相关肾功能损害死亡。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-7">
+      <div class="body">
+        <div class="head"><span class="no">#07</span><span class="drug">calderasib (MK-1084)</span></div>
+        <h3>Calderasib (MK-1084), alone or in combination, for KRAS G12C-mutant metastatic non-small cell lung cancer (mNSCLC)</h3>
+        <div class="chips"><span class="chip no-id">2680RO</span><span class="chip">Phase I</span><span class="chip">Rapid Oral</span><span class="chip who">KRAS G12C · 非小细胞肺癌</span></div>
+        <p class="sum">346 例 KRAS G12C 突变转移性非小细胞肺癌接受 calderasib 单药或联合帕博利珠单抗：一线联合组 98 例确认 ORR 72%、DCR 95%、中位 PFS 28.9 个月，PD-L1 TPS ≥50% 亚组 ORR 87%。</p>
+        <p class="why">KRAS G12C 抑制剂此前只获批于后线，一线仍由免疫联合化疗占据；把口服 G12C 抑制剂与 PD-1 并联后 PFS 达 28.9 个月、TPS ≥50% 人群缓解率 87%，为正在进行的 III 期提供了一线的合理性。局限是 I 期非随机、各组剂量与联合方式不同，联合组 3–4 级药物相关不良事件 32%，肝酶升高需要监测。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-8">
+      <div class="body">
+        <div class="head"><span class="no">#08</span><span class="drug">ARR-217 (MRG007)</span></div>
+        <h3>First-in-human study of MRG007 (ARR-217), a CDH17-directed exatecan ADC, in patients with locally advanced or metastatic solid tumors</h3>
+        <div class="chips"><span class="chip solid">LBA</span><span class="chip no-id">LBA34</span><span class="chip">Phase I</span><span class="chip who">CDH17 · 实体瘤, 结直肠癌</span></div>
+        <p class="sum">123 例经多线治疗的胃肠道肿瘤（含 113 例结直肠癌）接受 CDH17 ADC ARR-217：6 mg/kg 组可评结直肠癌 29 例的 ORR 44.8%、DCR 93.1%，≥4 mg/kg 组 73 例 ORR 34.2%，未观察到间质性肺病。</p>
+        <p class="why">结直肠癌后线在标准治疗后缓解率很低，CDH17 是主要在此类肿瘤暴露的新靶点；首次人体即给出 44.8% 缓解率，且 RAS 野生与突变亚组都有效，说明该靶点不依赖 RAS 状态，具备泛消化道开发价值。局限是 I 期单臂、缓解者中仅 7 例确认，随访尚短，尚未做随机剂量比较。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-9">
+      <div class="body">
+        <div class="head"><span class="no">#09</span><span class="drug">索凡替尼 + 斯鲁利单抗 + EP</span></div>
+        <h3>Latest efficacy and safety analysis of surufatinib combined with EP regimen and serplulimab as first-line treatment for extrapulmonary neuroendocrine carcinoma</h3>
+        <div class="chips"><span class="chip no-id">2394RO</span><span class="chip">Phase I/II</span><span class="chip">Rapid Oral</span><span class="chip who">VEGFR × PD-1 · 神经内分泌肿瘤</span></div>
+        <p class="sum">43 例初治肺外神经内分泌癌（中位 Ki-67 70%）接受索凡替尼+EP 方案+斯鲁利单抗：ORR 69.8%、DCR 95.3%、中位 PFS 9.4 个月，缓解者 PFS 11.5 个月 vs 无缓解者 6.6 个月（p=0.0041）。</p>
+        <p class="why">肺外神经内分泌癌一线长期沿用 EP 方案，缓解率约三成、PFS 半年左右，属于典型的「有标准但效果差」人群；把抗血管 TKI 与 PD-1 叠加进化疗骨架后缓解率与 PFS 都明显上移，且 Ki-67 极高的难治亚群仍获益。局限是单臂 43 例、无对照，随访与 OS 数据未成熟，需要随机验证。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-10">
+      <div class="body">
+        <div class="head"><span class="no">#10</span><span class="drug">信迪利单抗 + 西妥昔单抗 + 化疗</span></div>
+        <h3>Sintilimab in combination with cetuximab and chemotherapy as first-line treatment for MSS/pMMR and RAS/BRAF wild-type metastatic colorectal cancer (CALLIOPSIS): A phase Ib/II dose escalation and expansion trial</h3>
+        <div class="chips"><span class="chip no-id">899eP</span><span class="chip">Phase I/II</span><span class="chip">ePoster</span><span class="chip who">PD-1 × EGFR · 结直肠癌</span></div>
+        <p class="sum">28 例 MSS/pMMR、RAS/BRAF 野生型转移性结直肠癌一线接受信迪利单抗+西妥昔单抗+化疗：ORR 71.4%（200 mg 队列 63.6%），42.8% 转化为可手术，R0 切除率 91.7%，中位随访 12.3 个月。</p>
+        <p class="why">MSS 型结直肠癌是公认的免疫冷肿瘤，单药 PD-1 基本无效；把 EGFR 单抗与 PD-1、化疗并联后缓解率 71.4%、近半数转为可切除、R0 切除率 91.7%，提示冷肿瘤可以被「靶向+免疫+化疗」组合打开。局限是单臂 28 例、剂量探索性质，3 级以上不良事件 53.5%，需要随机验证。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+  </section>
+  <section class="bucket" id="b-pivotal">
+    <div class="bh"><span class="ladder l-pivotal"></span><h2>重磅 II/III 期<span class="cnt">10</span></h2></div>
+    
+    <article class="item" id="c-pivotal-1">
+      <div class="body">
+        <div class="head"><span class="no">#01</span><span class="drug">sonesitatug vedotin (Sone-Ve)</span></div>
+        <h3>CLARITY-Gastric 01 (CG-01): A phase 3 study of sonesitatug vedotin (Sone-Ve) in second or later-line (2L+) advanced or metastatic Claudin 18.2 (CLDN18.2)-positive gastroesophageal carcinoma (GEC)</h3>
+        <div class="chips"><span class="chip solid">LBA</span><span class="chip no-id">LBA7</span><span class="chip">前瞻性研究</span><span class="chip who">CLDN18.2 · 胃癌, 胃食管交界处癌</span></div>
+        <p class="sum">532 例 CLDN18.2 阳性（≥25% 肿瘤细胞）晚期胃食管腺癌随机接受 sonesitatug vedotin 2.2 mg/kg 或研究者选择治疗：3L+ 中位 OS 10.0 vs 5.0 个月（HR 0.47；95% CI 0.36–0.62），2L+ 意向治疗人群 10.6 vs 6.4 个月（HR 0.58），BICR 评估的 PFS 4.2 vs 3.8 个月（HR 0.77）未达预设显著性阈值（p=0.05）。</p>
+        <p class="why">CLDN18.2 在胃癌后线已有单抗验证，但 ADC 报到这个人群还是第一次；三线以上 OS 从 5.0 个月翻到 10.0 个月，且表达 25%–75% 的中低表达人群同样获益，意味着可覆盖比 IHC 3+ 宽得多的人群，而 PFS 主要终点未达显著、随访仅 8.6 个月，说明 OS 结论还需更成熟的数据支撑。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-2">
+      <div class="body">
+        <div class="head"><span class="no">#02</span><span class="drug">tarlatamab</span></div>
+        <h3>Tarlatamab plus durvalumab (durva) vs durva as 1L maintenance (1LM) therapy following durva, platinum, and etoposide (1L durva + EP) in extensive-stage small cell lung cancer (ES-SCLC): Primary analysis of the phase 3 DeLLphi-305 trial</h3>
+        <div class="chips"><span class="chip solid">LBA</span><span class="chip no-id">LBA3</span><span class="chip">Phase III</span><span class="chip who">DLL3 × CD3 · 小细胞肺癌</span></div>
+        <p class="sum">563 例一线度伐利尤单抗+铂类+依托泊苷后未进展的广泛期小细胞肺癌随机接受 tarlatamab 联合度伐利尤单抗或度伐单药维持：中位 OS 21.1 vs 12.7 个月（HR 0.42；95% CI 0.32–0.54），12 个月 OS 率 79.4% vs 53.3%，中位 PFS 7.4 vs 1.9 个月（HR 0.34），ORR 26.4% vs 4.1%。</p>
+        <p class="why">广泛期小细胞肺癌一线维持此前只有免疫单药，中位 OS 长期停在 12 个月附近；把 DLL3/CD3 双抗前移到维持阶段后 HR 0.42、12 个月 OS 率从 53.3% 抬到 79.4%，脑转移与肝转移亚组一致获益，这会改写一线维持的骨架。代价是细胞因子释放综合征 49.6%（多为低级别）与 3 级以上不良事件 46.8%，对中心的不良反应管理能力有要求。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-3">
+      <div class="body">
+        <div class="head"><span class="no">#03</span><span class="drug">intismeran autogene (mRNA-4157/V940)</span></div>
+        <h3>INTerpath-001: Phase 3 study of the mRNA-based individualized neoantigen therapy (INT) intismeran autogene (intismeran) plus pembrolizumab (pembro) vs pembro alone for adjuvant treatment of resected stage IIB-IV melanoma (MEL)</h3>
+        <div class="chips"><span class="chip solid">LBA</span><span class="chip no-id">LBA1</span><span class="chip">Phase III</span><span class="chip who">个体化新抗原 · 黑色素瘤</span></div>
+        <p class="sum">1137 例完全切除的 IIB–IV 期黑色素瘤按 2:1 随机接受个体化 mRNA 新抗原疗法 intismeran autogene 联合帕博利珠单抗或安慰剂联合帕博利珠单抗：24 个月无复发生存率 82.2% vs 70.0%（HR 0.58；95% CI 0.45–0.75），24 个月无远处转移生存率 88.5% vs 80.2%（HR 0.62），中位随访 24.6 个月。</p>
+        <p class="why">个体化新抗原 mRNA 疗法此前的证据都停在早期阶段，这是首个 III 期阳性：无复发与无远处转移双终点同时达标，说明按患者突变谱定制的疫苗可以在辅助阶段改变复发轨迹。它把黑色素瘤术后标准从单药免疫推向联合，也把「个体化生产」变成可规模交付的流程问题（本试验 95.9% 患者按计划给药）。局限是 OS 尚未成熟，对照为帕博利珠单抗单药。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-4">
+      <div class="body">
+        <div class="head"><span class="no">#04</span><span class="drug">encorafenib + binimetinib + 帕博利珠单抗</span></div>
+        <h3>STARBOARD phase 3: A randomized, double-blind study of first-line (1L) encorafenib (enco), binimetinib (bini), and pembrolizumab (pembro) vs placebo (pbo) and pembro for unresectable locally advanced or metastatic BRAF V600-mutant melanoma</h3>
+        <div class="chips"><span class="chip no-id">2071O</span><span class="chip">前瞻性研究</span><span class="chip">Oral</span><span class="chip who">BRAF V600 × MEK × PD-1 · 黑色素瘤</span></div>
+        <p class="sum">220 例不可切除局部晚期或转移性 BRAF V600 突变黑色素瘤一线随机接受 encorafenib+binimetinib+帕博利珠单抗或安慰剂+帕博利珠单抗：确认 ORR 70.0% vs 32.7%，中位 PFS 33.0 vs 3.4 个月（HR 0.33；90% CI 0.24–0.46），24 个月 PFS 率 55% vs 26%，OS 未成熟（HR 0.71；90% CI 0.48–1.05）。</p>
+        <p class="why">BRAF 突变黑色素瘤一线长期在靶向双药与免疫双药之间二选一，三药联合此前没有 III 期级证据；PFS 从 3.4 个月拉到 33.0 个月是数量级差别，24 个月时仍有过半患者无进展，支持把靶向与免疫同时前移。局限是样本仅 220 例、OS 未成熟且置信区间跨 1，3/4 级不良事件达 70%，长期耐受性仍待观察。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-5">
+      <div class="body">
+        <div class="head"><span class="no">#05</span><span class="drug">savolitinib + 奥希替尼</span></div>
+        <h3>Savolitinib or placebo combined with osimertinib in treatment-naïve advanced NSCLC with EGFR mutation and MET overexpression: Results from the phase 3 SANOVO study</h3>
+        <div class="chips"><span class="chip solid">LBA</span><span class="chip no-id">LBA69</span><span class="chip">Phase III</span><span class="chip who">MET × EGFR · 非小细胞肺癌</span></div>
+        <p class="sum">326 例初治 EGFR 突变伴 MET 过表达的非小细胞肺癌随机接受 savolitinib+奥希替尼或安慰剂+奥希替尼：MET IHC 3+ 人群 PFS 24.8 vs 11.1 个月（HR 0.45），意向治疗人群 PFS 24.9 vs 13.8 个月（HR 0.56），中位 OS 44.5 vs 34.9 个月（HR 0.48），中位随访 38.7 个月。</p>
+        <p class="why">EGFR-TKI 一线耐药的主要旁路之一是 MET 扩增或过表达，但此前只有后线数据；本研究把双靶前移到一线，PFS 与 OS 同时显著，IHC 3+ 人群获益更大，为「按 MET 表达分层的一线联合」提供了 III 期依据。局限是 MET 过表达依赖免疫组化、检测标准化尚未统一，联合组因不良事件停药 14.8%，明显高于对照的 4.3%。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-6">
+      <div class="body">
+        <div class="head"><span class="no">#06</span><span class="drug">度伐利尤单抗 + 恩诺单抗</span></div>
+        <h3>Perioperative durvalumab with or without tremelimumab plus neoadjuvant enfortumab vedotin in muscle-invasive bladder cancer: Results from the phase 3 VOLGA trial</h3>
+        <div class="chips"><span class="chip solid">LBA</span><span class="chip no-id">LBA2</span><span class="chip">前瞻性研究</span><span class="chip who">PD-L1 × Nectin-4 · 肌层浸润性膀胱癌</span></div>
+        <p class="sum">695 例肌层浸润性膀胱癌随机分为度伐利尤单抗+恩诺单抗、度伐利尤单抗+替西木单抗+恩诺单抗与对照三组：双药组 EFS HR 0.51（24 个月 EFS 率 64% vs 45%）、OS HR 0.58（24 个月 OS 率 78% vs 69%），病理完全缓解率 45% vs 10%；三药组 EFS HR 0.61，OS 未达显著。</p>
+        <p class="why">肌层浸润性膀胱癌围手术期的核心问题是新辅助化疗后仍有大量患者复发、病理完全缓解只有一成左右；把 ADC 与免疫同时放进新辅助，缓解率提到 45% 并转化为 EFS 与 OS 双获益，支持用 ADC 替代部分化疗骨架。三药组（加 CTLA-4）未复制 OS 获益、3/4 级毒性升至 42%，说明获益主要来自恩诺单抗+PD-L1 这一对而非叠加越多越好。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-7">
+      <div class="body">
+        <div class="head"><span class="no">#07</span><span class="drug">trastuzumab rezetecan (SHR-A1811)</span></div>
+        <h3>Trastuzumab rezetecan (SHR-A1811) in HER2-low advanced breast cancer (BC): A randomized, phase 3 study (HORIZON-Breast06)</h3>
+        <div class="chips"><span class="chip solid">LBA</span><span class="chip no-id">LBA13</span><span class="chip">Phase III</span><span class="chip who">HER2 · HER2低表达乳腺癌</span></div>
+        <p class="sum">551 例 HER2 低表达晚期乳腺癌（81.5% 未接受过化疗、64.8% 用过 CDK4/6 抑制剂）随机接受 trastuzumab rezetecan 或化疗：总体中位 PFS 16.4 vs 6.8 个月（HR 0.27），化疗初治人群 16.6 vs 6.8 个月（HR 0.25），12 个月 PFS 率 63.1% vs 18.0%。</p>
+        <p class="why">HER2 低表达人群在 ADC 出现后才有专属治疗，现有药物的 PFS 增益通常不到两倍；本研究 HR 0.27、中位 PFS 16.4 个月对 6.8 个月，把 ADC 推到化疗之前的位置，对「CDK4/6 之后先用 ADC 还是先化疗」这一实际选择影响直接。局限是 OS 尚未成熟、3 级以上治疗相关不良事件达 84.1%，间质性肺病虽仅 2.5% 仍需长期随访。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-8">
+      <div class="body">
+        <div class="head"><span class="no">#08</span><span class="drug">selpercatinib</span></div>
+        <h3>Updated results of randomized phase 3 study of selpercatinib vs cabozantinib or vandetanib (C/V) in advanced, kinase inhibitor-naïve, RET-mutant medullary thyroid cancer (MTC)</h3>
+        <div class="chips"><span class="chip no-id">4208O</span><span class="chip">Phase III</span><span class="chip">Oral</span><span class="chip who">RET · 髓样甲状腺癌</span></div>
+        <p class="sum">291 例激酶抑制剂初治 RET 突变甲状腺髓样癌随机接受 selpercatinib 或 cabozantinib/vandetanib：3 年 PFS 率 75% vs 25%（HR 0.21；95% CI 0.14–0.30），中位随访 45 个月时 3 年 OS 率 92% vs 75%（HR 0.34），3 年 PFS2 率 91% vs 60%。</p>
+        <p class="why">甲状腺髓样癌一线长期缺乏头对头证据，多靶点 TKI 与选择性 RET 抑制剂谁先用的争论一直靠间接比较；本研究 3 年 PFS 率相差 50 个百分点、PFS2 也显著，把选择性 RET 抑制剂确立为该人群首选。局限是同一试验的更新分析、OS 仍受 44% 交叉影响，且两组 3 级以上不良事件分别为 69% 与 81%，耐受性差异需要权衡。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-9">
+      <div class="body">
+        <div class="head"><span class="no">#09</span><span class="drug">阿替利珠单抗 + 贝伐珠单抗</span></div>
+        <h3>Final overall survival (OS) results from BEATcc (ENGOT-Cx10/GEICO 68-C/JGOG1084/GOG-3030), a randomised phase 3 trial of first-line atezolizumab (atezo), chemotherapy (CT) and bevacizumab (bev) for metastatic, persistent or recurrent cervical cancer (R/M CC)</h3>
+        <div class="chips"><span class="chip solid">LBA</span><span class="chip no-id">LBA38</span><span class="chip">Phase III</span><span class="chip who">PD-L1 × VEGF · 宫颈癌</span></div>
+        <p class="sum">410 例转移、复发或持续性宫颈癌一线随机接受阿替利珠单抗+贝伐珠单抗+化疗或贝伐珠单抗+化疗：最终分析中位随访 57.2 个月，中位 OS 31.9 vs 22.7 个月（HR 0.69；95% CI 0.54–0.88），4 年 OS 率 40% vs 26%，PFS2 HR 0.62。</p>
+        <p class="why">宫颈癌一线免疫联合已有 PFS 与中期 OS 获益，但「能不能把免疫留到二线用」一直没有正面回答；本试验对照组 58% 在进展后接受了免疫治疗，OS 差距仍然维持，说明一线使用的获益无法由后线补回，这是实践层面的关键信息。局限是随访虽长但交叉不可避免，PD-L1 阴性亚组样本小、HR 0.53 的区间较宽。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-10">
+      <div class="body">
+        <div class="head"><span class="no">#10</span><span class="drug">sac-TMT（芦康沙妥珠单抗）</span></div>
+        <h3>Final OS analysis of sacituzumab tirumotecan (sac-TMT) versus platinum-based chemotherapy in EGFR-mutated non-small cell lung cancer (NSCLC) after progression on EGFR-TKI: Phase III OptiTROP-Lung04 study</h3>
+        <div class="chips"><span class="chip solid">LBA</span><span class="chip no-id">LBA67</span><span class="chip">Phase III</span><span class="chip who">TROP2 · 非鳞状非小细胞肺癌</span></div>
+        <p class="sum">376 例 EGFR-TKI 进展后的 EGFR 突变非鳞非小细胞肺癌随机接受 sac-TMT 或含铂双药化疗：最终分析中位随访 32.3 个月，中位 OS 25.9 vs 17.4 个月（HR 0.69；95% CI 0.54–0.89），30 个月 OS 率 40.5% vs 28.4%，化疗组 22.6% 后续接受 ADC（RPSFT 校正后 HR 0.57）。</p>
+        <p class="why">EGFR 突变肺癌在 TKI 失败后化疗获益有限，TROP2 ADC 的关键问题是能否给出 OS 级而不只是缓解率级证据；本研究以 OS 为关键次要终点达成，校正后续 ADC 影响后效应更强，支持把 ADC 前移到 TKI 失败后的首选位置。局限是开放标签设计、对照为化疗而非其他 ADC，间质性肺病虽少见仍需随访。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+  </section>
+  <section class="bucket" id="b-failed">
+    <div class="bh"><span class="ladder l-failed"></span><h2>失败的研究<span class="cnt">10</span></h2></div>
+    
+    <article class="item" id="c-failed-1">
+      <div class="body">
+        <div class="head"><span class="no">#01</span><span class="drug">帕博利珠单抗（辅助）</span></div>
+        <h3>End-of-trial results of the phase 3 KEYNOTE-630 trial of adjuvant pembrolizumab (pembro) versus placebo (pbo) for high-risk locally advanced cutaneous squamous cell carcinoma (LA cSCC)</h3>
+        <div class="chips"><span class="chip no-id">2492P</span><span class="chip">Phase III</span><span class="chip">Poster</span><span class="chip who">PD-1 · 皮肤鳞状细胞癌</span></div>
+        <p class="sum">450 例高危局部晚期皮肤鳞癌术后放疗后随机接受帕博利珠单抗或安慰剂辅助治疗：36 个月无复发生存率 71.6% vs 66.5%（HR 0.81；95% CI 0.58–1.12）未达显著，36 个月 OS 率 80.7% vs 88.0%（HR 1.70；95% CI 1.11–2.60），中位随访 47.4 个月。</p>
+        <p class="why">这是与 C-POST（cemiplimab 阳性）针对同一场景的同类试验，结果却是无复发生存未达主要终点、OS 反而更差，说明辅助 PD-1 在这个瘤种不能按类效应推广；对临床的实际意义是该适应症应选有 III 期阳性证据的药物，而不是沿用黑色素瘤或肺癌的经验。局限是交叉与 8 例后续 cemiplimab 使用可能干扰 OS 解读。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-2">
+      <div class="body">
+        <div class="head"><span class="no">#02</span><span class="drug">帕博利珠单抗 + 仑伐替尼 + belzutifan</span></div>
+        <h3>First-line pembrolizumab + lenvatinib + belzutifan or MK-1308A + lenvatinib in advanced RCC: Randomized open-label phase 3 LITESPARK-012 study</h3>
+        <div class="chips"><span class="chip no-id">3586O</span><span class="chip">Phase III</span><span class="chip">Oral</span><span class="chip who">PD-1 × VEGFR × HIF-2α · 肾透明细胞癌</span></div>
+        <p class="sum">1688 例晚期透明细胞肾癌一线随机接受帕博利珠单抗+仑伐替尼+belzutifan、MK-1308A+仑伐替尼或帕博利珠单抗+仑伐替尼对照：PFS HR 分别为 1.08 与 1.07、OS HR 1.04 与 1.12，ORR 69.1%、69.0% vs 76.3%，中位随访 43.6 个月。</p>
+        <p class="why">肾癌一线已在免疫联合抗血管上稳定多年，加第三个机制的诱惑很大；1688 例的结果是三药不如两药，PFS 与缓解率都更差，直接否定了叠加 HIF-2α 抑制剂这条路径，也提示联合的毒性成本（51.6% 因不良事件停用任一药物）会吃掉潜在获益。局限是开放标签设计，但样本量与随访足以支撑结论。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-3">
+      <div class="body">
+        <div class="head"><span class="no">#03</span><span class="drug">mFOLFIRINOX（辅助强化）</span></div>
+        <h3>IROCAS: A randomized phase III trial of adjuvant treatment intensification with mFOLFIRINOX versus mFOLFOX6 in high-risk stage III (T4 and/or N2) colon cancer</h3>
+        <div class="chips"><span class="chip solid">LBA</span><span class="chip no-id">LBA29</span><span class="chip">前瞻性研究</span><span class="chip who">化疗 · 实体瘤</span></div>
+        <p class="sum">795 例高危（T4 和/或 N2）III 期结肠癌术后随机接受 mFOLFIRINOX 或 mFOLFOX6 辅助化疗：3 年无病生存率 65.6% vs 66.3%（HR 1.07；95% CI 0.84–1.36；p=0.61），3 年 OS 率 91.2% vs 86.7%（HR 0.85；p=0.37），中位随访 55 个月。</p>
+        <p class="why">把转移性肠癌的三药方案搬到辅助治疗是很自然的强化思路，但 IROCAS 说明毒性增加没有换来无病生存获益，与此前 PETACC-3 的教训一致；对实践的影响是高危 III 期结肠癌不应常规使用三药辅助，双药仍是标准。局限是 OS 数据未成熟，无法排除长期差异。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-4">
+      <div class="body">
+        <div class="head"><span class="no">#04</span><span class="drug">sigvotatug vedotin</span></div>
+        <h3>Phase 3 study of sigvotatug vedotin (SV) vs docetaxel (DTX) in previously treated nonsquamous non-small cell lung cancer (NSCLC)</h3>
+        <div class="chips"><span class="chip solid">LBA</span><span class="chip no-id">LBA68</span><span class="chip">Phase III</span><span class="chip who">整合素 β6 · 非鳞状非小细胞肺癌</span></div>
+        <p class="sum">703 例经治非鳞非小细胞肺癌随机接受 sigvotatug vedotin（整合素 β6 ADC）或多西他赛：中位 OS 11.9 vs 11.5 个月（HR 0.929；单侧 p=0.226）未达主要终点，中位 PFS 4.7 vs 4.2 个月。</p>
+        <p class="why">ADC 在多西他赛对照下能否取胜，是后线肺癌反复被验证的硬门槛；本试验全人群 OS 无差异，且整合素 β6 表达与疗效没有相关性，说明这个靶点缺少可用的选择标志物。值得注意的是二线亚组 OS 13.6 vs 11.1 个月（HR 0.831）提示人群选择比靶点表达更重要，后续开发可能转向更前线。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-5">
+      <div class="body">
+        <div class="head"><span class="no">#05</span><span class="drug">帕博利珠单抗（围手术期）</span></div>
+        <h3>Perioperative pembrolizumab (pembro) or placebo (pbo) + neoadjuvant cisplatin (cis) and gemcitabine (gem) in participants (pts) with muscle-invasive bladder cancer (MIBC): the double-blind, phase 3 KEYNOTE-866 study</h3>
+        <div class="chips"><span class="chip no-id">4735O</span><span class="chip">Phase III</span><span class="chip">Oral</span><span class="chip who">PD-1 · 肌层浸润性膀胱癌</span></div>
+        <p class="sum">907 例顺铂可耐受的肌层浸润性膀胱癌随机接受围手术期帕博利珠单抗或安慰剂联合新辅助顺铂+吉西他滨：中位 EFS 74.1 个月 vs 未达到（HR 0.88；95% CI 0.71–1.10；p=0.1366），病理完全缓解率 44.4% vs 35.8%，OS HR 1.00。</p>
+        <p class="why">围手术期免疫在膀胱癌是热门方向，但 KEYNOTE-866 显示病理完全缓解提高 8.9 个百分点并没有转化为 EFS 或 OS 获益，与同场报告的 CA017-078（纳武利尤单抗）结果一致；这意味着「新辅助化疗+PD-1」不能成为标准，围手术期免疫的价值可能依赖不同骨架（如 ADC 联合）。局限是随访 60.9 个月已足够成熟。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-6">
+      <div class="body">
+        <div class="head"><span class="no">#06</span><span class="drug">帕博利珠单抗 + 同步放化疗</span></div>
+        <h3>Pembrolizumab or placebo plus concurrent definitive chemoradiotherapy in esophageal and gastroesophageal junction (GEJ) cancer: The phase 3 randomized KEYNOTE-975 study</h3>
+        <div class="chips"><span class="chip no-id">2875O</span><span class="chip">前瞻性研究</span><span class="chip">Oral</span><span class="chip who">PD-1 · 食管癌</span></div>
+        <p class="sum">703 例食管及胃食管交界癌随机接受帕博利珠单抗或安慰剂联合根治性同步放化疗：PD-L1 CPS ≥10 人群 EFS 15.2 vs 14.7 个月（HR 0.97；95% CI 0.77–1.23；p=0.3994），中位 OS 32.2 vs 35.0 个月（HR 1.00），研究因无效停止。</p>
+        <p class="why">同步放化疗加免疫在食管癌曾被视为顺理成章的加法，但本次在 CPS ≥10 人群既无 EFS 也无 OS 获益并提前终止，提示放疗与 PD-1 的时序、剂量组合可能是关键变量，不能照搬其他瘤种的阳性结果。局限是 CPS ≥1 与全人群未做统计检验，无法完全排除亚组获益，但方向性证据已足够改变实践预期。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-7">
+      <div class="body">
+        <div class="head"><span class="no">#07</span><span class="drug">仑伐替尼 + 帕博利珠单抗 + TACE</span></div>
+        <h3>Phase 3 LEAP-012 study of lenvatinib + pembrolizumab vs dual placebo with transarterial chemoembolization (TACE) for unresectable non-metastatic hepatocellular carcinoma: Long-term OS results</h3>
+        <div class="chips"><span class="chip no-id">1678RO</span><span class="chip">Phase III</span><span class="chip">Rapid Oral</span><span class="chip who">VEGFR × PD-1 · 肝细胞癌</span></div>
+        <p class="sum">480 例不可切除非转移性肝细胞癌随机接受仑伐替尼+帕博利珠单抗+TACE 或双安慰剂+TACE：中位随访 44.2 个月，中位 OS 40.4 vs 40.8 个月（HR 0.98；95% CI 0.76–1.26），PFS 获益维持但未转化为 OS，3 级以上治疗相关不良事件 72.2% vs 32.0%。</p>
+        <p class="why">中期分析时 PFS 阳性曾让这条联合被看好，但长期 OS 归零，说明在中晚期肝癌里 PFS 不能替代 OS，尤其当后续治疗可及性高时；对正在做 TACE 联合 III 期的项目是明确警示。局限是两组 OS 均达 40 个月、高于历史基准，提示人群选择与后续治疗影响了检验效能。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-8">
+      <div class="body">
+        <div class="head"><span class="no">#08</span><span class="drug">二十碳五烯酸（EPA）</span></div>
+        <h3>Omega-3 polyunsaturated fatty acid eicosapentaenoic acid (EPA) versus placebo after resection of colorectal cancer liver metastases (EMT2): A multicentre, double-blind, randomised phase 3 trial</h3>
+        <div class="chips"><span class="chip solid">LBA</span><span class="chip no-id">LBA30</span><span class="chip">Phase III</span><span class="chip who">omega-3 多不饱和脂肪酸 · 结直肠癌, 癌症肝转移</span></div>
+        <p class="sum">418 例结直肠癌肝转移术后随机接受二十碳五烯酸（EPA）或安慰剂：主要终点中位 PFS 13.5 vs 12.9 个月（HR 0.89；95% CI 0.70–1.13；p=0.33）未达，五年 OS 率 62.0% vs 45.1%（HR 0.68；95% CI 0.48–0.96；p=0.030）。</p>
+        <p class="why">这是一个少见的「主要终点阴性、OS 反而阳性」的辅助治疗 III 期：EPA 作为低成本口服干预若真有生存获益，实践影响会很大，但 PFS 与 OS 结论不一致、OS 为次要终点、样本 418 例，需要谨慎看待。对读者的价值在于提醒：辅助治疗试验里 PFS 与 OS 的分离必须用后续治疗与生物学解释，而不是直接采信 OS 的 p 值。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-9">
+      <div class="body">
+        <div class="head"><span class="no">#09</span><span class="drug">帕博利珠单抗（辅助）</span></div>
+        <h3>Final analysis of adjuvant pembrolizumab (pembro) in resected early-stage non–small-cell lung cancer (NSCLC): Phase 3 PEARLS/KEYNOTE-091 study</h3>
+        <div class="chips"><span class="chip no-id">2511O</span><span class="chip">Phase III</span><span class="chip">Oral</span><span class="chip who">PD-1 · 非小细胞肺癌</span></div>
+        <p class="sum">1177 例完全切除的 IB–IIIA 期非小细胞肺癌随机接受帕博利珠单抗或安慰剂辅助治疗：中位随访 87.7 个月，6 年 OS 率 68.5% vs 66.4%（HR 0.98；95% CI 0.81–1.18；p=0.41826），接受过辅助化疗者 68.9% vs 65.4%（HR 0.91）。</p>
+        <p class="why">这是辅助免疫在早期肺癌上随访最久的一次回答：无病生存优势长期维持却没有转化为 OS，说明「延缓复发」并不自动等于「延长生存」，尤其在复发后免疫可及性高的今天。对临床的意义是辅助决策需要同时看 DFS 与 OS，对研发则提示终点选择与对照组后线治疗设计会决定试验成败。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-10">
+      <div class="body">
+        <div class="head"><span class="no">#10</span><span class="drug">纳武利尤单抗（围手术期）</span></div>
+        <h3>Results from a phase 3 trial of neoadjuvant (neoadj) chemotherapy alone vs in combination with nivolumab followed by postsurgical adjuvant nivolumab in patients (pts) with muscle-invasive bladder cancer (MIBC)</h3>
+        <div class="chips"><span class="chip no-id">4736O</span><span class="chip">Phase III</span><span class="chip">Oral</span><span class="chip who">PD-1 · 肌层浸润性膀胱癌</span></div>
+        <p class="sum">653 例肌层浸润性膀胱癌随机接受新辅助吉西他滨+顺铂联合纳武利尤单抗序贯术后纳武利尤单抗或单纯化疗：中位随访 54.5 个月，EFS 无差异（HR 0.94；95.74% CI 0.71–1.25；p=0.67），病理完全缓解率 39.1% vs 29.6%（OR 1.54；99.91% CI 0.88–2.69）。</p>
+        <p class="why">与 KEYNOTE-866 同场报告，两项 III 期在顺铂可耐受人群中都没能把病理缓解的提升转化为 EFS 获益，这基本关闭了「化疗+PD-1」作为围手术期标准的大门；未来该场景更可能由 ADC 或不同时序的免疫方案主导。局限是 OS 仍未成熟，长期随访不能完全排除小幅获益。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+  </section>
+  </main>
+</div>
+</body>
+</html>
