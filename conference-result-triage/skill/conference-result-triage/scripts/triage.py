@@ -331,6 +331,39 @@ def manual_of(row: Dict[str, Any]) -> Optional[bool]:
     return text == "是"
 
 
+def recommand_of(row: Dict[str, Any]) -> Optional[bool]:
+    """``clinical_result.is_recommand`` -- the data owner's editorial "read this" flag.
+
+    Added to the table on 2026-11-13 and **sparse by design**: ESMO 2026 carries one
+    non-null value (`LBA7` / CLARITY-Gastric01), ESMO 2025 / ASCO 2025 / ASCO 2026 /
+    AACR 2026 carry none. Two consequences the code has to respect:
+
+    * ``None`` is **not** ``False``. An all-null column means "nobody flagged anything",
+      not "nothing is worth reading", and the delivery must say so out loud rather than
+      quietly scoring as if the flag were absent.
+    * A ``True`` row is a *forced* inclusion: it outranks our own screening and sorting.
+      Dropping it is the one failure this flag exists to prevent, so it bypasses the
+      exclusion list, the TiP filter and the phase heuristics.
+    """
+    v = row.get("is_recommand")
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, (list, tuple)):
+        v = v[0] if v else None
+    if v is None:
+        return None
+    if isinstance(v, (int, float)):
+        return bool(v)
+    text = str(v).strip()
+    if not text:
+        return None
+    if text in {"是", "1", "true", "True", "Y", "y", "yes"}:
+        return True
+    if text in {"否", "0", "false", "False", "N", "n", "no"}:
+        return False
+    return None
+
+
 def presentation_of(abstract_id: Optional[str], lba: bool = False) -> Tuple[str, int]:
     """Derive the presentation tier from the abstract number and the ``lba`` flag.
 
@@ -751,17 +784,27 @@ def build_pools(
     excluded: Counter = Counter()
     pools: Dict[str, Dict[str, Dict[str, Any]]] = {b: {} for b in BUCKETS}
     for row in by_esid.values():
-        reason = excluded_reason(row)
-        if reason:
-            excluded[reason] += 1
-            continue
-        if is_trial_in_progress(row):
-            excluded["试验进行中(TiP)"] += 1
-            continue
+        # The data owner's `is_recommand` outranks every heuristic in this file: a
+        # flagged row is never excluded, never treated as trial-in-progress and never
+        # left unclassified, because "someone flagged this as a must-read" is exactly
+        # the judgement this script is not allowed to make. Bucket placement still
+        # prefers the real phase; without one the row lands in ``pivotal`` (the flag
+        # is an editorial call on maturity, not a first-in-human signal).
+        forced = recommand_of(row) is True
+        if not forced:
+            reason = excluded_reason(row)
+            if reason:
+                excluded[reason] += 1
+                continue
+            if is_trial_in_progress(row):
+                excluded["试验进行中(TiP)"] += 1
+                continue
         bucket = bucket_of(row)
         if bucket is None:
-            excluded["无法归类"] += 1
-            continue
+            if not forced:
+                excluded["无法归类"] += 1
+                continue
+            bucket = "pivotal"
         # Meeting-book-only records are a *top-up* for the early bucket, which is
         # where the curated result table is blindest (a first-in-human readout
         # released days before the meeting may not have been curated yet --
@@ -773,7 +816,8 @@ def build_pools(
         # meeting-book-only rows never carry it.
         is_lba_row = bool(row.get("lba"))
         is_manual = manual_of(row)
-        if str(row.get("_id") or "").startswith("mm:") and bucket != "early" and not is_lba_row:
+        if (not forced and str(row.get("_id") or "").startswith("mm:")
+                and bucket != "early" and not is_lba_row):
             excluded["会议库独有(非早期阶段)"] += 1
             continue
         res_text, res_src = results_of(row)
@@ -811,6 +855,8 @@ def build_pools(
             "results_source": res_src,
             "lba": is_lba_row,
             "manual": is_manual,
+            "is_recommand": recommand_of(row),
+            "forced": forced,
             "presentation": pres_label,
             "presentation_rank": pres_rank,
             "refractory": refractory_of(first_text(row.get("abstract_text")),
@@ -826,6 +872,9 @@ def build_pools(
         # deterministic tie-break: prefer the record that carries study_results,
         # then the larger sample. No clinical scoring.
         rank = (entry["has_study_results"], entry["n"] or 0)
+        # A forced row never loses its slot to a sibling record of the same trial.
+        if prev is not None and prev.get("forced") and not entry["forced"]:
+            rank = (-1, -1)
         # Two rows of the same trial are one card: a prespecified sub-analysis
         # (VESALIUS-CV on ESC 2026) sits next to the primary publication, and which
         # esid survives is a tie-break, not a judgement. Keep the losers as
@@ -847,6 +896,13 @@ def build_pools(
         "input_rows": len(rows),
         "distinct_esid": len(by_esid),
         "excluded": dict(excluded),
+        "recommand": {
+            "flagged": sum(1 for e in (i for b in pools.values() for i in b.values())
+                           if e.get("forced")),
+            # Distinguishes "the column was pulled and is empty" from "the column was
+            # never pulled". Only the first is reportable as "nobody flagged anything".
+            "column_present": any("is_recommand" in r for r in by_esid.values()),
+        },
         "pools": {},
     }
     for bucket in BUCKETS:
@@ -857,7 +913,8 @@ def build_pools(
         # seven abstracts our in-house experts picked were oral-tier -- 57% vs a
         # 25% base rate in the candidate pool -- so the tier is real signal that
         # pure numbers were throwing away.
-        items.sort(key=lambda e: (e.get("presentation_rank") or 9,
+        items.sort(key=lambda e: (0 if e.get("forced") else 1,
+                                  e.get("presentation_rank") or 9,
                                   -(e["n"] or 0),
                                   -len(e["indication"])))
         out["pools"][bucket] = {
@@ -874,7 +931,8 @@ def missing_abstract(pool: Dict[str, Any]) -> int:
 
 def to_csv(pool: Dict[str, Any], path: str) -> None:
     cols = [
-        "bucket", "esid", "abstract_id", "lba", "manual", "presentation", "trial",
+        "bucket", "esid", "abstract_id", "lba", "is_recommand", "manual", "presentation",
+        "trial",
         "indication", "phase", "evaluation", "n",
         "key_evidence", "primary_endpoint", "randomized", "blinded", "trial_control",
         "data_type", "machine_signal", "machine_endpoint_call", "has_summary", "has_abstract",
@@ -900,6 +958,7 @@ def to_csv(pool: Dict[str, Any], path: str) -> None:
                     "esid": item["esid"],
                     "abstract_id": item.get("abstract_id") or "",
                     "lba": item.get("lba") or "",
+                    "is_recommand": "是" if item.get("is_recommand") else "",
                     "manual": item.get("manual") or "",
                     "presentation": item.get("presentation") or "",
                     "trial": item["trial"] or "",
@@ -927,7 +986,7 @@ def to_markdown(pool: Dict[str, Any]) -> str:
         "- 排除（非试验证据源）：" + (", ".join(
             f"{k} {v}" for k, v in sorted(pool["excluded"].items())) or
             "（无——输入未含非试验记录；两段式拉取时此计数取自第一段 lite 结果）"),
-        "- 池内顺序：报告类型（口头 > 快速口头 > 壁报 > 电子壁报）优先，其次 n；仅供阅读，**不是推荐顺序**",
+        "- 池内顺序：**数据方标星（is_recommand=是）最优先**，其次报告类型（口头 > 快速口头 > 壁报 > 电子壁报），再次 n；标星行不受排除规则影响",
         "",
     ]
     for bucket in BUCKETS:
@@ -979,6 +1038,7 @@ def batch_record(bucket: str, item: Dict[str, Any]) -> Dict[str, Any]:
         "bucket": bucket,
         "esid": item["esid"],
         "abstract_id": item.get("abstract_id"),
+        "is_recommand": bool(item.get("is_recommand")),
         "lba": bool(item.get("lba")),
         "manual": bool(item.get("manual")),
         "presentation": item.get("presentation"),

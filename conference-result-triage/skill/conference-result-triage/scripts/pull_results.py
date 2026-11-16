@@ -72,9 +72,20 @@ DEFAULT_SLICE = 120
 #
 # ``featured`` is not selectable at all: it is absent from the whitelist, so on the
 # platform every card reports ``manual: null`` instead of a production method.
+#
+# ``abstract_id`` and ``is_recommand`` are new (2026-11-13). Both were previously
+# *believed* unreachable -- ``abstract_id`` was written off as "no column, no tool"
+# while it had simply never been asked for. Verified on ESMO 2026 / ASCO 2026 /
+# AACR 2026: ``abstract_id`` is populated on 1097/1097, 1648/1648, 288/288 rows.
+# ``is_recommand`` is sparse by design (an editorial flag from the data owner):
+# ESMO 2026 has exactly 1 non-null, ESMO 2025 / ASCO 2025 / ASCO 2026 / AACR 2026
+# have 0. It is ``是`` or null -- **null is not ``否``**. Omitting either name is
+# silent (the column just never appears), which is why they are flagged below.
 DEFAULT_FIELDS: List[str] = [
     "clinical_result.extra_esid",
     "clinical_result.lba",
+    "clinical_result.is_recommand",
+    "clinical_result.abstract_id",
     "clinical_result.paper_title",
     "clinical_result.journal",
     "clinical_result.paper_release_time",
@@ -408,9 +419,16 @@ def main(argv: List[str] | None = None) -> int:
 
     lba = sum(1 for r in payload["rows"] if r.get("clinical_result_lba"))
     with_abs = sum(1 for r in payload["rows"] if r.get("clinical_result_abstract_text"))
+    rec = sum(1 for r in payload["rows"] if r.get("clinical_result_is_recommand"))
+    aids = sum(1 for r in payload["rows"] if r.get("clinical_result_abstract_id"))
     print(f"rows={len(payload['rows'])} requested={payload['requested']} "
           f"missing={len(payload['missing'])} lba={lba} featured={featured} "
+          f"is_recommand={rec} abstract_id={aids} "
           f"with_abstract_text={with_abs} -> {args.out}")
+    if rec == 0:
+        print("NOTE: no row in this conference carries is_recommand -- say so in "
+              "coverage_notes (absence of the flag is not evidence that nothing was "
+              "recommended by the data owner).", file=sys.stderr)
     if payload["missing"]:
         print(f"WARNING: {len(payload['missing'])} ids returned no row; "
               "re-run those ids in one further call before building the pool",
@@ -464,8 +482,14 @@ def _main_from_dumps(args: argparse.Namespace, fields: List[str]) -> int:
 
     lba = sum(1 for r in rows if r.get("clinical_result_lba"))
     with_abs = sum(1 for r in rows if r.get("clinical_result_abstract_text"))
-    print(f"rows={len(rows)} lba={lba} featured={featured} with_abstract_text={with_abs} "
-          f"-> {args.out}")
+    rec = sum(1 for r in rows if r.get("clinical_result_is_recommand"))
+    aids = sum(1 for r in rows if r.get("clinical_result_abstract_id"))
+    print(f"rows={len(rows)} lba={lba} featured={featured} is_recommand={rec} "
+          f"abstract_id={aids} with_abstract_text={with_abs} -> {args.out}")
+    if rec == 0:
+        print("NOTE: no row in this conference carries is_recommand -- say so in "
+              "coverage_notes (absence of the flag is not evidence that nothing was "
+              "recommended by the data owner).", file=sys.stderr)
     if missing:
         print(f"WARNING: {len(missing)} requested fields are absent from the dump: "
               f"{', '.join(missing[:8])} -- re-run the tool with those names",
@@ -486,6 +510,14 @@ def _main_from_dumps(args: argparse.Namespace, fields: List[str]) -> int:
     if "clinical_result_lba" not in rows[0]:
         print("WARNING: clinical_result.lba is missing -- the late-breaking tier will be "
               "lost (pitfall #1). Re-run the tool with that field selected.", file=sys.stderr)
+    if "clinical_result_is_recommand" not in rows[0]:
+        print("WARNING: clinical_result.is_recommand is missing -- the data owner's "
+              "recommended rows cannot be honoured. Re-run with that field selected.",
+              file=sys.stderr)
+    if "clinical_result_abstract_id" not in rows[0]:
+        print("WARNING: clinical_result.abstract_id is missing -- cards will ship "
+              "abstract_id=null and the reader loses the number they search for in the "
+              "abstract book. Re-run with that field selected.", file=sys.stderr)
     return 0
 
 

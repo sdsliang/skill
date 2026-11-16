@@ -48,6 +48,13 @@ Checks
      skip has to be declared in ``editorial_overrides`` with a reason, because "why is
      the better-scored trial missing" is the question a reader asks first. Same-score
      ties are free to break either way.
+ 17. **the data owner's flag is forced** (v0.12): every row with
+     ``clinical_result.is_recommand == 是`` must be on the list, and inside one bucket the
+     flagged cards must come before the unflagged ones whatever the scores say. This is
+     the one rule that outranks the judgement ranking, because it is not our judgement:
+     dropping a flagged readout is the failure the flag exists to prevent. ``abstract_id``
+     must be printed on every card whose row carries one -- the reader searches the
+     abstract book by that number, so an invented or missing one sends them nowhere.
 """
 
 from __future__ import annotations
@@ -398,6 +405,70 @@ def selection_order(cards: List[Dict[str, Any]], judged: Dict[str, Dict[str, Any
     return fails, notes
 
 
+def recommand_gate(cards: List[Dict[str, Any]],
+                   pool: Dict[str, Dict[str, Any]]) -> Tuple[List[str], List[str]]:
+    """The data owner's ``is_recommand`` is a forced slot, not a ranking hint.
+
+    Two things are checked and neither can be waived by ``editorial_overrides``:
+
+    1. **coverage** -- a flagged row has to be on the list. Our screening exists to
+       cut a 1097-row conference down to a reading list; a human at the data end
+       already said "read this one", and silently dropping it is the single failure
+       the flag was added to prevent.
+    2. **order** -- inside a bucket, flagged cards come before unflagged ones. Note
+       that this deliberately contradicts the score ordering gate above; the two are
+       reconciled by reading them together: *within one flag class* scores must be
+       non-increasing, and the flag class dominates the score across classes. A
+       flagged-but-low-scoring card is therefore legal, and it must still be judged
+       honestly (`score` is the reviewer's number, not a copy of the flag).
+
+    EASL/ESC 2026 have no flagged rows at all, so the note says "the column was empty"
+    rather than staying silent -- an empty flag is a different statement from a
+    missing one, and only the former means nobody recommended anything.
+    """
+    fails: List[str] = []
+    notes: List[str] = []
+    flagged: Dict[str, Dict[str, Any]] = {}
+    for esid, item in pool.items():
+        if item.get("is_recommand") is True:
+            flagged.setdefault(str(item.get("esid") or esid), item)
+    by_card = {str(c.get("esid") or ""): c for c in cards}
+    covered = set(by_card)
+    for esid, item in pool.items():
+        if item.get("_alias_of"):
+            covered.add(str(item["_alias_of"]))
+    if not flagged:
+        notes.append("recommand: no row in this conference carries is_recommand=是 -- "
+                     "there is no forced slot to honour (say so in coverage_notes; an "
+                     "empty flag is not a statement that nothing was recommended)")
+        return fails, notes
+    for esid, item in sorted(flagged.items()):
+        if esid in covered:
+            continue
+        fails.append(
+            f"recommand: {esid} ({item.get('abstract_id') or 'no abstract id'}, "
+            f"{item.get('trial') or 'no trial'}) is flagged is_recommand=是 upstream but "
+            f"is not on the list -- a flagged readout is forced; put it in its bucket "
+            f"whether or not the judgement scored it low")
+    by_bucket: Dict[str, List[Dict[str, Any]]] = {}
+    for card in cards:
+        by_bucket.setdefault(str(card.get("bucket") or ""), []).append(card)
+    for bucket, items in by_bucket.items():
+        seen_plain = False
+        for card in items:
+            if card.get("is_recommand") is True:
+                if seen_plain:
+                    fails.append(
+                        f"recommand: {bucket} puts flagged {card.get('esid')} below an "
+                        f"unflagged card -- flagged cards come first inside their bucket")
+            else:
+                seen_plain = True
+    if flagged:
+        hits = [e for e in flagged if e in covered]
+        notes.append(f"recommand: {len(hits)}/{len(flagged)} flagged row(s) on the list")
+    return fails, notes
+
+
 def load_rows(path: str) -> Dict[str, Dict[str, Any]]:
     """Raw workspace rows, flattened exactly like ``triage.py`` does.
 
@@ -469,6 +540,9 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
                                         payload.get("editorial_overrides"))
         fails += sfails
         notes += snotes
+        rfails, rnotes = recommand_gate(cards, by_calc if by_calc is not None else by_esid)
+        fails += rfails
+        notes += rnotes
     else:
         notes.append("selection: no judged records passed in -- the editorial hop "
                      "from judgement to list is unchecked (the CLI always passes "
@@ -524,6 +598,25 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
             fails.append(f"{tag}: lba must be boolean")
         elif card["lba"] != bool(item.get("lba")):
             fails.append(f"{tag}: lba={card['lba']} but pool row says {bool(item.get('lba'))}")
+        # v0.12: `abstract_id` is reachable from the tool again (it had simply never
+        # been in `selected_fields`, not been missing from the table), so a card that
+        # prints one is making a checkable claim. The number is what a reader types
+        # into the abstract book; a wrong one is worse than no number.
+        row_abs = str(item.get("abstract_id") or "").strip()
+        card_abs = str(card.get("abstract_id") or "").strip()
+        if row_abs and not card_abs:
+            fails.append(f"{tag}: missing abstract_id (rows.json has {row_abs!r})")
+        elif card_abs and row_abs and card_abs != row_abs:
+            fails.append(f"{tag}: abstract_id={card_abs!r} != rows.json {row_abs!r}")
+        elif card_abs and not row_abs:
+            fails.append(f"{tag}: abstract_id={card_abs!r} invented -- rows.json has none")
+        # `is_recommand` decides whether this card was allowed to outrank a higher
+        # score, so it cannot be a label the card invents about itself.
+        if not isinstance(card.get("is_recommand"), bool):
+            fails.append(f"{tag}: is_recommand must be boolean")
+        elif card["is_recommand"] != bool(item.get("is_recommand")):
+            fails.append(f"{tag}: is_recommand={card['is_recommand']} but rows.json says "
+                         f"{bool(item.get('is_recommand'))}")
         # `manual` is a provenance claim (human-curated vs pipeline-extracted), so a
         # card that flips it is telling the reader the wrong thing about how the row
         # was produced. Optional key: older plans predate it and a missing key must

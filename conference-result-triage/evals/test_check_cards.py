@@ -61,7 +61,10 @@ def card(item, score=60, parts=None):
     summary = next((s for s in text.replace("\n", " ").split(". ") if "%" in s), "")
     return {
         "esid": item["esid"],
-        "abstract_id": None,
+        # v0.12: the number the reader searches the abstract book by, plus the data
+        # owner's forced-slot flag. Both are copied from the row, never invented.
+        "abstract_id": item.get("abstract_id"),
+        "is_recommand": bool(item.get("is_recommand")),
         "lba": bool(item.get("lba")),
         "manual": item.get("manual"),
         "bucket": item["_bucket"],
@@ -434,6 +437,66 @@ else:
 for name in os.listdir(tmpdir):
     os.unlink(os.path.join(tmpdir, name))
 os.rmdir(tmpdir)
+
+# 18. v0.12: the data owner's `is_recommand` is a forced slot, not a ranking hint.
+# Two independent failures, because they fail for different reasons: dropping the
+# flagged row (coverage) and burying it under unflagged cards (order). Neither is
+# waivable by `editorial_overrides` -- a flag we can override is a flag we can ignore.
+rec_pool = {
+    "nr_rec_1": {"esid": "nr_rec_1", "is_recommand": True, "abstract_id": "LBA7",
+                 "trial": "CLARITY-Gastric01"},
+    "nr_plain_1": {"esid": "nr_plain_1", "is_recommand": False, "abstract_id": "1234P"},
+}
+plain_card = {"esid": "nr_plain_1", "bucket": "pivotal", "score": 72, "is_recommand": False}
+rec_card = {"esid": "nr_rec_1", "bucket": "pivotal", "score": 41, "is_recommand": True}
+fails, notes = check_cards.recommand_gate([plain_card], rec_pool)
+expect("recommand: flagged row dropped", fails, "is_recommand=是 upstream but is not on the list")
+fails, _ = check_cards.recommand_gate([plain_card, rec_card], rec_pool)
+expect("recommand: flagged card buried", fails, "below an unflagged card")
+fails, notes = check_cards.recommand_gate([rec_card, plain_card], rec_pool)
+if fails:
+    failures.append(f"a flagged-first bucket should pass: {fails}")
+else:
+    print("  ok  recommand: flagged-first bucket passes even at a lower score")
+
+# An all-null column is a *different statement* from a missing one: it says nobody
+# flagged anything, and the delivery has to say that out loud instead of scoring as
+# if the flag had been absent. `None` is not `False`.
+fails, notes = check_cards.recommand_gate([plain_card],
+                                          {"nr_plain_1": {"esid": "nr_plain_1",
+                                                          "is_recommand": None}})
+if fails or not any("no row in this conference carries is_recommand" in n for n in notes):
+    failures.append(f"empty is_recommand column should only be a note: {fails} {notes}")
+else:
+    print("  ok  recommand: an empty flag column is a note, not a pass by silence")
+
+# 19. `abstract_id` is now reachable from the tool, so it is a checkable claim: the
+# number is what a reader types into the abstract book.
+ABS_ESID = str(base[0]["esid"])
+abs_item = dict(by_esid[ABS_ESID], abstract_id="LBA7")
+abs_card = {k: v for k, v in base[0].items() if k != "abstract_id"}
+fails, _ = check_cards.check({"conference": "T", "count": 1, "cards": [abs_card],
+                              "coverage_notes": NOTES}, {ABS_ESID: abs_item})
+expect("abstract_id: missing on the card", fails, "missing abstract_id")
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(abs_card, abstract_id="9999P")],
+                              "coverage_notes": NOTES}, {ABS_ESID: abs_item})
+expect("abstract_id: disagrees with the row", fails, "!= rows.json")
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(abs_card, abstract_id="LBA7")],
+                              "coverage_notes": NOTES}, {ABS_ESID: abs_item})
+fails = [f for f in fails if not f.startswith("size:")]
+if fails:
+    failures.append(f"a matching abstract_id should pass: {fails}")
+else:
+    print("  ok  abstract_id: the row's own number passes")
+
+# 20. `is_recommand` on a card is a claim about the row, so it cannot be self-declared.
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(abs_card, abstract_id="LBA7",
+                                             is_recommand=True)],
+                              "coverage_notes": NOTES}, {ABS_ESID: abs_item})
+expect("is_recommand: card invents the flag", fails, "but rows.json says False")
 
 if failures:
     print(f"\nFAIL ({len(failures)}):")

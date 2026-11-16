@@ -511,3 +511,38 @@ v0.11 在 EASL 2026 重跑时，产物、闸门、事实层全绿（`check_cards
 
 规则：待办清单在交付**之前**收尾（或干脆别勾最后一项），`present_artifact` 之后不再调任何工具。
 改的不是断言，是行为：断言说得对，`present_artifact` 就该是最后一个成功调用。
+
+## 36. 「表里没有这列」是个负向结论，必须用一次实测去证伪
+
+`abstract_id` 被判定为「平台拿不到」整整四个版本，依据是：拿一份旧的 schema dump `grep` 一遍没匹配到 → 下结论 → 写进文档 → 后续每次都被这份文档说服。真相是 **`clinical_result.abstract_id` 一直在白名单里，只是 `pull_results.py` 的 `DEFAULT_FIELDS` 从来没写过这个名字**。一次 `selected_fields` 实测（ESMO 2026 1097/1097、ASCO 2026 1648/1648、AACR 2026 288/288 全非空）就能推翻。
+
+同一批被误判的还有 `is_recommand`（1097 行里 1096 个 null + 1 个 `是`）。代价不是"少一列"：卡片没有摘要号，读者就没法去摘要册里按号查；所有卡片印 `null` 看起来还"很诚实"，所以没人怀疑。
+
+规则：
+
+- **负向结论的举证责任在提出者**：说「工具拿不到 X」，必须附上那次请求 `X` 的真实报错或空结果，而不是「我在某份清单里没看到 X」。
+- **`grep` 不到 ≠ 不存在**：`ALLOWED_FIELD_NAMES` / 旧 schema dump / 别人的笔记都可能过期；字段白名单的唯一权威是 `pull_results.py --list-fields` 的**实时输出**。
+- **命名的三种可能**：真的没有 / 名字不同（`extra_esid` 与 `_extra_esid`）/ 没请求。先把第二种和第三种排除掉，才允许写第一种。
+
+## 37. `is_recommand` 是三种状态，不是两种
+
+`是` / `null`（整列为空）/ 列根本没拉 —— 这三种在交付物里必须能被区分，因为读者会做出完全不同的推断：
+
+| 实际状态 | 错误写法 | 正确写法 |
+|---|---|---|
+| 有 1 行 `是` | 忽略它（"我觉得这条一般"） | 必上榜、桶内置顶，`tag` 写 `推荐` |
+| 整列全 `null` | 「本次无重点推荐」 | 「`is_recommand` 列已拉取，数据方未标星」 |
+| 没拉这一列 | 同上 | `recommand.column_present=false`，并说明没有该字段 |
+
+`None` 尤其危险：`if is_recommand:` 与 `if is_recommand is not None:` 在稀疏列上给出相反答案。`triage.py` 的 `recommand_of()` 因此**只把显式真值当强制**，`None` 与 `False` 都返回 `None`/`False` 且不参与强制，而 `pool.json` 的 `recommand.column_present` 单独记「列在不在」。**「数据方没标星」不是「数据方说都不值得读」。**
+
+## 38. 强制位不能可议价
+
+`is_recommand=是` 一旦允许 `editorial_overrides` 豁免，它就退化成一条"建议"——任何编辑判断都能把它绕过去，而它存在的全部意义就是防止"被点名要读的结果被悄悄筛掉"。
+
+所以 `recommand_gate` 与 `selection_order` 是两把不同的锁，**只有后者吃 override**：
+
+- `selection_order`：桶内入选最低分不能低于被舍弃的 `keep` 分；同分取舍、压同质这类编辑决定，写 `reason` ≥10 字即可豁免。
+- `recommand_gate`：标星行不在榜 = fail；标星卡排在未标星卡之后 = fail。**没有豁免通道**。
+
+同时它**不改 `score`**：`LBA7`/`CLARITY-Gastric01` 判读 41 分，就印 41 分并置顶。强制位决定"读不读"，判读分回答"这项研究有多强"——两件事混在一起，卡片就会开始为一个字段编分数。

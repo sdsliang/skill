@@ -656,12 +656,131 @@ def op_score_varied(sv, spec):
 
 
 def op_score_order(sv, spec):
-    """Within a bucket the list must descend by score."""
+    """Within a bucket the list must descend by score -- *within each flag class*.
+
+    v0.12: the data owner's `is_recommand` outranks the score. So the order is
+    ``(is_recommand, -score)``: flagged cards come first however they scored, and
+    inside a class the scores still have to descend. Reading it as a plain "descending"
+    would either forbid the forced slot or let a flagged card sit at the bottom of its
+    bucket; both are wrong, and both are how this item would go green while the list is
+    wrong.
+    """
     by = {}
     for c in (sv["watchlist"] or {}).get("cards") or []:
-        by.setdefault(c.get("bucket"), []).append(c.get("score") or 0)
-    breaks = [b for b, xs in by.items() if any(xs[i] < xs[i + 1] for i in range(len(xs) - 1))]
-    return not breaks, f"ascending inside {breaks}" if breaks else "each bucket descends by score"
+        key = (c.get("bucket"), bool(c.get("is_recommand")))
+        by.setdefault(key, []).append(c.get("score") or 0)
+    breaks = [f"{b}/recommand={r}" for (b, r), xs in by.items()
+              if any(xs[i] < xs[i + 1] for i in range(len(xs) - 1))]
+    buried = []
+    seen_plain = {}
+    for c in (sv["watchlist"] or {}).get("cards") or []:
+        b = c.get("bucket")
+        if c.get("is_recommand"):
+            if seen_plain.get(b):
+                buried.append(b)
+        else:
+            seen_plain[b] = True
+    fails = []
+    if breaks:
+        fails.append(f"ascending inside {breaks}")
+    if buried:
+        fails.append(f"flagged card below an unflagged one in {sorted(set(buried))}")
+    return not fails, ("; ".join(fails) if fails
+                       else "each bucket: flagged first, then score descending")
+
+
+def _recommand_true(value) -> bool:
+    """`is_recommand` is 是/null today; accept the boolean spellings too."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (list, tuple)):
+        value = value[0] if value else None
+    if value is None:
+        return False
+    return str(value).strip() in {"是", "1", "true", "True", "yes"}
+
+
+def op_recommand_forced(sv, spec):
+    """Every row the data owner flagged must be on the list, and flagged cards first.
+
+    Post-hoc mirror of the delivery gate in `check_cards.py`: this one reads the run's
+    own `rows.json` + `watchlist.json`, so it can fire even if the model rewrote the
+    list by hand after the gate ran.
+    """
+    rows = sv.get("rows") or []
+    flagged = set()
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        esid = str(row.get("clinical_result__id") or row.get("esid")
+                   or row.get("_id") or "")
+        if esid and _recommand_true(row.get("clinical_result_is_recommand")
+                                    if "clinical_result_is_recommand" in row
+                                    else row.get("is_recommand")):
+            flagged.add(esid.removeprefix("nr_"))
+    cards = (sv["watchlist"] or {}).get("cards") or []
+    listed = {str(c.get("esid") or "").removeprefix("nr_") for c in cards}
+    missing = sorted(flagged - listed)
+    buried = []
+    for bucket in ("early", "pivotal", "failed"):
+        seen_plain = False
+        for c in cards:
+            if c.get("bucket") != bucket:
+                continue
+            if _recommand_true(c.get("is_recommand")):
+                if seen_plain:
+                    buried.append(bucket)
+            else:
+                seen_plain = True
+    fails = []
+    if missing:
+        fails.append(f"{len(missing)} flagged row(s) not on the list: {missing[:3]}")
+    if buried:
+        fails.append(f"flagged card below an unflagged one in {sorted(set(buried))}")
+    if fails:
+        return False, "; ".join(fails)
+    if not flagged:
+        return True, ("no row carries is_recommand in rows.json -- the column was empty "
+                      "(say so in coverage_notes; empty is not 'nothing was recommended')")
+    return True, f"all {len(flagged)} flagged row(s) listed first inside their bucket"
+
+
+def op_abstract_id(sv, spec):
+    """`abstract_id` on a card must be the row's own number.
+
+    v0.12: the field is reachable again (`clinical_result.abstract_id`), so the old
+    "must be null everywhere" item is gone. The number is what a reader searches the
+    abstract book by, which makes a plausible-looking invented one worse than a blank.
+    """
+    if not sv.get("rows"):
+        return None, "no rows.json in the run dir"
+    by_esid = {}
+    for row in sv["rows"]:
+        if not isinstance(row, dict):
+            continue
+        for key in ("clinical_result__id", "esid", "_id"):
+            if row.get(key):
+                by_esid[str(row[key]).removeprefix("nr_")] = row
+                break
+    bad, filled = [], 0
+    for c in (sv["watchlist"] or {}).get("cards") or []:
+        esid = str(c.get("esid") or "").removeprefix("nr_")
+        row = by_esid.get(esid)
+        if row is None:
+            continue
+        want = str(row.get("clinical_result_abstract_id")
+                   or row.get("abstract_id") or "").strip()
+        got = str(c.get("abstract_id") or "").strip()
+        if got:
+            filled += 1
+        if want and not got:
+            bad.append(f"{esid}: no abstract_id (row has {want})")
+        elif got and want and got != want:
+            bad.append(f"{esid}: {got} != {want}")
+        elif got and not want:
+            bad.append(f"{esid}: {got} invented (row has none)")
+    return not bad, ("; ".join(bad[:3]) if bad
+                     else f"abstract_id matches rows.json on {filled} card(s)")
 
 
 def op_selection_order(sv, spec):
@@ -897,6 +1016,8 @@ OPS = {
     "score_varied": op_score_varied,
     "score_order": op_score_order,
     "selection_order": op_selection_order,
+    "recommand_forced": op_recommand_forced,
+    "abstract_id": op_abstract_id,
     "null_field": op_null_field,
     "esids_in_pool": op_esids_in_pool,
     "numbers_traceable": op_numbers_traceable,

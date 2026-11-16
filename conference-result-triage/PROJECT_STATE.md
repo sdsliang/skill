@@ -1,5 +1,41 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.12（2026-11-16）：`abstract_id` / `is_recommand` 一直都在，是我们没请求
+
+### 诊断：一个活了四个版本的负向结论
+
+需求里提到「MCP 新增两个字段」。实测不是新增 —— 两个字段都在 `clinical_result.*` 白名单内：
+
+| 字段 | ESMO 2026 实测 | 结论 |
+|---|---|---|
+| `clinical_result.abstract_id` | **1097/1097 非空** | 一直可选，`pull_results.py` 的 `DEFAULT_FIELDS` 从来没写过这个名字 |
+| `clinical_result.is_recommand` | **1096 null + 1 `是`** | 稀疏但存在 |
+
+同一实测还确认：ASCO 2026 `abstract_id` 1648/1648、AACR 2026 288/288 全非空；`is_recommand` 在 ASCO 2026 / AACR 2026 / ESMO 2025 / ASCO 2025 **均为 0**。唯一标星行：`LBA7` / `CLARITY-Gastric01` / esid `24_37_p_7d7447832f67fec70aaba31bc4cf721b_1`。
+
+错因写进 `pitfalls.md §36`：当时拿一份旧 schema dump `grep` 不到就断言「表里没有这一列」，之后被自己写的文档反复说服。**负向结论的举证责任在提出者**，一次 `selected_fields` 实测就能证伪。
+
+### 改动（数据层 → 闸门 → 交付）
+
+1. **`pull_results.py`**：`DEFAULT_FIELDS` 加两字段；两处汇总打印 `is_recommand=` / `abstract_id=`；`rec == 0` 时打 NOTE（「absence of the flag is not evidence that nothing was recommended」）；末段三条缺列 WARNING。
+2. **`triage.py`**：新增 `recommand_of()`（**`None` ≠ `False`**）；`forced` 行绕过 `excluded_reason` / TiP / `mm:` 独有排除，`bucket is None` 兜底落 `pivotal`；去重时标星行不输给同试验兄弟；排序键 `(forced, presentation_rank, -n, …)`；`pool.json` 顶层 `recommand: {flagged, column_present}`。
+3. **`make_cards.py`**：卡片透传 `is_recommand`；`tag` = `推荐` 优先、其次 `LBA`。
+4. **`check_cards.py`**：`abstract_id` 三态校验（缺失 / 与 rows 不符 / 凭空发明）+ `is_recommand` 布尔与一致性；新增 `recommand_gate()`（覆盖 + 顺序，**不吃 `editorial_overrides`**）。
+5. **事实层**：`A-F1-abstract-id-null`（要求全 null，方向已反）→ **`A-F1-abstract-id-traceable`**；新增 **`A-P7-recommand-forced`**；`op_score_order` 从「降序」改成「标星优先、同类降序」；新增 mutation `m_recommand_dropped`。事实层 28 → **29 条（28 fail + 1 warn）**，`coverage: 28/28`，NEG 8 条仍绿。
+6. **测试**：`test_check_cards.py` 40 → **46 case**（强制位覆盖/置顶、空列只是 note、`abstract_id` 三态、`is_recommand` 不许自宣）。
+7. **文档**：`SKILL.md`（Step 1 字段、Step 3 撤销旧结论 + 强制位段、Step 5B 排序键与卡片键、Anti-patterns、v0.12 变更记）、`pitfalls.md §36–§38`、`data-contract.md §6.5.4`、`review-protocol.md`、`screening-rules.md §1.0`、`templates/watchlist-report.md` 规则 7。
+
+### dist
+
+`dist/conference-result-triage-v0.12.zip` — **142389 B / 16 entries / sha256 `354f8183c6ceebe1`**。
+
+### 待办
+
+- [ ] publish（需用户授权）+ `status` 三段对照
+- [ ] 跑 ESMO 2026 E2E，验证 `LBA7` 在榜且置顶、每张卡 `abstract_id` 非空、`coverage_notes` 说明「1/1097 标星」
+- [ ] `EVALUATION_RESULTS.md` R13
+- [ ] 用 v0.12 补跑 ADA 2026，补齐四场对照
+
 ## v0.11（2026-11-13）：同场评分暴露「判读对、选择错」——定榜必须按判读分取前 k
 
 v0.10（多疾病领域三场并行）之后，把同一份 skill 在 ADA / ESC / EASL 2026 三场重跑一遍（run dirs

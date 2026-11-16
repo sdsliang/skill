@@ -122,10 +122,14 @@ p_value, outcome_p_value, hazard_ratio, hazard_ratio_ci, odd_ratio, relative_ris
 | `listed_company` | ✅（可以是 `null`） | 上市：`{name, ticker, exchange, source_url}`，`source_url` 必须 http(s)；未上市/查不到：`null`。**缺键 = 没查**。**纯身份字段**：v0.9 起不含任何价格（见下一行） |
 | 任何行情字段 | ❌ | `stock` / `reaction` / `change_pct` / `excess_pct` / `bench_change_pct` / `price_source` 在卡片或 `listed_company` 上出现即判失败（`A-N1-no-price-claims`） |
 | `promoted` | 仅破格入榜 | 固定 `"web"` |
-| `lba` / `manual` / `abstract_id` | ✅（值可为 null） | `manual`、`abstract_id` 在平台上恒 `null`，不猜 |
+| `abstract_id` | ✅（值可为 null，但**有值必须照抄**） | 来自 `clinical_result.abstract_id`（v0.12 起请求）。必须与 `work/rows.json` 逐字一致：rows 有值而卡片空 / 值与 rows 不同 / rows 无值而卡片凭空填，三种都判失败。空值只允许出现在 rows 本身为空时 |
+| `is_recommand` | ✅（布尔） | 来自 `clinical_result.is_recommand`，`是`→`true`、`否`→`false`、`null`→`false`（并写进 `coverage_notes`）。必须与 rows 一致；标星卡 `tag` 写 `推荐` |
+| `lba` / `manual` | ✅（值可为 null） | `manual` 在平台上恒 `null`，不猜 |
 | `phase` / `phase_inferred` | ✅ | `phase` 照抄记录（跨领域会议常为 `""`）；`phase_inferred` 只在期别缺失、由设计定桶时非空，取值固定三种（`随机化对照（按设计判定）` / `平行/交叉对照（按设计判定）` / `单臂或未标注设计（按设计判定）`）。**推断值不许写进 `phase`** |
 
 上限：**每桶 10 / 全场 30**（机器短名单 15/45 是另一回事，`work/shortlist.json`）。
+
+排序键是 **`(is_recommand, -score)`**：标星卡在桶内置顶，同类内按判读分降序。`is_recommand` 不进 `score_parts`、不改 `score` 的值 —— 它决定"读不读"，判读分回答"有多强"。
 
 ### 6.5.0 期别缺失要显式交付，不许静默丢
 
@@ -156,6 +160,23 @@ v0.8 曾要求每张卡带 `listed_company.reaction`（会议窗口涨跌幅，�
 两个键都由 `make_cards.py` 从 `plan.json` 原样搬进 `output/watchlist.json`，不要渲染完再手改。
 
 `editorial_overrides` 为什么必须是交付物的一部分：桶内榜单的默认规则是**按判读分取前 k**。E2E #11（EASL 2026）实际交付里，pivotal 桶出现「入选 35 分 / 舍弃 85 分的 PBC 三期」，而当时 `A-P4`（桶内降序）、`A-P2`（五维相加）都是绿的 —— 那两条只证明「排序整齐、分数自洽」，证不了「该选的那条被选了」。把理由写进 JSON，取舍才是可复核的；写在聊天回复里，下个月读 JSON 的人看不到。
+
+### 6.5.4 `is_recommand` / `abstract_id` 的来源与三态（v0.12）
+
+两个字段都在 `clinical_result.*` 白名单内，走同一条 `with-params` 通道：
+
+| 字段 | 实测覆盖 | 语义 |
+|---|---|---|
+| `clinical_result.abstract_id` | ESMO 2026 1097/1097 · ASCO 2026 1648/1648 · AACR 2026 288/288 | 会议摘要号（`LBA7` / `1029P`）。读者按它去摘要册查，**写错比留空更坏** |
+| `clinical_result.is_recommand` | ESMO 2026 **1096 null + 1 `是`**；ASCO 2026 / AACR 2026 / ESMO 2025 / ASCO 2025 全 0 | 数据方标的「必读」位。稀疏是常态 |
+
+两个字段必须**逐字写进 `selected_fields`**：少写一个不报错、不告警，只是静默缺列，然后卡片一路 `null` 到底（`abstract_id` 就是这么被误判四个版本的）。`pull_results.py` 已经在 `DEFAULT_FIELDS` 里带上它们，并在汇总行打印 `is_recommand=…` / `abstract_id=…`，缺列时打 WARNING。
+
+`pool.json` 顶层记录 `recommand: {"flagged": N, "column_present": bool}`，用来区分三种状态：
+
+- `flagged > 0` → 那些行是**强制位**：必上榜、桶内置顶，`recommand_gate` 不可豁免；
+- `flagged == 0, column_present == true` → 列拉了、没人标星。**必须在 `coverage_notes` 里说出来**；
+- `column_present == false` → 这一列根本没拉，属于数据层缺陷，不能解释成"没有推荐"。
 
 ### 6.5.2 结果本身怎么被识别（`report.md`）
 

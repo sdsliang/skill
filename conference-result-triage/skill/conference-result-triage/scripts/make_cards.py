@@ -118,6 +118,10 @@ def build_cards(plan: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
         card = {
             "esid": esid,
             "abstract_id": spec.get("abstract_id") or item.get("abstract_id"),
+            # The data owner's flag, carried as a boolean so the list can be sorted and
+            # audited without re-reading rows.json. `True` means this row was flagged
+            # upstream (clinical_result.is_recommand); it must be on the list.
+            "is_recommand": bool(item.get("is_recommand") or item.get("forced")),
             "lba": bool(item.get("lba") or spec.get("lba")),
             # Tri-state on purpose: `featured` is not selectable on the platform, so
             # "unknown" is the honest value and `false` would be a fabrication.
@@ -162,7 +166,7 @@ def _auto_tag(item: Dict[str, Any]) -> str:
     marks human- vs machine-produced rows, so "精选" would be a fabricated claim
     about editorial importance.
     """
-    return "LBA" if item.get("lba") else ""
+    return "推荐" if item.get("is_recommand") else ("LBA" if item.get("lba") else "")
 
 
 def main(argv: Optional[List[str]] = None) -> int:

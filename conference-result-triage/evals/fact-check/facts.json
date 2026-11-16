@@ -84,11 +84,10 @@
    "rationale": "桶内必须按判读分降序。分数给了却不排序，等于把编辑部决定权还给了查询返回顺序。"
   },
   {
-   "id": "A-F1-abstract-id-null",
-   "op": "null_field",
-   "field": "abstract_id",
+   "id": "A-F1-abstract-id-traceable",
+   "op": "abstract_id",
    "severity": "fail",
-   "rationale": "平台拿不到摘要号（结果表 111 列无此字段），任何非 null 值都是编的。"
+   "rationale": "摘要号必须与 rows.json 一致。v0.12 起工具能取到 `clinical_result.abstract_id`（ESMO 2026 1097/1097、ASCO 2026 1648/1648、AACR 2026 288/288 全有值），旧规则「平台拿不到、非 null 即编造」已作废——但正因为它现在是真的，写错一个号比不写更坏：读者拿这个号去摘要册里查，查不到就是把人引到错误的地方。"
   },
   {
    "id": "A-F2-manual-null",
@@ -194,6 +193,12 @@
    "severity": "fail",
    "rationale": "桶内榜单必须是这一桶自己排序的顶部：舍弃的 keep 分数高于入选卡片最低分，就等于用一张更弱的卡占掉了更强的卡的位置——E2E #11（EASL 2026）真实发生过（入选 35 分，同桶判读 85 分的 PBC 三期没用上），而当时 A-P4 判「降序」、A-P2 判「五维相加」全绿，因为它们只问「合不合法」，不问「是不是更好的那条」。例外只有交付物自己写下的 editorial_overrides（reason ≥10 字）。",
    "min_reason_chars": 10
+  },
+  {
+   "id": "A-P7-recommand-forced",
+   "op": "recommand_forced",
+   "severity": "fail",
+   "rationale": "数据方标了 `is_recommand=是` 的行是强制位：必须上榜，且桶内排在未标星卡之前。这条**故意压过**判读分排序——它不是我们的判断，而是数据端已经做过的判断；把一条被标星的结果悄悄筛掉，正是这个字段要防的事。注意「整列全空」不等于「没人推荐」：空要说出来（写进 coverage_notes），不能靠沉默过关。"
   }
  ]
 }

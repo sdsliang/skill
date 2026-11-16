@@ -46,9 +46,9 @@ mkdir -p /workspace/work /workspace/output
 调 `pharmcube-query-clinical-result-with-params`：
 
 - `meeting_tags = "ESMO 2026"`（会议名精确匹配，写错就是空集）
-- `selected_fields = ["clinical_result.extra_esid"]`（**只这一个**）
+- `selected_fields = ["clinical_result.extra_esid", "clinical_result.abstract_id", "clinical_result.is_recommand"]`
 
-1097 行 id ≈ 50 KB，不会截断。工具会告诉你落盘路径。
+前两个是 id 与摘要号（短字符串），第三个是数据方的「必读」标记（稀疏布尔/中文）；三者加起来 1097 行仍只有几十 KB，不会截断。**先看一眼 `is_recommand` 有几个「是」**，因为它是强制位（见 Step 3 第三段），事后才发现会返工。
 
 **阶段 B：切片**
 
@@ -99,7 +99,10 @@ coverage: 1097/1097 ids present
 **两个已知拿不到的东西，别浪费时间：**
 
 - **`featured`（人工/AI 生产标记）不在白名单**，`with-params` 选不出来；`TEST_execute-sql` 又**不能绑定到项目**（`400 MCP tools unavailable for pharmcube: pharmcube-TEST_execute-sql`）。所以平台内 `manual` 恒为 `null`，卡片上写「生产方式未知」，不要猜。
-- **`abstract_id` 恒为 `null`**：结果表 111 列里没有摘要号，35 个工具里没有会议摘要库工具。输出这个键并置 `null`，**绝不编造编号**。
+- ~~**`abstract_id` 恒为 `null`**~~ —— **这条旧结论是错的，v0.12 撤销**。`clinical_result.abstract_id` 一直都在白名单里，只是 `pull_results.py` 的 `DEFAULT_FIELDS` 从来没请求过它；实测 ESMO 2026 **1097/1097**、ASCO 2026 **1648/1648**、AACR 2026 **288/288** 全部非空。现在**必须请求、必须打印真值**：读者拿这个号去摘要册里查，编一个号比留空更坏。
+  > 教训：**「表里没有这一列」的结论必须用一次 `selected_fields` 实测来证伪再下**。当时是拿一份旧 schema dump `grep` 不到就下了判断，一错四个版本。
+
+- **`is_recommand` 是数据方标的「必读」位**，不是排序提示。它只能是三种状态之一：`是`（强制入选）、`null`（整列为空 = 数据方没标星）、`column_present=false`（这一列压根没拉）。**这三种必须在 `coverage_notes` 里说清是哪一种**，因为「没人标星」和「没拉这一列」是两件事，「没有值得读的」又是第三件事。
 
 > dump 在 **turn 结束时清除**，必须同 turn 解析完，`rows.json` 才是持久的落点。
 
@@ -124,11 +127,7 @@ python3 $S/triage.py /workspace/work/rows.json --out-dir /workspace/work/pool --
 
 先说清两件事，避免重复踩坑：
 
-**一、平台内拿不到摘要号。**
-
-- 结果表 `clinical_trial_result_structured` 111 列里**没有 `abstract_id`**；
-- 平台 35 个工具里**没有**会议摘要库（`medicalMeeting`），23 张可查表里也没有会议表；
-- `abstract_text` 全部以 `#### Background` 开头，编号不在正文里；`paper_title` 也不带 `LBA` 前缀。
+**一、摘要号拿得到（v0.12 修正）。** `clinical_result.abstract_id` 在白名单内、逐行有值，`pull_results.py` 已请求它。旧版这里写着「111 列里没有摘要号」，那是**没请求**被误读成**不存在**——同一句错话在文档里待了四个版本，代价是所有卡片都印 `null`，读者无从检索。仍成立的部分：`abstract_text` 以 `#### Background` 开头，编号不在正文里；`paper_title` 不带 `LBA` 前缀；平台没有会议摘要库工具（所以**摘要正文以外的东西别去平台外找**）。
 
 **二、`featured` 不是头条，是「人工 / AI 生产」标记。** 实测 `featured='是'` **100/100 就等于** `source='np_result_conf'` 那一档（人工核对过的结果），其余 1000 条 `np_clinical_conference` 全是 `否`（流水线抽取）。所以：
 
@@ -142,15 +141,15 @@ python3 $S/triage.py /workspace/work/rows.json --out-dir /workspace/work/pool --
 | presentation | 条件 | rank |
 |---|---|---|
 | `Late-breaking Oral` | `lba` 为真（或 `abstract_id` 以 `LBA` 开头） | 0 |
-| `Oral` / `eOral` | `abstract_id` 后缀 `O`（仅外网补号后才有） | 1 |
+| `Oral` / `eOral` | `abstract_id` 后缀 `O`（v0.12 起平台内也有值） | 1 |
 | `Rapid Oral` / `eRapid Oral` | 后缀 `RO` | 2 |
 | `Poster` | 后缀 `P` | 4 |
 | `ePoster` | 后缀 `eP` | 5 |
-| `Unknown` | 三个信号都没有（平台内的绝大多数） | 9 |
+| `Unknown` | 三个信号都没有 | 9 |
 
 ESMO 2026 实测：592 候选里 **51 条**拿到 `lba`（early 6 / pivotal 45 / failed 6），其余 541 条是 `Unknown` —— 这是诚实结果，不要为了"看起来有层级"去造。
 
-`abstract_id` 在平台内**恒为 `null`**，卡片照常输出该字段（schema 固定）；有外网且配了 `PHARMCUBE_MCP_APP_KEY` 时才可选用会议库补号：
+`abstract_id` 来自 `clinical_result.abstract_id`，**平台内就有，卡片必须印真值**。下面这套外网补号脚本只在需要补 `is_recommand` / 会议侧元数据时才用得上（要 `PHARMCUBE_MCP_APP_KEY`）；平台内跑不了就跳过 —— 分类不受影响：
 
 ```bash
 python3 $S/meeting_pull.py --conference "ESMO 2026" --out /workspace/work/meeting.json
@@ -159,6 +158,13 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
 ```
 
 这一步是**纯标注**：只写 `abstract_id` / `presentation` / `presentation_rank`，不增删、不重排、不改判定。平台内跑不了就跳过 —— 分类不受影响。
+
+**三、`is_recommand=是` 是强制位，压过判读分排序（v0.12）。** 数据方标星的记录必须①上榜、②在同一桶内排在所有未标星卡之前 —— 哪怕它的判读分更低。理由很直白：**这不是我们的判断，是数据端已经做过的判断**；把一条被点名要读的结果悄悄筛掉，正是这个字段要防的事。
+
+- 它**不改 `score` 的值**：卡上仍按五维诚实给分，标星不等于高分。
+- 它**不能被 `editorial_overrides` 豁免**：覆盖只服务「选择单调性」（同分取舍），不能拿来绕过强制位。`check_cards.py` 的 `recommand_gate` 明确不吃 override。
+- 它**不进打分口径**：`score_parts` 五维里没有「数据方推荐」这一项，别为了它加分。
+- **整列空 ≠ 没人推荐**：`pool.json` 里有 `recommand: {"flagged": N, "column_present": true|false}`，`flagged=0` 时要在 `coverage_notes` 里写「本次 `is_recommand` 列已拉取但无标星」，而不是沉默。
 
 ### Step 4 — 逐条复核（模型，核心步骤）
 
@@ -268,6 +274,7 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
    "score_parts": {"evidence_strength": 26, "effect_size": 22,
                    "clinical_impact": 20, "novelty": 4, "readout_maturity": 6},
    "title": "…", "summary": "…", "why": "…",
+   "abstract_id": "LBA7", "is_recommand": true,
    "promoted": "web",
    "listed_company": {"name": "Tango Therapeutics", "ticker": "TNGX", "exchange": "NASDAQ",
                       "source_url": "https://investors.tangotx.com/"}}
@@ -276,7 +283,7 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
 
 `title` / `summary` / `why` / `score` / `listed_company` 五条必填（`listed_company` 可以是 `null`，但键必须在），缺一条脚本直接停（`score_parts` 没给就沿用判读阶段的值）。`coverage_notes` 与 `editorial_overrides` 写在 plan 顶层，`make_cards.py` 会原样搬到交付 JSON 里 —— 不要渲染完再手改 JSON。
 
-**模型必须在输出前对每桶按 `score` 降序排好**：`make_cards.py` 只按 `plan.json` 的顺序渲染，**不会替你排**（v0.8 的 e2e7 就跑出过 failed 桶 `[…,63,66]` 的升序尾巴，事实项 `A-P4-score-order` 判失败）。分桶内部一律降序，桶与桶之间的顺序没有意义（`early → pivotal → failed` 只是为了读者阅读）。
+**模型必须在输出前把每桶排好：标星卡在前，同类内按 `score` 降序**（v0.12）。`make_cards.py` 只按 `plan.json` 的顺序渲染，**不会替你排**（v0.8 的 e2e7 就跑出过 failed 桶 `[…,63,66]` 的升序尾巴，事实项 `A-P4-score-order` 判失败）。顺序键是 `(is_recommand, -score)`：桶内一律「标星优先、同类降序」，桶与桶之间的顺序没有意义（`early → pivotal → failed` 只是为了读者阅读）。
 
 `summary` 写**报告了什么**（带数字）；`why` 写**这项研究值什么**，2–4 句、**≥60 字**，按「未满足需求 → 这次数据的定位 → 对治疗格局或后续研发的影响 → 主要局限」铺开，**不要复述 `summary` 的数字**，也不要写"数据很好、值得关注"这种空话。判读分不写进 `why`。
 
@@ -295,7 +302,7 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 
 **`--rows` 永远必传**（v0.10 起是 `required=True`）。池子成员资格由脚本**用 `rows.json` 现场重算**（`recompute_pool()` 调 `triage.build_pools`）决定，`--pool` 只是展示字段的来源。原因是一次真实翻车：ESC 2026 那轮模型觉得 triage 删多了，自己拼了一个 `pool_ext.json` 当 `--pool`，闸门全绿，而事后事实层按 `work/pool/pool.json` 重算，判出 9 个池外 esid + 61 个查不到出处的数字。**不要手拼、不要手改 pool 文件**：觉得筛错了就重跑 `triage.py`，或在 `coverage_notes` 里写清哪类记录被规则切掉了。池子外的 esid 必须带 `"promoted": "web"` 才放行（且必须在 `rows.json` 里）。
 
-`check_cards.py` **必须 exit 0** 才能交付（`--report` 一起传，否则只剩卡片层的检查）。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字（**按数值比对，不是子串**：`44%` 不会因为原文有 `44.7%` 或 `n=144` 而通过；`个月` 与 `mo` 一样会被扫描出来）、**每桶超过 10 条 / 全场超过 30 条**、**定榜没按判读分取前 k**（见 Step 5B）、**`score` 不是 0–100 整数或五维相加不等于总分**、**`why` 少于 60 字或只是复述 `summary`**、**`listed_company` 键缺失或给了假 ticker/假链接**、**任何行情字段回潮（`stock` / `reaction` / `change_pct` / `excess_pct`）**、**池子外的卡片没有 `promoted` 标记**（池子成员资格由 `rows.json` **现场重算**，手改或另拼一个 pool 文件不起作用）、**`coverage_notes` 缺失或没写到两条边界**。数字扫描覆盖的**单位**有：`%`、`个百分点`、`个月/周/天/年`、`mo/months`、`mmol/L`、`mg/dL`、`mg/L`、`g/dL`、`ng/mL`、`pg/mL`、`IU/mL`、`U/L`、`mL/min(1.73m2)`、`mL/kg/min`、`mL`、`kg`、`cm`、`mmHg`、`points`、`events/100` —— 单位不在这一列里，那类数字就**不被检查**，所以写数字时别自创单位。
+`check_cards.py` **必须 exit 0** 才能交付（`--report` 一起传，否则只剩卡片层的检查）。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字（**按数值比对，不是子串**：`44%` 不会因为原文有 `44.7%` 或 `n=144` 而通过；`个月` 与 `mo` 一样会被扫描出来）、**每桶超过 10 条 / 全场超过 30 条**、**定榜没按判读分取前 k**（见 Step 5B）、**标星行没上榜或排在未标星卡之后**（`recommand_gate`，不吃 override 豁免）、**`abstract_id` 与 `rows.json` 不一致 / rows 有值而卡片留空 / rows 无值而卡片凭空填**、**`score` 不是 0–100 整数或五维相加不等于总分**、**`why` 少于 60 字或只是复述 `summary`**、**`listed_company` 键缺失或给了假 ticker/假链接**、**任何行情字段回潮（`stock` / `reaction` / `change_pct` / `excess_pct`）**、**池子外的卡片没有 `promoted` 标记**（池子成员资格由 `rows.json` **现场重算**，手改或另拼一个 pool 文件不起作用）、**`coverage_notes` 缺失或没写到两条边界**。数字扫描覆盖的**单位**有：`%`、`个百分点`、`个月/周/天/年`、`mo/months`、`mmol/L`、`mg/dL`、`mg/L`、`g/dL`、`ng/mL`、`pg/mL`、`IU/mL`、`U/L`、`mL/min(1.73m2)`、`mL/kg/min`、`mL`、`kg`、`cm`、`mmHg`、`points`、`events/100` —— 单位不在这一列里，那类数字就**不被检查**，所以写数字时别自创单位。
 
 `coverage_notes` 必须写在交付 JSON 的顶层（见下「两个必须写进清单的诚实声明」）。v0.5 的实跑把它写成了别的字段名、v0.6 的实跑把边界写在 `coverage.boundary` 里 ⇒ 事实层 `A-H1` 两次都判失败：**边界只写在聊天回复里，下个月读 JSON 的人看不到**。所以这一条从"建议"升级成闸门，措辞不查（`无 p 或 HR` / `未列p或HR` / `没给 p 值或 HR` 都算），只查事实有没有落到交付物里。
 
@@ -361,8 +368,8 @@ lang: zh-CN
    "约一半记录没有 p 或 HR，同一试验常拆成多篇；本清单不是会议书全覆盖。"
  ],
  "cards": [
-  {"esid": "24_37_p_...", "abstract_id": null, "lba": true, "manual": null,
-   "bucket": "pivotal", "tag": "LBA",
+  {"esid": "24_37_p_...", "abstract_id": "LBA7", "lba": true, "manual": null,
+   "is_recommand": true, "bucket": "pivotal", "tag": "推荐",
    "score": 78,
    "score_parts": {"evidence_strength": 26, "effect_size": 22,
                    "clinical_impact": 20, "novelty": 4, "readout_maturity": 6},
@@ -376,11 +383,13 @@ lang: zh-CN
 ```
 
 - `coverage_notes` 是**必填**的字符串数组，上面两条声明各至少一条；`check_cards.py` 会按语义（不是字面措辞）校验它。
-- `esid` 是结果记录 id（用户要的"对应的结果id"）；`abstract_id` 是会议摘要号，平台内**恒为 `null`**（见 Step 3），有外网补库时才有值。
+- `esid` 是结果记录 id（用户要的"对应的结果id"）；`abstract_id` 是会议摘要号，取自 `clinical_result.abstract_id`，**必须与 `rows.json` 逐字一致**（v0.12）。三种错法都会被 `check_cards.py` 拦：rows 有值而卡片留空、卡片值与 rows 不同、rows 无值而卡片凭空填。空值只在真的没有时出现（会议里偶有缺失），不能靠留空躲检查。
+- `is_recommand` 是布尔，**必须与 `rows.json` 的 `clinical_result.is_recommand` 一致**：数据方标了 `是` 就是 `true`，不能因为「我觉得这条一般」写成 `false`。标星卡片的 `tag` 写 `推荐`（优先于 `LBA`）。
 - `score` / `score_parts` 是判读结论（Step 4 给的分），不是脚本算的；总分只用来决定阅读顺序，`why` 里不出现分数。
 - `why` 是**价值判断**（2–4 句、≥60 字），不是 `summary` 的改写：它要回答"这项研究为什么重要"，而 `summary` 回答"报告了什么"。
 - `listed_company` **每张卡都有这个键**：上市填 `{name, ticker, exchange, source_url}`，未上市/查不到填 `null`。`null` 是"查过、没有"，不是"没查"。**该字段不含价格**——`stock` / `reaction` / `change_pct` 等键一旦出现，`check_cards.py` 直接判失败。
 - `promoted` 只在**联网终选把池子外的记录提进来**时出现，值是 `"web"`；这类卡片必须能对上 `work/rows.json` 的 esid。
+- **卡片里的 `abstract_id` / `is_recommand` 是照抄，不是判断**：它们的唯一合法来源是 `rows.json`，`make_cards.py` 从池子条目透传；手改一定要能被 rows 对上，否则 `recommand_gate` 与 `A-P7` 都会开火。
 - `manual` 是生产方式标记（人工核对 / 流水线抽取），**不是**推荐等级。平台内**恒为 `null`**（`featured` 不可选），`check_cards.py` 会拒绝把它改成 `true`/`false`。
 - 路径固定：交付物 `/workspace/output/report.md`，数据底稿 `/workspace/output/watchlist.json`（`check.py` 与宿主都按这两个路径取，改名即断链）。同一工作区复跑就覆盖。
 - `write_file` 一律带 `overwrite=True`，包括首次写入。
@@ -401,6 +410,8 @@ lang: zh-CN
 - ❌ 先按 `evaluation` 筛再拉：同试验亚组摘要的 evaluation 可能不同，先筛会丢主结果。
 - ❌ 截断 Results 段。整篇摘要约 2 KB，Results 中位数 956 字符，截到 760 会让一半摘要丢掉印出来的数字。
 - ❌ 批次用 esid 索引。批次内顺序与池子顺序不一致，必须用显式 `i`。
+- ❌ **把「这列是空的」写成「没有值得读的」。** `is_recommand` 整列为 `null` 只说明数据方没标星；说成「本次无重点推荐」就是把缺失当成结论（v0.12）。
+- ❌ **让标星卡排在未标星卡后面，或干脆不列。** 强制位压过判读分：`LBA7` 判读只有 41 分也照样进榜并置顶——它进榜的理由不是分数（v0.12）。
 - ❌ 只为只在会议摘要库里的记录进 pivotal/failed。期别是从散文正则抽的，不足以撑高证据档；它们只进 early（**LBA 行例外**：late-breaking 是最高证据档，不适用此限制）。
 
 ## 支持文件
@@ -427,6 +438,8 @@ lang: zh-CN
 | `scripts/history_for.py` | 同资产历次会议对照（辅助判断趋势） | 需上面两个 |
 
 ## 版本
+
+- **v0.12** — **两个字段一直都在，是我们没请求；顺带发现「标星」是个强制位**。①**`abstract_id` 从不存在的结论撤销**：`clinical_result.abstract_id` 在白名单内，实测 ESMO 2026 **1097/1097**、ASCO 2026 **1648/1648**、AACR 2026 **288/288** 全非空；错因是 `pull_results.py` 的 `DEFAULT_FIELDS` 从来没写这两个名字，而当时的「表里没有这列」是拿旧 schema dump `grep` 出来的**负向结论**——一次 `selected_fields` 实测就能证伪，它却活了四个版本。现在 `pull_results.py` 请求并在汇总里打印、缺列时告警，`check_cards.py` 校验「卡片值 == `rows.json` 值」三态（缺 / 不符 / 凭空填），事实项 `A-F1-abstract-id-traceable` 取代旧的 `A-F1-abstract-id-null`（那条要求全 null，方向正好相反）。②**`is_recommand` 是强制位不是排序提示**：`是` 的行必须上榜且桶内置顶，**压过判读分**、**不吃 `editorial_overrides` 豁免**、**不进 `score_parts`**；`None`（整列空）与 `column_present=false`（列没拉）必须分开写进 `coverage_notes`——「没人标星」和「没拉这一列」和「没有值得读的」是三件事。`triage.py` 的 `recommand_of()` 只认显式真值（`None` 不当 `False`），`forced` 行绕过排除规则 / TiP 过滤 / 期别启发式并直接落 pivotal，排序键 `(forced, presentation_rank, -n, …)`。③**判读分与强制位分开**：卡上 `score` 仍按五维诚实给（ESMO 2026 唯一标星行 `LBA7`/`CLARITY-Gastric01` 判读只有 41 分，照样置顶），`tag` 优先写 `推荐`。④**闸门**：`check_cards.py` 新增 `recommand_gate(cards, pool)`（覆盖 + 顺序）；`op_score_order` 从「降序」改成「标星优先、同类降序」——旧写法两条都错：要么禁止强制位，要么让标星卡沉底；事实项 `A-P7-recommand-forced` + mutation `m_recommand_dropped`（把标星卡从榜上删掉，卡本身仍然合法），测试 40 → 46 case。
 
 - **v0.11** — **定榜必须吃自己判读出来的排序**。EASL 2026 实跑交付了一张 35 分的 pivotal 卡，而同桶判读 85 分的 PBC 三期（`PEMA-PBC`）没用上；ADA 2026 同代码同病：pivotal 舍弃的 keep 里 4 条高于入选最低分（77 `HR17031-301`、74 `HRS9531-T-201`、73 `ACCESS II`、73 `ACCESS`）。当时所有闸门都绿，因为它们只问「你列的这条合不合法」，从不问「你列的这条是不是比被你砍掉的那条更好」。改动：①判读条目加 `esid`（八键 → 九键），判读与清单的对照不再依赖批次文件反查；②`check_cards.py --judged` 必传，桶内**入选卡最低分不得低于被舍弃的 keep 分**（同分随意），要舍弃更高分的必须写进交付 JSON 顶层 `editorial_overrides`（`reason` ≥10 字），否则拒；③`make_cards.py` 从 `plan.json` 原样搬 `coverage_notes` / `editorial_overrides` 进交付 JSON，不再靠渲染后手改；④事实项 `A-P6-selection-order` + mutation `m_selection_order`（把一条未入选 keep 抬到 95 分验证翻转）、`test_check_cards.py` 加 7 条（含 `load_judged` 不许把 `selected.json` 当判读记录 —— 否则「没人被判 keep」与「没检查」无法区分）。
 - **v0.10** — **三处「按领域/按会议泛化」的必要修正**，都来自同一天跑 ADA / ESC / EASL 三场暴露的问题。①**期别缺失不再丢**：`bucket_of()` 原来在 `phase` 匹配不上时返回 `None`，记录落进 `excluded["无法归类"]` —— ESC 2026 因此丢了 123 条（242 条里 51%，含 `ACACIA-HCM` / `ENRICH-AF` / `SAL003`），ADA 丢 40、EASL 丢 55（含 `bepirovirsen` / `pemvidutide`）。现在尾部**无条件** `return design_bucket(row)`：`随机化` 或 `平行分组/交叉设计/析因设计` → `pivotal`，其余真试验 → `early`，并写 `phase_inferred`；`phase` 保持原样（通常为空）。三场候选量 191→138 / 242→164 / 214→135，`无法归类` 归零。②**成员资格由 `rows.json` 现场重算**：`check_cards.py --rows` 改 `required=True`，`--pool` 降级为展示字段，手拼 `pool_ext.json` 不再能绕过（e2e #10 的作案路径）。③**领域无关化**：数字单位表扩到 `mg/dL` / `mmol/L` / `mL/min` / `IU/mL` / `points` 等，判读 `verdict` 给出六领域水位表，明确「表里没有就按主终点 + 效应量自判，别套肿瘤阈值」。④**引文三键**：`citations.json` 每条固定 `{title, link, paper_release_time_str}`（`YYYY-MM-DD`），`check_cards.py --report` 在交付前按平台同一口径复核。⑤**去重别名**：同试验两条记录合并后，被合并的 esid 记 `alias_esids`，卡写兄弟记录不再被判越界。测试 23 → 33 case；`triage` 夹具 4 → 6 行（补 phase-less 随机化 + phase-less 单臂）。

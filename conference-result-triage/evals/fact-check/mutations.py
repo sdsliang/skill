@@ -54,6 +54,10 @@ def make_pool(cards):
             "esid": c["esid"], "title": c["title"], "phase": "Phase III",
             "n": 500, "presentation": "Oral", "results_text": c["_source"],
             "abstract_text": c["_source"], "summary": "", "key_evidence": "是",
+            # v0.12: the abstract number and the data owner's flag. Both are carried
+            # by the pool so the fixture can express the shapes the gates exist for.
+            "abstract_id": c.get("abstract_id"),
+            "is_recommand": bool(c.get("is_recommand")),
         })
     return {"conference": "ESMO 2026", "pools": pools}
 
@@ -76,6 +80,11 @@ def build_fixture(root):
             source = f"{title} met its endpoint with ORR {float(30 + i + j)}% and HR {0.5 + j / 100:.2f}"
             raw.append({"esid": esid, "bucket": bucket, "score": sc,
                         "score_parts": parts_for(sc), "title": title,
+                        "abstract_id": f"{1000 + i * 10 + j}{'O' if j == 0 else 'P'}",
+                        # One flagged row, at the top of its bucket: that is the shape
+                        # `is_recommand` is meant to force, and the only shape the
+                        # ordering gate must accept without a score argument.
+                        "is_recommand": (i == 0 and j == 0),
                         "summary": f"ORR {float(30 + i + j)}% with HR {0.5 + j / 100:.2f}",
                         # A judgement, not a label: >=60 chars, and not a re-wrap of
                         # `summary` (that pair of rules is what A-P5 audits).
@@ -106,6 +115,11 @@ def build_fixture(root):
              "clinical_result_lba": "LBA"}]
     rows += [{"clinical_result__id": c["esid"], "clinical_result_lba": None}
              for c in cards[1:]]
+    by_esid = {c["esid"]: c for c in cards}
+    for row in rows:
+        src = by_esid.get(row["clinical_result__id"]) or {}
+        row["clinical_result_abstract_id"] = src.get("abstract_id")
+        row["clinical_result_is_recommand"] = "是" if src.get("is_recommand") else None
 
     for rel, obj in (("artifacts/output/watchlist.json", watchlist),
                      ("artifacts/work/pool/pool.json", pool),
@@ -286,6 +300,18 @@ def m_score_order(root):
 def m_abstract_id(root):
     w = read(root, "artifacts/output/watchlist.json")
     w["cards"][0]["abstract_id"] = "5RO"
+    write(root, "artifacts/output/watchlist.json", w)
+
+
+def m_recommand_dropped(root):
+    """Drop the flagged row from the list -- the one failure the flag exists to prevent.
+
+    Not a formatting mutation: the card is still legal, still traceable, still in a
+    legal bucket; it was simply the row the data owner asked for, and it is gone.
+    """
+    w = read(root, "artifacts/output/watchlist.json")
+    w["cards"] = [c for c in w["cards"] if not c.get("is_recommand")]
+    w["count"] = len(w["cards"])
     write(root, "artifacts/output/watchlist.json", w)
 
 
@@ -520,7 +546,8 @@ MUTATIONS = [
     ("A-P3-score-varied", m_score_flat),
     ("A-P4-score-order", m_score_order),
     ("A-P6-selection-order", m_selection_order),
-    ("A-F1-abstract-id-null", m_abstract_id),
+    ("A-F1-abstract-id-traceable", m_abstract_id),
+    ("A-P7-recommand-forced", m_recommand_dropped),
     ("A-F2-manual-null", m_manual),
     ("A-F3-esid-in-pool", m_esid),
     ("A-F4-numbers-traceable", m_number),
