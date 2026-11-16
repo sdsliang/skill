@@ -29,11 +29,25 @@
 
 `dist/conference-result-triage-v0.12.zip` — **142389 B / 16 entries / sha256 `354f8183c6ceebe1`**。
 
+### 发布
+
+2026-11-16 原地更新（`mode=in-place`，label 仍 `v0.3.0`）：`skill_id=230463cbc03d4fe5ba0e2e8964fe91dd`，`commit_id` 递增，
+`entries=16 identical=16 differing=0`，**`STATUS: in sync`**。发布前 `guard OK`（共享 SP `d08570e9…` 只读，未写）。
+
+### ESMO 2026 实跑（`20261116-162537-cards-ESMO-26-v12`）
+
+1097 条记录、**28 min**、107 次工具调用、**24 PASS / 0 FAIL** 平台断言、**facts 28/28 + warn 1/1 PASS**、
+交付 **30 卡（10/10/10）**，`check_cards.py --judged <work>` **EXIT=0**。
+
+- 强制位生效：全场唯一标星 `LBA7` / `CLARITY-Gastric 01` 判读只 **81 分**，仍排在 95 分的 DeLLphi-305 之前（桶内首位），`tag=推荐`。
+- `abstract_id`：30/30 非空且与 `rows.json` 逐字一致（R11/R12 的 EASL/ESC 全是 null —— 不是那些会没有摘要号，是没请求）。
+- `coverage_notes` 第三条把三态说全：列已拉取 / 1097 行 1 行标星 / 未标星 ≠ 无价值。
+- 选择闸门：floor 早期 69 / 重磅 81 / 失败 73，舍弃的更高分 keep 1 + 11 + 0 = **12 条全部写进 `editorial_overrides`**（12 条 overrides，最短 39 字）。
+
 ### 待办
 
-- [ ] publish（需用户授权）+ `status` 三段对照
-- [ ] 跑 ESMO 2026 E2E，验证 `LBA7` 在榜且置顶、每张卡 `abstract_id` 非空、`coverage_notes` 说明「1/1097 标星」
-- [ ] `EVALUATION_RESULTS.md` R13
+- [ ] **卡片「期别未标注」丢了推断依据**：`LBA7` 的 `phase_inferred=随机化对照（按设计判定）`，报告正文只印「期别未标注」。数据层没错，是渲染措辞没照抄 → 下一轮把三种取值写死在 Step 5 渲染说明里。
+- [ ] **判读文件命名仍在漂**：ESMO `judged_G01..G19 + judged_all.json` / EASL `judged_01..14` 无 `_all` / ESC `judged_a..f`。`--judged <目录>` 三种都能读，但要跨场自动化需统一。
 - [ ] 用 v0.12 补跑 ADA 2026，补齐四场对照
 
 ## v0.11（2026-11-13）：同场评分暴露「判读对、选择错」——定榜必须按判读分取前 k

@@ -485,3 +485,68 @@ EASL 那条 FAIL 不是产物问题：模型在 `present_artifact` 之后又调�
 
 **尚未验证**：`ENSURE` 那类「用 n 当判决器」的判读偏差，这两轮没有同名记录可对照；HF/HBV 领域要等下一轮
 GT 比对才看得出规则文字是否真的改了判读行为。
+
+## R13（2026-11-16）：v0.12 原地发布后跑 ESMO 2026 —— 标星强制位在真 run 上生效
+
+v0.12 把 `clinical_result.abstract_id` / `clinical_result.is_recommand` 加进 `selected_fields`（此前从未请求过，是两个版本以上的静默缺列），
+并把 `is_recommand=是` 定义成**强制位**：必上榜、桶内置顶、压过判读分、不吃 `editorial_overrides`。发布（in-place，`v0.3.0`，16 entries，133599 → 142389 B）
+后立刻用同一份 skill 跑 **ESMO 2026**（1097 条记录，是迄今最大的一场，EASL 214 / ESC 242 的 4~5 倍）。
+
+| 项 | 值 |
+|---|---|
+| run | `20261116-162537-cards-ESMO-26-v12` |
+| 墙钟 | 1681.9 s 服务端 / 1700.3 s 轮询（~28 min） |
+| 工具调用 | 107 次（`execute` 49 / `web_search` 22 / `task` 19 / `params 工具` 9 / `present_artifact` 1） |
+| token | in 31.06 M / out 0.72 M / reasoning 0.44 M，缓存命中 0.967 |
+| 平台断言 | **24 PASS / 0 FAIL / 0 WARN** |
+| 事实层 | **28/28 fail + 1/1 warn → PASS**（`evaluator 2026-11-13-r6`，含 `A-F1-abstract-id-traceable` 与 `A-P7-recommand-forced`） |
+| 交付卡 | **30（10/10/10）**，全场 817 条判读（keep 352 / weak 309 / drop 156），1634 条判读记录全部带 `esid`（19 个 `judged_G*.json` + `judged_all.json`） |
+| `check_cards.py --judged <work>` | **EXIT=0**，`OK cards=30` |
+
+### 强制位的实际表现
+
+全场 1097 条里只有 **1 条**标星：`LBA7` / `CLARITY-Gastric 01`（Sone-Ve，CLDN18.2 ADC，2L+ 胃食管腺癌）。
+
+```
+pivotal 桶顺序：LBA7 81(推荐) → LBA3 95 → LBA1 90 → 2071O 88 → LBA69 88 → …
+```
+
+判读只给了它 **81 分**（同桶第 10 名附近），但它排在 95 分的 DeLLphi-305 之前 —— 这正是 v0.12 要的行为：
+**强制位决定"读不读"，判读分回答"有多强"，两者不混**。`tag` 印「推荐」（优先于 `LBA`），报告正文第 48 行即为其卡片。
+
+`coverage_notes` 第三条把三态说全了：
+
+> `is_recommand 列已拉取，1097 行中仅 1 行被数据方标星（LBA7 CLARITY-Gastric 01），已按强制位置顶于重磅 II/III 期桶首位；其余行未标星不等于无价值。`
+
+### `abstract_id`
+
+30 张卡 **全部非空**（`LBA87` / `2575P` / `1768RO` / `LBA7` / `LBA3` / `2492P` …），且逐条与 `work/rows.json` 相等
+—— `check_cards.py` 的三态校验（缺失 / 与 rows 不符 / 凭空发明）一条未触发，`A-F1-abstract-id-traceable` PASS。
+对照 R11/R12：EASL/ESC 两场的卡片在这一列上全是 `null`，不是那些会议没有摘要号，是我们从来没要过。
+
+### 选择闸门
+
+| 桶 | 判读 keep | 入卡 | floor（入选最低分） | 舍弃的更高分 keep | overrides |
+|---|---|---|---|---|---|
+| 早期机会 | 219 | 10 | 69 | 1（70 分，`nr_24_37_p_289483b`，胰腺癌十余人 / NSCLC 3 例，82% 缓解率） | 1 |
+| 重磅 II/III | 82 | 10 | 81 | 11（85 / 84 / 84 / …） | 11 |
+| 失败的研究 | 51 | 10 | 73 | **0** | 0 |
+
+`card score == judged score`：**30/30 逐条相等**，无一条在渲染阶段被改写。
+12 条 `editorial_overrides` 全部 ≥39 字（最短 39，最长 81），逐条对应一个被舍弃的更高分 `keep`；
+其中一条直接写了强制位的代价：*「标星强制位占去一个名额后，更新读数让位于首次公布的研究」*。
+
+### 这一轮暴露的新问题（进 TODO，不是本轮修的）
+
+- **卡片「期别未标注」丢了推断依据**：`LBA7` 的 `phase_inferred = 随机化对照（按设计判定）`，但报告正文该栏只印「期别未标注」，
+  没按 `data-contract.md §6.5.0` 印出括号里的判定依据。数据层没错，是渲染措辞没照抄 —— 下一轮把模板里的三种取值写死在 Step 5 的渲染说明里。
+- **判读文件命名仍在漂**：ESMO 产 `judged_G01..G19` + `judged_all.json`，EASL 产 `judged_01..14` 无 `_all`，ESC 产 `judged_a..f`。
+  `check_cards.py --judged <目录>` 三种都能读，但「同一种布局」才谈得上跨场自动化，待统一。
+
+# 评测结果台账（conference-result-triage）
+
+对齐 `clinical-result-comparison/evals/EVALUATION_RESULTS.md` 的习惯：每轮改动记一行「改了什么 → 哪个测量动了 → 结论」，不做无测量的声明。
+
+评分口径：`facts_ok / facts_total`（fail 级事实项），不是布尔「跑完没」。布尔说不出「45 张好卡」和「45 张刚好过 schema 的卡」的区别。
+
+---
