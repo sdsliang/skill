@@ -33,10 +33,22 @@ v0.12 复核页截图确认：30 张卡里 **16 张有 `listed_company`**（`AZN
 
 `dist/conference-result-triage-v0.13.zip` — **143957 B / 16 entries / sha256 `a61a30d9523b320f`**。
 
-### 待办
+### 发布与实跑（2026-11-17）
 
-- [ ] 平台原地 publish（等授权）+ 用 v0.13 重跑一场 E2E（预期 `web_search` 次数下降约 1/3）
-- [ ] **卡片「期别未标注」丢推断依据**（v0.12 遗留，未修）：`phase_of()` 把 `evidence_source` 里的设计词原样当 `phase`；`phase_inferred` 又带 `not is_lba_row` 豁免 → 7/30 卡印「前瞻性研究」
+- 原地 publish：`entries=16 identical=16 differing=0`、`files=0`、`STATUS: in sync`（label 仍 `v0.3.0`）；发布前 `deps` 因 MCP schema 变化拦了一次（`+['is_recommand']`），确认是我们已在用的字段后 `deps --accept` 记新基线（备份 `deps.json.bak-v13`）。
+- 实跑 **ADA 2026** `20261117-090551-cards-ADA-26-v13`：191 → 138 候选 → 30 卡（10/10/10），22 min，平台断言 **24 PASS / 0 FAIL**，`check_cards` **EXIT=0**。
+- **v0.13 三个验证点全部成立**：卡面带代码键 **0**、`tag ∈ {'', 'LBA'}`、`abstract_id` 30/30。
+- **检索成本**（同场对比）：`web_search` **29 → 25 → 17**（v0.9 → v0.10 → v0.13），降 32%。
+- 事实层 **25/27**，两项 FAIL 都不是本版引入：`A-D1` 是**评测器把 ESMO 的 1097 写死**；`A-P4` 是真缺陷（pivotal 71/73/71 逆序）。
+
+### 待办（v0.14）
+
+- [ ] **`is_recommand` 三态被压成二值**：`make_cards.py:130` / `check_cards.py:622` 用 `bool(...)`，卡面 `false` 被读成「数据方标了否须排除」（平台新 schema 已明确 `否`=排除）。改成 `True`/`False`/`None` 三态直传 + 三态比较。
+- [ ] **桶内降序没有交付前闸门**：`check_cards.py` 只查 top-k 跳分，不查已入选卡是否降序（`A-P4` 只能事后抓）。
+- [ ] **同一试验的多个亚组**占用多席（`HR17031 vs iGlar` ×3）：同机制 ≤2 管不住，需要按 trial 限席。
+- [ ] **`A-D1` 评测器硬编码 ESMO 行数**：pattern 改成从 `rows.json` 的 `requested` 动态构造。
+- [ ] **卡片「期别未标注」丢推断依据**（v0.12 遗留）：`phase_of()` 把 `evidence_source` 里的设计词原样当 `phase`；`phase_inferred` 又带 `not is_lba_row` 豁免 → 7/30 卡印「前瞻性研究」。
+- [ ] 用户新增两条需求（待落地）：**最终产物只要 `watchlist.json`，不要 `report.md`**；**LBA 应作为加分项**（当前只影响分桶与 `tag`，不进 `score_parts`）。
 
 ## v0.12（2026-11-16）：`abstract_id` / `is_recommand` 一直都在，是我们没请求
 
