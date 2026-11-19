@@ -57,6 +57,10 @@
   .item{padding:24px 0 20px;border-bottom:1px solid var(--grid)}
   .head{display:flex;align-items:baseline;gap:9px;margin-bottom:7px}
   .head .no{font-size:9.5px;font-weight:700;color:var(--faint);letter-spacing:.1em}
+  .head .aid{font-size:10.5px;font-weight:800;color:var(--l2);letter-spacing:.02em;
+    font-variant-numeric:tabular-nums}
+  .head .aid:before{content:'摘要 ';font-weight:600;color:var(--faint);letter-spacing:.08em;
+    font-size:9px}
   .chip.drug{color:var(--ink);font-weight:700;border-color:var(--l2);}
   .item h3{font-size:14.5px;font-weight:700;line-height:1.45;letter-spacing:-.01em;max-width:900px}
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 11px}
@@ -64,7 +68,6 @@
     border:1px solid var(--grid);color:var(--l2)}
   .chip.who{border-color:var(--l5);color:var(--l2)}
   .chip.ghost{border-style:dashed;color:var(--muted)}
-  .chip.no-id{font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--l2)}
   .sum{font-size:13px;line-height:1.7;color:var(--ink);max-width:900px}
   .why{font-size:12.5px;line-height:1.7;color:var(--l2);margin-top:7px;max-width:900px}
   .why:before{content:'推荐理由 · ';font-weight:700;color:var(--muted);letter-spacing:.02em}
@@ -87,9 +90,9 @@
     
     <article class="item" id="c-early-1">
       <div class="body">
-        <div class="head"><span class="no">#01</span></div>
+        <div class="head"><span class="no">#01</span><span class="aid">3093-LB</span></div>
         <h3>Metabolic Response to Oral Semaglutide in Adults with Obesity—Weight Loss and Beyond: The GAROS Prospective Study</h3>
-        <div class="chips"><span class="chip drug">司美格鲁肽 semaglutide</span><span class="chip no-id">3093-LB</span><span class="chip who">GLP-1R · 糖尿病前期, 肥胖</span></div>
+        <div class="chips"><span class="chip drug">司美格鲁肽 semaglutide</span><span class="chip who">GLP-1R · 糖尿病前期, 肥胖</span></div>
         <p class="sum">口服司美格鲁肽 42 mg/日治疗 12 周（1100 例，中位 BMI 35.1）：平均减重 8.6%（8.9 kg），81.7% 减重≥5%；停药 6 个月后仍低于基线 5.4%。</p>
         <p class="why">口服 GLP-1 的减重数据多来自注射剂转换或短期随访，这项前瞻研究把停药后的体重轨迹也测了出来：减重总量中脂肪占六成以上，糖耐量异常者七成在 12 周恢复正常。它提示口服制剂的价值不只在体重秤读数，也在代谢状态的转移。局限是单臂无对照、用药仅 12 周，且以 DXA 与 OGTT 替代硬终点。</p>
         <div class="ev"></div>
@@ -98,9 +101,9 @@
 
     <article class="item" id="c-early-2">
       <div class="body">
-        <div class="head"><span class="no">#02</span></div>
+        <div class="head"><span class="no">#02</span><span class="aid">1721-P</span></div>
         <h3>Safety, Tolerability, Pharmacokinetics, and Pharmacodynamics of ZT006 Tablet, an Oral GLP-1 Receptor Agonist Peptide, in Healthy Participants, Participants with Overweight or Obesity: A Phase 1 Study</h3>
-        <div class="chips"><span class="chip drug">ZT006</span><span class="chip no-id">1721-P</span><span class="chip">Phase I</span><span class="chip who">GLP-1R · 肥胖, 超重</span></div>
+        <div class="chips"><span class="chip drug">ZT006</span><span class="chip">Phase I</span><span class="chip who">GLP-1R · 肥胖, 超重</span></div>
         <p class="sum">口服 GLP-1 肽 ZT006 每日一次给药 42 天，肥胖/超重队列第 43 天平均减重 11.7%，匹配安慰剂组 4.8%（p=0.0002），半衰期约 8 天。</p>
         <p class="why">口服多肽的难点一直在暴露量与胃肠道耐受，这项 1 期在 42 天里同时给出剂量比例暴露、可支持每日一次的半衰期，以及明显优于安慰剂的减重。它把「口服能否复现注射剂效应」这个问题向前推了一步，值得作为早期资产跟踪。局限是 1 期、按队列比较而非大样本随机，随访只到第 43 天。</p>
         <div class="ev"></div>
@@ -109,9 +112,9 @@
 
     <article class="item" id="c-early-3">
       <div class="body">
-        <div class="head"><span class="no">#03</span></div>
+        <div class="head"><span class="no">#03</span><span class="aid">1690-P</span></div>
         <h3>Safety, Tolerability, Pharmacokinetics, and Pharmacodynamics of IBI3032, a Novel Oral Nonpeptide GLP-1 Receptor Agonist: Single- and Multiple-Ascending Dose Studies in Chinese Adults</h3>
-        <div class="chips"><span class="chip drug">IBI3032</span><span class="chip no-id">1690-P</span><span class="chip">Phase I</span><span class="chip who">GLP-1R · 超重</span></div>
+        <div class="chips"><span class="chip drug">IBI3032</span><span class="chip">Phase I</span><span class="chip who">GLP-1R · 超重</span></div>
         <p class="sum">口服非肽 GLP-1 受体激动剂 IBI3032 每日给药 4 周，8 mg 与 9 mg 队列体重分别下降 8.8% 与 10.7%，安慰剂组 2.1%。</p>
         <p class="why">非肽小分子是口服 incretin 里最容易放大生产、也最容易做固定复方的一条路。这项首次人体研究在 4 周内做出接近注射剂的减重幅度，且未报告严重不良事件，说明分子本身有继续开发的价值。局限是单中心、样本按队列切分、以体重变化为动态指标，尚无 12 周以上数据。</p>
         <div class="ev"></div>
@@ -120,9 +123,9 @@
 
     <article class="item" id="c-early-4">
       <div class="body">
-        <div class="head"><span class="no">#04</span></div>
+        <div class="head"><span class="no">#04</span><span class="aid">3102-LB</span></div>
         <h3>Safety, Tolerability, Pharmacokinetics, and Pharmacodynamics of DA-1726, an Oxyntomodulin Analogue: Phase 1 Higher-Dose Cohort Results</h3>
-        <div class="chips"><span class="chip drug">DA-1726</span><span class="chip no-id">3102-LB</span><span class="chip">Phase I</span><span class="chip who">OXM / GLP-1R / GCGR · 肥胖</span></div>
+        <div class="chips"><span class="chip drug">DA-1726</span><span class="chip">Phase I</span><span class="chip who">OXM / GLP-1R / GCGR · 肥胖</span></div>
         <p class="sum">牛岛素类似物 DA-1726 48 mg 高剂量队列：第 26 天平均减重 6.1%，第 54 天达 9.1%，腰围减少 9.8 cm，半衰期 103.8 小时。</p>
         <p class="why">GLP-1/胰高血糖素双靶点常被担心升糖与心率，这项 1 期高剂量队列在未滴定的情况下仍看到持续减重与腰围下降，且半衰期支持每周一次。它给「不滴定能否耐受」提供了一个小样本答案。局限是队列内人数很少、为中期分析，缺少体成分与血糖的完整读出。</p>
         <div class="ev"></div>
@@ -131,9 +134,9 @@
 
     <article class="item" id="c-early-5">
       <div class="body">
-        <div class="head"><span class="no">#05</span></div>
+        <div class="head"><span class="no">#05</span><span class="aid">1700-P</span></div>
         <h3>Durable Cardiometabolic Effects of Utreglutide in Metabolic Dysfunction–Associated Steatotic Liver Disease Patients with Nondiabetic and Prediabetic Status</h3>
-        <div class="chips"><span class="chip drug">utreglutide</span><span class="chip no-id">1700-P</span><span class="chip">Phase I/II</span><span class="chip who">GLP-1R · 肥胖, 代谢相关脂肪性肝病</span></div>
+        <div class="chips"><span class="chip drug">utreglutide</span><span class="chip">Phase I/II</span><span class="chip who">GLP-1R · 肥胖, 代谢相关脂肪性肝病</span></div>
         <p class="sum">GLP-1RA utreglutide 在肥胖合并 MASLD 患者中随机对照 13 周（48 例）：肝脂肪相对下降 26%（P&lt;0.001），BMI 下降 7.2%，收缩压下降 10.5 mmHg。</p>
         <p class="why">MASLD 的早期读数通常只有肝脂肪一个维度，这里同时给出体重、血压与瘦素的变化，说明获益来自整体代谢改善而非单一影像指标。对做 MASH 联合方案的人，它提供了 GLP-1 单药在这一人群的效应量基线。局限是 1b/2a 期、疗程 13 周、以 MRI-PDFF 替代组织学，且肝脂肪数据列于表格。</p>
         <div class="ev"></div>
@@ -142,9 +145,9 @@
 
     <article class="item" id="c-early-6">
       <div class="body">
-        <div class="head"><span class="no">#06</span></div>
+        <div class="head"><span class="no">#06</span><span class="aid">1682-P</span></div>
         <h3>ID110521156, a Novel Oral Small-Molecule GLP-1RA: Evidence of Favorable Safety Profile and Dose-Dependent Reduction in Body Weight and Glycemic Control after 28 Days of Treatment</h3>
-        <div class="chips"><span class="chip drug">ID110521156</span><span class="chip no-id">1682-P</span><span class="chip">Phase I</span><span class="chip who">GLP-1R · 2型糖尿病, 肥胖</span></div>
+        <div class="chips"><span class="chip drug">ID110521156</span><span class="chip">Phase I</span><span class="chip who">GLP-1R · 2型糖尿病, 肥胖</span></div>
         <p class="sum">口服小分子 GLP-1RA ID110521156 用药 28 天，50/100/200 mg 组体重分别下降 5.50%、6.89%、9.88%，安慰剂组 3.1%。</p>
         <p class="why">28 天不滴定的给药方案在小分子里并不常见，这项研究用三个剂量给出了清晰的剂量-效应关系，同时报告了可逆的间接胆红素升高，提示肝胆转运是该类的观察重点。它对口服小分子的给药策略有参考价值。局限是健康受试者为主、样本按队列分配、以 28 天体重为动态指标。</p>
         <div class="ev"></div>
@@ -153,9 +156,9 @@
 
     <article class="item" id="c-early-7">
       <div class="body">
-        <div class="head"><span class="no">#07</span></div>
+        <div class="head"><span class="no">#07</span><span class="aid">1792-P</span></div>
         <h3>Interim Results from INLIGHT, a Phase 1 Study of Investigational WVE-007, an INHBE Galnac siRNA for the Treatment of Overweight and Obesity</h3>
-        <div class="chips"><span class="chip drug">WVE-007</span><span class="chip no-id">1792-P</span><span class="chip">Phase I</span><span class="chip who">INHBE · 肥胖, 超重</span></div>
+        <div class="chips"><span class="chip drug">WVE-007</span><span class="chip">Phase I</span><span class="chip who">INHBE · 肥胖, 超重</span></div>
         <p class="sum">INHBE siRNA WVE-007 单次给药：400 mg 组 Activin E 下降 85%，240 mg 组第 85 天内脏脂肪减少 9.4%（p=0.02），瘦体重增加 3.2%。</p>
         <p class="why">这是本届会议里机制最新的一类减重资产：不作用于 incretin 受体，而是敲低 INHBE 提高 Activin E 清除，单次给药即可维持数月靶点抑制。若内脏脂肪选择性减少能在更大样本复现，它会成为不依赖胃肠道耐受的联用选项。局限是 1 期中期、每组人数有限、以体成分为终点，无体重与硬终点数据。</p>
         <div class="ev"></div>
@@ -164,9 +167,9 @@
 
     <article class="item" id="c-early-8">
       <div class="body">
-        <div class="head"><span class="no">#08</span></div>
+        <div class="head"><span class="no">#08</span><span class="aid">1133-OR</span></div>
         <h3>Safety, Tolerability, and Pharmacokinetics of Once-Weekly Mazdutide in Chinese Adolescents with Obesity: A Phase 1b Trial</h3>
-        <div class="chips"><span class="chip drug">玛仕度肽</span><span class="chip no-id">1133-OR</span><span class="chip">Phase I</span><span class="chip who">OXM / GLP-1R / GCGR · 肥胖</span></div>
+        <div class="chips"><span class="chip drug">玛仕度肽</span><span class="chip">Phase I</span><span class="chip who">OXM / GLP-1R / GCGR · 肥胖</span></div>
         <p class="sum">玛仕度肽 4 mg 或 6 mg 每周一次治疗 12 周（36 例 12 至 18 岁肥胖青少年，随机双盲对照）：BMI 与体重较安慰剂显著下降，具体数值列于表格。</p>
         <p class="why">青少年肥胖在国内几乎没有获批的药物治疗，这项 1b 期把成人已上市的双靶点前移到 12 至 18 岁，先解决安全性与 PK 一致性，再报出体重与 BMI 的显著改善。它的意义是打开儿科适应症的路径，而不是疗效本身。局限是样本 36 例、关键数值仅在表格、随访 12 周。</p>
         <div class="ev"></div>
@@ -175,9 +178,9 @@
 
     <article class="item" id="c-early-9">
       <div class="body">
-        <div class="head"><span class="no">#09</span></div>
+        <div class="head"><span class="no">#09</span><span class="aid">2858-LB</span></div>
         <h3>Icovamenib, a Menin Inhibitor, Improves Endogenous Insulin Secretion in Type 1 Diabetes: Results from the COVALENT-112 Study</h3>
-        <div class="chips"><span class="chip drug">icovamenib</span><span class="chip no-id">2858-LB</span><span class="chip">Phase II</span><span class="chip who">menin / MLL1 · 1型糖尿病</span></div>
+        <div class="chips"><span class="chip drug">icovamenib</span><span class="chip">Phase II</span><span class="chip who">menin / MLL1 · 1型糖尿病</span></div>
         <p class="sum">menin 抑制剂 icovamenib 治疗成人 1 型糖尿病，200 mg 组 12 周 C 肽 AUC 较基线升高 56%，52 周回落至 -7%；该队列仅 5 例。</p>
         <p class="why">1 型糖尿病的方向一直是保住残余 β 细胞，menin 抑制提供的是「让 β 细胞去分化后再重启」的路径。这里 12 周的 C 肽升高是过去少见的正向信号，但 52 周回落说明效应可能是脉冲式的。它值得作为机制验证跟踪，而不是疗效结论。局限是队列极小、按方案完成度筛选样本、无对照比较。</p>
         <div class="ev"></div>
@@ -186,9 +189,9 @@
 
     <article class="item" id="c-early-10">
       <div class="body">
-        <div class="head"><span class="no">#10</span></div>
+        <div class="head"><span class="no">#10</span><span class="aid">2845-LB</span></div>
         <h3>Safety, Pharmacokinetics, and Weight Loss Effects of the Oral GLP-1/GIP Dual Agonist BGM0504 in Healthy and Overweight or Obese Adults: A Phase 1 Multiple-Ascending Dose Study</h3>
-        <div class="chips"><span class="chip drug">BGM0504</span><span class="chip no-id">2845-LB</span><span class="chip">Phase I</span><span class="chip who">GLP-1R / GIPR · 肥胖, 超重</span></div>
+        <div class="chips"><span class="chip drug">BGM0504</span><span class="chip">Phase I</span><span class="chip who">GLP-1R / GIPR · 肥胖, 超重</span></div>
         <p class="sum">口服 GLP-1/GIP 双激动剂 BGM0504 多剂量递增给药 28 天（75 例）：体重下降约 1% 至 5.5%，半衰期约 100 小时。</p>
         <p class="why">把双靶点做成口服，是这个领域下一轮竞争的关键变量。这项 1 期给出剂量比例暴露与明确的不良事件谱，减重幅度在 28 天里尚不突出，但半衰期支持每日一次。它的定位是可行性验证：口服暴露足以产生药理效应。局限是 1 期、以安全性与 PK 为主终点、体重为探索性指标。</p>
         <div class="ev"></div>
@@ -200,9 +203,9 @@
     
     <article class="item" id="c-pivotal-1">
       <div class="body">
-        <div class="head"><span class="no">#01</span></div>
+        <div class="head"><span class="no">#01</span><span class="aid">1225-OR</span></div>
         <h3>Efficacy and Safety of Mazdutide 9 mg in Chinese Adults with Obesity: Results from the Phase 3 GLORY-2 Trial</h3>
-        <div class="chips"><span class="chip drug">玛仕度肽</span><span class="chip no-id">1225-OR</span><span class="chip">Phase III</span><span class="chip who">OXM / GLP-1R / GCGR · 肥胖</span></div>
+        <div class="chips"><span class="chip drug">玛仕度肽</span><span class="chip">Phase III</span><span class="chip who">OXM / GLP-1R / GCGR · 肥胖</span></div>
         <p class="sum">中国肥胖成人随机 2:1 双盲 60 周：玛仕度肽 9 mg 体重下降 18.5%，安慰剂 3.0%，差值 15.5%；44.0% 减重≥20%（安慰剂 2.6%），因不良事件停药 2.9%。</p>
         <p class="why">中重度肥胖的药物选择仍集中在少数注射剂，这项 III 期把 GCG/GLP-1 双靶点做到 60 周仍未达平台，合并 2 型糖尿病者同样受益，直接支撑中国人群的注册路径与剂量选择。它也会影响减重药物在亚洲人群的对照设定。局限是单一剂量、单一国家、以体重为主终点，硬终点与长期安全性仍待随访。</p>
         <div class="ev"></div>
@@ -211,9 +214,9 @@
 
     <article class="item" id="c-pivotal-2">
       <div class="body">
-        <div class="head"><span class="no">#02</span></div>
+        <div class="head"><span class="no">#02</span><span class="aid">1247-OR</span></div>
         <h3>Evolocumab Reduces CV Events in Patients with High-Risk Diabetes: Results from the VESALIUS-CV Trial</h3>
-        <div class="chips"><span class="chip drug">依洛尤单抗</span><span class="chip no-id">1247-OR</span><span class="chip who">PCSK9 · 动脉粥样硬化, 糖尿病</span></div>
+        <div class="chips"><span class="chip drug">依洛尤单抗</span><span class="chip who">PCSK9 · 动脉粥样硬化, 糖尿病</span></div>
         <p class="sum">VESALIUS-CV 预设亚组：6002 例高危糖尿病且无既往心梗或卒中者，依洛尤单抗中位随访 4.6 年使 3P-MACE 降低 29%，4P-MACE 降低 21%，心梗风险降低 35-36%。</p>
         <p class="why">这是 PCSK9 抑制剂第一次在高危糖尿病、尚无明确动脉粥样硬化的人群里拿出事件级获益，且与是否合并斑块、是否已用 SGLT2i 或 GLP-1RA 无关。它会把糖尿病一级预防的 LDL-C 目标与用药指征推向更低、更早。局限是亚组分析，绝对风险下降仍需按基线风险分层解读。</p>
         <div class="ev"></div>
@@ -222,9 +225,9 @@
 
     <article class="item" id="c-pivotal-3">
       <div class="body">
-        <div class="head"><span class="no">#03</span></div>
+        <div class="head"><span class="no">#03</span><span class="aid">2813-LB</span></div>
         <h3>CT-388, a cAMP Signal-Biased GLP-1/GIP Receptor Agonist, Achieves Clinically Meaningful Weight Loss in People With Overweight/Obesity: A 48-Week Phase 2 Study</h3>
-        <div class="chips"><span class="chip drug">enicepatide (CT-388)</span><span class="chip no-id">2813-LB</span><span class="chip">Phase II</span><span class="chip who">GLP-1R / GIPR · 肥胖, 超重</span></div>
+        <div class="chips"><span class="chip drug">enicepatide (CT-388)</span><span class="chip">Phase II</span><span class="chip who">GLP-1R / GIPR · 肥胖, 超重</span></div>
         <p class="sum">CT-388（GLP-1/GIP）48 周 II 期，467 例超重或肥胖者随机六组：24 mg 组减重 22.7%，95.7% 减重≥5%、47.8% 减重≥20%，基线糖尿病前期者 73% 恢复正常血糖（安慰剂 7.5%）。</p>
         <p class="why">双靶点的 48 周减重此前多在 20% 附近，这里把最高剂量推到 22.7% 且未达平台，同时给出糖尿病前期的逆转比例。这意味着它既可能作为单药减重基石，也可能成为与胰淀素类联用的骨架。局限是 II 期、剂量组样本不均衡、尚无停药后维持数据。</p>
         <div class="ev"></div>
@@ -233,9 +236,9 @@
 
     <article class="item" id="c-pivotal-4">
       <div class="body">
-        <div class="head"><span class="no">#04</span></div>
+        <div class="head"><span class="no">#04</span><span class="aid">1253-OR</span></div>
         <h3>ADA Presidents' Select Abstract: Efficacy and Safety of Orforglipron vs. Placebo Added to Titrated Insulin Glargine in Adults with Long-Standing Type 2 Diabetes: ACHIEVE-5</h3>
-        <div class="chips"><span class="chip drug">奥氟格列隆</span><span class="chip no-id">1253-OR</span><span class="chip">Phase III</span><span class="chip who">GLP-1R · 2型糖尿病</span></div>
+        <div class="chips"><span class="chip drug">奥氟格列隆</span><span class="chip">Phase III</span><span class="chip who">GLP-1R · 2型糖尿病</span></div>
         <p class="sum">口服 orforglipron 40 周 III 期（546 例，病程 15.0 年、基线 HbA1c 8.5%）：联合滴定甘精胰岛素，HbA1c 下降 1.54-2.05%，安慰剂 0.77%，体重变化 -2.7% 至 -6.1%，低血糖未增加。</p>
         <p class="why">长效胰岛素治疗下 HbA1c 仍不达标，是临床上最不愿加药的一类人群：加 GLP-1 要注射，加 SGLT2i 降糖有限。这里给出的是口服小分子在这一人群的 III 期数据，且没有增加低血糖，会改变「胰岛素之上还能加什么」的选择顺序。局限是开放标签、按疗效估计量呈现，真实世界依从性仍是短板。</p>
         <div class="ev"></div>
@@ -244,9 +247,9 @@
 
     <article class="item" id="c-pivotal-5">
       <div class="body">
-        <div class="head"><span class="no">#05</span></div>
+        <div class="head"><span class="no">#05</span><span class="aid">3090-LB</span></div>
         <h3>UBT251, a Triple Hormone Receptor Agonist in Adults with Overweight or Obesity: A Multicenter, Double-Blind, Placebo-Controlled, Randomized, Phase 2 Trial</h3>
-        <div class="chips"><span class="chip drug">UBT251</span><span class="chip no-id">3090-LB</span><span class="chip">Phase II</span><span class="chip who">GLP-1R / GCGR / GIPR · 肥胖, 超重</span></div>
+        <div class="chips"><span class="chip drug">UBT251</span><span class="chip">Phase II</span><span class="chip who">GLP-1R / GCGR / GIPR · 肥胖, 超重</span></div>
         <p class="sum">三靶点激动剂 UBT251（GIP/GLP-1/胰高血糖素）24 周 II 期，205 例中国超重或肥胖者：4.0 mg 组减重 19.7%，2.0 mg 组 13.6%，安慰剂 2.0%（均 P&lt;0.001）。</p>
         <p class="why">国产三靶点把 24 周减重推到接近 20%，与已上市双靶点在更长疗程的数据同量级，说明多受体协同能在更短时间达到同样幅度。这类早期高幅度信号会影响后续 III 期的剂量与对照选择，也提示胃肠道耐受是必须重点观察的变量。局限是 II 期、疗程 24 周，缺体成分与停药后随访。</p>
         <div class="ev"></div>
@@ -255,9 +258,9 @@
 
     <article class="item" id="c-pivotal-6">
       <div class="body">
-        <div class="head"><span class="no">#06</span></div>
+        <div class="head"><span class="no">#06</span><span class="aid">2816-LB</span></div>
         <h3>Efficacy and Safety of Oral Ribupatide (HRS9531) in Adults with Obesity: A Phase 2 Trial</h3>
-        <div class="chips"><span class="chip drug">瑞普泊肽 (HRS9531)</span><span class="chip no-id">2816-LB</span><span class="chip">Phase II</span><span class="chip who">GLP-1R / GIPR · 肥胖</span></div>
+        <div class="chips"><span class="chip drug">瑞普泊肽 (HRS9531)</span><span class="chip">Phase II</span><span class="chip who">GLP-1R / GIPR · 肥胖</span></div>
         <p class="sum">口服 GIP/GLP-1 双重激动剂 ribupatide 26 周 II 期（166 例肥胖者）：25 mg 组体重下降 11.9%、50 mg 组 11.4%，安慰剂 2.1%，最高 77.5% 减重≥5%。</p>
         <p class="why">同一分子的周制剂已在 III 期做出强效减重，这项 II 期回答的是能否做成口服：26 周达到 11.9%，且没有因不良事件停药或下调剂量，等于把注射剂的疗效折价压得很小。对以注射依从性为瓶颈的减重市场，这是最直接的可及性变量。局限是 II 期、样本 166 例、随访 26 周。</p>
         <div class="ev"></div>
@@ -266,9 +269,9 @@
 
     <article class="item" id="c-pivotal-7">
       <div class="body">
-        <div class="head"><span class="no">#07</span></div>
+        <div class="head"><span class="no">#07</span><span class="aid">3083-LB</span></div>
         <h3>Petrelintide, a Human Amylin Analog for the Treatment of Obesity: Efficacy and Safety from the Phase 2 Trial, ZUPREME 1</h3>
-        <div class="chips"><span class="chip drug">petrelintide</span><span class="chip no-id">3083-LB</span><span class="chip">Phase II</span><span class="chip who">amylin / AMYR · 肥胖, 超重</span></div>
+        <div class="chips"><span class="chip drug">petrelintide</span><span class="chip">Phase II</span><span class="chip who">amylin / AMYR · 肥胖, 超重</span></div>
         <p class="sum">胰淀素类似物 petrelintide 42 周 II 期，485 例肥胖或超重者（平均 BMI 36.7）减重最高 10.7%，安慰剂 1.7%；恶心 19.6% 对 6.2%，因胃肠道不良事件停药仅 1.5%。</p>
         <p class="why">减重幅度不如 incretin，但耐受性接近安慰剂，这恰好指向当前最大的未满足需求：长期用药的可持续性。若与 incretin 联用能保住幅度又压低胃肠道负担，它会成为组合疗法的另一半。局限是 II 期剂量探索、42 周、以体重为终点，与 GLP-1 联用是否叠加呕吐仍待验证。</p>
         <div class="ev"></div>
@@ -277,9 +280,9 @@
 
     <article class="item" id="c-pivotal-8">
       <div class="body">
-        <div class="head"><span class="no">#08</span></div>
+        <div class="head"><span class="no">#08</span><span class="aid">2862-LB</span></div>
         <h3>Phase II Clinical Trial of BCG Immunotherapy for Type 1 Diabetes with Juvenile Onset: Five-Year Analysis of Safety, HbA1c, Time in Range, and Insulin Use</h3>
-        <div class="chips"><span class="chip drug">卡介苗 BCG</span><span class="chip no-id">2862-LB</span><span class="chip">Phase II</span><span class="chip who">1型糖尿病</span></div>
+        <div class="chips"><span class="chip drug">卡介苗 BCG</span><span class="chip">Phase II</span><span class="chip who">1型糖尿病</span></div>
         <p class="sum">幼年起病 1 型糖尿病双盲 II 期 5 年（BCG 34 例、安慰剂 24 例）：HbA1c 由 7.84% 降至 7.30%（P=0.0006），胰岛素用量由 0.68 降至 0.63 U/kg/day，C 肽无改善。</p>
         <p class="why">1 型糖尿病迄今只有胰岛素与少数免疫干预，BCG 的价值不在 C 肽——它没有改善——而在于血糖控制与胰岛素需求同时改善，且机制指向非胰腺通路，等于提出一个可被证伪的新假说。它对儿科与成人起病患者的辅助治疗设计有直接影响。局限是样本小、单中心谱系、HbA1c 绝对降幅有限且缺硬终点。</p>
         <div class="ev"></div>
@@ -288,9 +291,9 @@
 
     <article class="item" id="c-pivotal-9">
       <div class="body">
-        <div class="head"><span class="no">#09</span></div>
+        <div class="head"><span class="no">#09</span><span class="aid">1254-OR</span></div>
         <h3>Orforglipron vs. Dapagliflozin in Type 2 Diabetes Inadequately Controlled with Metformin</h3>
-        <div class="chips"><span class="chip drug">奥氟格列隆</span><span class="chip no-id">1254-OR</span><span class="chip">Phase III</span><span class="chip who">GLP-1R · 2型糖尿病</span></div>
+        <div class="chips"><span class="chip drug">奥氟格列隆</span><span class="chip">Phase III</span><span class="chip who">GLP-1R · 2型糖尿病</span></div>
         <p class="sum">口服 orforglipron 对比达格列净 40 周 III 期（962 例，二甲双胍治疗中）：各剂量 HbA1c 降幅均优，12 与 36 mg 体重下降更优，因胃肠道不良事件停药 5.8-8.3%（达格列净 0.4%）。</p>
         <p class="why">把口服小分子直接对上 SGLT2i，是糖尿病治疗路径里最实际的一问：同样一片药，选谁。结果为口服 GLP-1 在降糖与减重上双双占优，但胃肠道停药率高出十倍，说明优势与耐受是一个明确的交换。局限是开放标签、仅剂量盲法，硬终点与成本效果未评估。</p>
         <div class="ev"></div>
@@ -299,9 +302,9 @@
 
     <article class="item" id="c-pivotal-10">
       <div class="body">
-        <div class="head"><span class="no">#10</span></div>
+        <div class="head"><span class="no">#10</span><span class="aid">1712-P</span></div>
         <h3>Benefits of HR17031 vs. Insulin Glargine (iGlar) in Patients (pts) with Type 2 Diabetes (T2D) Uncontrolled on Basal Insulin (BI) and Metformin</h3>
-        <div class="chips"><span class="chip drug">诺利糖肽+舒地胰岛素 (HR17031)</span><span class="chip no-id">1712-P</span><span class="chip">Phase III</span><span class="chip who">insulin / GLP-1R · 2型糖尿病</span></div>
+        <div class="chips"><span class="chip drug">诺利糖肽+舒地胰岛素 (HR17031)</span><span class="chip">Phase III</span><span class="chip who">insulin / GLP-1R · 2型糖尿病</span></div>
         <p class="sum">基础胰岛素与 GLP-1 固定比例复方 HR17031 对比甘精胰岛素 26 周 III 期（393 例）：HbA1c 下降 1.53% 对 0.25%，达标率 48.7% 对 10.7%，低血糖 32.3% 对 53.3%。</p>
         <p class="why">基础胰岛素控制不佳时的标准动作是加餐时胰岛素或加 GLP-1，前者增重与低血糖，后者要多打一针。固定复方把两件事合成一次注射，在这项 III 期里同时降低 HbA1c、减重且低血糖更少，对基础胰岛素使用广泛的市场有直接替代意义。局限是开放标签、疗程 26 周、复方成分并非首创。</p>
         <div class="ev"></div>
@@ -313,9 +316,9 @@
     
     <article class="item" id="c-failed-1">
       <div class="body">
-        <div class="head"><span class="no">#01</span></div>
+        <div class="head"><span class="no">#01</span><span class="aid">2861-LB</span></div>
         <h3>Phase II Clinical Trial of BCG Immunotherapy for Latent Autoimmune Diabetes in Adults (LADA): Five-Year Analysis of HbA1c, Insulin Use, and Pancreatic C-Peptide Outcomes</h3>
-        <div class="chips"><span class="chip drug">卡介苗 BCG</span><span class="chip no-id">2861-LB</span><span class="chip">Phase II</span><span class="chip who">1型糖尿病</span></div>
+        <div class="chips"><span class="chip drug">卡介苗 BCG</span><span class="chip">Phase II</span><span class="chip who">1型糖尿病</span></div>
         <p class="sum">LADA 双盲 II 期 5 年（BCG 68 例、安慰剂 27 例）：HbA1c 未达主要终点，胰岛素用量 BCG 组下降 2.89%、安慰剂组上升 22.08%（P=0.021），C 肽下降减缓（P=0.01790）。</p>
         <p class="why">同一试验的幼年起病队列达标、LADA 队列不达标，这种同药不同人群的对照比单一阴性结论更有信息量：BCG 的效应依赖是否存在淋巴糖代谢缺陷，而不是泛化的免疫调节。它会影响自身免疫糖尿病分型试验的入组标准。局限是亚组样本不均衡、主要终点阴性，C 肽与胰岛素用量均为次要终点。</p>
         <div class="ev"></div>
@@ -324,9 +327,9 @@
 
     <article class="item" id="c-failed-2">
       <div class="body">
-        <div class="head"><span class="no">#02</span></div>
+        <div class="head"><span class="no">#02</span><span class="aid">1835-P</span></div>
         <h3>Effect of Luseogliflozin on Myocardial Flow Reserve in Patients with Type 2 Diabetes Mellitus (LUCENT-J Study)</h3>
-        <div class="chips"><span class="chip drug">鲁格列净</span><span class="chip no-id">1835-P</span><span class="chip who">SGLT2 · 2型糖尿病</span></div>
+        <div class="chips"><span class="chip drug">鲁格列净</span><span class="chip who">SGLT2 · 2型糖尿病</span></div>
         <p class="sum">开放标签随机对照 24 周（40 例，33 例符合方案）：鲁格列净组心肌血流储备由 2.26 升至 2.35（p=0.464），对照组由 2.25 升至 2.28，组间 Pint=0.699。</p>
         <p class="why">SGLT2i 的心衰获益一直缺少机制解释，这项研究用 PET 直接测心肌微循环，结论是阴性，等于排除了改善冠脉微循环这条最常被引用的通路，把解释推向容量与代谢。对后续机制试验是排除性证据。局限是样本小、开放标签、随访 24 周，且基线 HbA1c 已控制良好。</p>
         <div class="ev"></div>
@@ -335,9 +338,9 @@
 
     <article class="item" id="c-failed-3">
       <div class="body">
-        <div class="head"><span class="no">#03</span></div>
+        <div class="head"><span class="no">#03</span><span class="aid">1741-P</span></div>
         <h3>Efficacy and Safety of Inhaled Technosphere Insulin (TI) vs. Rapid-Acting Analog in Youth with HbA1c ≤9.5%: Subgroup Analysis from INHALE-1</h3>
-        <div class="chips"><span class="chip drug">Afrezza (吸入胰岛素粉雾剂)</span><span class="chip no-id">1741-P</span><span class="chip who">insulin · 2型糖尿病, 1型糖尿病</span></div>
+        <div class="chips"><span class="chip drug">Afrezza (吸入胰岛素粉雾剂)</span><span class="chip who">insulin · 2型糖尿病, 1型糖尿病</span></div>
         <p class="sum">吸入胰岛素 INHALE-1 青少年亚组（基线 HbA1c≤9.5%，209 例）：26 周 HbA1c 变化 0.19% 对 0.08%，差值 0.11%（95%CI -0.145 至 0.364）达非劣；但总体 ITT（230 例）未达非劣。</p>
         <p class="why">这是一条被监管口径卡住的读数：总体人群非劣未成立，只有剔除基线血糖较高者后才达标，说明结论对入组阈值高度敏感。它提醒后续儿科吸入胰岛素试验必须在设计阶段锁定人群，而不是事后分层。局限是事后亚组、非注册分析，肺功能长期安全性仍需更长随访。</p>
         <div class="ev"></div>
@@ -346,9 +349,9 @@
 
     <article class="item" id="c-failed-4">
       <div class="body">
-        <div class="head"><span class="no">#04</span></div>
+        <div class="head"><span class="no">#04</span><span class="aid">2474-P</span></div>
         <h3>Comparable Hepatic Benefits with Differential Effects on Triglycerides and Glycemic Control: A 24-Week Prospective Study</h3>
-        <div class="chips"><span class="chip drug">赛格列扎</span><span class="chip no-id">2474-P</span><span class="chip who">PPARγ / PPARα · 代谢相关脂肪性肝病</span></div>
+        <div class="chips"><span class="chip drug">赛格列扎</span><span class="chip who">PPARγ / PPARα · 代谢相关脂肪性肝病</span></div>
         <p class="sum">24 周开放标签活性对照（54 例 MASLD）：saroglitazar 与达格列净在肝脂肪（314.7 降至 278.7 对 310.2 降至 287.0 dB/m，组间 p=0.44）与肝硬度（8.4 降至 8.0 对 8.3 降至 7.9 kPa，p=0.80）均无差异；HbA1c 降幅 -1.52% 对 -0.84%（p=0.04）。</p>
         <p class="why">MASLD 的两个主要终点都被打成阴性，说明在 24 周尺度上降糖药对肝脂肪的改善主要是共同的代谢效应，而非某个靶点特有，这削弱了把单药当作 MASH 治疗的叙事。对设计 III 期的人更重要的信息是：活性对照加影像终点很难拉开差距。局限是样本仅 54 例、开放标签、以 CAP 与 LSM 替代组织学。</p>
         <div class="ev"></div>
@@ -357,9 +360,9 @@
 
     <article class="item" id="c-failed-5">
       <div class="body">
-        <div class="head"><span class="no">#05</span></div>
+        <div class="head"><span class="no">#05</span><span class="aid">1815-P</span></div>
         <h3>Efficacy and Safety of the GlP-1/GIP Dual Agonist HRS9531 in Overweight/Obese Chinese Patients with Polycystic Ovary Syndrome</h3>
-        <div class="chips"><span class="chip drug">瑞普泊肽 (HRS9531)</span><span class="chip no-id">1815-P</span><span class="chip">Phase II</span><span class="chip who">GLP-1R / GIPR · 肥胖, 超重</span></div>
+        <div class="chips"><span class="chip drug">瑞普泊肽 (HRS9531)</span><span class="chip">Phase II</span><span class="chip who">GLP-1R / GIPR · 肥胖, 超重</span></div>
         <p class="sum">PCOS 合并超重或肥胖随机 2:1 双盲 28 周（45 例）：体重下降 21.38% 对 8.97%（P=0.0002），但共主要终点月经频率仅增加 0.33 次/12 周（P=0.325）未达。</p>
         <p class="why">减重 21.38% 却没有换来月经频率的统计学改善，是以体重替代生殖终点最直接的反例：体重与排卵功能在 PCOS 里并不总是同向。它会迫使后续 PCOS 试验把生殖内分泌终点前置并延长观察窗。局限是单中心、45 例、月经频率依赖自报记录，且安慰剂组减重幅度异常高。</p>
         <div class="ev"></div>
@@ -368,9 +371,9 @@
 
     <article class="item" id="c-failed-6">
       <div class="body">
-        <div class="head"><span class="no">#06</span></div>
+        <div class="head"><span class="no">#06</span><span class="aid">1807-P</span></div>
         <h3>Cardiometabolic Effects of Clofutriben (CLO) in Adults with Type 2 Diabetes (T2D): A Six-Week, Phase 2, Placebo-Controlled, Randomized Clinical Trial</h3>
-        <div class="chips"><span class="chip drug">克洛曲本</span><span class="chip no-id">1807-P</span><span class="chip">Phase II</span><span class="chip who">11β-HSD1 · 糖尿病周围神经痛</span></div>
+        <div class="chips"><span class="chip drug">克洛曲本</span><span class="chip">Phase II</span><span class="chip who">11β-HSD1 · 糖尿病周围神经痛</span></div>
         <p class="sum">11β-HSD1 抑制剂 clofutriben 6 周 II 期（115 例 2 型糖尿病）：该试验此前因疼痛终点无效而终止，本次心脏代谢数据仅列于表格，并报告严重血小板减少。</p>
         <p class="why">这是一条终止之后怎么看数据的样本：原试验死于无效的疼痛终点，事后从同一批样本里找心脏代谢获益，还出现严重血小板减少，提示获益风险比并未改善。它对新陈代谢类新靶点的教训是终点选择必须前置。局限是事后分析、疗效数字不在正文、样本仅 115 例。</p>
         <div class="ev"></div>
@@ -379,9 +382,9 @@
 
     <article class="item" id="c-failed-7">
       <div class="body">
-        <div class="head"><span class="no">#07</span></div>
+        <div class="head"><span class="no">#07</span><span class="aid">1643-P</span></div>
         <h3>Can 14 Days of Metformin Prevent Post-COVID Diabetes?</h3>
-        <div class="chips"><span class="chip drug">二甲双胍 metformin</span><span class="chip no-id">1643-P</span><span class="chip who">2型糖尿病, 新型冠状病毒感染</span></div>
+        <div class="chips"><span class="chip drug">二甲双胍 metformin</span><span class="chip who">2型糖尿病, 新型冠状病毒感染</span></div>
         <p class="sum">COVID-OUT 长期随访（1136 例完成问卷）：14 天二甲双胍组新发 2 型糖尿病 1.4%（8/571），安慰剂 2.5%（14/565），绝对风险下降 1.1%，HR 0.58（95%CI 0.24-1.32）。</p>
         <p class="why">把感染后糖尿病当作可预防终点是一个有吸引力的假说，但这条读数没有跨过显著性，事件数太少使置信区间极宽。它的价值在于给这类以电子随访为主的预防性假设划出样本量下限。局限是次要终点、事后建模、以自报诊断为主，不能据此否定二甲双胍的长期代谢作用。</p>
         <div class="ev"></div>

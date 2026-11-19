@@ -47,10 +47,12 @@ def entry(idx, c, bucket):
     marker_in_num = up.startswith("LBA") or up.endswith("LB")
     if c.get("tag") == "LBA" and not marker_in_num:
         chips.append('<span class="chip ghost">Late-breaking</span>')
-    # v0.12: the abstract number is what a reader types into the abstract book, so it
-    # belongs on the card face; it is copied from the record, never inferred.
-    if num:
-        chips.append(f'<span class="chip no-id">{esc(num)}</span>')
+    # v0.17: the abstract number moved out of the chip row and up beside the item number.
+    # It is the first thing a reader needs (it is what they type into the abstract book)
+    # and, sitting before the title, it is also the first thing they scan -- inside the
+    # chips it competed with phase / target for attention after the headline. Copied from
+    # the record, never inferred; a card whose record carries none prints nothing.
+    aid = f'<span class="aid">{esc(num)}</span>' if num else ''
     if c.get("phase"):
         chips.append(f'<span class="chip">{esc(c["phase"])}</span>')
     # "LBA41" and "Late-breaking Oral" are the same fact in two fields — print it once
@@ -71,7 +73,7 @@ def entry(idx, c, bucket):
     return f"""
     <article class="item" id="c-{bucket}-{idx}">
       <div class="body">
-        <div class="head"><span class="no">#{idx:02d}</span></div>
+        <div class="head"><span class="no">#{idx:02d}</span>{aid}</div>
         <h3>{esc(c['title'])}</h3>
         <div class="chips">{''.join(chips)}</div>
         <p class="sum">{esc(c['summary'])}</p>
@@ -160,6 +162,10 @@ HTML = f"""<!doctype html>
   .item{{padding:24px 0 20px;border-bottom:1px solid var(--grid)}}
   .head{{display:flex;align-items:baseline;gap:9px;margin-bottom:7px}}
   .head .no{{font-size:9.5px;font-weight:700;color:var(--faint);letter-spacing:.1em}}
+  .head .aid{{font-size:10.5px;font-weight:800;color:var(--l2);letter-spacing:.02em;
+    font-variant-numeric:tabular-nums}}
+  .head .aid:before{{content:'摘要 ';font-weight:600;color:var(--faint);letter-spacing:.08em;
+    font-size:9px}}
   .chip.drug{{color:var(--ink);font-weight:700;border-color:var(--l2);}}
   .item h3{{font-size:14.5px;font-weight:700;line-height:1.45;letter-spacing:-.01em;max-width:900px}}
   .chips{{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 11px}}
@@ -167,7 +173,6 @@ HTML = f"""<!doctype html>
     border:1px solid var(--grid);color:var(--l2)}}
   .chip.who{{border-color:var(--l5);color:var(--l2)}}
   .chip.ghost{{border-style:dashed;color:var(--muted)}}
-  .chip.no-id{{font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--l2)}}
   .sum{{font-size:13px;line-height:1.7;color:var(--ink);max-width:900px}}
   .why{{font-size:12.5px;line-height:1.7;color:var(--l2);margin-top:7px;max-width:900px}}
   .why:before{{content:'推荐理由 · ';font-weight:700;color:var(--muted);letter-spacing:.02em}}
