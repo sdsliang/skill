@@ -695,3 +695,31 @@ ENA 只有 17 条，`plan_slices.py` 正确地没有切分（`work/slices/` 下�
 1. **`lifileucel` 的 `target` 写成了散文**（`肿瘤浸润淋巴细胞（TIL，非分子靶点）`）。它诚实地表达了「细胞治疗没有分子靶点」，但走 `editorial_overrides` 的 `field: "target"` 声明才是本版设计路径。闸门目前只查非空，若要连这种写法一起管，需要一条「`target` 不得是解释性长句」的规则 —— 有误伤风险，留证据不动。
 2. **`A-C1-heat-coverage` 0/12**（warn）：那张「热议试验」名单是 ESMO 2026 攒的，跨会议天然 0/12。warn 不阻断，但按「事实项按会议能力 gating」的原则，它应该改成按会议取名单或在该会议无名单时 SKIP。
 3. **ENA 2026 结果库严重不全**：17 条，同期 ENA 2025 有 43 条，模型检索到的三条 late-breaking 口头报告库里都没有。**这类小会议不适合当「榜单质量」评测对象，只适合当「契约是否成立」的验收对象** —— 本轮正是后者。
+
+## R19（2026-11-20）：v0.16 在大会语料上复跑 ESMO 2026 —— 30/30 卡面标识靠判读写出，一个 override 用在正当位上
+
+**改了什么**：无（本轮是 v0.16 发布后的第二场验收跑）。R18 在 17 行的 ENA 上证明了「没有 `arms` 通道也能填满卡面」，但小会议无法证明**选择与排序**是否还站得住；这轮回到 **ESMO 2026（1097 条）**，与 R13（v0.12 同场）可比。
+
+**对象**：`20261119-173236-cards-ESMO-26-v16`（thread `1ae47309`，turn `262d5ef6`，DeepSeek Flash + `--web`）。**墙钟 1376.5 s**，103 次工具调用（`execute`×30 / `read_file`×20 / `web_search`×17 / `task`×16 / `with-params`×9 / `write_file`×5 / `write_todos`×3 / `load_skill`×1 / `edit_file`×1 / `present_artifact`×1），reasoning 382302 tok。
+
+| 验证点 | 实测 |
+|---|---|
+| 交付 | **30 卡，early/pivotal/failed = 10/10/10**，`output/watchlist.json` 唯一产物 |
+| **`drug` / `target`** | **30/30 两张都非空**，全部由判读者从标题/摘要读出（本轮同样**没调** `clinical_result.arms`、**零手补**）：如 `sonesitatug vedotin (Sone-Ve) / CLDN18.2`、`intismeran autogene (V940) / 个体化肿瘤新抗原（mRNA）`、`izalontamab brengitecan (Iza-bren) / EGFR × HER3` |
+| 交付前闸门 | `check_cards.py` **EXIT=0 `OK cards=30`** |
+| 事实层 | **facts 29/29 · warn 1/1 → PASS**（`A-C1-heat-coverage` 4/12 命中，warn 级仍绿）、`A-P10` → `drug+target named on 30 card(s)`、`A-D2` → 8 切片 / 最大 150 ids / 双向零缺失 |
+| runner 断言 | **24 PASS / 0 FAIL / 0 WARN**，`write_file` 零拒绝（R18 那次唯一的瑕疵消失） |
+| `abstract_id` | **30/30 有号**（`LBA41` / `2680RO` / `791RO` / `2575P`），`A-F1` → `matches rows.json on 30 card(s)` —— **与 R18 的 ENA 空列对照，坐实那是数据侧缺口而非取数或渲染缺陷** |
+| 三态 / 席位 / 顺序 | `is_recommand` 30 张中 1 张 `是`（LBA7 CLARITY-Gastric01）→ 强制位顶到 pivotal 首位（87 < 95 也照样第一，这是设计）；`A-P6` 377 条判读记录 + **1 条声明式 override**；`A-P9` 每试验 1 席 |
+| override 是否正当 | 唯一一条：**放弃 LBA11（TroFuse-005，sac-TMT 治经治子宫内膜癌，88 分）**，理由写明「同适应症 + 已被 LBA71 的 TROP2 ADC 机制代表，按压同质只留一条，席位让给机制互补的 HER2 阳性一线方案」→ 属**选择理由**，不是数据缺失后门 |
+| 诚实声明 | 4 条 `coverage_notes`：`is_recommand` 全场仅 1 条标星**已按强制位置顶**且「其余为空 ≠ 无人推荐」；`data_type` 判不出写「未判定」；`manual` 取不到记 null；非全量覆盖 |
+| 复核页 | `dist/review/esmo2026-watchlist-v16.html`（30 卡 / 10/10/10）——药名 chip 与 phase / target 同排，左导按药名索引 |
+
+### 与 R13（v0.12 同场）的可比变化
+
+同为 30 卡 10/10/10，但这轮多了三件 v0.12 没有的东西：①**卡面标识（`drug`/`target`）全部有值**；②`abstract_id` 从「可能为空」变成逐卡可核；③override 从「隐式让席」变成**带理由的账本条目**（`A-P6` 已把 floors 与 override 一起判）。
+
+### 留作下轮的两条观察（与 R18 同源，未改）
+
+1. **「无分子靶点」类记录仍在用散文填 `target`**：本轮 failed 桶出现 `mFOLFIRINOX vs mFOLFOX6 / 无分子靶点（细胞毒化疗方案）`、`二十碳五烯酸 (EPA) / 无分子靶点（omega-3 脂肪酸）`，R18 的 `lifileucel / 肿瘤浸润淋巴细胞（TIL，非分子靶点）` 同理。三场累计 4 例 → 这已经**不是偶发写法而是稳定模式**：细胞毒方案、细胞治疗、omega-3 这类确实没有分子靶点。要么承认「`target` 允许一句类型说明」并写进契约，要么规定走 `field: "target"` 豁免 —— 两条都行，但现在契约里两种都没写，等于默许模型自选。
+2. **`A-P4` 的桶内顺序在「强制位」存在时对读者是反直觉的**（pivotal 首条 87 分压在 95 分前面）。这是既定设计（`is_recommand` 是首位排序键），复核页上不印 `is_recommand` 也不印分数，所以读者看不出原因 —— 若以后要给读者看顺序理由，需另开一栏，不要在页面上复活徽章。

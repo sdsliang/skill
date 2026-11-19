@@ -59,6 +59,15 @@
 同类。修法：按已拉行数反推 `need = ceil(rows / max_slice)`；新增负控 `ngen_small_corpus_single_dump`（必须绿）
 → `coverage: 29/29 …; **8** negative controls green`。修完同一产物 `facts 28/28 PASS`。
 
+### 第二场验收：ESMO 2026（1097 条）`20261119-173236-cards-ESMO-26-v16`
+
+- 墙钟 **1376.5 s** / 103 次工具调用；交付 **30 卡 10/10/10**；runner **24 PASS / 0 FAIL**；
+  事实层 **29/29 + warn 1/1 PASS**；`check_cards.py` **EXIT=0 `OK cards=30`**。
+- **`drug`/`target` 30/30 非空**（同样零 `arms` 调用、零手补）；**`abstract_id` 30/30 有号** —— 与 R18 的
+  ENA 空列对照，坐实 ENA 缺号是**数据侧缺口**，不是取数或渲染缺陷。
+- 唯一 override 是**正当选择理由**（放弃 LBA11 88 分，让位给机制互补方案），不是缺失豁免。
+- 复核页 `dist/review/esmo2026-watchlist-v16.html`。
+
 ### 未做（待定）
 
 - **未把 `attach_arms.py` 接进 skill 包**：它现在只在 `dist/review/`（本地复核页工具链）。本轮证明「不拉 arms
