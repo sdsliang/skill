@@ -15,7 +15,7 @@
 | 夹具层 | `mutations.py` 删 `m_no_skills` / `m_citation_dangling` / `ngen_citations_legal`，fixture 不再写 `report.md`/`citations.json`，`present_artifact` 指 watchlist；**新增 `m_present_md`**（把路径改回 `report.md` 必须判红，这是回潮的唯一入口） |
 | 渲染层 | `SKILL.md` Step 7 重写（交付物 = `watchlist.json`，`present_artifact` 指向它，无 frontmatter/引文段）；Step 6 去掉 `--report`；`description` 删掉早已过期的"stock move"；新增 v0.15 版本块。`templates/watchlist-report.md` **删除**，`pack-dist.py` 的 `templates/` 改为可选（references/scripts 仍强制） |
 | 宿主契约 | `~/.config/toolsmith/projects.json` 的 `deliverables` → `["output/watchlist.json"]`（备份 `.bak-20261119-v15`） |
-| runner（O52） | `toolsmith-publish` 的 `report_rel` 原来硬回落 `output/report.md`：无 md 时读空串 → `report contains nonempty content` 恒红。改为 **md 可选**（无 md 则跳过正文类断言并记一条说明），`present_artifact` 终端路径在无 md 时取「∈ deliverables」。备份 `toolsmith-publish.v15.bak` |
+| runner（O57） | `toolsmith-publish` 的 `report_rel` 原来硬回落 `output/report.md`：无 md 时读空串 → `report contains nonempty content` 恒红。改为 **md 可选**（无 md 则跳过正文类断言并记一条说明），`present_artifact` 终端路径在无 md 时取「∈ deliverables」。备份 `toolsmith-publish.v15.bak` |
 | 文档 | `README.md`（交付行 + 目录树 + CLI 注释）、`references/data-contract.md §6.5.2` 重写、`pitfalls.md` **§43**（新）+ §27/§32 标注「v0.15 起无对象」 |
 
 ### 验证
@@ -25,12 +25,27 @@
 - `python3 evals/fact-check/mutations.py` → **`coverage: 28/28 fail items have a mutation; 7 negative controls green`**；`m_present_md` 单跑翻红。
 - `dist/conference-result-triage-v0.15.zip` — **146817 B / 15 entries**（templates 不再入包）/ sha256 `89003e4f3c24c288…`。
 
+### 发布与实跑（已完成）
+
+- 原地 publish：`POST /api/skills/update_skill_file` HTTP 200 → `entries=15 identical=15 differing=0`、**`STATUS: in sync`**（label 仍 `v0.3.0`，部署 `2026-11-19T14:40:10`）。共享 SP 未动（`pin matches` v1.0 / 29311 B；deployed instructions 23363 → 23408 chars 的差只是末尾 `Today's date`）。
+- **E2E `20261119-144018-cards-ADA-26-v15`**（thread `ba885826`，DeepSeek Flash + `--web`）：191 行 → **27 卡（10/10/7）**，墙钟 **635.8 s** / 86 次工具调用。
+  - `artifacts/output/` 下**只有 `watchlist.json`**；`present_artifact` = `/workspace/output/watchlist.json` 且是最后一个成功调用。
+  - runner 断言 **24 PASS / 0 FAIL / 0 WARN**，含 `no markdown deliverable declared - report-body assertions skipped`（旧 runner 这行恒红）。
+  - `check_cards.py` **EXIT=0 `OK cards=27`**；`check.py --scenario ada2026` **facts 28/28 warn 0/1 → PASS**。
+  - 27/27 `is_recommand=null`、`tag` 只 `""`/`LBA`、卡面无公司代码与行情字段、桶内降序无回升。
+  - failed 桶只有 7 张：ADA 本场候选不足，`PER_BUCKET_CAP=10` 是上限不是配额，未用 `weak` 凑数。
+- **反证**：v0.14 的 ASH 产物跑新事实层 → 只红 `A-T1-present-artifact`（指向 `report.md`），其余 26 项绿。
+- **R16 已落** `evals/EVALUATION_RESULTS.md`。
+
+### runner 缺陷记账（共享 `toolsmith-publish`，本仓只记不占台账编号）
+
+- **O57**：`report_rel` 原硬回落 `output/report.md`，无 md 时 `report contains nonempty content` 恒红 → 改为 md 可选 + `present_artifact` 路径取「∈ deliverables」。备份 `toolsmith-publish.v15.bak`。
+- **O56**：`--resume` 不 `POST /api/chat`，模型不可能变，但旧代码把 CLI 默认值写进 `run.json` / `verification.md`（ASH 2026 的 GPT 6.1 Sol 回合被记成 DeepSeek Flash，同 `turn_id` 可证）。改为续跑继承原记录，显式 `--model` 冲突时告警。**R15 的「平台回落模型」结论据此更正。**
+
 ### 待办
 
-- [ ] 发布（需用户授权）→ `status` 三段对照 `in sync`。
-- [ ] 跑一场 E2E（ASH 或 ADA）确认：`present_artifact` 指向 `output/watchlist.json`、无 `report.md`/`citations.json`、`facts 28/28`。
-- [ ] R16 落 `evals/EVALUATION_RESULTS.md`。
-- [ ] runner `--resume` 未继承 `--model`（v0.14 记的缺陷，本轮未修，待拍板）。
+- [ ] 统一判读文件命名 + 修 `load_judged` 对 `judged_all` 重复计入。
+- [ ] `A-D4` 会议能力 gating；`A-C1-heat-coverage 0/12` 待查。
 
 ## v0.14（2026-11-19）：三态、席位、期别槽 —— 三条「看上去没问题」的规则补成闸门
 

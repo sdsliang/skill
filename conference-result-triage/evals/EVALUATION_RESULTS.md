@@ -609,3 +609,29 @@ pivotal 桶顺序：LBA7 81(推荐) → LBA3 95 → LBA1 90 → 2071O 88 → LBA
 **另一个 runner 侧发现（`--resume` 丢模型参数）**：首轮用 `--model "GPT 6.1 Sol"` 起跑，`--resume` 时未重传，平台回落到项目默认模型，`verification.md` 记的是 **DeepSeek Flash**。产物质量仍达标（30 卡、facts 全绿），说明该 skill 对模型不敏感；但**续跑必须重传 `--model`**，否则「同一 run 换模型」会静默发生。
 
 **结论**：v0.14 的三个目标（三态、顺序/席位闸门、设计词不进期别槽）在 893 条全量判读的大会上全部成立。这轮真正被拧动的旋钮是评测器本身（`A-D1` 动态化），以及两条只有跨会议真跑才照得出来的数据缺口（`lba` 全空、`is_recommand` 列缺失）。
+
+> **更正（v0.15 复核）**：上面那条「`--resume` 平台回落到 DeepSeek Flash」**是记录错，不是平台行为**。续跑的首轮与 `--resume` 两轮 `turn_id` 完全相同（`a896be10-21e5-4ef2-ab97-ad39b07e5f91`），`--resume` 根本不 `POST /api/chat`，模型不可能变；出错的是 runner 把 `a.model`（CLI/配置默认值）写进了 `run.json` 与 `verification.md`。修法见 O56（续跑继承原 `run.json` 的 `model` / `reasoning_effort`，显式 `--model` 与原记录冲突时告警而不篡改）。
+
+## R16（2026-11-19）：v0.15 发布后跑 ADA 2026 —— 交付物只剩一份 JSON，28/28 全绿
+
+**改了什么**：把 `report.md` 及其整条链删掉（frontmatter / `skills` / `{{ref_N}}` / `citations.json` / `check_cards.py --report` / 事实项 `A-C2` / 3 条 citation mutation），`watchlist.json` 成为唯一交付物；rule 19 → 18、facts 30 → 29（28 fail + 1 warn）；`projects.json` 的 `deliverables` 只剩 JSON；runner 侧修掉两处（O57 md 可选、O56 续跑模型记录）。
+
+**对象**：`20261119-144018-cards-ADA-26-v15`（thread `ba885826`，`--model "DeepSeek Flash"`、`--web`，`enable_web=true`）。ADA 2026 191 行 → 交付 **27 卡（early 10 / pivotal 10 / failed 7）**。墙钟 **635.8 s**，86 次工具调用（`execute` 41 / `web_search` 21 / `read_file` 7 / `task` 5 / `write_file` 5 / `with-params` 3 / `present_artifact` 1）。
+
+| 验证点 | 实测 |
+|---|---|
+| 交付物只有一份 | `artifacts/output/` 下**只有 `watchlist.json`**，没有 `report.md`、没有 `citations.json` |
+| `present_artifact` 目标 | `args={'path': '/workspace/output/watchlist.json'}`，且是**最后一个成功调用**（断言 24 PASS） |
+| runner 不再假红 | `[PASS] no markdown deliverable declared - report-body assertions skipped · deliverables=output/watchlist.json`（旧 runner 在这一行恒 FAIL） |
+| 交付前闸门 | `check_cards.py` **EXIT=0 `OK cards=27`** |
+| 事实层 | `check.py --scenario ada2026` **facts 28/28 warn 0/1 → PASS** |
+| 三态 | 27/27 `is_recommand = null`（本场列存在但全空），无一张写成 `false` |
+| 桶内降序 | early `57…36` · pivotal `88…74` · failed `75,65,56,54,52,36,36`，无回升 |
+| 徽章 | `tag` 只有 `""`(17) 与 `LBA`(10)；卡面无 `listed_company` / `ticker` / `exchange` / 行情字段 |
+| 卡面键集 | 18 键，无 `phase`/`phase_inferred` 混用（设计词未进期别槽） |
+
+**失败桶只有 7 张，不是少交付**：ADA 2026 的 pivotal/failed 候选本身就少（v13 同场也是 failed 桶凑不满），`check_cards.py` 的 `PER_BUCKET_CAP=10` 是上限不是配额，未用 `weak` 凑数。这与 v0.14 的「每桶 10 条」不矛盾——那一轮 ASH 1524 行候选充足。
+
+**这轮验证的重点不是榜单质量，而是「删掉一层之后契约是否还成立」**：`present_artifact` 的路径、事实项的 suffix、runner 的回落、`projects.json` 的 deliverables、`check_cards.py` 的参数面，五处全部换到 JSON 上，真跑一次全绿。反证也留了：拿 v0.14 的 ASH 产物跑新事实层 → **只红 `A-T1-present-artifact`**（它指向 `report.md`），其余 26 项照旧绿，说明闸门不是被删空而是被改指。
+
+**发布**：`POST /api/skills/update_skill_file` HTTP 200，`entries=15 identical=15 differing=0`、`STATUS: in sync`（label 仍 `v0.3.0`，部署时间 `2026-11-19T14:40:10`）。共享 SP 未动（`pin matches`；deployed instructions 从 23363 → 23408 chars 的差值只是末尾一行 `Today's date is 2026-11-19.`）。
