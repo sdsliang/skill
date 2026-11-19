@@ -635,3 +635,32 @@ pivotal 桶顺序：LBA7 81(推荐) → LBA3 95 → LBA1 90 → 2071O 88 → LBA
 **这轮验证的重点不是榜单质量，而是「删掉一层之后契约是否还成立」**：`present_artifact` 的路径、事实项的 suffix、runner 的回落、`projects.json` 的 deliverables、`check_cards.py` 的参数面，五处全部换到 JSON 上，真跑一次全绿。反证也留了：拿 v0.14 的 ASH 产物跑新事实层 → **只红 `A-T1-present-artifact`**（它指向 `report.md`），其余 26 项照旧绿，说明闸门不是被删空而是被改指。
 
 **发布**：`POST /api/skills/update_skill_file` HTTP 200，`entries=15 identical=15 differing=0`、`STATUS: in sync`（label 仍 `v0.3.0`，部署时间 `2026-11-19T14:40:10`）。共享 SP 未动（`pin matches`；deployed instructions 从 23363 → 23408 chars 的差值只是末尾一行 `Today's date is 2026-11-19.`）。
+
+## R17（2026-11-20）：v0.16 本地闸门复验 —— `drug`/`target` 从「模型自觉填」变成第四条四件套
+
+**改了什么**：`check_cards.py` 新增第 19 条 `card_identity_gate()`（每卡 `drug`/`target` 非空；`target` 空只认
+`editorial_overrides` 里 `field: "target"` 的声明）；事实项 `A-P10-card-identity` + `op_card_identity`（facts 29 → **30**，
+`EVALUATOR_REVISION` → `2026-11-20-r7`）；mutation `m_drug_blank`；`test_check_cards` 51 → **56**；文档四改
+（`review-protocol §7A` 删掉「会议库已给出 drug/target」这句假话、`data-contract` 表 + 规则数、`SKILL.md` 契约与版本块、
+`pitfalls §44`）。
+
+**为什么值得单列一条记录**：这不是加一条 nice-to-have，而是补一个**已经真实丢失过**的可读层。ADA 2026（R16）
+交付的 27 张卡 `drug`/`target` **27/27 全空**，而当时 `OK cards=27`、`facts 28/28 PASS` —— 18 条规则里没有一条问过
+这两个字段，因为它们的值不从任何列来，只从判读者的阅读里来。
+
+| 验证点 | 实测 |
+|---|---|
+| 单测（干净卡有值） | `test_check_cards.py` → `fixture OK`，新增 5 case 全绿（含「选择跳过理由不许豁免空靶点」反向 case） |
+| 事实层全覆盖 | `mutations.py` → **`coverage: 29/29 fail items have a mutation; 7 negative controls green`** |
+| **反例：真实产物** | `20261119-144018-cards-ADA-26-v15/artifacts/output/watchlist.json` → 新事实层 `facts 28/29 -> FAIL`，**唯一红项 `A-P10-card-identity`**；`check_cards.py` **EXIT=3**、54 处空位（27 卡 × 2 字段） |
+| **正例：已补齐的同一份榜单** | `dist/review/ada2026-watchlist-v15.json`（`attach_arms.py` 从 `clinical_result.arms` 填 22 张 + 5 张手补）→ 只剩 **3 处 `target` 空**（BCG × 2、二甲双胍），正是「确实没有分子靶点」的那三条，须走 `field: "target"` 声明 |
+| 打包 | `dist/conference-result-triage-v0.16.zip` — **151730 B / 15 entries** / sha256 `bd2197a2cbaa3248…` |
+
+**没做的**：未发布（写平台需授权）、未跑 E2E。要在真跑里证明两件事：①模型**在拿不到 `arms` 通道**时会自己从
+标题/摘要里读出药名与靶点；②无靶点的记录会正确写成 `editorial_overrides` 的 `field: "target"` 声明，而不是留空。
+在此之前 v0.16 只能算「闸门就位」，不算「已验收」。
+
+**数据侧的既有结论（供下一轮参考）**：`clinical_result` 无 `drug`/`target`/`moa` 列；唯一结构化来源
+`clinical_result.arms[].drugs[]` 单条 ≈5.9 KB（27 卡 159.9 KB、全场 1097 卡 ≈6.4 MB 撞 6 MB 截断）；
+`is_primary_drug` 实测不可信（ACHIEVE-5 把甘精胰岛素标成 primary）；药名选择必须「标题 `vs` 前段 + cn/en 双名匹配」，
+靶点只取选中药那一条。

@@ -197,6 +197,12 @@
       "severity": "fail",
       "max_seats": 2,
       "rationale": "同一个试验拆成多篇（主结果 + 亚组 + 安全性）会按 `trial_abbreviation` 连占席位：R14 的 `HR17031 vs iGlar` 拿走 pivotal 十席里的三席（71/73/71）。散文里的「同机制 ≤2」管不住同一试验的多篇发表，所以按交付清单实数计，第三席必须在 `editorial_overrides` 里自报理由。"
+    },
+    {
+      "id": "A-P10-card-identity",
+      "op": "card_identity",
+      "severity": "fail",
+      "rationale": "每张卡必须答得出「这是哪个药、打在什么靶点上」。这两个字段没有任何数据列兜底：`clinical_result` 没有 drug/target 字段，唯一的结构化来源 `clinical_result.arms[].drugs[]` 单条 5.9 KB，不可能在全量拉取时带上，所以只能由判读者写 `why` 时顺带从标题/摘要里抽出来。R16（ADA 2026 v0.15）实测 27/27 张卡两个字段全空，卡面药物位全部渲染成「—」、复核页左导退化成截断标题，而交付前闸门 `OK cards=27`、事实层 28/28 全绿——没有闸门的可读性字段等于可静默丢失。无分子靶点的记录（卡介苗、二甲双胍）允许 target 空，但必须在 `editorial_overrides` 里以 `field: \"target\"` 单独声明，不能借用「选择跳过」的理由。"
     }
   ]
 }

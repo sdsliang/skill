@@ -203,7 +203,7 @@ else: 保留机器分桶
 1. **压同质**：同一病种同一机制最多留 2 条（ESMO 2026 早期桶里 SCLC 的 DLL3/SEZ6/B7-H3 ADC 有 5 条 keep，只留最强的 3 条）。
 2. **标注数据类型**：首次公布 > 更新 > 亚组/二次分析。更新类进榜的**理由必须是"数据更成熟后结论更硬"**，不能写成"新药"。
 3. **标出报告形式**：每条写「口头 / 快速口头 / 壁报 / 电子壁报」。同分时口头优先。
-4. **补全药物信息**：`trial_abbreviation` 常看不出药名（如 `PERSEE`、`CA017-078`），必须从摘要 Background 段取药名 + 靶点；会议库已直接给出 `drug` / `target` / `moa` 字段，优先用它。
+4. **补全药物信息（v0.16 起是必答项，不是可选项）**：`trial_abbreviation` 常看不出药名（如 `PERSEE`、`CA017-078`），必须从摘要标题 / Background / 结果表里读出**药名 + 靶点**，写进卡片 spec 的 `drug` / `target`。**别指望数据表给**：`clinical_result` 里**没有** `drug` / `target` / `moa` 列（250 个字段名里就没有这两个名字，`selected_fields` 请求它们会 `INVALID_INPUT`）；唯一的结构化来源是嵌套的 `clinical_result.arms[].drugs[]`（`drug_earth_name_cn/_en/_all_name`、`target_name`、`moa_name_cn/en`），单条约 **5.9 KB**，全量拉取会撞工具结果上限，所以它只在**机器短名单**规模上作为核对手段，不是常规取数通道。既然字段没有任何一列兜底，**空着就是空着**：ADA 2026（v0.15）27/27 张卡 `drug`/`target` 全空，卡面印成 `—`、复核页左导退化成截断标题，而 `check_cards.py` 与事实层全绿。现在 `card_identity_gate()` 要求每张卡两个字段都非空（`A-P10-card-identity`）；确实没有分子靶点的记录（卡介苗、二甲双胍）在 `editorial_overrides` 里以 `field: "target"` 单独声明理由。药名写法：INN 优先，标题只给代号时写 `INN (CODE)`（如 `enicepatide (CT-388)`）；对照药（`vs` 前的才是主角）不要写反。
 5. **跑同资产历史对照**：`scripts/history_for.py --pool pool.json` 拉每个药历次会议的数据，进榜条目必须看一遍。ESMO 2026 实证：SYS6043 从 ASCO 2026 到 ESMO 2026 从 64.0% 降到 45.7%（样本 502 → 137），9MW2821 从 ESMO 2023 的 38.5% 一路降到 30.0% —— 这种趋势单次会议快照看不出来。
 6. **写候补**：每桶列 2–4 条"差一位"，方便读者知道边界在哪。
 7. **不足就写不足**，不要用 weak 凑数；超了按 `score` 从高到低取，同分看报告形式。

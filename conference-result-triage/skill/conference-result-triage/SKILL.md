@@ -279,7 +279,7 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
 ]}
 ```
 
-`title` / `summary` / `why` / `score` 四条必填（v0.13 起 `listed_company` 不再是必填键，见下），缺一条脚本直接停（`score_parts` 没给就沿用判读阶段的值）。`coverage_notes` 与 `editorial_overrides` 写在 plan 顶层，`make_cards.py` 会原样搬到交付 JSON 里 —— 不要渲染完再手改 JSON。
+`title` / `summary` / `why` / `score` 四条必填（v0.13 起 `listed_company` 不再是必填键，见下；**v0.16 起 `drug` / `target` 也必填**——见 Step 4 末尾那条），缺一条脚本直接停（`score_parts` 没给就沿用判读阶段的值）。`coverage_notes` 与 `editorial_overrides` 写在 plan 顶层，`make_cards.py` 会原样搬到交付 JSON 里 —— 不要渲染完再手改 JSON。
 
 **模型必须在输出前把每桶排好：标星卡在前，同类内按 `score` 降序**（v0.12）。`make_cards.py` 只按 `plan.json` 的顺序渲染，**不会替你排**（v0.8 的 e2e7 就跑出过 failed 桶 `[…,63,66]` 的升序尾巴，事实项 `A-P4-score-order` 判失败）。顺序键是 `(is_recommand, -score)`：桶内一律「标星优先、同类降序」，桶与桶之间的顺序没有意义（`early → pivotal → failed` 只是为了读者阅读）。
 
@@ -343,6 +343,7 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 - `coverage_notes` 是**必填**的字符串数组，上面两条声明各至少一条；`check_cards.py` 会按语义（不是字面措辞）校验它。
 - `esid` 是结果记录 id（用户要的"对应的结果id"）；`abstract_id` 是会议摘要号，取自 `clinical_result.abstract_id`，**必须与 `rows.json` 逐字一致**（v0.12）。三种错法都会被 `check_cards.py` 拦：rows 有值而卡片留空、卡片值与 rows 不同、rows 无值而卡片凭空填。空值只在真的没有时出现（会议里偶有缺失），不能靠留空躲检查。
 - `is_recommand` **三态照抄，必须与 `rows.json` 的 `clinical_result.is_recommand` 完全一致**：`是`→`true`、`否`→`false`、空→`null`。空值写成 `false` 是**伪造排除指令**（平台的 `否` 语义就是"解读时须排除"），三态之间任何跨写都判失败。**标星不戴徽章**（v0.13）：`tag` 只写 `""` 或 `LBA`，标星的作用是**排在桶首**，不是加一个"推荐"标签 —— 判读榜上加自家徽章会被读成我们的背书。
+- **`drug` / `target` 必填且非空（v0.16）**：卡面第一行要回答「这是哪个药、打在什么靶点上」。这两项**没有任何数据列兜底**（`clinical_result` 无 `drug`/`target` 列，唯一结构化来源 `clinical_result.arms[].drugs[]` 单条约 5.9 KB，全量拉不动），所以是**判读者写 `why` 时顺手从标题/摘要抽出来**写进 `plan.json`——不是脚本能补的。确实没有分子靶点的记录（卡介苗、二甲双胍）在 `editorial_overrides` 里以 `field: "target"` 单独声明理由（≥10 字）；借「选择跳过」的理由不算。`card_identity_gate()` 与事实项 `A-P10-card-identity` 双份看着这条，实测教训：ADA 2026 27/27 张卡两项全空、卡面全是 `—`，其余闸门一个没响。
 - `score` / `score_parts` 是判读结论（Step 4 给的分），不是脚本算的；总分只用来决定阅读顺序，`why` 里不出现分数。
 - `why` 是**价值判断**（2–4 句、≥60 字），不是 `summary` 的改写：它要回答"这项研究为什么重要"，而 `summary` 回答"报告了什么"。
 - **卡片上没有公司代码**（v0.13）：`listed_company` / `ticker` / `exchange` 一个都别写，写了（哪怕是 `null`）`check_cards.py` 判失败；`stock` / `reaction` / `change_pct` 这类行情字段更不行。公司名进正文散文即可。
@@ -396,6 +397,8 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 | `scripts/history_for.py` | 同资产历次会议对照（辅助判断趋势） | 需上面两个 |
 
 ## 版本
+
+- **v0.16** — **卡面标识从「模型自觉填」变成闸门**。起因是 ADA 2026（v0.15）交付的 27 张卡 `drug` / `target` **27/27 全空**：卡头药物位渲染成 `—`，复核页左导退化成截断标题，而交付前闸门 `OK cards=27`、事实层 28/28 全绿——两项都没人管。根因不是渲染层：`clinical_result` 里**根本没有** `drug` / `target` 列（`selected_fields` 请求即 `INVALID_INPUT`），唯一结构化来源是嵌套的 `clinical_result.arms[].drugs[]`，单条 ≈5.9 KB，全量 1097 条 ≈6.4 MB 会撞工具结果上限，只能对短名单核对；所以这两个值是**判读者读标题/摘要时抽出来的**，而「模型自觉填」的字段必须设闸门，不能靠渲染层兜底（渲染层也不许现编药名）。①**`check_cards.py` 新增第 19 条 `card_identity_gate()`**：每卡 `drug` 与 `target` 必须是非空字符串；`target` 可空但只认 `editorial_overrides` 里 **`field: "target"`** 的声明（≥10 字理由），**按字段分键**——「同机制让席」这类选择理由不能顺带豁免空卡面。②**事实项 `A-P10-card-identity`**（`op_card_identity`，fail）+ mutation `m_drug_blank`（把一张卡的 `drug` 清空，卡仍然合法、仍然可溯源），事实层 29 → **30 条（29 fail + 1 warn）**，`EVALUATOR_REVISION` → `2026-11-20-r7`。③**文档去掉一句假话**：`review-protocol.md §7A` 原写「会议库已直接给出 `drug`/`target`/`moa` 字段，优先用它」——平台内没有那个库，这句话正是全空的成因，改为「必须从标题/摘要读出，写进 spec」并附 `arms` 的正确用法；`data-contract.md` 的表同步标注「结构化表没有这三列」。④`test_check_cards.py` 49 → **56 case**（含「选择理由不许豁免空靶点」反向 case），夹具补 `drug`/`target`。药名写法沿用复核页那轮的实测规则：`vs` 前的才是主角，INN 不在标题里时写 `INN (CODE)`。
 
 - **v0.15** — **交付物收敛成一份 JSON**。删掉 `report.md`（连同它带来的整条元数据链）：YAML frontmatter / `skills` 数组 / `{{ref_N}}` 标记 / `citations.json` / 平台 profile 的固定路径断言，全部没有存在理由——它们只服务于「让宿主把一份人读的 Markdown 渲染出来」，而这份 skill 的产物是 30 张卡的判读结果，读者要的是 JSON。①**`check_cards.py` 删掉 `--report` 与 `check_report()`**（frontmatter / 引文三键 / 双向一致性三条规则随之消失，docstring 19 → 18 条，规则 15–19 前移为 14–18）。②**事实层 `A-C2-report-frontmatter` 删除**（30 → **29 条：28 fail + 1 warn**），`A-T1-present-artifact` 的 `suffix` 改为 `output/watchlist.json`；mutation 三条换成一条 `m_present_md`（把 `present_artifact` 改回 `report.md` 即判失败），NEG 删掉「声明引文且对得上」（该项已无对象）。③**`projects.json` 的 `deliverables` 只剩 `output/watchlist.json`**，本地 runner 的 `report_rel` 不再硬回落 `output/report.md`（见 runner 侧 O52）。④`templates/watchlist-report.md` 从发布包移除（16 → 15 entries）。
 

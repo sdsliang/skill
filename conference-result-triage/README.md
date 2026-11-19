@@ -28,6 +28,11 @@
 桶内同类按 `score` 降序、同一试验最多 2 席也是**交付前闸门**（v0.14，`check_cards.py` 的
 `bucket_order_gate()` / `trial_seats_gate()`）——此前这两条只写在文档里，靠事后事实项抓漏。
 
+卡面第一行必须答得出「哪个药、打什么靶点」（v0.16，`card_identity_gate()`）：`drug` / `target` 两列在
+`clinical_result` 里**不存在**（唯一结构化来源是嵌套的 `arms[].drugs[]`，单条 ≈5.9 KB，只能对短名单核对），
+所以它们是判读者读摘要时抽出来写进 `plan.json` 的；ADA 2026 那轮 27/27 张卡两项全空、其余闸门全绿，
+所以现在做成闸门 + 事实项 `A-P10-card-identity`（无靶点记录须在 `editorial_overrides` 里按 `field: "target"` 声明）。
+
 **卡片里没有股价**（v0.9 删除）：按每条摘要自己的披露日重锚、扣掉板块基准后，24 条行情里 **18 条落在 ±0.6% 内**，
 同一公司的多张卡还拿到同一个数字（MRK 8 张卡全是 −3.83%）—— 那个数字是板块 beta，不是对这条读数的反应。
 `stock` / `reaction` / `change_pct` 等键一旦回潮，`check_cards.py` 与事实项 `A-N1-no-market-claims` 都会拒。

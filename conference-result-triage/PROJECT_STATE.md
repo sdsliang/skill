@@ -1,5 +1,53 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.16（2026-11-20）：卡面标识变成闸门 —— `drug` / `target` 没有任何数据列兜底
+
+出发点是用户一句「`drug_names` 那个不行就算了，**让 llm 写理由的时候兜底抽吧**」。查完才发现，兜底抽取
+这件事此前**根本没人检查**：ADA 2026（v0.15）交付的 27 张卡 `drug` / `target` **27/27 全空**，卡头药物位印成
+`—`、复核页左导退化成截断标题，而 `check_cards.py` `OK cards=27`、事实层 `28/28 PASS` —— 18 条规则里
+没有一条问过这两个字段。
+
+### 根因链（四步证伪）
+
+1. **`base.trial_drug`**（用户猜的名字）不存在：`grep trial_drug` → 0 命中。
+2. **`clinical_result.drug` / `.target` / `.moa`** 不在 `ALLOWED_FIELD_NAMES`（250 个名字），写进 `selected_fields`
+   直接 `INVALID_INPUT`；唯一沾药的 `clinical_result.projects` 是**申办方/公司**（v0.13 明令禁用）。
+3. **`clinical_result.arms[].drugs[]` 是真的**：`drug_earth_name_cn/_en/_all_name`、`target_name`、`target_all_name`、
+   `moa_name_cn/en`、`is_primary_drug`、`latest_phase`；但**单条 ≈5.9 KB**（27 卡 159.9 KB，全场 1097 卡 ≈6.4 MB
+   会撞工具结果 6 MB 截断）→ 只能是「短名单核对通道」，不能当常规取数。
+4. 因此 `drug` / `target` 的合法来源只剩**判读者读标题/摘要时抽出来写进 `plan.json`**；而「模型自觉填」的
+   字段没有任何闸门 → 空着不会有人知道。
+
+### 改动（四件套）
+
+| 层 | 改动 |
+|---|---|
+| 校验层 | `check_cards.py` 新增**第 19 条** `card_identity_gate()`：每卡 `drug` / `target` 必须为非空字符串；`target` 允许为空但只认 `editorial_overrides` 里 **`field: "target"`** 的声明（reason ≥10 字），**按字段分键**——「同机制让席」这类选择理由不能顺带豁免空卡面。`MIN_OVERRIDE_CHARS=10`、`IDENTITY_FIELDS` 常量同增 |
+| 事实层 | `op_card_identity` + 事实项 **`A-P10-card-identity`**（fail，同一条字段级豁免语义）；`facts.json` **29 → 30 项（29 fail + 1 warn）**；`EVALUATOR_REVISION` → `2026-11-20-r7` |
+| 夹具层 | `mutations.py` 新增 **`m_drug_blank`**（把一张卡的 `drug` 清空：卡仍合法、仍可溯源、仍在合法桶内，只是说不出是哪个药）；fixture 补 `drug`/`target`。`test_check_cards.py` 51 → **56 case**（含反向 case「选择跳过理由不许豁免空靶点」） |
+| 文档层 | `review-protocol.md §7A` 删掉那句假话（原写「会议库已直接给出 `drug`/`target`/`moa`，优先用它」——平台内没有那个库，这句正是没人去读摘要的成因）；`data-contract.md` 的表标注「结构化表没有这三列」+ 规则数 18 → 19；`SKILL.md` 交付契约新增 `drug`/`target` 必填条款 + v0.16 版本块；`README.md` 补一段；`pitfalls.md` **§44** |
+
+### 验证（本地，全部离线）
+
+- `python3 evals/test_triage.py` → `fixture OK (6 rows, design-fallback + dedupe-alias covered)`。
+- `python3 evals/test_check_cards.py` → `fixture OK`（新增 5 case 全绿）。
+- `python3 evals/fact-check/mutations.py` → **`coverage: 29/29 fail items have a mutation; 7 negative controls green`**。
+- **反例（真实产物）**：`20261119-144018-cards-ADA-26-v15` 的原始 `watchlist.json` 跑新事实层 → `facts 28/29 -> FAIL`，
+  唯一红项 = `A-P10-card-identity`；同一产物跑 `check_cards.py` → **EXIT=3**、54 处空位（27 卡 × 2 字段）。
+- **正例**：把 `dist/review/` 里已用 `attach_arms.py` 补齐的 27 卡（`ada2026-watchlist-v15.json`）喂同一套闸门 →
+  只剩 3 处 `target` 为空（BCG × 2、二甲双胍），即「确实没有分子靶点」的那三条，也正是必须走
+  `field: "target"` 声明的情形 —— 闸门不是空的。
+- `dist/conference-result-triage-v0.16.zip` — **151730 B / 15 entries** / sha256 `bd2197a2cbaa3248…`。
+
+### 未做（等授权 / 待定）
+
+- **未发布**：写平台 skill 需用户点头（本轮只做到本地全绿 + dist 打包）。
+- **未跑 E2E**：v0.16 需一场新 run（建议 ADA 2026 复跑或换 ESO/ESC）证明模型在**没有 arms 通道**的情况下
+  也会把 `drug`/`target` 写进 plan，且 3 张无靶点卡正确走 `editorial_overrides`。
+- **未把 `attach_arms.py` 接进 skill 包**：它现在只在 `dist/review/`（本地复核页工具链），是否进
+  `scripts/` 并写成「短名单 45 卡 → 每 10 个 esid 切片拉 arms → 填卡」的一步，取决于是否愿意为 265 KB
+  的额外一次调用付代价（当前默认：不拉，靠判读者读摘要）。
+
 ## v0.15（2026-11-19）：交付物收敛成一份 JSON（删 report.md + citations 整条链）
 
 用户原话：「不要 report.md 啊，citation 也不需要啊，只要 watchlist 就行了」。这不是"再修一遍引文三键"，

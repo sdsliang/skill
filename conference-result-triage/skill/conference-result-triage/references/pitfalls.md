@@ -674,3 +674,49 @@ v0.10 为了不让这些行被当非试验证据删掉，让 `phase_of()` 原样
 教训：**判断一份交付物该不该存在，看它有没有第二个读者**。Markdown 的读者是宿主渲染器（一份人读的
 页面），JSON 的读者是下游（复核页、比对表、下一轮 skill）—— 后者才是真正的消费者，前者是为一层
 多余的展示付的维护费。
+
+## 44. 「模型自觉填」的字段，等于没有字段（v0.16）
+
+ADA 2026 那轮（v0.15）交付的 27 张卡，`drug` 与 `target` **27/27 全空**。卡头第一行印的是 `—`，
+复核页左侧目录退化成截断标题（`Ensitrelvir…` 这种），整份清单失去「这是哪个药」这一层。而当时：
+
+- `check_cards.py` → `OK cards=27`，exit 0；
+- 事实层 `28/28 -> PASS`；
+- `why` 全部 ≥60 字、数字逐条溯源、桶内降序、席位、三态 `is_recommand` —— **18 条规则一条没响**。
+
+因为 18 条规则里**没有一条问过这两个字段**。这不是"渲染层少兜一层"，这是「字段根本没有读者检查」。
+
+### 根因不是模型偷懒，是数据里没有
+
+先证伪了三遍布在的猜测：
+
+1. **`base.trial_drug`**：用户猜的那个名字，`grep trial_drug` → 0 命中，整个 schema 里不存在。
+2. **`clinical_result.drug`**：`ALLOWED_FIELD_NAMES` 250 个名字里没有 `drug` / `target` / `moa`，
+   写进 `selected_fields` 直接 `INVALID_INPUT`。唯一沾药的是 `clinical_result.projects`，
+   那是**申办方/公司**（v0.13 已明令禁用）。
+3. **`clinical_result.arms[].drugs[]`**：这个是真的。实测 `selected_fields: ["clinical_result.arms"]`
+   拿到 `drug_earth_name_cn` / `_en` / `_all_name`、`target_name`、`target_all_name`、`moa_name_cn/en`、
+   `is_primary_drug`、`latest_phase`。**但单条 ≈5.9 KB**：27 卡 = 159.9 KB 可行，全场 1097 卡 ≈6.4 MB
+   会撞工具结果 6 MB 截断 —— 它只能是「短名单核对通道」，不可能是常规取数。
+
+所以 `drug` / `target` 的合法来源只有两个：**判读者从标题/摘要里读出来**，或对 45 条短名单单独拉
+`arms` 核对。两者都要有人写，**没有一列会替我们填**。
+
+### 修法：闸门 + 事实项 + 反例 + 文档硬契约（四件套）
+
+- `check_cards.py` 第 19 条 `card_identity_gate()`：每卡 `drug`/`target` 必须非空字符串；
+- 事实项 `A-P10-card-identity`（`op_card_identity`）+ mutation `m_drug_blank`；
+- `test_check_cards.py` 增加反向 case：**「同机制让席」这种选择理由不许豁免空靶点** ——
+  豁免必须 `field: "target"` 分键，否则一本账管两件事，第二次就会有人借 A 的理由放行 B；
+- 文档侧删掉那句**假话**：`review-protocol.md §7A` 原来写「会议库已直接给出 `drug`/`target`/`moa`
+  字段，优先用它」——平台内没有那个库，这句话正是"没人去读摘要"的成因。
+
+### 顺带记住的两个实测规则
+
+1. **`is_primary_drug` 不可信**：多数为空；ACHIEVE-5（orforglipron vs 滴定甘精胰岛素）把它标在
+   **甘精胰岛素**上。按它选药，卡面主角会变成对照药。
+2. **标题里 `vs` 之前的那一段才是主角**；匹配必须 cn+en 双名都试（英文摘要 vs 只有中文名的
+   `arms`），靶点只取选中药那一条 —— 否则对照药的靶点会漏到卡上（`甘精胰岛素 | insulin` 那次）。
+
+教训：**凡是「让模型自觉填」的字段，都要问一句「它空了谁会知道」**。答案如果是"没人知道"，
+那它就不是字段，是运气。可读性字段尤其危险：它不影响任何数字，所以所有数字类闸门都会放它过去。

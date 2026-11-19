@@ -83,7 +83,10 @@ def card(item, score=60, parts=None):
         "score_parts": parts or {"evidence_strength": 20, "effect_size": 15,
                                  "clinical_impact": 15, "novelty": 5,
                                  "readout_maturity": 5},
-        "drug": "", "target": "", "indication": "", "phase": "", "presentation": "",
+        # v0.16: the card face. There is no data column behind either field, so the
+        # legal shim states them; a blank drug is a rendered dash, not a soft default.
+        "drug": "Tarlatamab", "target": "DLL3",
+        "indication": "", "phase": "", "presentation": "",
         "stock": None,
     }
 
@@ -460,6 +463,40 @@ elif check_cards._recommand_of({"forced": True}) is not True:
     failures.append("a forced row must map to True")
 else:
     print("  ok  is_recommand: text three states map to True / False / None")
+
+# 21. v0.16: a card must name the drug and the target. Neither comes from a column,
+# so this is the only thing standing between the run and 27/27 blank card faces.
+clean, _ = check_cards.card_identity_gate([base[0]])
+if clean:
+    failures.append(f"a card naming drug+target should pass identity: {clean}")
+else:
+    print("  ok  identity: drug+target named passes")
+
+blank, _ = check_cards.card_identity_gate([dict(base[0], drug="")])
+expect("identity: blank drug", blank, "drug is empty")
+
+gone, _ = check_cards.card_identity_gate([{k: v for k, v in base[0].items()
+                                           if k != "target"}])
+expect("identity: missing target key", gone, "target missing or not a string")
+
+# 21b. `target` may be empty for a record with no molecular target, but the excuse has
+# to be keyed to the field -- a selection-skip reason must not double as a licence.
+excused, notes = check_cards.card_identity_gate(
+    [dict(base[0], target="")],
+    [{"esid": base[0]["esid"], "field": "target",
+      "reason": "卡介苗是免疫调节疫苗，没有分子靶点可比。"}])
+if excused:
+    failures.append(f"a field-keyed override should excuse an empty target: {excused}")
+elif not any("declared in editorial_overrides" in n for n in notes):
+    failures.append("an excused empty target must be reported as a note, not silence")
+else:
+    print("  ok  identity: empty target excused only via field-keyed override")
+
+unkeyed, _ = check_cards.card_identity_gate(
+    [dict(base[0], target="")],
+    [{"esid": base[0]["esid"], "reason": "同机制已有两张卡，这一席让给更弱的读数。"}])
+expect("identity: selection reason must not excuse a blank target", unkeyed,
+       "target is empty")
 
 if failures:
     print(f"\nFAIL ({len(failures)}):")

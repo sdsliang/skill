@@ -89,6 +89,11 @@ def build_fixture(root):
                         # is empty for this conference), never `False` -- printing
                         # `false` is an exclusion instruction nobody issued.
                         "is_recommand": True if (i == 0 and j == 0) else None,
+                        # v0.16: the card face. No column carries these -- they are
+                        # extracted by the reviewer -- so the legal fixture states them
+                        # explicitly, exactly like the judge must.
+                        "drug": f"{name}-drug{j}",
+                        "target": ("PD-1" if bucket != "failed" else "VHL"),
                         "summary": f"ORR {float(30 + i + j)}% with HR {0.5 + j / 100:.2f}",
                         # A judgement, not a label: >=60 chars, and not a re-wrap of
                         # `summary` (that pair of rules is what A-P5 audits).
@@ -313,6 +318,18 @@ def m_trial_seats(root):
     for row in doc["rows"][:3]:
         row["clinical_result_trial_abbreviation"] = "HR17031"
     write(root, "artifacts/work/rows.json", doc)
+
+
+def m_drug_blank(root):
+    """One card shipped with no drug name -- the ADA 2026 v0.15 shape, one card wide.
+
+    Not a formatting mutation: the card is still traceable, still scored, still in a
+    legal bucket and still reads fine to a machine. It just cannot tell a reader which
+    drug the readout is about, which is the whole point of a card face.
+    """
+    w = read(root, "artifacts/output/watchlist.json")
+    w["cards"][0]["drug"] = ""
+    write(root, "artifacts/output/watchlist.json", w)
 
 
 def m_recommand_dropped(root):
@@ -554,6 +571,7 @@ MUTATIONS = [
     ("A-P7-recommand-forced", m_recommand_dropped),
     ("A-P8-recommand-tristate", m_recommand_collapsed),
     ("A-P9-trial-seats", m_trial_seats),
+    ("A-P10-card-identity", m_drug_blank),
     ("A-F2-manual-null", m_manual),
     ("A-F3-esid-in-pool", m_esid),
     ("A-F4-numbers-traceable", m_number),

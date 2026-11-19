@@ -82,7 +82,7 @@ ESC 那 123 条里就有 ACACIA-HCM（aficamten）、ENRICH-AF、SAL003 —— �
 
 因此增加**并列第二入口** `scripts/meeting_pull.py` + `meeting_join.py`：
 
-- 会议摘要库（`medicalMeeting`）**只在有外网时**才可用：按 title join 补 `abstract_id` / `presentation` / `target` / `drug` / `moa` / 全文。平台内没有这个工具，`abstract_id` 恒为 `null`，报告形式只剩 `lba` 一个信号（见 3.1）；
+- 会议摘要库（`medicalMeeting`）**只在有外网时**才可用：按 title join 补 `abstract_id` / `presentation` / `target` / `drug` / `moa` / 全文。平台内没有这个工具（`abstract_id` 自 v0.12 起改为请求 `clinical_result.abstract_id`，报告形式只剩 `lba` 一个信号，见 3.1；药名/靶点同样补不到，只能由判读者从标题与摘要里读出来，见 `review-protocol.md §7A`）；
 - 只在摘要库里的记录 → 需「有药名 + Results 段有数字 + 能解析出期别 + 非 RWE/回顾/综述」才转成补充行；
 - **补充行只进 `early`**。期别是从散文里正则抽的，稳健度远低于 curated `evidence_source`，不够格撑 pivotal / failed 两桶。
 

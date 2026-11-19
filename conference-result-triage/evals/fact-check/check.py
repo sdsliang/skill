@@ -40,7 +40,7 @@ import re
 import sys
 from typing import Dict, List
 
-EVALUATOR_REVISION = "2026-11-13-r6"
+EVALUATOR_REVISION = "2026-11-20-r7"
 
 # Presidential / late-breaking trials the X discussion concentrated on. Used by the
 # heat-coverage item, which is `warn`: the list must never be bent toward what was
@@ -487,6 +487,54 @@ def op_no_market_claims(sv, spec):
     if hits:
         return False, f"market data came back: {', '.join(hits[:5])}"
     return True, f"no price / company code on {len(cards)} card(s)"
+
+
+IDENTITY_FIELDS = ("drug", "target")
+
+
+def op_card_identity(sv, spec):
+    """Every card must print the drug and the target it hits (v0.16).
+
+    Neither field has a data column behind it: `clinical_result` exposes no drug/target
+    field, and the only structured source (`clinical_result.arms[].drugs[]`) costs 5.9 KB
+    per record, so it is not pulled at conference scale. The reviewer extracts the name
+    while writing `why` -- which means an empty name is invisible unless something asks.
+
+    Measured on ADA 2026 (v0.15): 27/27 cards blank, `OK cards=27`, this fact layer 28/28
+    green. The card face said `—` and the sidebar had nothing to label cards with.
+
+    `target` may be empty for a record with no molecular target, but the excuse has to be
+    keyed to the field (`field: "target"` in `editorial_overrides`), so a reason written
+    for a selection skip cannot cover a blank card.
+    """
+    watch = sv["watchlist"] or {}
+    cards = watch.get("cards") or []
+    excused = {}
+    for entry in watch.get("editorial_overrides") or []:
+        if not isinstance(entry, dict):
+            continue
+        esid = str(entry.get("esid") or "").strip()
+        reason = " ".join(str(entry.get("reason") or "").split())
+        raw = entry.get("fields") or entry.get("field")
+        names = {raw} if isinstance(raw, str) else set(raw or [])
+        if esid and len(reason) >= 10:
+            for name in names & set(IDENTITY_FIELDS):
+                excused.setdefault(esid, set()).add(name)
+    blank = []
+    for i, card in enumerate(cards, 1):
+        esid = str(card.get("esid") or "").strip()
+        for name in IDENTITY_FIELDS:
+            value = card.get(name)
+            if isinstance(value, str) and value.strip():
+                continue
+            if name in excused.get(esid, set()):
+                continue
+            blank.append(f"card{i}.{name}")
+    if blank:
+        return False, f"blank identity on {len(blank)} slot(s): {', '.join(blank[:5])}"
+    if not cards:
+        return False, "no cards -- nothing to check"
+    return True, f"drug+target named on {len(cards)} card(s)"
 
 
 def op_count_matches(sv, spec):
@@ -1035,6 +1083,7 @@ OPS = {
     "promotion_traceable": op_promotion_traceable,
     "web_evidence": op_web_evidence,
     "no_market_claims": op_no_market_claims,
+    "card_identity": op_card_identity,
     "recommand_tristate": op_recommand_tristate,
     "trial_seats": op_trial_seats,
     "heat_coverage": op_heat_coverage,

@@ -65,6 +65,17 @@ Checks
      chars) -- the same ledger as rule 15, not a new back door. Where the rows carry
      no ``trial_abbreviation`` this check reports "nothing to group by" rather than
      passing: an empty surface is not a green light.
+ 19. **every card names its drug and its target** (v0.16). The result tool has no
+     drug/target column: the only structured source is the nested
+     ``clinical_result.arms[].drugs[]``, and at 5.9 KB per record it is not pulled at
+     conference scale. So ``drug`` / ``target`` are extracted by the reviewer from the
+     title/summary/abstract while it writes ``why`` -- and until v0.16 nothing checked
+     them: the ADA 2026 run shipped 27/27 cards with both empty, the card face rendered
+     ``—``, and the sidebar collapsed to truncated titles while every other gate stayed
+     green. A record with no molecular target at all (BCG, metformin) may leave
+     ``target`` empty only by declaring it in ``editorial_overrides`` with
+     ``field: "target"`` and a reason (>=10 chars): the same ledger, but keyed per
+     field, so a selection-skip reason cannot silently cover a blank card face.
 """
 
 from __future__ import annotations
@@ -91,6 +102,10 @@ PRICE_KEYS = ("stock", "reaction", "change_pct", "excess_pct", "bench_change_pct
 COMPANY_CODE_KEYS = ("listed_company", "ticker", "exchange")
 # v0.13: the only legal slot labels. `is_recommand` is not one of them -- it orders.
 TAGS = ("", "LBA")
+# v0.16: the two fields that answer "which drug is this, hitting what". There is no
+# column behind them, so the only way to keep them populated is to check them.
+IDENTITY_FIELDS = ("drug", "target")
+MIN_OVERRIDE_CHARS = 10
 BUCKETS = ("early", "pivotal", "failed")
 SCORE_CAPS = {"evidence_strength": 30, "effect_size": 25, "clinical_impact": 25,
               "novelty": 10, "readout_maturity": 10}
@@ -415,6 +430,65 @@ def trial_seats_gate(cards: List[Dict[str, Any]],
     if seats:
         notes.append(f"seats: {len(seats)} distinct trials across "
                      f"{sum(len(v) for v in seats.values())} cards (cap {max_seats})")
+    return fails, notes
+
+
+def card_identity_gate(cards: List[Dict[str, Any]],
+                       overrides: Any = None) -> Tuple[List[str], List[str]]:
+    """Every card must say which drug it is about, and what that drug hits.
+
+    v0.16. Nothing in the deliverable used to check this, and the fields do not come
+    from the data: `clinical_result` has no drug/target column (the only structured
+    source is `clinical_result.arms[].drugs[]`, 5.9 KB per record), so `make_cards.py`
+    copies whatever the plan says and an empty plan field is simply an empty card face.
+    The ADA 2026 run proved the failure mode: 27/27 cards shipped blank, `OK cards=27`,
+    and the review page rendered `—` for every drug.
+
+    `target` may be empty for a record that has no molecular target (BCG, metformin),
+    but only by declaring `field: "target"` in `editorial_overrides` with a reason. The
+    field key matters: a reason written to excuse a *selection* skip must not double as
+    a licence for a blank card.
+    """
+    fails: List[str] = []
+    notes: List[str] = []
+    cards = cards or []
+    excused: Dict[str, set] = {}
+    for entry in (overrides if isinstance(overrides, list) else []):
+        if not isinstance(entry, dict):
+            continue
+        esid = str(entry.get("esid") or "").strip()
+        reason = " ".join(str(entry.get("reason") or "").split())
+        raw_field = entry.get("fields") or entry.get("field")
+        fields = {raw_field} if isinstance(raw_field, str) else set(raw_field or [])
+        if not esid or len(reason) < MIN_OVERRIDE_CHARS:
+            continue
+        for name in fields & set(IDENTITY_FIELDS):
+            excused.setdefault(esid, set()).add(name)
+    filled = 0
+    for card in cards:
+        tag = f"card[{card.get('esid') or '?'}]"
+        for name in IDENTITY_FIELDS:
+            value = card.get(name)
+            if not isinstance(value, str):
+                fails.append(f"{tag}: {name} missing or not a string -- every card must "
+                             f"name the drug and the target it hits")
+                continue
+            if value.strip():
+                filled += 1
+                continue
+            if name in excused.get(str(card.get("esid") or "").strip(), set()):
+                notes.append(f"identity: {card.get('esid')} has no {name} "
+                             f"(declared in editorial_overrides)")
+                continue
+            fails.append(f"{tag}: {name} is empty -- extract it from the title/summary/"
+                         f"abstract while writing `why` (the result tool has no "
+                         f"{name} column), or declare editorial_overrides with "
+                         f"field={name!r} and a reason")
+    if cards:
+        notes.append(f"identity: {filled}/{2 * len(cards)} drug/target slots filled on "
+                     f"{len(cards)} card(s)")
+    else:
+        notes.append("identity: no cards -- nothing to check")
     return fails, notes
 
 
@@ -744,6 +818,10 @@ def main(argv: List[str] | None = None) -> int:
                                      payload.get("editorial_overrides"))
     fails += tfails
     notes += tnotes
+    ifails, inotes = card_identity_gate(payload.get("cards") or [],
+                                        payload.get("editorial_overrides"))
+    fails += ifails
+    notes += inotes
     if notes and args.verbose:
         for n in notes:
             print(f"  note: {n}")

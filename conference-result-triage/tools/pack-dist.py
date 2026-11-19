@@ -31,7 +31,7 @@ import zipfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "skill", "conference-result-triage")
-VERSION = "v0.15"
+VERSION = "v0.16"
 NAME = "conference-result-triage"
 OUT = os.path.join(REPO, "dist", f"{NAME}-{VERSION}.zip")
 PREFIX = NAME + "/"

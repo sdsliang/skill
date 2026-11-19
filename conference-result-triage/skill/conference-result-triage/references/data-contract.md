@@ -190,7 +190,7 @@ v0.13 把那一层剩下的代码也删了（`listed_company` / `ticker` / `exch
 交付物只有 `/workspace/output/watchlist.json`。**没有 `report.md`**，因此也没有 frontmatter、`skills` 数组、`{{ref_N}}` 标记与 `citations.json`——这一整层在 v0.9–v0.14 存在，唯一的用途是让宿主把一份人读的 Markdown 渲染出来；而这份 skill 的产物是 30 张卡的判读结果，多渲染一份 md 只会让同一份判断有两个源（改了一个忘了另一个才是真风险）。
 
 - `present_artifact` 指向 `/workspace/output/watchlist.json`（事实项 `A-T1-present-artifact`，mutation `m_present_md`：把路径写回 `report.md` 即判失败）。
-- `check_cards.py` 不再有 `--report`；它只校验卡片与池子的自洽（18 条规则，见脚本 docstring）。
+- `check_cards.py` 不再有 `--report`；它只校验卡片与池子的自洽（**19** 条规则，见脚本 docstring；v0.16 新增第 19 条卡面标识）。
 - `projects.json` 的 `deliverables` 只剩 `["output/watchlist.json"]`；本地 runner 的交付物断言按这个列表取值，不再硬回落 `output/report.md`（旧的回退会让一份合法交付永远红在 `report contains nonempty content`）。
 - 同一试验的多条记录只出一张卡，但兄弟 esid 仍然合法：`triage.build_pools` 按 `trial_abbreviation` 去重，胜出条目带 `alias_esids`（被合并的 esid 列表）。卡面写哪一条都可以，成员资格按 `rows.json` 现场重算后两者都认。
 - 一次请求一套最终产物（除明确要求多语言）。
@@ -227,7 +227,7 @@ v0.13 把那一层剩下的代码也删了（`listed_company` / `ticker` / `exch
 | `abstract_id` | **报告形式来源**（后缀 `O`/`RO`/`P`/`eP`/`eTiP`）+ 唯一标识 |
 | `abstract_text` | 全文（B 型裸标题格式：`Background` / `Methods` / `Results` / `Conclusions` 各占一行） |
 | `title` | join 键（`NFKD` + 小写 + 非字母数字转空格） |
-| `drug` / `target` / `moa` | 结构化表常缺；ESMO 2026 分别 1954 / 1797 条有值 |
+| `drug` / `target` / `moa` | **会议摘要库**有：ESMO 2026 分别 1954 / 1797 条有值。**结构化结果表没有这三列**（v0.16 复核：`ALLOWED_FIELD_NAMES` 里不存在 `clinical_result.drug` / `.target` / `.moa`，唯一沾药的是 `clinical_result.projects`，那是申办方/公司、v0.13 已禁用）——平台内要用只能走嵌套的 `clinical_result.arms[].drugs[]`，单条 ≈5.9 KB，只适合对短名单核对，不适合全量拉取。所以卡片上的药名/靶点是**判读者从标题与摘要里读出来的**，闸门见 `review-protocol.md §7A` 第 4 条 |
 | `abstract_release_date` / `meeting_date` / `url` | 时间线与引用 |
 | `session_type` | 报告形式（也可从 `abstract_id` 后缀直接得，更稳） |
 
