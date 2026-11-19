@@ -37,15 +37,23 @@ def entry(idx, c, bucket):
         chips.append(f'<span class="chip drug">{esc(drug)}</span>')
     else:
         chips.append('<span class="chip ghost">药品未标注</span>')
-    if c.get("tag") == "LBA":
-        chips.append('<span class="chip solid">LBA</span>')
+    # v0.17: no separate "LBA" chip. The abstract number already carries the marker
+    # (LBA41, LBA7), so the chip only repeated it in a louder style. The word survives
+    # only where the number is missing, so the late-breaking fact is not lost with it.
+    num = str(c.get("abstract_id") or "").strip()
+    up = num.upper()
+    # ESMO numbers lead with the marker (LBA41), ADA numbers trail it (3093-LB); both
+    # already tell the reader, so the word is only needed when there is no number.
+    marker_in_num = up.startswith("LBA") or up.endswith("LB")
+    if c.get("tag") == "LBA" and not marker_in_num:
+        chips.append('<span class="chip ghost">Late-breaking</span>')
     # v0.12: the abstract number is what a reader types into the abstract book, so it
     # belongs on the card face; it is copied from the record, never inferred.
-    if c.get("abstract_id"):
-        chips.append(f'<span class="chip no-id">{esc(c["abstract_id"])}</span>')
+    if num:
+        chips.append(f'<span class="chip no-id">{esc(num)}</span>')
     if c.get("phase"):
         chips.append(f'<span class="chip">{esc(c["phase"])}</span>')
-    # "LBA" and "Late-breaking Oral" are the same fact in two fields — print it once
+    # "LBA41" and "Late-breaking Oral" are the same fact in two fields — print it once
     if c.get("presentation") and c["presentation"] != "Unknown" and not c.get("tag"):
         chips.append(f'<span class="chip">{esc(c["presentation"])}</span>')
     # the drug is a chip of its own now, so this one keeps only target · indication
@@ -157,7 +165,6 @@ HTML = f"""<!doctype html>
   .chips{{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 11px}}
   .chip{{font-size:9.5px;font-weight:600;letter-spacing:.04em;padding:3px 8px;border-radius:99px;
     border:1px solid var(--grid);color:var(--l2)}}
-  .chip.solid{{background:var(--ink);color:var(--paper);border-color:var(--ink)}}
   .chip.who{{border-color:var(--l5);color:var(--l2)}}
   .chip.ghost{{border-style:dashed;color:var(--muted)}}
   .chip.no-id{{font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--l2)}}
