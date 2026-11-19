@@ -28,6 +28,15 @@ def esc(s):
 
 def entry(idx, c, bucket):
     chips = []
+    # v0.16: the drug is the card's identity. It sits first in the chip row and looks
+    # like every other chip -- an earlier revision printed it as a separate bordered
+    # "药品" tag above the title, which made one field shout louder than the result.
+    # The name comes from the card (never invented here); a blank one is said out loud.
+    drug = (c.get("drug") or "").strip()
+    if drug:
+        chips.append(f'<span class="chip drug">{esc(drug)}</span>')
+    else:
+        chips.append('<span class="chip ghost">药品未标注</span>')
     if c.get("tag") == "LBA":
         chips.append('<span class="chip solid">LBA</span>')
     # v0.12: the abstract number is what a reader types into the abstract book, so it
@@ -39,7 +48,7 @@ def entry(idx, c, bucket):
     # "LBA" and "Late-breaking Oral" are the same fact in two fields — print it once
     if c.get("presentation") and c["presentation"] != "Unknown" and not c.get("tag"):
         chips.append(f'<span class="chip">{esc(c["presentation"])}</span>')
-    # the drug name moved up to the head of the card, so the chip keeps only target · indication
+    # the drug is a chip of its own now, so this one keeps only target · indication
     who = " · ".join(x for x in [c.get("target"), c.get("indication")] if x)
     if who:
         chips.append(f'<span class="chip who">{esc(who)}</span>')
@@ -51,17 +60,10 @@ def entry(idx, c, bucket):
     # were read as market signals on a judged list, so neither reaches the page.
     if c.get("promoted"):
         chips.append('<span class="chip ghost">网页补录</span>')
-    # v0.16: the drug is the card's identity, so it is printed as a tag rather than as
-    # loose text. Name comes from clinical_result.arms[].drugs[] (never invented here);
-    # an empty drug means the record carried none, and the pill says so instead of
-    # silently collapsing to a dash.
-    drug = (c.get("drug") or "").strip()
-    drug_pill = (f'<span class="pill drug"><i>药品</i>{esc(drug)}</span>' if drug
-                 else '<span class="pill drug empty"><i>药品</i>未标注</span>')
     return f"""
     <article class="item" id="c-{bucket}-{idx}">
       <div class="body">
-        <div class="head"><span class="no">#{idx:02d}</span>{drug_pill}</div>
+        <div class="head"><span class="no">#{idx:02d}</span></div>
         <h3>{esc(c['title'])}</h3>
         <div class="chips">{''.join(chips)}</div>
         <p class="sum">{esc(c['summary'])}</p>
@@ -150,13 +152,7 @@ HTML = f"""<!doctype html>
   .item{{padding:24px 0 20px;border-bottom:1px solid var(--grid)}}
   .head{{display:flex;align-items:baseline;gap:9px;margin-bottom:7px}}
   .head .no{{font-size:9.5px;font-weight:700;color:var(--faint);letter-spacing:.1em}}
-  .pill{{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;
-    letter-spacing:-.01em;color:var(--ink);border:1px solid var(--ink);border-radius:99px;
-    padding:3px 10px 3px 6px;background:#fff}}
-  .pill.drug i{{font-style:normal;font-size:8.5px;font-weight:700;letter-spacing:.1em;
-    color:var(--paper);background:var(--ink);border-radius:99px;padding:2px 6px}}
-  .pill.drug.empty{{border-style:dashed;border-color:var(--l5);color:var(--muted);font-weight:600}}
-  .pill.drug.empty i{{background:var(--l5)}}
+  .chip.drug{{color:var(--ink);font-weight:700;border-color:var(--l2);}}
   .item h3{{font-size:14.5px;font-weight:700;line-height:1.45;letter-spacing:-.01em;max-width:900px}}
   .chips{{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 11px}}
   .chip{{font-size:9.5px;font-weight:600;letter-spacing:.04em;padding:3px 8px;border-radius:99px;
