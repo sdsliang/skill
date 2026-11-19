@@ -1,5 +1,37 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.15（2026-11-19）：交付物收敛成一份 JSON（删 report.md + citations 整条链）
+
+用户原话：「不要 report.md 啊，citation 也不需要啊，只要 watchlist 就行了」。这不是"再修一遍引文三键"，
+而是**这一整层本来就不该存在**：Markdown + frontmatter + `{{ref_N}}` + `citations.json` 唯一的用途是让宿主
+渲染一份人读的页面，而这份 skill 的产物是 30 张卡的判读结果。删除按四层同删执行，少一层就留死代码或假红。
+
+### 改动
+
+| 层 | 改动 |
+|---|---|
+| 校验层 | `check_cards.py` 删 `--report` / `check_report()` / `_frontmatter()` / citation 常量；**规则 19 → 18**（原规则 14 删除，15–19 前移，交叉引用 rule 16→15 / 17→16）；44656 → 39018 B |
+| 事实层 | `check.py` 删 `op_report_meta` / `_frontmatter` / `FRONTMATTER_RE` / `report`+`citations` 采集，`OPS` 去掉 `report_meta`；`facts.json` 删 `A-C2-report-frontmatter`，`A-T1-present-artifact` 的 `suffix` → `output/watchlist.json`；**30 → 29 项（28 fail + 1 warn）** |
+| 夹具层 | `mutations.py` 删 `m_no_skills` / `m_citation_dangling` / `ngen_citations_legal`，fixture 不再写 `report.md`/`citations.json`，`present_artifact` 指 watchlist；**新增 `m_present_md`**（把路径改回 `report.md` 必须判红，这是回潮的唯一入口） |
+| 渲染层 | `SKILL.md` Step 7 重写（交付物 = `watchlist.json`，`present_artifact` 指向它，无 frontmatter/引文段）；Step 6 去掉 `--report`；`description` 删掉早已过期的"stock move"；新增 v0.15 版本块。`templates/watchlist-report.md` **删除**，`pack-dist.py` 的 `templates/` 改为可选（references/scripts 仍强制） |
+| 宿主契约 | `~/.config/toolsmith/projects.json` 的 `deliverables` → `["output/watchlist.json"]`（备份 `.bak-20261119-v15`） |
+| runner（O52） | `toolsmith-publish` 的 `report_rel` 原来硬回落 `output/report.md`：无 md 时读空串 → `report contains nonempty content` 恒红。改为 **md 可选**（无 md 则跳过正文类断言并记一条说明），`present_artifact` 终端路径在无 md 时取「∈ deliverables」。备份 `toolsmith-publish.v15.bak` |
+| 文档 | `README.md`（交付行 + 目录树 + CLI 注释）、`references/data-contract.md §6.5.2` 重写、`pitfalls.md` **§43**（新）+ §27/§32 标注「v0.15 起无对象」 |
+
+### 验证
+
+- `python3 evals/test_triage.py` → `fixture OK (6 rows, …)`。
+- `python3 evals/test_check_cards.py` → `fixture OK`（report 相关 7 个 case 随 `check_report` 一起删除）。
+- `python3 evals/fact-check/mutations.py` → **`coverage: 28/28 fail items have a mutation; 7 negative controls green`**；`m_present_md` 单跑翻红。
+- `dist/conference-result-triage-v0.15.zip` — **146817 B / 15 entries**（templates 不再入包）/ sha256 `89003e4f3c24c288…`。
+
+### 待办
+
+- [ ] 发布（需用户授权）→ `status` 三段对照 `in sync`。
+- [ ] 跑一场 E2E（ASH 或 ADA）确认：`present_artifact` 指向 `output/watchlist.json`、无 `report.md`/`citations.json`、`facts 28/28`。
+- [ ] R16 落 `evals/EVALUATION_RESULTS.md`。
+- [ ] runner `--resume` 未继承 `--model`（v0.14 记的缺陷，本轮未修，待拍板）。
+
 ## v0.14（2026-11-19）：三态、席位、期别槽 —— 三条「看上去没问题」的规则补成闸门
 
 R14 的教训是「文案里的规则不算闸门」。这一轮把三条只写在文档里、实际没被机械检查的规则，补成

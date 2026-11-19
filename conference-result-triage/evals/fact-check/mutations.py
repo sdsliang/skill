@@ -171,23 +171,11 @@ def build_fixture(root):
             for r in recs:
                 f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
-    # v0.9: the delivered result is a Markdown report whose frontmatter names the
-    # skill that produced it -- no `type`, and no citations when nothing is citable.
-    report = (
-        "---\n"
-        "skills: [conference-result-triage]\n"
-        "title: ESMO 2026 临床结果推荐阅读清单\n"
-        "date: 2026-11-13\n"
-        "lang: zh-CN\n"
-        "---\n\n"
-        "# ESMO 2026\n\n" + "".join(f"- {c['title']}: {c['summary']}\n" for c in cards))
-    with open(os.path.join(root, "artifacts", "output", "report.md"),
-              "w", encoding="utf-8") as f:
-        f.write(report)
+    # v0.15: the watchlist JSON is the deliverable. No report.md, no citations.json --
+    # both existed only to give a Markdown page something to render.
 
     with open(os.path.join(root, "artifacts.json"), "w", encoding="utf-8") as f:
-        json.dump([{"path": "/workspace/output/report.md"},
-                   {"path": "/workspace/output/watchlist.json"},
+        json.dump([{"path": "/workspace/output/watchlist.json"},
                    {"path": "/workspace/work/pool/pool.json"},
                    {"path": "/workspace/work/rows.json"}], f)
 
@@ -197,7 +185,7 @@ def build_fixture(root):
                       "args": {"esids": [f"id{i}" for i in range(150)], "meeting_tags": "ESMO 2026"},
                       "part_kind": "tool-call"})
     calls.append({"tool_name": "present_artifact",
-                  "args": {"path": "/workspace/output/report.md"},
+                  "args": {"path": "/workspace/output/watchlist.json"},
                   "part_kind": "tool-call"})
     hist = {"raw_model_messages": [{"parts": calls, "usage": {}}]}
     with open(os.path.join(root, "debug-history.json"), "w", encoding="utf-8") as f:
@@ -378,6 +366,15 @@ def m_no_present(root):
     write(root, "debug-history.json", h)
 
 
+def m_present_md(root):
+    """Presenting the retired Markdown path -- the delivery the v0.15 change removes."""
+    h = read(root, "debug-history.json")
+    for part in h["raw_model_messages"][0]["parts"]:
+        if part["tool_name"] == "present_artifact":
+            part["args"]["path"] = "/workspace/output/report.md"
+    write(root, "debug-history.json", h)
+
+
 def m_json_paste(root):
     msgs = read(root, "messages.json")
     msgs[0]["parts"][0]["content"] += "\n```json\n" + json.dumps({"cards": [{"x": "y" * 200}] * 40}) + "\n```\n"
@@ -525,25 +522,6 @@ def m_price_returned(root):
     write(root, "artifacts/output/watchlist.json", w)
 
 
-def m_no_skills(root):
-    """A result identified by the old business `type` instead of the skills array."""
-    p = os.path.join(root, "artifacts", "output", "report.md")
-    text = open(p, encoding="utf-8").read()
-    text = text.replace("skills: [conference-result-triage]", "type: 临床结果推荐")
-    with open(p, "w", encoding="utf-8") as f:
-        f.write(text)
-
-
-def m_citation_dangling(root):
-    """A `{{ref_1}}` in the body with no entry behind it -- the reader cannot follow it."""
-    p = os.path.join(root, "artifacts", "output", "report.md")
-    text = open(p, encoding="utf-8").read()
-    text = text.replace("lang: zh-CN", "lang: zh-CN\ncitations: /workspace/output/citations.json")
-    text += "\n见 {{ref_1}}。\n"
-    with open(p, "w", encoding="utf-8") as f:
-        f.write(text)
-
-
 def ngen_web_declared(root):
     """A dead provider may degrade the deliverable -- but only by saying so in it."""
     shutil.rmtree(os.path.join(root, "artifacts", "work", "web"), ignore_errors=True)
@@ -581,6 +559,7 @@ MUTATIONS = [
     ("A-F4-numbers-traceable", m_number),
     ("A-F4-numbers-traceable", m_number_round),
     ("A-T1-present-artifact", m_no_present),
+    ("A-T1-present-artifact", m_present_md),
     ("A-T2-no-json-paste", m_json_paste),
     ("A-H1-two-honest-claims", m_notes),
     ("A-D4-lba-not-dropped", m_lba_dropped),
@@ -592,8 +571,6 @@ MUTATIONS = [
     ("A-N1-no-market-claims", m_price_returned),
     ("A-N1-no-market-claims", m_ticker_returned),
     ("A-N1-no-market-claims", m_listed_returned),
-    ("A-C2-report-frontmatter", m_no_skills),
-    ("A-C2-report-frontmatter", m_citation_dangling),
 ]
 
 # Legal variations that must stay green: the scorer should test facts, not formatting.
@@ -641,21 +618,6 @@ def ngen_web_empty_url_noted(root):
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
 
-def ngen_citations_legal(root):
-    """Declaring citations is legal when body markers and entries match one-to-one."""
-    p = os.path.join(root, "artifacts", "output", "report.md")
-    text = open(p, encoding="utf-8").read().replace(
-        "lang: zh-CN", "lang: zh-CN\ncitations: /workspace/output/citations.json")
-    text += "\n本场会议日程见 {{ref_1}}。\n"
-    with open(p, "w", encoding="utf-8") as f:
-        f.write(text)
-    write(root, "artifacts/output/citations.json",
-          {"ref_1": {"title": "ESMO 2026 Congress",
-                     "link": "https://www.esmo.org/meetings/esmo-congress-2026",
-                     # v0.10: the platform verifier's exact key set, not a `date` field
-                     "paper_release_time_str": "2026-10-23"}})
-
-
 def ngen_heat_hit(root):
     """Putting a heat trial on the list must satisfy the warn item, not break a fail one."""
     w = read(root, "artifacts/output/watchlist.json")
@@ -670,7 +632,7 @@ NEGATIVES = [("legal bucket reorder", ngen_legal_reorder),
              ("company named in prose, no code", ngen_company_in_prose),
              ("web down but declared in coverage_notes", ngen_web_declared),
              ("search with no usable result, noted", ngen_web_empty_url_noted),
-             ("citations declared and consistent", ngen_citations_legal)]
+             ]
 
 
 def main() -> int:

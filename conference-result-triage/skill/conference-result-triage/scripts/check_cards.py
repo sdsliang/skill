@@ -29,7 +29,7 @@ Checks
      that lives only in the chat reply is a limit nobody will see
  12. ``tag`` is a slot label, not a badge: only "" or "LBA". v0.13 stopped rendering
      ``is_recommand`` as a chip -- the flag still decides *placement* (it leads its
-     bucket, see rule 17), but a "推荐" chip on a judged list reads as our own
+     bucket, see rule 16), but a "推荐" chip on a judged list reads as our own
      endorsement of a row the data owner flagged
  13. no market data survives anywhere -- no price (``stock`` / ``reaction`` /
      ``change_pct`` / ``excess_pct``) and no company code (``listed_company`` /
@@ -37,36 +37,32 @@ Checks
      ticker: on a conference card the code is read as "how did this trade", the same
      misreading the quote layer caused, so the field is gone and this gate keeps it
      gone -- either shape coming back fails
- 14. the report, when ``--report`` is given: frontmatter carries ``skills`` (with this
-     skill named) / ``title`` / ``date`` / ``lang``; every ``{{ref_N}}`` has a
-     ``citations.json`` entry and vice versa; each entry is exactly
-     ``{title, link, paper_release_time_str}`` with an http(s) link and a bare date
- 15. a card whose esid is *not* in the machine pools is only legal when it was
+ 14. a card whose esid is *not* in the machine pools is only legal when it was
      promoted by the web-curation step (``promoted == "web"``); it is then verified
      against ``work/rows.json`` instead, since promotion exists precisely to reach
      records the mechanical screen cut
- 16. **selection is the top-k of the judgements** (v0.11): inside one bucket you may
+ 15. **selection is the top-k of the judgements** (v0.11): inside one bucket you may
      not drop a ``keep`` that scores higher than the lowest card you kept. Every such
      skip has to be declared in ``editorial_overrides`` with a reason, because "why is
      the better-scored trial missing" is the question a reader asks first. Same-score
      ties are free to break either way.
- 17. **the data owner's flag is forced** (v0.12): every row with
+ 16. **the data owner's flag is forced** (v0.12): every row with
      ``clinical_result.is_recommand == 是`` must be on the list, and inside one bucket the
      flagged cards must come before the unflagged ones whatever the scores say. This is
      the one rule that outranks the judgement ranking, because it is not our judgement:
      dropping a flagged readout is the failure the flag exists to prevent. ``abstract_id``
      must be printed on every card whose row carries one -- the reader searches the
      abstract book by that number, so an invented or missing one sends them nowhere.
- 18. **inside a bucket and flag class, scores never go up** (v0.14). Rule 17 puts the
+ 17. **inside a bucket and flag class, scores never go up** (v0.14). Rule 17 puts the
      flagged cards first; this one says the rest is a descending list. The sort key is
      ``(is_recommand, -score)``, so the grouping is on *both* -- grouping on ``bucket``
      alone would call a flagged 60 above an unflagged 80 "out of order", which is
-     exactly the placement rule 17 mandates.
- 19. **one trial, at most two cards** (v0.14). A trial that publishes its primary
+     exactly the placement rule 16 mandates.
+ 18. **one trial, at most two cards** (v0.14). A trial that publishes its primary
      result, a subgroup and a safety cut takes three seats without ever changing
      mechanism, so the prose rule "same mechanism, at most two" does not bind it. A
      third seat is legal only when ``editorial_overrides`` declares a reason (>=10
-     chars) -- the same ledger as rule 16, not a new back door. Where the rows carry
+     chars) -- the same ledger as rule 15, not a new back door. Where the rows carry
      no ``trial_abbreviation`` this check reports "nothing to group by" rather than
      passing: an empty surface is not a green light.
 """
@@ -176,103 +172,6 @@ UNIT_PATTERN = (
 )
 UNIT_NUM = re.compile(r"\d+(?:\.\d+)?\s*" + UNIT_PATTERN, re.I)
 FIGURE = re.compile(r"\d+(?:\.\d+)?\s*" + UNIT_PATTERN, re.I)
-
-
-# The citation entry schema the delivery gate enforces verbatim:
-# `{title, link, paper_release_time_str}` -- nothing more, nothing less. The date is a
-# bare `YYYY-MM-DD`; an empty string is allowed, a made-up timestamp is not. This used
-# to live only in the platform-side verifier, which is how ESC/EASL 2026 shipped
-# `{title, link}` entries: correct to the docs, rejected after delivery.
-CITE_KEYS = ["link", "paper_release_time_str", "title"]
-FRONTMATTER_KEYS = ("skills", "title", "date", "lang")
-
-
-def _frontmatter(report: str) -> Tuple[Dict[str, str], str]:
-    """Split a leading YAML block off the report. Values stay as raw strings."""
-    m = re.match(r"^---\r?\n(.*?)\r?\n---\r?\n?", report, re.S)
-    if not m:
-        return {}, report
-    head: Dict[str, str] = {}
-    for line in m.group(1).splitlines():
-        if not line.strip() or line.lstrip().startswith("#"):
-            continue
-        key, _, value = line.partition(":")
-        head[key.strip()] = value.strip()
-    return head, report[m.end():]
-
-
-def check_report(report_path: str) -> Tuple[List[str], List[str]]:
-    """Gate the delivered markdown the same way the platform verifier will.
-
-    Runs before ``present_artifact`` because that call is terminal: a run whose report
-    cites three sources but ships ``{title, link}`` entries reads fine and is refused
-    afterwards, when nobody can edit it any more.
-    """
-    fails: List[str] = []
-    notes: List[str] = []
-    text = open(report_path, encoding="utf-8").read()
-    head, body = _frontmatter(text)
-    if not head:
-        fails.append("report: no YAML frontmatter -- `skills` / `title` / `date` / "
-                     "`lang` must be there for the host to pick a theme")
-        return fails, notes
-    for key in FRONTMATTER_KEYS:
-        if not head.get(key):
-            fails.append(f"report: frontmatter missing {key}")
-    if "conference-result-triage" not in (head.get("skills") or ""):
-        fails.append("report: frontmatter `skills` does not list "
-                     "conference-result-triage")
-    used = {int(x) for x in re.findall(r"\{\{ref_(\d+)\}\}", body)}
-    declared = head.get("citations") or ""
-    if not declared:
-        if used:
-            fails.append(f"report: cites {sorted(used)} but frontmatter has no "
-                         f"`citations:` line")
-        return fails, notes
-    # `/workspace/output/citations.json` is a platform path. Locally the run directory
-    # only mirrors it, so resolve the reference against the report's own folder first and
-    # fall back to the raw value -- hard-coding one layout made the gate unreadable off
-    # the platform (it looked for `output/output/citations.json`).
-    rep_dir = os.path.dirname(os.path.abspath(report_path))
-    rel = declared[len("/workspace/"):] if declared.startswith("/workspace/") else declared
-    candidates = [declared, os.path.join(rep_dir, os.path.basename(rel)),
-                  os.path.join(rep_dir, rel), os.path.join(os.path.dirname(rep_dir), rel)]
-    path = next((c for c in candidates if os.path.isfile(c)), candidates[1])
-    try:
-        cites = json.load(open(path, encoding="utf-8"))
-    except (OSError, ValueError) as e:
-        fails.append(f"report: cannot read citations file {declared}: {e}")
-        return fails, notes
-    if not isinstance(cites, dict) or not cites:
-        fails.append("report: citations file is empty or not an object")
-        return fails, notes
-    keyed = {int(k.split("_")[1]) for k in cites if re.fullmatch(r"ref_\d+", k)}
-    for k in cites:
-        if not re.fullmatch(r"ref_\d+", k):
-            fails.append(f"citations: invalid reference key {k!r}")
-    if used != keyed:
-        fails.append(f"citations: markers={sorted(used)} entries={sorted(keyed)} "
-                     f"missing={sorted(used - keyed)} unused={sorted(keyed - used)}")
-    for k, v in sorted(cites.items()):
-        if not isinstance(v, dict):
-            fails.append(f"citations {k}: not an object")
-            continue
-        if sorted(v) != CITE_KEYS:
-            fails.append(f"citations {k}: keys {sorted(v)} != {CITE_KEYS} "
-                         f"-- the gate wants title + link + paper_release_time_str")
-            continue
-        if not all(isinstance(x, str) for x in v.values()):
-            fails.append(f"citations {k}: every value must be a string")
-        if not (v.get("title") or "").strip():
-            fails.append(f"citations {k}: empty title")
-        if not re.match(r"^https?://", v.get("link") or ""):
-            fails.append(f"citations {k}: link is not an http(s) URL")
-        stamp = v.get("paper_release_time_str") or ""
-        if stamp and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", stamp):
-            fails.append(f"citations {k}: paper_release_time_str={stamp!r} is not "
-                         f"YYYY-MM-DD")
-    notes.append(f"report: {len(keyed)} citation entries, markers in sync")
-    return fails, notes
 
 
 def load_pool(path: str) -> Dict[str, Dict[str, Any]]:
@@ -814,9 +713,6 @@ def main(argv: List[str] | None = None) -> int:
                     help="work/judged_*.json (or their directory) -- every judged entry "
                          "needs an `esid` so the selection can be compared against the "
                          "scores the reviewer actually gave")
-    ap.add_argument("--report", help="output/report.md -- also gate the markdown: "
-                                     "frontmatter keys, `{{ref_N}}` <-> citations.json "
-                                     "in both directions, and the exact entry schema")
     ap.add_argument("-v", "--verbose", action="store_true")
     args = ap.parse_args(argv)
 
@@ -848,11 +744,6 @@ def main(argv: List[str] | None = None) -> int:
                                      payload.get("editorial_overrides"))
     fails += tfails
     notes += tnotes
-    if args.report:
-        rfails, rnotes = check_report(args.report)
-        fails += rfails
-        notes += rnotes
-
     if notes and args.verbose:
         for n in notes:
             print(f"  note: {n}")

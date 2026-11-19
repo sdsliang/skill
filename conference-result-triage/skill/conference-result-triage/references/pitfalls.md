@@ -330,6 +330,10 @@ v0.8 的所有口径工作（端点、基准日、`basis: 非归因`）都是**�
 
 ## 27. 宿主怎么认这份产物：`skills` 数组，不是 `type`（v0.9）
 
+> **v0.15 起这一整层已删除**：交付物就是 `watchlist.json`，没有 Markdown、没有 frontmatter、
+> 没有引文。本节留作历史（当时的宿主确实按 `skills` 选主题），但下面每条都不再是现行契约，
+> 现在的口径见 §43。
+
 chat 端已经从"按业务 `type` 选主题"改成"按实际执行过的 `skills` 数组选主题"。这意味着：
 
 - **`skills` 必须是这一回合真的调用过的 skill**。为了命中一个更漂亮的布局而把没执行过的 skill 写进去，
@@ -428,6 +432,10 @@ SKIP 不是 PASS（不能用来刷绿），但也不该记在失败项里 ——
 
 ## 32. 引文条目的键集，文档说的和闸门要的不是一套（v0.10）
 
+> **v0.15 起无对象**：`citations.json` 不再存在，「空对空等于通过」这个失败模式随之消失。
+> 但本节的**教训仍然成立**（同一字段两个名字 = 两条规则；交付前闸门严格度 ≥ 事后校验器），
+> 只是例子换了：现在跑在前面的闸门是 `A-T1` 的 `suffix=output/watchlist.json`。
+
 ESC 2026 与 EASL 2026 两场同日红在同一个断言上：`every ref marker has a citation entry`，
 报 `markers=3 keys=0` / `markers=10 keys=0`。但 `output/citations.json` 明明有 3 条 / 10 条，
 正文标记也是 3 个 / 10 个 —— **对得上**。
@@ -448,8 +456,8 @@ ESC 2026 与 EASL 2026 两场同日红在同一个断言上：`every ref marker 
 
 教训（这三条以后每次加交付物都适用）：
 
-- **交付前闸门的严格度必须 ≥ 事后校验器**。现在 `check_cards.py --report output/report.md`
-  按同一口径复核 frontmatter 键、双向一致和三键 schema；跑它就不是等平台来告诉你。
+- **交付前闸门的严格度必须 ≥ 事后校验器**。现在这条落在 `A-T1`（`present_artifact` 的路径必须是
+  `output/watchlist.json`）和 `check_cards.py` 的 18 条规则上；跑它就不是等平台来告诉你。
 - **同一字段两个名字，就是两条规则**。写文档时抄校验器的键名，不要"翻译成人类可读的 `date`"。
 - **空对空等于通过**（`used == keyed` 在两侧都为空时恒真），所以「有没有走这条检查」要看
   它打出来的证据行（`markers=… keys=…`），不能只看 PASS。
@@ -635,3 +643,34 @@ v0.10 为了不让这些行被当非试验证据删掉，让 `phase_of()` 原样
 教训：**一个字段两个用途时，显示层和判定层必须分开成两个函数**。共用会让"为了让排除逻辑正确"
 的放宽，静默变成"卡面上的期别是设计词"。改这类地方要拿真实 rows 数一遍：`Counter(phase_of)`
 能立刻告诉你有多少行不是期别。
+
+## 43. 交付物的代价要按「谁在读它」算（v0.15）
+
+`report.md` 不是一个文件，是一条链：Markdown 正文 + YAML frontmatter（`skills` / `title` / `date` /
+`lang`）+ `{{ref_N}}` 标记 + `citations.json`（每键恰好三字段）+ 平台 profile 的固定路径断言 +
+事实项 `A-C2` + 三份 mutation + 交付前闸门里的 `check_report()`。链上任何一环与正文不同步，
+红的都是「交付」，不是「内容」。
+
+用户的原话很短：「不要 report.md 啊，citation 也不需要啊，只要 watchlist 就行了」。这条要求的真正含义
+是**读者消费的是 30 张卡的判读结果，不是一份排版好的文章**。所以正确的动作不是「再修一遍引文三键」，
+而是把整条链删掉：
+
+- `check_cards.py` 删 `--report` / `check_report()` / `CITE_KEYS` / `_frontmatter`，docstring 19 → 18 条；
+- 事实层删 `A-C2-report-frontmatter`（30 → 29 条），`A-T1` 的 `suffix` 改成 `output/watchlist.json`；
+- mutation 三条（`m_no_skills` / `m_citation_dangling` / NEG `ngen_citations_legal`）删掉，补一条
+  `m_present_md` —— 把 `present_artifact` 指回 `report.md` 必须判红，这是「回潮」的唯一入口；
+- `templates/watchlist-report.md` 从发布包移除，`projects.json` 的 `deliverables` 只剩 JSON。
+
+两个不能忘的连带项：
+
+1. **runner 侧有一处硬编码回落**。`toolsmith-publish` 里 `report_rel = next((p for p in sorted(need)
+   if p.endswith(".md")), "output/report.md")` —— 当 `deliverables` 里没有 md 时，它仍然去找
+   `output/report.md`，`rep` 读成空串，然后 `report contains nonempty content` 恒红。一份**合法**的
+   纯 JSON 交付会被这条判死。修法是 md 可选：没有 md 就跳过正文类断言，只把
+   `present_artifact` 的路径改成「∈ deliverables」。**这类「配置化只做了一半」的闸门最容易被误读成产物缺陷。**
+2. **删掉的东西要留一条反例**。删除类改动最怕把闸门一起删空：`A-T1` 若没有 `m_present_md`，
+   下一次有人把 `report.md` 写回来，事实层仍然全绿。
+
+教训：**判断一份交付物该不该存在，看它有没有第二个读者**。Markdown 的读者是宿主渲染器（一份人读的
+页面），JSON 的读者是下游（复核页、比对表、下一轮 skill）—— 后者才是真正的消费者，前者是为一层
+多余的展示付的维护费。

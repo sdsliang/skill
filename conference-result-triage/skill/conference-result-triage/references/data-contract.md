@@ -185,30 +185,17 @@ v0.13 把那一层剩下的代码也删了（`listed_company` / `ticker` / `exch
 - `flagged == 0, column_present == true` → 列拉了、没人标星。**必须在 `coverage_notes` 里说出来**；
 - `column_present == false` → 这一列根本没拉，属于数据层缺陷，不能解释成"没有推荐"。
 
-### 6.5.2 结果本身怎么被识别（`report.md`）
+### 6.5.2 交付物就是清单本身（v0.15）
 
-交付物是 `/workspace/output/report.md`，`watchlist.json` 是它的数据底稿。报告顶部 frontmatter：
+交付物只有 `/workspace/output/watchlist.json`。**没有 `report.md`**，因此也没有 frontmatter、`skills` 数组、`{{ref_N}}` 标记与 `citations.json`——这一整层在 v0.9–v0.14 存在，唯一的用途是让宿主把一份人读的 Markdown 渲染出来；而这份 skill 的产物是 30 张卡的判读结果，多渲染一份 md 只会让同一份判断有两个源（改了一个忘了另一个才是真风险）。
 
-```markdown
----
-skills: [conference-result-triage]
-title: ESMO 2026 临床结果推荐阅读清单
-date: 2026-10-23
-lang: zh-CN
-citations: /workspace/output/citations.json   # 仅当确实有可引用来源
----
-```
-
-- **`skills` 取代业务 `type`**：非空数组、只写这一回合真的用过的 skill（本 skill 必在其列）。宿主按它选渲染主题；未识别的 skill 由宿主报错或用通用布局，**不允许静默退回普通 Markdown**。为了命中主题而编一个没执行过的 skill 名，是把下游骗到底。
-- `title` / `date`（`YYYY-MM-DD`）/ `lang` 必填。
-- **引文与正文分离**：正文只写 `{{ref_N}}`，元数据只在 `citations.json`；键集与正文标记**双向一一对应**，任一侧缺项即失败。路径必须以 `/workspace/output` 开头。
-- **每条引文的键集是固定的三个**：`{"title", "link", "paper_release_time_str"}`（平台校验器 `sorted(keys) == ["link", "paper_release_time_str", "title"]`，多一个少一个都拒）。`paper_release_time_str` 只接受 `YYYY-MM-DD` 或空串；`link` 必须 http(s)；`title` 非空。v0.9 文档里只写了 `title`/`link`/`date`，于是 ESC 2026 与 EASL 2026 两场的 13 条引文全部写成 `{title, link}`，交付后被平台闸门判失败 —— 这是**文档缺口径**导致的合规失败，不是模型乱写。
-- **同一试验的多条记录只出一张卡，但兄弟 esid 仍然合法**：`triage.build_pools` 按 `trial_abbreviation` 去重，胜出条目带 `alias_esids`（被合并的 esid 列表）。卡面写的是哪一条都可以，成员资格按 `rows.json` 现场重算后两者都认。
-- `check_cards.py --report output/report.md` 在交付前按同一口径复核（frontmatter 键、双向一致、三键 schema），因此这类失败现在不会跑到 `present_artifact` 之后。
-- **没有可引用来源就不写 `citations`、也不留 `{{ref_…}}`**（平台内拿不到摘要原文链接，编一个引用比不给引用糟）。
+- `present_artifact` 指向 `/workspace/output/watchlist.json`（事实项 `A-T1-present-artifact`，mutation `m_present_md`：把路径写回 `report.md` 即判失败）。
+- `check_cards.py` 不再有 `--report`；它只校验卡片与池子的自洽（18 条规则，见脚本 docstring）。
+- `projects.json` 的 `deliverables` 只剩 `["output/watchlist.json"]`；本地 runner 的交付物断言按这个列表取值，不再硬回落 `output/report.md`（旧的回退会让一份合法交付永远红在 `report contains nonempty content`）。
+- 同一试验的多条记录只出一张卡，但兄弟 esid 仍然合法：`triage.build_pools` 按 `trial_abbreviation` 去重，胜出条目带 `alias_esids`（被合并的 esid 列表）。卡面写哪一条都可以，成员资格按 `rows.json` 现场重算后两者都认。
 - 一次请求一套最终产物（除明确要求多语言）。
 
-审计落在事实项 `A-C2-report-frontmatter`（mutation：用 `type` 顶替 `skills` / 正文 `{{ref_1}}` 无对应条目；NEG：声明引文且双向对得上仍绿）。
+历史账：`A-C2-report-frontmatter` 与「引文三键」曾是我们最贵的一次文档缺口径——v0.9 文档只写 `title`/`link`/`date`，ESC 2026 与 EASL 2026 两场 13 条引文全写成 `{title, link}`，交付后被平台闸门判失败。v0.15 的结论不是「把三键再写一遍」，而是这一层本来就不该存在。
 
 ## 7. 会议摘要库（`medicalMeeting`）—— **仅限本地/有外网，平台内不可用**
 

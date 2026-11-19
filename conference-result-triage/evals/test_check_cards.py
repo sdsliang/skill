@@ -316,56 +316,6 @@ if set(rebuilt) != set(by_esid):
 else:
     print(f"  ok  recompute_pool agrees with build_pools ({len(rebuilt)} records)")
 
-# 27. The report gate mirrors the platform verifier, so a citation schema error is caught
-# before present_artifact instead of after it. ESC/EASL 2026 both shipped
-# `{title, link}` entries and only found out from the post-run verifier.
-import tempfile  # noqa: E402
-
-def report_case(name, head, body, cites):
-    d = tempfile.mkdtemp()
-    open(os.path.join(d, "citations.json"), "w", encoding="utf-8").write(json.dumps(cites))
-    p = os.path.join(d, "report.md")
-    open(p, "w", encoding="utf-8").write("---\n" + head + "\n---\n" + body)
-    fails, _ = check_cards.check_report(p)
-    return fails
-
-GOOD_HEAD = ("skills: [conference-result-triage]\ntitle: T 2026\ndate: 2026-11-12\n"
-             "lang: zh-CN\ncitations: /workspace/output/citations.json")
-GOOD_CITE = {"ref_1": {"title": "ESC Hot Lines", "link": "https://www.escardio.org/x",
-                       "paper_release_time_str": "2026-08-28"}}
-
-fails = report_case("ok", GOOD_HEAD, "正文 {{ref_1}} 引用。", GOOD_CITE)
-if fails:
-    failures.append(f"valid report rejected: {fails}")
-else:
-    print("  ok  valid report + citations pass")
-
-fails = report_case("two-keys", GOOD_HEAD, "正文 {{ref_1}} 引用。",
-                    {"ref_1": {"title": "ESC Hot Lines",
-                               "link": "https://www.escardio.org/x"}})
-expect("citation missing the date key", fails, "paper_release_time_str")
-
-fails = report_case("bad-date", GOOD_HEAD, "正文 {{ref_1}} 引用。",
-                    {"ref_1": {"title": "T", "link": "https://a.b/c",
-                               "paper_release_time_str": "2026-08-28 10:00"}})
-expect("citation date is not date-only", fails, "is not YYYY-MM-DD")
-
-fails = report_case("marker-no-entry", GOOD_HEAD, "正文 {{ref_1}} {{ref_2}} 引用。",
-                    GOOD_CITE)
-expect("marker without entry", fails, "markers=[1, 2] entries=[1]")
-
-fails = report_case("entry-no-marker", GOOD_HEAD, "正文没有标记。", GOOD_CITE)
-expect("entry without marker", fails, "unused=[1]")
-
-fails = report_case("undeclared", "skills: [conference-result-triage]\ntitle: T\n"
-                                 "date: 2026-11-12\nlang: zh-CN",
-                    "正文 {{ref_1}} 引用。", GOOD_CITE)
-expect("marker without citations line", fails, "no `citations:` line")
-
-fails = report_case("no-skill", "title: T\ndate: 2026-11-12\nlang: zh-CN",
-                    "没有引用。", {})
-expect("skills not listed", fails, "conference-result-triage")
-
 # --- selection monotonicity (v0.11) -------------------------------------- #
 # The defect these pin: EASL 2026 delivered a 35-score pivotal card while a judged-85
 # PBC phase III sat unused in the same bucket, and every other rule was green because

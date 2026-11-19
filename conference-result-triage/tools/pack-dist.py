@@ -31,7 +31,7 @@ import zipfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SRC = os.path.join(REPO, "skill", "conference-result-triage")
-VERSION = "v0.14"
+VERSION = "v0.15"
 NAME = "conference-result-triage"
 OUT = os.path.join(REPO, "dist", f"{NAME}-{VERSION}.zip")
 PREFIX = NAME + "/"
@@ -46,12 +46,18 @@ EXCLUDE = ("make_watchlist.py",)
 def collect() -> list[tuple[str, bytes]]:
     entries: list[tuple[str, bytes]] = []
     fixed = ["SKILL.md"]
-    trees = [("references", ".md"), ("templates", ".md"), ("scripts", ".py")]
+    # `templates/` became optional in v0.15: the Markdown report template was the only
+    # thing in it, and the deliverable is now the watchlist JSON itself. references/ and
+    # scripts/ stay mandatory -- the SKILL reads and calls them at runtime.
+    trees = [("references", ".md", True), ("templates", ".md", False),
+             ("scripts", ".py", True)]
     rels = list(fixed)
-    for sub, ext in trees:
+    for sub, ext, required in trees:
         d = os.path.join(SRC, sub)
         if not os.path.isdir(d):
-            raise SystemExit(f"missing directory: {d}")
+            if required:
+                raise SystemExit(f"missing directory: {d}")
+            continue
         for fn in sorted(os.listdir(d)):
             if fn.endswith(ext) and fn not in EXCLUDE:
                 rels.append(f"{sub}/{fn}")

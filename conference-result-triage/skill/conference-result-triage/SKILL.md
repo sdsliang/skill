@@ -1,6 +1,6 @@
 ---
 name: conference-result-triage
-description: Use when someone names a conference and asks what is worth reading from its result library — "ESMO 2026 有什么值得看的"、"帮我挑这届会议的重磅/失败研究"、"会议结果推荐清单"、"早期机会有哪些"、会前选题、竞品会前扫描。Pulls the whole conference snapshot through the Tool Smith data server, mechanically dedupes and excludes non-trial evidence, splits into three buckets (early opportunity / pivotal Phase II-III / failed), reviews every candidate one by one, and delivers a JSON reading list of small cards (title + LBA tag + summary + why + result esid, plus the same-day stock move when one is supplied). Do not use it for interpreting one already-selected result, for drug-vs-drug comparison, for coverage checks against np_result, or for writing a full meeting report.
+description: Use when someone names a conference and asks what is worth reading from its result library — "ESMO 2026 有什么值得看的"、"帮我挑这届会议的重磅/失败研究"、"会议结果推荐清单"、"早期机会有哪些"、会前选题、竞品会前扫描。Pulls the whole conference snapshot through the Tool Smith data server, mechanically dedupes and excludes non-trial evidence, splits into three buckets (early opportunity / pivotal Phase II-III / failed), reviews every candidate one by one, and delivers a single JSON reading list of small cards (title + LBA tag + summary + why + result esid + abstract id). That JSON is the whole deliverable: no Markdown report, no citations file. Do not use it for interpreting one already-selected result, for drug-vs-drug comparison, for coverage checks against np_result, or for writing a full meeting report.
 ---
 
 # Conference Result Triage
@@ -295,69 +295,29 @@ python3 $S/make_cards.py --pool /workspace/work/pool_labeled.json \
     --rows /workspace/work/rows.json
 python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
     --pool /workspace/work/pool_labeled.json --rows /workspace/work/rows.json \
-    --judged /workspace/work --report /workspace/output/report.md
+    --judged /workspace/work
 ```
 
 **`--judged` 从 v0.11 起也是必传**：它读 `work/judged_*.json`，把"你判了多少分"和"你最后列了谁"对起来，桶内出现「舍弃的 keep 比入选卡最低分还高、又没在 `editorial_overrides` 里说明」就直接拒。判读文件不带 `esid` 时这条闸门没法核（读不到判读分归属），会按"没有判读记录"判失败。
 
 **`--rows` 永远必传**（v0.10 起是 `required=True`）。池子成员资格由脚本**用 `rows.json` 现场重算**（`recompute_pool()` 调 `triage.build_pools`）决定，`--pool` 只是展示字段的来源。原因是一次真实翻车：ESC 2026 那轮模型觉得 triage 删多了，自己拼了一个 `pool_ext.json` 当 `--pool`，闸门全绿，而事后事实层按 `work/pool/pool.json` 重算，判出 9 个池外 esid + 61 个查不到出处的数字。**不要手拼、不要手改 pool 文件**：觉得筛错了就重跑 `triage.py`，或在 `coverage_notes` 里写清哪类记录被规则切掉了。池子外的 esid 必须带 `"promoted": "web"` 才放行（且必须在 `rows.json` 里）。
 
-`check_cards.py` **必须 exit 0** 才能交付（`--report` 一起传，否则只剩卡片层的检查）。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字（**按数值比对，不是子串**：`44%` 不会因为原文有 `44.7%` 或 `n=144` 而通过；`个月` 与 `mo` 一样会被扫描出来）、**每桶超过 10 条 / 全场超过 30 条**、**定榜没按判读分取前 k**（见 Step 5B）、**标星行没上榜或排在未标星卡之后**（`recommand_gate`，不吃 override 豁免）、**`abstract_id` 与 `rows.json` 不一致 / rows 有值而卡片留空 / rows 无值而卡片凭空填**、**`score` 不是 0–100 整数或五维相加不等于总分**、**`why` 少于 60 字或只是复述 `summary`**、**卡片出现公司代码字段（`listed_company` / `ticker` / `exchange`，`null` 也算）**、**`tag` 不是 `""` 或 `LBA`（标星不戴徽章）**、**任何行情字段回潮（`stock` / `reaction` / `change_pct` / `excess_pct`）**、**池子外的卡片没有 `promoted` 标记**（池子成员资格由 `rows.json` **现场重算**，手改或另拼一个 pool 文件不起作用）、**`coverage_notes` 缺失或没写到两条边界**。数字扫描覆盖的**单位**有：`%`、`个百分点`、`个月/周/天/年`、`mo/months`、`mmol/L`、`mg/dL`、`mg/L`、`g/dL`、`ng/mL`、`pg/mL`、`IU/mL`、`U/L`、`mL/min(1.73m2)`、`mL/kg/min`、`mL`、`kg`、`cm`、`mmHg`、`points`、`events/100` —— 单位不在这一列里，那类数字就**不被检查**，所以写数字时别自创单位。
+`check_cards.py` **必须 exit 0** 才能交付。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字（**按数值比对，不是子串**：`44%` 不会因为原文有 `44.7%` 或 `n=144` 而通过；`个月` 与 `mo` 一样会被扫描出来）、**每桶超过 10 条 / 全场超过 30 条**、**定榜没按判读分取前 k**（见 Step 5B）、**标星行没上榜或排在未标星卡之后**（`recommand_gate`，不吃 override 豁免）、**`abstract_id` 与 `rows.json` 不一致 / rows 有值而卡片留空 / rows 无值而卡片凭空填**、**`score` 不是 0–100 整数或五维相加不等于总分**、**`why` 少于 60 字或只是复述 `summary`**、**卡片出现公司代码字段（`listed_company` / `ticker` / `exchange`，`null` 也算）**、**`tag` 不是 `""` 或 `LBA`（标星不戴徽章）**、**任何行情字段回潮（`stock` / `reaction` / `change_pct` / `excess_pct`）**、**池子外的卡片没有 `promoted` 标记**（池子成员资格由 `rows.json` **现场重算**，手改或另拼一个 pool 文件不起作用）、**`coverage_notes` 缺失或没写到两条边界**。数字扫描覆盖的**单位**有：`%`、`个百分点`、`个月/周/天/年`、`mo/months`、`mmol/L`、`mg/dL`、`mg/L`、`g/dL`、`ng/mL`、`pg/mL`、`IU/mL`、`U/L`、`mL/min(1.73m2)`、`mL/kg/min`、`mL`、`kg`、`cm`、`mmHg`、`points`、`events/100` —— 单位不在这一列里，那类数字就**不被检查**，所以写数字时别自创单位。
 
 `coverage_notes` 必须写在交付 JSON 的顶层（见下「两个必须写进清单的诚实声明」）。v0.5 的实跑把它写成了别的字段名、v0.6 的实跑把边界写在 `coverage.boundary` 里 ⇒ 事实层 `A-H1` 两次都判失败：**边界只写在聊天回复里，下个月读 JSON 的人看不到**。所以这一条从"建议"升级成闸门，措辞不查（`无 p 或 HR` / `未列p或HR` / `没给 p 值或 HR` 都算），只查事实有没有落到交付物里。
 
 「研发公司是否上市」**不再是卡片的字段**（v0.13 把身份层一起删了）。如果要交代"谁在做这个药"，写进正文散文；`listed_company` / `ticker` / `exchange` 出现在卡片上即判失败。这条路径走过两步：v0.8 把当日行情塞进 `stock` / `reaction`（"没查到涨跌"被读成"没上市"、板块 beta 被读成对这条摘要的反应）；v0.9 删行情但留下代码，实跑复核页上那层仍被读成股票标签。所以不是"缩小一点"，是整层不存在。
 
-### Step 7 — 写报告并交付
+### Step 7 — 交付
 
-交付物是 **`/workspace/output/report.md`**（`watchlist.json` 是它的数据底稿，一起留着）。报告是 Markdown + 顶部 frontmatter，宿主靠 `skills` 数组决定用哪个布局渲染：
-
-```markdown
----
-skills: [conference-result-triage]
-title: ESMO 2026 临床结果推荐阅读清单
-date: 2026-10-23
-lang: zh-CN
----
-
-# ESMO 2026 …
-
-## 早期机会提示（10）
-- **<title>**（<drug> / <target> / <phase> / <presentation>）
-  报告了什么：<summary>
-  推荐理由：<why>
-
-## 重磅 II/III 期（10）
-…
-
-## 失败的研究（10）
-…
-
-## 覆盖与边界
-- <coverage_notes 逐条>
-```
+交付物只有一个：**`/workspace/output/watchlist.json`**。v0.15 起不再写 `report.md`，因此也不需要 frontmatter / `skills` / `{{ref_N}}` / `citations.json` —— 那三层存在的唯一理由是给一份人读的 Markdown 提供渲染元数据，而读者要的是清单里那 30 张卡；多写一份 md 只会让同一份判断有两个源。
 
 硬规则：
 
-- `skills` **必须是非空数组**，且只写**这一回合真的用过**的 skill。`conference-result-triage` 是必须项（它是产出这份清单的那个 skill）；没有实际调用的 skill 一个都不许写——宿主会拿它选主题，写错就是骗下游。
-- **不要用旧的业务字段 `type` 标识结果**（`type: 临床结果推荐` 这种）。宿主不再认它，写了也只是多一个不生效的键。
-- `date` 用 `YYYY-MM-DD`；`lang` 写实际语言（`zh-CN` / `en`）。
-- **引用机制可选，但声明了就必须对得上**：`citations: /workspace/output/citations.json` 里的键必须与正文的 `{{ref_N}}` **双向一一对应**（正文有 N 就必有 `ref_N` 条目，反之亦然）。**每条恰好三个键、一个字都不能多不能少**：
-
-  ```json
-  {"ref_1": {"title": "Hot Lines revealed – ESC Congress 2026",
-             "link": "https://www.escardio.org/news/press/press-releases/...",
-             "paper_release_time_str": "2026-08-28"}}
-  ```
-
-  `title` 非空、`link` 必须 http(s)、`paper_release_time_str` 只写 `YYYY-MM-DD`（日期查不到就写 `""`，**不要编时间**）。写 `{title, link}` 两条会**在交付后被平台拒**（v0.10 实测 ESC/EASL 两场就是这么红的：文档没写这个键，模型就只写了两个）；现在 `check_cards.py --report` 会在交付前按同一口径拦住。平台内拿不到摘要原文链接，**没有任何可引用的外部来源时就不要写 `citations` 这一行，也不要在正文里留 `{{ref_…}}`** —— 编一个引用比不给引用糟得多。
-- 正文**只写内容**，标题/链接/日期这些元数据留在 `citations.json`，不要在正文里重复贴 URL 列表。
-- 一次请求只交**一套**最终产物（除用户明确要多语言版本）；不要在报告里同时放中英文两份清单。
-- `report.md` 和 `watchlist.json` 用 `write_file(overwrite=True)` 覆盖写。
-
-`present_artifact` 指向 `/workspace/output/report.md`。这是唯一终端动作，不要改成把 JSON 或 Markdown 全文贴进对话。
-
-**交付前把待办先收尾：`present_artifact` 之后不要再调任何工具**（包括 `write_todos`）。EASL 2026 v0.11 那轮就是交付后又补了一次待办勾选，平台断言 `present_artifact is the final successful call` 直接判红——产物没问题，但“最后一个动作”这个契约破了。
+- `watchlist.json` 用 `write_file(overwrite=True)` 覆盖写（首次也带 `overwrite=True`）。同一工作区复跑就覆盖，不要 `report.md` / `report_v2.md` / `citations.json` 这种伴随文件。
+- `present_artifact` 指向 `/workspace/output/watchlist.json`。这是唯一终端动作，不要改成把整份 JSON 或 Markdown 贴进对话。
+- **交付前把待办先收尾：`present_artifact` 之后不要再调任何工具**（包括 `write_todos`）。EASL 2026 v0.11 那轮就是交付后又补了一次待办勾选，平台断言 `present_artifact is the final successful call` 直接判红——产物没问题，但"最后一个动作"这个契约破了。
+- 一次请求只交**一套**最终产物（除用户明确要多语言版本）。
 
 ## Deliverable schema
 
@@ -389,7 +349,7 @@ lang: zh-CN
 - `promoted` 只在**联网终选把池子外的记录提进来**时出现，值是 `"web"`；这类卡片必须能对上 `work/rows.json` 的 esid。
 - **卡片里的 `abstract_id` / `is_recommand` 是照抄，不是判断**：它们的唯一合法来源是 `rows.json`，`make_cards.py` 从池子条目透传；手改一定要能被 rows 对上，否则 `recommand_gate` 与 `A-P7` 都会开火。
 - `manual` 是生产方式标记（人工核对 / 流水线抽取），**不是**推荐等级。平台内**恒为 `null`**（`featured` 不可选），`check_cards.py` 会拒绝把它改成 `true`/`false`。
-- 路径固定：交付物 `/workspace/output/report.md`，数据底稿 `/workspace/output/watchlist.json`（`check.py` 与宿主都按这两个路径取，改名即断链）。同一工作区复跑就覆盖。
+- 路径固定：交付物就是 `/workspace/output/watchlist.json`（`check.py` 与 `projects.json` 的 `deliverables` 都按这个路径取，改名即断链）。同一工作区复跑就覆盖。
 - `write_file` 一律带 `overwrite=True`，包括首次写入。
 
 ## 两个必须写进清单的诚实声明
@@ -436,6 +396,8 @@ lang: zh-CN
 | `scripts/history_for.py` | 同资产历次会议对照（辅助判断趋势） | 需上面两个 |
 
 ## 版本
+
+- **v0.15** — **交付物收敛成一份 JSON**。删掉 `report.md`（连同它带来的整条元数据链）：YAML frontmatter / `skills` 数组 / `{{ref_N}}` 标记 / `citations.json` / 平台 profile 的固定路径断言，全部没有存在理由——它们只服务于「让宿主把一份人读的 Markdown 渲染出来」，而这份 skill 的产物是 30 张卡的判读结果，读者要的是 JSON。①**`check_cards.py` 删掉 `--report` 与 `check_report()`**（frontmatter / 引文三键 / 双向一致性三条规则随之消失，docstring 19 → 18 条，规则 15–19 前移为 14–18）。②**事实层 `A-C2-report-frontmatter` 删除**（30 → **29 条：28 fail + 1 warn**），`A-T1-present-artifact` 的 `suffix` 改为 `output/watchlist.json`；mutation 三条换成一条 `m_present_md`（把 `present_artifact` 改回 `report.md` 即判失败），NEG 删掉「声明引文且对得上」（该项已无对象）。③**`projects.json` 的 `deliverables` 只剩 `output/watchlist.json`**，本地 runner 的 `report_rel` 不再硬回落 `output/report.md`（见 runner 侧 O52）。④`templates/watchlist-report.md` 从发布包移除（16 → 15 entries）。
 
 - **v0.14** — **把两处「看起来绿、读者一眼看出错」的地方改成交付前闸门**。①**`is_recommand` 三态直传**：`make_cards.py` 不再 `bool(...)`，`check_cards.py` 逐条比对 `true/false/null`（空值写成 `false` 判失败）；理由不是洁癖——平台文档写明 `否` = 不推荐、解读时须排除，而 R14 的 ADA 2026 把 191/191 条空值印成了 `false`，等于替数据方发了一条排除指令。②**桶内降序变成交付前闸门**：`bucket_order_gate()` 按 `(bucket, is_recommand)` 分组查非增，同一试验限 2 席（`trial_seats_gate()`，第三席须 `editorial_overrides` 自报）；R14 的 pivotal `…71,73,71` 此前只能靠事后 `A-P4` 抓。③**`phase` 不再印设计词**：新增 `phase_label()`，`evidence_source` 是「前瞻性研究」「单臂研究」时 `phase` 留空、依据进 `phase_inferred`（ESMO 2026 曾有 7 张卡把设计词印在期别位），`LBA` 不再豁免这条。④**LBA 是加分项**：写进判读协议（`review-protocol.md §2.5`）——`evidence_strength` 取区间上限，不动 `score` 算法、不换桶、`why` 里要说明。⑤**评测器**：`A-D1` 的 scenario 绑定误用会在不传 `--scenario` 时告警（ADA 跑曾被判假红）；新增 `A-P8-recommand-tristate` 与 `A-P9-trial-seats`（含 2 条 mutation），事实层 28 → **30 条（29 fail + 1 warn）**；`test_check_cards` 49 → **51 case**。
 

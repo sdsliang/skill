@@ -16,7 +16,7 @@
 | 模型 | 逐条读摘要，判 `keep/weak/drop`，写理由 + **逐字**证据摘录 | 不自算 ORR/HR/PFS，不猜缺失数字 |
 | 人（定榜） | 压同质、标注 `data_type`、补药名/靶点、写"看点" | 不用 weak 凑数 |
 | 主 agent（联网终选，v0.7+） | 检索会议现场热度与公司上市状态，15 → **10/桶**，允许带 `promoted:"web"` 破格入榜 | 不编来源、不把池外不存在的记录写成卡 |
-| 交付渲染 | 写 `output/report.md`（frontmatter `skills`/`title`/`date`/`lang`[/`citations`]）+ `output/watchlist.json` 底稿 | 不写业务 `type`、不编引用、不把行情当信号 |
+| 交付 | 只写 `output/watchlist.json` 并 `present_artifact` 指向它（v0.15 起不再有 `report.md` / `citations.json`） | 不写业务 `type`、不另写 Markdown、不把行情当信号 |
 
 三条硬规则：**n 不作入榜门槛**（只展示）；**真实世界/回顾性/汇总分析不进桶**（单独计 excluded）；**试验期别取 `evidence_source`**（不是疾病分期）。
 
@@ -41,14 +41,15 @@ LBA 自此是**判读加分项**：在 `evidence_strength` 里取区间上限，
 ## 跑在哪（v0.3）
 
 **跑在 ToolSmith 平台里**：用户在会话里给一个会议名，agent 按 `SKILL.md` 的 7 步走完，交付
-`/workspace/output/report.md`（Markdown 报告，frontmatter 带 `skills`）+ `/workspace/output/watchlist.json`（卡片数据底稿）并
-`present_artifact` 指向报告。不是本地跑批脚本。
+`/workspace/output/watchlist.json` 并 `present_artifact` 指向它。不是本地跑批脚本。
+
+**v0.15 起交付物只有这一份 JSON**：`report.md` / YAML frontmatter / `{{ref_N}}` / `citations.json`
+整条链已删除 —— 它们只服务于「让宿主渲染一份人读的 Markdown」，而这份 skill 的产物是 30 张卡的判读结果。
 
 ```
 conference-result-triage/
 ├── SKILL.md                       # 平台内 7 步工作流 + 脚本 CLI + 闸门
 ├── references/                    # 数据契约、筛选手则、复核协议、坑清单
-├── templates/watchlist-report.md
 ├── scripts/                       # 随包 ship 到 /workspace/skills/<name>/scripts/
 ├── system-prompts/…v0.9.md        # 本地参考：规范已下沉进 SKILL.md，本文件不再部署
 │                                  #   项目现挂共享的「PharmCube AI Chat SP」（只读，见下方）
@@ -90,7 +91,7 @@ python3 $S/make_cards.py --pool /workspace/work/pool_labeled.json \
     --plan /workspace/work/plan.json --out /workspace/output/watchlist.json --pretty
 python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
     --pool /workspace/work/pool_labeled.json --rows /workspace/work/rows.json  # 必须 exit 0
-# 再写 /workspace/output/report.md（frontmatter + 三桶正文），present_artifact 指向它
+# present_artifact 指向 /workspace/output/watchlist.json（唯一终端动作）
 ```
 
 本地（研发机）等价自检：

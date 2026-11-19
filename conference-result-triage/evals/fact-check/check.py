@@ -60,7 +60,6 @@ PRICE_KEYS = ("stock", "reaction", "change_pct", "excess_pct", "bench_change_pct
               "price_source")
 # v0.13: the ticker left with the quote. Cards answer what was reported.
 COMPANY_CODE_KEYS = ("listed_company", "ticker", "exchange")
-FRONTMATTER_RE = re.compile(r"\A---\s*\n(.*?)\n---\s*\n", re.S)
 # `个?月` and not just `月`: Chinese abstracts write "16 个月", and a unit alternation that
 # only knew "月" skipped every one of those figures -- "随访约 16 个月" (the record says 16.1)
 # went unchecked while the same mistake in English was caught.
@@ -95,9 +94,6 @@ def load_run(run_dir: str) -> dict:
 
     watchlist_path = pick("output/watchlist.json")
     pool_path = pick("work/pool/pool.json")
-    # v0.9: the delivered result is the Markdown report (frontmatter carries `skills`),
-    # so the report itself is a surface -- not just the JSON behind it.
-    report_path = pick("output/report.md")
 
     watchlist = _load_json(watchlist_path) if watchlist_path else None
     pool = _load_json(pool_path) if pool_path else None
@@ -174,21 +170,10 @@ def load_run(run_dir: str) -> dict:
                         recs.append({})
             web_evidence[name] = recs
 
-    report = ""
-    if report_path and os.path.exists(report_path):
-        with open(report_path, encoding="utf-8", errors="replace") as f:
-            report = f.read()
-
-    # Any `citations*.json` that actually landed under output/ -- the frontmatter path
-    # is checked separately, because a declared path that does not exist is the bug.
-    citations: Dict[str, dict] = {}
-    out_dir = os.path.join(art, "output")
-    if os.path.isdir(out_dir):
-        for name in sorted(os.listdir(out_dir)):
-            if name.startswith("citations") and name.endswith(".json"):
-                doc = _load_json(os.path.join(out_dir, name), {}) or {}
-                if isinstance(doc, dict):
-                    citations[name] = doc
+    # v0.15: the watchlist JSON *is* the deliverable. There is no report.md and no
+    # citations.json to read -- the previous three surfaces (frontmatter skills, ref
+    # markers, citation schema) all existed to make a Markdown page renderable, and the
+    # deliverable is now the 30 cards themselves.
 
     # v0.11: the judgement records. `selection_order` compares what the reviewer
     # scored against what the deliverable listed, and that comparison is the only
@@ -212,7 +197,6 @@ def load_run(run_dir: str) -> dict:
                     judged[esid] = it
 
     return {"watchlist": watchlist, "pool": pool, "calls": calls, "reply": reply,
-            "report": report, "citations": citations,
             "judged": judged,
             "web_evidence": web_evidence,
             "slice_counts": ledger if isinstance(ledger, list) else None,
@@ -220,8 +204,7 @@ def load_run(run_dir: str) -> dict:
             "rows_doc": rows_doc if isinstance(rows_doc, dict) else None,
             "slices": slices,
             "transcript": transcript,
-            "paths": {"watchlist": watchlist_path, "pool": pool_path,
-                      "report": report_path}}
+            "paths": {"watchlist": watchlist_path, "pool": pool_path}}
 
 
 def pool_text_by_esid(pool) -> dict:
@@ -480,41 +463,6 @@ def op_web_evidence(sv, spec):
     return True, (f"{len(files)} file(s)/{lines} record(s), {len(url_rows)} with a URL")
 
 
-def _frontmatter(text: str):
-    """The YAML block at the top of the report, parsed just enough to be checked.
-
-    Not a YAML parser on purpose: the contract is three scalars and one list, and a
-    dependency-free reader that also *rejects* what the contract forbids (a bare
-    ``type`` standing in for ``skills``) is more useful here than a tolerant one.
-    """
-    m = FRONTMATTER_RE.match(text or "")
-    if not m:
-        return None
-    meta: dict = {}
-    key = None
-    for raw in m.group(1).splitlines():
-        line = raw.rstrip()
-        if not line.strip() or line.lstrip().startswith("#"):
-            continue
-        if line.lstrip().startswith("- ") and key:
-            meta.setdefault(key, [])
-            if isinstance(meta[key], list):
-                meta[key].append(line.lstrip()[2:].strip().strip('"\''))
-            continue
-        if ":" not in line:
-            continue
-        key, _, val = line.partition(":")
-        key = key.strip()
-        val = val.strip()
-        if not val:
-            meta[key] = []
-        elif val.startswith("[") and val.endswith("]"):
-            meta[key] = [x.strip().strip('"\'') for x in val[1:-1].split(",") if x.strip()]
-        else:
-            meta[key] = val.strip('"\'')
-    return meta
-
-
 def op_no_market_claims(sv, spec):
     """No price, and since v0.13 no company code -- both are market data on a card.
 
@@ -539,76 +487,6 @@ def op_no_market_claims(sv, spec):
     if hits:
         return False, f"market data came back: {', '.join(hits[:5])}"
     return True, f"no price / company code on {len(cards)} card(s)"
-
-
-def op_report_meta(sv, spec):
-    """The result must be identifiable as *this* skill's output by `skills`, not `type`.
-
-    Host-side contract (产品经理使用 Skill 的通用约束 §2): a non-empty `skills` array,
-    `title`, `date`, `lang`; `citations` only when the result cites sources, and then
-    the path must live under /workspace/output and match the body markers one-to-one.
-    """
-    text = sv.get("report") or ""
-    if not text.strip():
-        return False, "no artifacts/output/report.md -- the result was not delivered"
-    meta = _frontmatter(text)
-    if meta is None:
-        return False, "report.md has no YAML frontmatter"
-    bad = []
-    skills = meta.get("skills")
-    if not isinstance(skills, list) or not skills:
-        bad.append("skills is not a non-empty array")
-    want = spec.get("skill", "conference-result-triage")
-    if isinstance(skills, list) and skills and want not in skills:
-        bad.append(f"skills={skills} does not contain {want}")
-    if not str(meta.get("title") or "").strip():
-        bad.append("title missing")
-    if not re.match(r"^\d{4}-\d{2}-\d{2}$", str(meta.get("date") or "")):
-        bad.append("date is not YYYY-MM-DD")
-    if not str(meta.get("lang") or "").strip():
-        bad.append("lang missing")
-    if "type" in meta and "skills" not in meta:
-        bad.append("a bare `type` is not a result identifier")
-    cites = str(meta.get("citations") or "").strip()
-    if cites:
-        if not cites.startswith("/workspace/output"):
-            bad.append(f"citations path {cites!r} is outside /workspace/output")
-        body = text[len(FRONTMATTER_RE.match(text).group(0)):]
-        refs = re.findall(r"\{\{(ref_\d+)\}\}", body)
-        declared = [v for v in (sv.get("citations") or {}).values()]
-        keys = set()
-        for doc in declared:
-            keys |= set(doc.keys())
-        if not declared:
-            bad.append("citations declared but no citations json landed under output/")
-        elif set(refs) != {k for k in keys if k.startswith("ref_")}:
-            missing = sorted({k for k in keys if k.startswith("ref_")} - set(refs))
-            dangling = sorted(set(refs) - keys)
-            bad.append(f"body/citation mismatch missing={missing} dangling={dangling}")
-        else:
-            for key, item in (declared[0] or {}).items():
-                if not isinstance(item, dict):
-                    bad.append(f"{key} is not an object")
-                    continue
-                if not str(item.get("title") or "").strip():
-                    bad.append(f"{key} has an empty title")
-                if not re.match(r"^https?://\S+$", str(item.get("link") or "")):
-                    bad.append(f"{key} link is not http(s)")
-                # v0.10: the platform verifier requires exactly these three keys, and
-                # the skill docs used to mention only title/link/date -- which is how
-                # ESC/EASL 2026 shipped 13 `{title, link}` entries and got refused
-                # after delivery. Same rule here so the fact layer cannot pass what
-                # the delivery gate rejects.
-                if sorted(item) != ["link", "paper_release_time_str", "title"]:
-                    bad.append(f"{key} keys {sorted(item)} != "
-                               f"['link','paper_release_time_str','title']")
-                stamp = str(item.get("paper_release_time_str") or "")
-                if stamp and not re.match(r"^\d{4}-\d{2}-\d{2}$", stamp):
-                    bad.append(f"{key} paper_release_time_str {stamp!r} is not a date")
-    if bad:
-        return False, "; ".join(bad[:4])
-    return True, (f"skills={skills} lang={meta.get('lang')} "
-                  f"citations={'yes' if cites else 'no'}")
 
 
 def op_count_matches(sv, spec):
@@ -1156,7 +1034,6 @@ OPS = {
     "why_depth": op_why_depth,
     "promotion_traceable": op_promotion_traceable,
     "web_evidence": op_web_evidence,
-    "report_meta": op_report_meta,
     "no_market_claims": op_no_market_claims,
     "recommand_tristate": op_recommand_tristate,
     "trial_seats": op_trial_seats,

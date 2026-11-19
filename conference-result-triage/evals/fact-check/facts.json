@@ -109,16 +109,9 @@
     {
       "id": "A-T1-present-artifact",
       "op": "present_artifact",
-      "suffix": "output/report.md",
+      "suffix": "output/watchlist.json",
       "severity": "fail",
-      "rationale": "交付动作是 `present_artifact` 指向 `/workspace/output/report.md`（v0.9 起交付物是有 frontmatter 的 Markdown，宿主要靠 `skills` 数组选渲染主题）。口头说「已生成」不算交付。"
-    },
-    {
-      "id": "A-C2-report-frontmatter",
-      "op": "report_meta",
-      "skill": "conference-result-triage",
-      "severity": "fail",
-      "rationale": "结果要能被宿主识别成「这个 skill 的产物」：`report.md` 顶部必须有 frontmatter，`skills` 是非空数组且含 `conference-result-triage`，`title`/`date`(YYYY-MM-DD)/`lang` 齐全；声明了 `citations` 就必须写在 `/workspace/output` 下、并且正文 `{{ref_N}}` 与引文文件双向一一对应。**不使用引用机制是合法的**（平台内没有摘要链接，编一个就是造假），但一旦声明就得对得上；旧的业务字段 `type` 不能顶替 `skills`。v0.10 追加：每条引文的键集必须是 `{title, link, paper_release_time_str}` 三键（与平台校验器逐字一致），日期只接受 `YYYY-MM-DD` 或空串 —— ESC/EASL 2026 两场因为文档只写了 `title`/`link`，13 条引文交付后被平台闸门判失败。"
+      "rationale": "交付动作是 `present_artifact` 指向 `/workspace/output/watchlist.json`。v0.15 起清单本身就是交付物：不再有 `report.md`、不再有 `citations.json`、不再有 frontmatter ——那些都是为了让宿主渲染一份**人读的 Markdown**，而读者要的是 JSON 里的 30 张卡。口头说「已生成」不算交付，指向一个不存在的 md 也不算。"
     },
     {
       "id": "A-T2-no-json-paste",
