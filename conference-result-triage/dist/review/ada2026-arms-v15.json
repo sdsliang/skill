@@ -1,0 +1,611 @@
+{
+ "24_37_92309a5152b7b1e6e074fc1dec59cb3c_1": {
+  "drugs": [
+   {
+    "cn": "WVE-007",
+    "en": "WVE-007",
+    "targets": [
+     "INHBE"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "WVE-007",
+    "en": "WVE-007",
+    "targets": [
+     "INHBE"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "WVE-007",
+    "en": "WVE-007",
+    "targets": [
+     "INHBE"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "WVE-007",
+    "en": "WVE-007",
+    "targets": [
+     "INHBE"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_aeb58d9a990cdd2ba2d325e789611797_1": {
+  "drugs": [
+   {
+    "cn": "DA-1726",
+    "en": "DA-1726",
+    "targets": [
+     "OXM",
+     "GLP-1R",
+     "GCGR"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_3942c29c7112241e8dcf703cbc2a8d8a_1": {
+  "drugs": [
+   {
+    "cn": "玛仕度肽",
+    "en": "mazdutide",
+    "targets": [
+     "OXM",
+     "GLP-1R",
+     "GCGR"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "玛仕度肽",
+    "en": "mazdutide",
+    "targets": [
+     "OXM",
+     "GLP-1R",
+     "GCGR"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_9554320ca76fba497f303b2878100753_1": {
+  "drugs": [
+   {
+    "cn": "ID110521156",
+    "en": "ID110521156",
+    "targets": [
+     "GLP-1R"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "ID110521156",
+    "en": "ID110521156",
+    "targets": [
+     "GLP-1R"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "ID110521156",
+    "en": "ID110521156",
+    "targets": [
+     "GLP-1R"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_9beaa05e7111b53548e74302af0f1b14_1": {
+  "drugs": [
+   {
+    "cn": "BGM0504",
+    "en": "BGM0504",
+    "targets": [
+     "GLP-1R",
+     "GIPR"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_d51b78c058202ee3b6d640cc6beb3aed_SAD": {
+  "drugs": [
+   {
+    "cn": "IBI3032",
+    "en": "IBI3032",
+    "targets": [
+     "GLP-1R"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "IBI3032",
+    "en": "IBI3032",
+    "targets": [
+     "GLP-1R"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "IBI3032",
+    "en": "IBI3032",
+    "targets": [
+     "GLP-1R"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "IBI3032",
+    "en": "IBI3032",
+    "targets": [
+     "GLP-1R"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_f5069c3eb96d8c926d8e4a38d664d75f_1": {
+  "drugs": []
+ },
+ "24_37_a7b39fdd511509db34b9ad0396fac896_1": {
+  "drugs": []
+ },
+ "24_37_373cee7b28ac7ebb6275841d12042895_1": {
+  "drugs": [
+   {
+    "cn": "utreglutide",
+    "en": "utreglutide",
+    "targets": [
+     "GLP-1R"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "utreglutide",
+    "en": "utreglutide",
+    "targets": [
+     "GLP-1R"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "utreglutide",
+    "en": "utreglutide",
+    "targets": [
+     "GLP-1R"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_67d7b47edbfe6c4fa618cf5a3ccb43ed_1": {
+  "drugs": [
+   {
+    "cn": "icovamenib",
+    "en": "icovamenib",
+    "targets": [
+     "menin",
+     "MLL1"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "icovamenib",
+    "en": "icovamenib",
+    "targets": [
+     "menin",
+     "MLL1"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "icovamenib",
+    "en": "icovamenib",
+    "targets": [
+     "menin",
+     "MLL1"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "icovamenib",
+    "en": "icovamenib",
+    "targets": [
+     "menin",
+     "MLL1"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_ab00a3b4ea1549b36687807ecfd1386a_1": {
+  "drugs": [
+   {
+    "cn": "依洛尤单抗",
+    "en": "evolocumab",
+    "targets": [
+     "PCSK9"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_d978fbb40cf9a2e383b946169895c7ff_1": {
+  "drugs": []
+ },
+ "24_37_fc909e6a0a99a9f3c63d6141ee2f4247_1": {
+  "drugs": [
+   {
+    "cn": "玛仕度肽",
+    "en": "mazdutide",
+    "targets": [
+     "OXM",
+     "GLP-1R",
+     "GCGR"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_ec8bdc87a92d5ad4299397b249b73a30_1": {
+  "drugs": [
+   {
+    "cn": "petrelintide",
+    "en": "petrelintide",
+    "targets": [
+     "amylin",
+     "AMYR"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_d6d86b59284b328c5bd8700ab3f1aaf8_1": {
+  "drugs": [
+   {
+    "cn": "瑞普泊肽",
+    "en": "ribupatide",
+    "targets": [
+     "GLP-1R",
+     "GIPR"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "瑞普泊肽",
+    "en": "ribupatide",
+    "targets": [
+     "GLP-1R",
+     "GIPR"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "瑞普泊肽",
+    "en": "ribupatide",
+    "targets": [
+     "GLP-1R",
+     "GIPR"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_2aa49c28b55b6404b56536b3eb8d72cf_1": {
+  "drugs": [
+   {
+    "cn": "诺利糖肽+舒地胰岛素",
+    "en": "noiiglutide+INS068",
+    "targets": [
+     "insulin",
+     "GLP-1R"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "二甲双胍",
+    "en": "metformin",
+    "targets": [
+     "PEN2"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "二甲双胍",
+    "en": "metformin",
+    "targets": [
+     "PEN2"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_1a4eeeb1f367956ef4c8ec2fa64c3571_1": {
+  "drugs": [
+   {
+    "cn": "奥氟格列隆",
+    "en": "orforglipron",
+    "targets": [
+     "GLP-1R"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "奥氟格列隆",
+    "en": "orforglipron",
+    "targets": [
+     "GLP-1R"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "奥氟格列隆",
+    "en": "orforglipron",
+    "targets": [
+     "GLP-1R"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "达格列净",
+    "en": "dapagliflozin",
+    "targets": [
+     "SGLT2"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_858183e67a500dc52932f72933416f1c_1": {
+  "drugs": [
+   {
+    "cn": "甘精胰岛素",
+    "en": "insulin glargine",
+    "targets": [
+     "insulin"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "甘精胰岛素",
+    "en": "insulin glargine",
+    "targets": [
+     "insulin"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "奥氟格列隆",
+    "en": "orforglipron",
+    "targets": [
+     "GLP-1R"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "甘精胰岛素",
+    "en": "insulin glargine",
+    "targets": [
+     "insulin"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "奥氟格列隆",
+    "en": "orforglipron",
+    "targets": [
+     "GLP-1R"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "甘精胰岛素",
+    "en": "insulin glargine",
+    "targets": [
+     "insulin"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "奥氟格列隆",
+    "en": "orforglipron",
+    "targets": [
+     "GLP-1R"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_9b8344dbfb2dde41b63eff6f0e2d618f_1": {
+  "drugs": [
+   {
+    "cn": "enicepatide",
+    "en": "enicepatide",
+    "targets": [
+     "GLP-1R",
+     "GIPR"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "enicepatide",
+    "en": "enicepatide",
+    "targets": [
+     "GLP-1R",
+     "GIPR"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "enicepatide",
+    "en": "enicepatide",
+    "targets": [
+     "GLP-1R",
+     "GIPR"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "enicepatide",
+    "en": "enicepatide",
+    "targets": [
+     "GLP-1R",
+     "GIPR"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "enicepatide",
+    "en": "enicepatide",
+    "targets": [
+     "GLP-1R",
+     "GIPR"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "enicepatide",
+    "en": "enicepatide",
+    "targets": [
+     "GLP-1R",
+     "GIPR"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_409b51fefa926062ee25da7c569c0bf9_1": {
+  "drugs": [
+   {
+    "cn": "UBT251",
+    "en": "UBT251",
+    "targets": [
+     "GLP-1R",
+     "GCGR",
+     "GIPR"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "UBT251",
+    "en": "UBT251",
+    "targets": [
+     "GLP-1R",
+     "GCGR",
+     "GIPR"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "UBT251",
+    "en": "UBT251",
+    "targets": [
+     "GLP-1R",
+     "GCGR",
+     "GIPR"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "UBT251",
+    "en": "UBT251",
+    "targets": [
+     "GLP-1R",
+     "GCGR",
+     "GIPR"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_b0270444c7197d8b14fee28ce953a623_1": {
+  "drugs": [
+   {
+    "cn": "鲁格列净",
+    "en": "luseogliflozin",
+    "targets": [
+     "SGLT2"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_dc91b55b08a67ef8e278bd6e4844db73_1": {
+  "drugs": []
+ },
+ "24_37_797d1b0143cdfbfb15d063f9791ab719_1": {
+  "drugs": [
+   {
+    "cn": "Afrezza (吸入胰岛素粉雾剂)",
+    "en": "Afrezza (insulin inhalation)",
+    "targets": [
+     "insulin"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_8841064fdc3b2f4d858299cb7855f75d_1": {
+  "drugs": [
+   {
+    "cn": "赛格列扎",
+    "en": "saroglitazar",
+    "targets": [
+     "PPARγ",
+     "PPARα"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "达格列净",
+    "en": "dapagliflozin",
+    "targets": [
+     "SGLT2"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_12e9348be4407d8b70fa6e0d0c0a04b8_1": {
+  "drugs": [
+   {
+    "cn": "克洛曲本",
+    "en": "clofutriben",
+    "targets": [
+     "11β-HSD1"
+    ],
+    "primary": false
+   },
+   {
+    "cn": "克洛曲本",
+    "en": "clofutriben",
+    "targets": [
+     "11β-HSD1"
+    ],
+    "primary": false
+   }
+  ]
+ },
+ "24_37_4c45993879169ae98e6236f06855bede_1": {
+  "drugs": []
+ },
+ "24_37_331ce9c90f5d9dfa4723b11759965aac_1": {
+  "drugs": [
+   {
+    "cn": "瑞普泊肽",
+    "en": "ribupatide",
+    "targets": [
+     "GLP-1R",
+     "GIPR"
+    ],
+    "primary": false
+   }
+  ]
+ }
+}

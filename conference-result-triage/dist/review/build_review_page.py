@@ -51,10 +51,17 @@ def entry(idx, c, bucket):
     # were read as market signals on a judged list, so neither reaches the page.
     if c.get("promoted"):
         chips.append('<span class="chip ghost">网页补录</span>')
+    # v0.16: the drug is the card's identity, so it is printed as a tag rather than as
+    # loose text. Name comes from clinical_result.arms[].drugs[] (never invented here);
+    # an empty drug means the record carried none, and the pill says so instead of
+    # silently collapsing to a dash.
+    drug = (c.get("drug") or "").strip()
+    drug_pill = (f'<span class="pill drug"><i>药品</i>{esc(drug)}</span>' if drug
+                 else '<span class="pill drug empty"><i>药品</i>未标注</span>')
     return f"""
     <article class="item" id="c-{bucket}-{idx}">
       <div class="body">
-        <div class="head"><span class="no">#{idx:02d}</span><span class="drug">{esc(c.get('drug') or '—')}</span></div>
+        <div class="head"><span class="no">#{idx:02d}</span>{drug_pill}</div>
         <h3>{esc(c['title'])}</h3>
         <div class="chips">{''.join(chips)}</div>
         <p class="sum">{esc(c['summary'])}</p>
@@ -78,7 +85,8 @@ for key, label in BUCKETS:
   </section>""")
     links = "".join(
         f'<a href="#c-{key}-{i + 1}" title="{esc(c["title"])}">'
-        f'<span class="nd">{esc(c.get("drug") or c["title"])}</span></a>'
+        f'<span class="ni">{i + 1:02d}</span>'
+        f'<span class="nd">{esc(c.get("drug") or "未标注")}</span></a>'
         for i, c in enumerate(items))
     nav_groups.append(f'<div class="ng"><a class="ng-t" href="#b-{key}">'
                       f'<span class="ladder l-{key}"></span>{label}</a>{links}</div>')
@@ -119,6 +127,7 @@ HTML = f"""<!doctype html>
   .ng a:not(.ng-t):hover{{color:var(--ink)}}
   .ng a:not(.ng-t):hover .nd{{text-decoration:underline;text-underline-offset:2px}}
   .nd{{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em}}
+  .ni{{font-size:8.5px;font-weight:700;color:var(--faint);letter-spacing:.08em;flex:none}}
   .l-early{{background:var(--l3)}} .l-pivotal{{background:var(--ink)}} .l-failed{{background:var(--l5)}}
   @media (max-width:1320px){{
     body{{padding:34px 20px 60px}}
@@ -141,7 +150,13 @@ HTML = f"""<!doctype html>
   .item{{padding:24px 0 20px;border-bottom:1px solid var(--grid)}}
   .head{{display:flex;align-items:baseline;gap:9px;margin-bottom:7px}}
   .head .no{{font-size:9.5px;font-weight:700;color:var(--faint);letter-spacing:.1em}}
-  .head .drug{{font-size:12.5px;font-weight:800;letter-spacing:-.01em;color:var(--ink)}}
+  .pill{{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;
+    letter-spacing:-.01em;color:var(--ink);border:1px solid var(--ink);border-radius:99px;
+    padding:3px 10px 3px 6px;background:#fff}}
+  .pill.drug i{{font-style:normal;font-size:8.5px;font-weight:700;letter-spacing:.1em;
+    color:var(--paper);background:var(--ink);border-radius:99px;padding:2px 6px}}
+  .pill.drug.empty{{border-style:dashed;border-color:var(--l5);color:var(--muted);font-weight:600}}
+  .pill.drug.empty i{{background:var(--l5)}}
   .item h3{{font-size:14.5px;font-weight:700;line-height:1.45;letter-spacing:-.01em;max-width:900px}}
   .chips{{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 11px}}
   .chip{{font-size:9.5px;font-weight:600;letter-spacing:.04em;padding:3px 8px;border-radius:99px;
