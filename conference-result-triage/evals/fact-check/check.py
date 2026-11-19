@@ -336,6 +336,31 @@ def op_transcript_has(sv, spec):
     return bool(hit), (f"found {hit.group(0)!r}" if hit else f"missing pattern {pat!r}")
 
 
+def op_self_coverage(sv, spec):
+    """`coverage: n/n` must match the corpus, whatever the corpus size.
+
+    A-D1 used to be a literal pattern (`coverage:\s*1097/1097`), which is a fact
+    about ESMO 2026 rather than about the skill: the same correct run on ASH 2026
+    (1524 rows) failed, and the only signal was a printed warning nobody gates on.
+    So the check now reads the counts out of the transcript and compares them to
+    `rows.json` -- equal to each other *and* equal to the rows actually pulled.
+    """
+    pat = spec.get("pattern", r"coverage:\s*(\d+)\s*/\s*(\d+)")
+    hits = re.findall(pat, sv["transcript"])
+    if not hits:
+        return False, f"no coverage line matched {pat!r}"
+    n_rows = len(sv.get("rows") or [])
+    bad = []
+    for a, b in hits:
+        if a != b:
+            bad.append(f"{a}/{b} (self-inconsistent)")
+        elif n_rows and int(a) != n_rows:
+            bad.append(f"{a}/{b} (rows.json has {n_rows})")
+    if bad:
+        return False, "coverage claims do not match the pull: " + ", ".join(bad[:5])
+    return True, f"coverage {hits[0][0]}/{hits[0][1]} matches {n_rows} rows"
+
+
 def op_transcript_absent(sv, spec):
     pat = spec["pattern"]
     hit = re.search(pat, sv["transcript"])
@@ -670,6 +695,126 @@ def op_score_order(sv, spec):
                        else "each bucket: flagged first, then score descending")
 
 
+def _flat(row: dict, name: str, default=None):
+    """`flat_row`-style lookup: bare key first, then the prefixed spelling."""
+    if name in row:
+        return row[name]
+    for prefix in ("clinical_result.", "clinical_result_"):
+        if prefix + name in row:
+            return row[prefix + name]
+    return default
+
+
+def _recommand_state(value):
+    """Three states, never two: True / False / None."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (list, tuple)):
+        value = value[0] if value else None
+    if value is None:
+        return None
+    text = str(value).strip()
+    if text in {"是", "1", "true", "True", "yes", "Y", "y"}:
+        return True
+    if text in {"否", "0", "false", "False", "no", "N", "n"}:
+        return False
+    return None
+
+
+def op_recommand_tristate(sv, spec):
+    """An empty flag column must stay empty all the way to the card.
+
+    `is_recommand` has three states and the platform's tool docs spell them out:
+    是 = recommended, 否 = **not** recommended and to be excluded, empty = nobody
+    said anything. R14 (ADA 2026) shipped 191/191 unflagged rows as `false`, i.e.
+    an exclusion instruction nobody gave -- `bool(None)` in the card builder. This
+    item compares the card against the row it came from, so the collapse cannot
+    pass even if the card is internally consistent.
+    """
+    rows = sv.get("rows") or []
+    state = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        esid = str(_flat(row, "_id") or _flat(row, "esid") or "").removeprefix("nr_")
+        if esid:
+            state[esid] = _recommand_state(_flat(row, "is_recommand"))
+    columns_present = any(k in row for row in rows if isinstance(row, dict)
+                          for k in ("is_recommand", "clinical_result_is_recommand",
+                                    "clinical_result.is_recommand"))
+    cards = (sv["watchlist"] or {}).get("cards") or []
+    bad_type, mismatched, invented = [], [], []
+    for card in cards:
+        esid = str(card.get("esid") or "").removeprefix("nr_")
+        value = card.get("is_recommand")
+        if value is not None and not isinstance(value, bool):
+            bad_type.append(str(card.get("esid")))
+            continue
+        if esid not in state:
+            continue
+        want = state[esid]
+        if value is not want:
+            mismatched.append(f"{card.get('esid')}: card={value!r} row={want!r}")
+            if want is None and value is False:
+                invented.append(str(card.get("esid")))
+    fails = []
+    if bad_type:
+        fails.append(f"is_recommand must be boolean or null: {bad_type[:3]}")
+    if mismatched:
+        fails.append(f"{len(mismatched)} card(s) disagree with the row: {mismatched[:3]}")
+    if invented:
+        fails.append(f"{len(invented)} unflagged row(s) printed as false "
+                     f"(empty column is not a 'no')")
+    if not cards:
+        return None, "no cards"
+    if not fails:
+        detail = ("every card's is_recommand matches its row"
+                  if columns_present else "no row carries the column; type-checked only")
+        return True, detail
+    return False, "; ".join(fails)
+
+
+def op_trial_seats(sv, spec):
+    """At most two cards per trial, unless a third seat is declared in the ledger.
+
+    R14: `HR17031 vs iGlar` took three of ten pivotal slots (71 / 73 / 71) -- the
+    primary result, a subgroup and a safety readout of one trial. The prose rule
+    "same mechanism, at most two" does not bind a trial that publishes three ways,
+    so it is counted from the delivered list against `trial_abbreviation`.
+    """
+    max_seats = spec.get("max_seats", 2)
+    rows = sv.get("rows") or []
+    trial_of = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        esid = str(_flat(row, "_id") or "").removeprefix("nr_")
+        trial = str(_flat(row, "trial_abbreviation") or "").strip().upper()
+        if esid and trial:
+            trial_of[esid] = trial
+    watch = sv["watchlist"] or {}
+    waived = set()
+    for entry in watch.get("editorial_overrides") or []:
+        if isinstance(entry, dict):
+            esid = str(entry.get("esid") or "").strip().removeprefix("nr_")
+            reason = " ".join(str(entry.get("reason") or "").split())
+            if esid and len(reason) >= 10:
+                waived.add(esid)
+    seats = {}
+    for card in watch.get("cards") or []:
+        esid = str(card.get("esid") or "").removeprefix("nr_")
+        trial = trial_of.get(esid)
+        if trial:
+            seats.setdefault(trial, []).append(esid)
+    over = {t: e for t, e in seats.items()
+            if len(e) > max_seats and any(x not in waived for x in e[max_seats:])}
+    if not over:
+        return True, (f"max {max(len(e) for e in seats.values())} seat(s) per trial"
+                      if seats else "no trial abbreviations available to group by")
+    return False, "; ".join(f"{t}: {len(e)} seats ({', '.join(e)})"
+                            for t, e in sorted(over.items()))
+
+
 def _recommand_true(value) -> bool:
     """`is_recommand` is 是/null today; accept the boolean spellings too."""
     if isinstance(value, bool):
@@ -987,6 +1132,7 @@ OPS = {
     "query_slicing": op_query_slicing,
     "transcript_has": op_transcript_has,
     "transcript_absent": op_transcript_absent,
+    "self_coverage": op_self_coverage,
     "present_artifact": op_present_artifact,
     "cards_cap": op_cards_cap,
     "count_matches": op_count_matches,
@@ -1012,6 +1158,8 @@ OPS = {
     "web_evidence": op_web_evidence,
     "report_meta": op_report_meta,
     "no_market_claims": op_no_market_claims,
+    "recommand_tristate": op_recommand_tristate,
+    "trial_seats": op_trial_seats,
     "heat_coverage": op_heat_coverage,
 }
 
@@ -1077,6 +1225,14 @@ def main(argv=None) -> int:
     if not sv["watchlist"]:
         print(f"no watchlist.json artifact in {args.run} — the run never produced a deliverable")
         return 4
+    # A scenario-bound item (A-D1's `1097/1097`) is graded against facts.json's default
+    # conference when `--scenario` is omitted. That is how the ADA 2026 run got a red
+    # `A-D1` for a corpus that was complete at its own size: the item was right, the
+    # invocation was wrong. Say so instead of leaving a fake FAIL in the report.
+    graded_conf = str(sv["watchlist"].get("conference") or "")
+    if not args.scenario and graded_conf and graded_conf != str(facts.get("conference") or ""):
+        print(f"  ! grading a {graded_conf} run against the {facts.get('conference')} "
+              f"baseline — pass --scenario for cross-meeting runs")
 
     print(f"evaluator {EVALUATOR_REVISION} · scenario={facts.get('scenario')} · run={os.path.basename(args.run.rstrip('/'))}")
     print(f"  watchlist: {sv['paths']['watchlist']}")

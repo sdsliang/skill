@@ -52,6 +52,18 @@ NON_TRIAL_SOURCES = {
     "回顾性研究", "真实世界研究", "汇总分析", "Not Applicable", "其他",
 }
 
+# `evidence_source` sometimes carries the *study design* ("前瞻性研究",
+# "单臂研究") instead of a phase. Measured on ESMO 2026: 7 of 30 delivered cards
+# printed "前瞻性研究" under `phase`, so the reader saw a design word in the
+# phase slot while the "按设计判定" basis that `phase_inferred` exists to carry
+# was suppressed. A design word is not a phase: `phase_label()` drops it, the
+# bucket still comes from `design_bucket()`, and the card states the basis.
+DESIGN_WORDS = (
+    "前瞻性", "回顾性", "随机", "单臂", "双臂", "单组", "开放标签", "双盲", "单盲",
+    "安慰剂", "交叉", "析因", "平行", "队列", "真实世界", "观察性", "首次人体",
+    "剂量递增", "剂量扩展", "扩展队列", "头对头", "探索性", "验证性",
+)
+
 PREFIXES = ("clinical_result.", "clinical_result_")
 
 RESPONSE_HINTS = (
@@ -521,7 +533,30 @@ def parse_n(value: Any) -> Optional[int]:
 
 
 def phase_of(row: Dict[str, Any]) -> Optional[str]:
+    """The raw `evidence_source` value -- used for *exclusion*, not for display.
+
+    ``excluded_reason()`` matches this against ``NON_TRIAL_SOURCES``, so it must
+    stay verbatim ("回顾性研究" has to survive to exclude the row). Display code
+    uses ``phase_label()`` instead.
+    """
     return first_text(row.get("evidence_source"))
+
+
+def phase_label(row: Dict[str, Any]) -> Optional[str]:
+    """The phase as printed on a card: a design word is not a phase.
+
+    Printing "前瞻性研究" in the phase slot made a curator-free design guess look
+    like a curator-written phase and simultaneously hid `phase_inferred`. The
+    bucket is unaffected -- `bucket_of()` places such rows by design anyway.
+    """
+    text = phase_of(row)
+    if not text:
+        return None
+    if text in TRIAL_PHASES:
+        return text
+    if any(word in text for word in DESIGN_WORDS):
+        return None
+    return text
 
 
 def evaluation_of(row: Dict[str, Any]) -> Optional[str]:
@@ -828,14 +863,16 @@ def build_pools(
             "abstract_id": abstract_id,
             "trial": first_text(row.get("trial_abbreviation")),
             "indication": as_text_list(row.get("indication_name")),
-            "phase": phase_of(row),
+            "phase": phase_label(row),
             # Set only when the bucket came from study design, i.e. the record
-            # carries no phase at all. Cards must say the basis out loud.
+            # carries no phase at all. Cards must say the basis out loud. There
+            # is no LBA exemption: an LBA whose `evidence_source` is a design
+            # word has exactly as little phase information as any other row, and
+            # suppressing the basis there is what printed 7 cards as "前瞻性研究".
             "phase_inferred": (
                 design_label(row)
-                if not is_lba_row
-                and phase_of(row) not in LATE_PHASES
-                and phase_of(row) not in EARLY_PHASES
+                if phase_label(row) not in LATE_PHASES
+                and phase_label(row) not in EARLY_PHASES
                 else None
             ),
             "evaluation": evaluation_of(row),

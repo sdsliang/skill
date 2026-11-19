@@ -124,10 +124,13 @@ def build_cards(plan: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
         card = {
             "esid": esid,
             "abstract_id": spec.get("abstract_id") or item.get("abstract_id"),
-            # The data owner's flag, carried as a boolean so the list can be sorted and
-            # audited without re-reading rows.json. `True` means this row was flagged
-            # upstream (clinical_result.is_recommand); it must be on the list.
-            "is_recommand": bool(item.get("is_recommand") or item.get("forced")),
+            # The data owner's flag, carried through **tri-state**. `bool(None)` is
+            # the bug this replaces: the platform's own tool docs spell the states out
+            # (是 = recommended, 否 = not recommended and to be excluded, empty = nobody
+            # said anything), so a card that prints `false` for an unflagged row is
+            # issuing an exclusion instruction nobody gave -- measured on ADA 2026,
+            # 191/191 unflagged rows shipped as `false`.
+            "is_recommand": _recommand_value(item),
             "lba": bool(item.get("lba") or spec.get("lba")),
             # Tri-state on purpose: `featured` is not selectable on the platform, so
             # "unknown" is the honest value and `false` would be a fabrication.
@@ -164,6 +167,21 @@ def build_cards(plan: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
             sys.stderr.write(f"  ! {p}\n")
         raise SystemExit(f"{len(problems)} card problem(s); fix the plan")
     return cards
+
+
+def _recommand_value(item: Dict[str, Any]) -> Optional[bool]:
+    """`is_recommand` with all three states intact.
+
+    ``True`` / ``False`` come straight from the row (True = flagged, must be on the
+    list; False = the owner said "not recommended, exclude"). ``None`` means the
+    column was empty for this conference, which is **not** a "no".
+    """
+    value = item.get("is_recommand")
+    if isinstance(value, bool):
+        return value
+    if item.get("forced"):
+        return True
+    return None
 
 
 def _auto_tag(item: Dict[str, Any]) -> str:

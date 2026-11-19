@@ -123,7 +123,7 @@ p_value, outcome_p_value, hazard_ratio, hazard_ratio_ci, odd_ratio, relative_ris
 | 任何行情字段 | ❌ | `stock` / `reaction` / `change_pct` / `excess_pct` / `bench_change_pct` / `price_source` 出现即判失败（同一闸门 `A-N1-no-market-claims`） |
 | `promoted` | 仅破格入榜 | 固定 `"web"` |
 | `abstract_id` | ✅（值可为 null，但**有值必须照抄**） | 来自 `clinical_result.abstract_id`（v0.12 起请求）。必须与 `work/rows.json` 逐字一致：rows 有值而卡片空 / 值与 rows 不同 / rows 无值而卡片凭空填，三种都判失败。空值只允许出现在 rows 本身为空时 |
-| `is_recommand` | ✅（布尔） | 来自 `clinical_result.is_recommand`，`是`→`true`、`否`→`false`、`null`→`false`（并写进 `coverage_notes`）。必须与 rows 一致；标星卡的**位置**置顶，**标签不加**（v0.13） |
+| `is_recommand` | ✅（**三态**：`true` / `false` / `null`） | 来自 `clinical_result.is_recommand`，**逐态照抄**：`是`→`true`、`否`→`false`、`null`→`null`。**`null` 不是 `false`**（v0.14 修正）：平台语义里 `否` = 不推荐、须在会议解读时排除，所以把空列印成 `false` 等于伪造一条排除指令——R14 的 ADA 2026 就是这样把 191/191 条空值全印成了 `false`。必须与 rows 完全一致（`A-P8-recommand-tristate`）；标星卡的**位置**置顶，**标签不加**（v0.13） |
 | `lba` / `manual` | ✅（值可为 null） | `manual` 在平台上恒 `null`，不猜 |
 | `phase` / `phase_inferred` | ✅ | `phase` 照抄记录（跨领域会议常为 `""`）；`phase_inferred` 只在期别缺失、由设计定桶时非空，取值固定三种（`随机化对照（按设计判定）` / `平行/交叉对照（按设计判定）` / `单臂或未标注设计（按设计判定）`）。**推断值不许写进 `phase`** |
 
@@ -131,11 +131,16 @@ p_value, outcome_p_value, hazard_ratio, hazard_ratio_ci, odd_ratio, relative_ris
 
 排序键是 **`(is_recommand, -score)`**：标星卡在桶内置顶，同类内按判读分降序。`is_recommand` 不进 `score_parts`、不改 `score` 的值 —— 它决定"读不读"，判读分回答"有多强"。
 
+降序是**交付前硬闸门**（v0.14）：`check_cards.py` 按 `(bucket, is_recommand)` 分组逐组检查分数非增。R14 的 pivotal 是 `83,80,80,78,78,76,76,71,73,71` —— 其它闸门全绿，只有读者一眼能看出第 8/9 张反了，所以这条必须在交付前拦，而不是只靠事后 `A-P4`。
+
+同一 `trial_abbreviation` 最多 **2 席**（v0.14）：第三个席位必须在 `editorial_overrides` 里写明理由，否则 `check_cards.py` 与 `A-P9-trial-seats` 都判失败。散文里的「同机制 ≤2」管不住「一个试验拆成主结果 + 亚组 + 安全性三篇」。
+
 ### 6.5.0 期别缺失要显式交付，不许静默丢
 
 `bucket_of()` 在 v0.10 起对没有期别的记录按研究设计定桶（`screening-rules.md` §1.1.2）。这带来一个必须写进交付物的诚实声明：
 
 - 卡片正文印「期别未标注（按设计判定：随机化对照）」，不印 `Phase III`；
+- **`phase` 一栏不印设计词**（v0.14）：`evidence_source` 写「前瞻性研究」「单臂研究」时，`phase_of()` 保留原值供排除判断，`phase_label()` 返回空并把依据放进 `phase_inferred`。ESMO 2026 曾有 7 张卡在 `phase` 位印着「前瞻性研究」，既像期别又顶掉了推断依据；
 - `coverage_notes` 里必须有一条说明**这批记录的期别是推断的**、依据是什么，例：`本次会议 51% 的记录未填期别，按研究设计归档（随机化对照→重磅、单臂→早期），phase_inferred 字段逐条标明；这不是策展期别`。
 
 没有这一条时，读者会把 164 条候选误读成「都有期别的 164 条」，而实际只有 41 条有。

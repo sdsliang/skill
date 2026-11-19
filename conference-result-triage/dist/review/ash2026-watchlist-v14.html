@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ASH 2026 · 推荐清单</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#F0EFEB;--ink:#1C1C1A;--muted:#8F8E88;--faint:#C6C5BF;--grid:#DEDDD6;
+        --l2:#4A4944;--l3:#6A6963;--l5:#B0AFA9;--paper:#F0EFEB}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter','Noto Sans SC',sans-serif;
+    -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums lining-nums;padding:56px 28px 80px}
+  html{scroll-behavior:smooth}
+  .sheet{width:1280px;max-width:1280px;margin:0 auto;display:grid;
+    grid-template-columns:206px minmax(0,1fr);gap:44px}
+  .main{min-width:0}
+
+  .nav{position:sticky;top:26px;align-self:start;max-height:calc(100vh - 52px);
+    overflow:auto;padding-right:6px}
+  .nav::-webkit-scrollbar{width:4px}
+  .nav::-webkit-scrollbar-thumb{background:var(--grid);border-radius:9px}
+  .nt{font-size:9.5px;font-weight:700;letter-spacing:.14em;color:var(--muted);
+    line-height:1.7;padding-bottom:12px;border-bottom:1px solid var(--ink)}
+  .nt b{font-size:11px;letter-spacing:.02em;color:var(--ink)}
+  .ng{margin-top:16px}
+  .ng-t{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;
+    color:var(--ink);text-decoration:none;letter-spacing:-.01em;margin-bottom:8px}
+  .ng-t .ladder{width:9px;height:9px;border-radius:3px;flex:none}
+  .nav a{text-decoration:none}
+  .ng a:not(.ng-t){display:flex;gap:7px;align-items:baseline;padding:3px 0;max-width:100%;
+    font-size:10px;color:var(--l2);border-bottom:1px solid transparent}
+  .ng a:not(.ng-t):hover{color:var(--ink)}
+  .ng a:not(.ng-t):hover .nd{text-decoration:underline;text-underline-offset:2px}
+  .nd{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em}
+  .l-early{background:var(--l3)} .l-pivotal{background:var(--ink)} .l-failed{background:var(--l5)}
+  @media (max-width:1320px){
+    body{padding:34px 20px 60px}
+    .sheet{width:auto;max-width:1080px;grid-template-columns:1fr;gap:26px}
+    .nav{position:static;max-height:none;overflow:visible;border-bottom:1px solid var(--grid);padding-bottom:16px}
+    .nav .ng{display:inline-block;vertical-align:top;margin:14px 26px 0 0;
+      width:calc((100% - 60px) / 3);max-width:300px}
+    .nt{display:none}
+  }
+
+  .kick{font-size:9.5px;font-weight:700;letter-spacing:.16em;color:var(--muted)}
+  h1{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:14px 0 0}
+
+  .bucket{margin-top:52px}
+  .bh{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--ink);padding-bottom:10px}
+  .ladder{width:13px;height:13px;border-radius:4px;flex:none}
+  .bh h2{font-size:18px;font-weight:800;letter-spacing:-.02em}
+  .bh .cnt{font-size:11px;font-weight:600;color:var(--muted);margin-left:10px;letter-spacing:.06em}
+
+  .item{padding:24px 0 20px;border-bottom:1px solid var(--grid)}
+  .head{display:flex;align-items:baseline;gap:9px;margin-bottom:7px}
+  .head .no{font-size:9.5px;font-weight:700;color:var(--faint);letter-spacing:.1em}
+  .head .drug{font-size:12.5px;font-weight:800;letter-spacing:-.01em;color:var(--ink)}
+  .item h3{font-size:14.5px;font-weight:700;line-height:1.45;letter-spacing:-.01em;max-width:900px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 11px}
+  .chip{font-size:9.5px;font-weight:600;letter-spacing:.04em;padding:3px 8px;border-radius:99px;
+    border:1px solid var(--grid);color:var(--l2)}
+  .chip.solid{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .chip.who{border-color:var(--l5);color:var(--l2)}
+  .chip.ghost{border-style:dashed;color:var(--muted)}
+  .chip.no-id{font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--l2)}
+  .sum{font-size:13px;line-height:1.7;color:var(--ink);max-width:900px}
+  .why{font-size:12.5px;line-height:1.7;color:var(--l2);margin-top:7px;max-width:900px}
+  .why:before{content:'推荐理由 · ';font-weight:700;color:var(--muted);letter-spacing:.02em}
+  .ev{font-size:10.5px;line-height:1.6;color:var(--muted);margin-top:10px;max-width:900px;
+    border-left:2px solid var(--grid);padding-left:10px}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <nav class="nav">
+    <div class="nt">ASH 2026<br><b>30 张推荐卡片</b></div>
+    <div class="ng"><a class="ng-t" href="#b-early"><span class="ladder l-early"></span>早期机会提示</a><a href="#c-early-1" title="NXC-201／NEXICART-2：复发难治AL淀粉样变出现血液与器官应答信号"><span class="nd">NXC-201</span></a><a href="#c-early-2" title="Zamtocabtagene autoleucel／DALY II USA：双靶鲜制CAR-T兼顾缓解与快速交付"><span class="nd">zamtocabtagene autoleucel（zamto-cel；MB-CART2019.1）</span></a><a href="#c-early-3" title="CART22-65s＋huCART19：既往CD19 CAR失败B-ALL的双靶挽救机会"><span class="nd">CART22-65s＋huCART19</span></a><a href="#c-early-4" title="Tacabrutideg／CaDAnCe-101：共价BTKi经治华氏巨球蛋白血症的降解剂机会"><span class="nd">tacabrutideg（BGB-16673）</span></a><a href="#c-early-5" title="Bexobrutideg：共价BTKi经治CLL的口服BTK降解策略"><span class="nd">bexobrutideg（NX-5948）</span></a><a href="#c-early-6" title="Gamgertamig：经抗CD38治疗AL淀粉样变的双抗救援信号"><span class="nd">gamgertamig</span></a><a href="#c-early-7" title="ViPOR-P：CAR-T后DLBCL的限时联合治疗出现持久缓解信号"><span class="nd">维奈克拉（venetoclax）＋伊布替尼（ibrutinib）＋泼尼松（prednisone）＋奥妥珠单抗（obinutuzumab）＋来那度胺（lenalidomide）＋维泊妥珠单抗（polatuzumab vedotin）</span></a><a href="#c-early-8" title="Risto-cel／BEACON：碱基编辑治疗重症镰状细胞病的无危象信号待长期确认"><span class="nd">ristoglogene autogetemcel（risto-cel；BEAM-101）</span></a><a href="#c-early-9" title="JNJ-88549968：CALR突变原发性血小板增多症的驱动克隆靶向机会"><span class="nd">JNJ-88549968（JNJ-9968）</span></a><a href="#c-early-10" title="SNC116：免清淋体内CD19 CAR-T获6例首次人体概念验证"><span class="nd">SNC116</span></a></div><div class="ng"><a class="ng-t" href="#b-pivotal"><span class="ladder l-pivotal"></span>重磅 II/III 期</a><a href="#c-pivotal-1" title="MonumenTAL-6：双抗原组合改善早线复发难治骨髓瘤PFS与OS"><span class="nd">特立妥单抗（teclistamab）；塔奎妥单抗（talquetamab）；泊马度胺（pomalidomide）</span></a><a href="#c-pivotal-2" title="HOVON150/AMLSG29-18：艾伏尼布加入强化治疗达到EFS优效界值"><span class="nd">艾伏尼布（ivosidenib）</span></a><a href="#c-pivotal-3" title="AQUILA：高危冒烟型骨髓瘤早期干预维持长期生存优势"><span class="nd">达雷妥尤单抗（daratumumab）</span></a><a href="#c-pivotal-4" title="H-PRIME：每周DHA–PPQ降低镰状贫血儿童疟疾住院并因优效停止比较"><span class="nd">双氢青蒿素–哌喹（dihydroartemisinin–piperaquine）；磺胺多辛–乙胺嘧啶（sulfadoxine–pyrimethamine）</span></a><a href="#c-pivotal-5" title="MANGROVE：泽布替尼联合利妥昔单抗优于BR控制老年初治套细胞淋巴瘤"><span class="nd">泽布替尼（zanubrutinib）；利妥昔单抗（rituximab）；苯达莫司汀（bendamustine）</span></a><a href="#c-pivotal-6" title="Precision-T：Orca-T维持慢性GVHD无事件生存优势，总体OS未显著"><span class="nd">Orca-T</span></a><a href="#c-pivotal-7" title="罗特西普HbH病随机Ⅱ期：达到持续无输血血红蛋白应答主终点"><span class="nd">罗特西普（luspatercept）</span></a><a href="#c-pivotal-8" title="MagnetisMM-5：elranatamab单药PFS优于DPd，OS尚未成熟"><span class="nd">elranatamab（ELRA）；达雷妥尤单抗（daratumumab）；泊马度胺（pomalidomide）；地塞米松（dexamethasone）</span></a><a href="#c-pivotal-9" title="STARGLO四年更新：格菲妥单抗联合GemOx维持生存优势，不能据此确认治愈"><span class="nd">格菲妥单抗（glofitamab）；吉西他滨（gemcitabine）；奥沙利铂（oxaliplatin）；利妥昔单抗（rituximab）</span></a><a href="#c-pivotal-10" title="NTQ5082：口服因子B抑制剂在补体抑制剂初治PNH达到Hb正常化优效"><span class="nd">NTQ5082；依库珠单抗（eculizumab）</span></a></div><div class="ng"><a class="ng-t" href="#b-failed"><span class="ladder l-failed"></span>失败的研究</a><a href="#c-failed-1" title="FORUM1长期更新：化疗预处理未守住总生存非劣，劣于TBI方案"><span class="nd">依托泊苷（etoposide）；氟达拉滨（fludarabine）；塞替派（thiotepa）；白消安（busulfan）；曲奥舒凡（treosulfan）</span></a><a href="#c-failed-2" title="ASTER：abelacimab复发血栓非劣未达；MAGNOLIA因战略及运营终止"><span class="nd">abelacimab</span></a><a href="#c-failed-3" title="AIEOP-BFM AML 2020：CPX-351诱导因无事件生存劣势建议终止"><span class="nd">柔红霉素/阿糖胞苷脂质体（CPX-351）</span></a><a href="#c-failed-4" title="AMADEUS：口服阿扎胞苷移植后维持未改善主终点无复发生存"><span class="nd">口服阿扎胞苷（oral azacitidine，CC-486）</span></a><a href="#c-failed-5" title="IVIorDEX：活动出血成人ITP单用地塞米松早期应答非劣未达"><span class="nd">静注人免疫球蛋白（intravenous immunoglobulin）；泼尼松（prednisone）；地塞米松（dexamethasone）</span></a><a href="#c-failed-6" title="MAINTAIN十年更新：利妥昔单抗维持延至四年未证实PFS增益"><span class="nd">利妥昔单抗（rituximab）</span></a><a href="#c-failed-7" title="EsPhALL2017：伊马替尼联合减强度化疗未证实DFS非劣"><span class="nd">伊马替尼（imatinib）</span></a><a href="#c-failed-8" title="SWOG S1918：加口服阿扎胞苷未过II期PFS门槛，未进入III期"><span class="nd">口服阿扎胞苷（oral azacitidine，CC-486）</span></a><a href="#c-failed-9" title="CiproPAL：环丙沙星改善菌血症主终点，但诱导死亡失衡促停随机"><span class="nd">环丙沙星（ciprofloxacin）</span></a><a href="#c-failed-10" title="DFP-10917后线AML三期：主终点完全缓解无优势，因无效性停止"><span class="nd">DFP-10917</span></a></div>
+  </nav>
+  <main class="main">
+    <div class="kick">ASH 2026 · 临床结果推荐</div>
+    <h1>30 张推荐卡片</h1>
+    
+  <section class="bucket" id="b-early">
+    <div class="bh"><span class="ladder l-early"></span><h2>早期机会提示<span class="cnt">10</span></h2></div>
+    
+    <article class="item" id="c-early-1">
+      <div class="body">
+        <div class="head"><span class="no">#01</span><span class="drug">NXC-201</span></div>
+        <h3>NXC-201／NEXICART-2：复发难治AL淀粉样变出现血液与器官应答信号</h3>
+        <div class="chips"><span class="chip no-id">826</span><span class="chip">Phase I/II</span><span class="chip who">BCMA · AL淀粉样变性（AL amyloidosis）</span></div>
+        <p class="sum">45例复发难治AL患者中位随访277天，病理标志物正常化96%（43/45）。随访超过12个月的16例CR为100%（16/16）；可评估心脏9例、肾脏11例器官应答均为100%（9/9、11/11），不是全入组人群。38例发生1–2级CRS，未观察到神经毒性。</p>
+        <p class="why">多线复发难治AL淀粉样变需要兼顾异常浆细胞清除与器官损伤改善的治疗。该BCMA CAR-T同时出现血液学和心肾应答信号，支持进一步探索器官获益定位。长期随访和器官可评估人群具有选择性，且入组时心脏分期相对较轻，单臂结果不能外推至严重心脏受累者。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-2">
+      <div class="body">
+        <div class="head"><span class="no">#02</span><span class="drug">zamtocabtagene autoleucel（zamto-cel；MB-CART2019.1）</span></div>
+        <h3>Zamtocabtagene autoleucel／DALY II USA：双靶鲜制CAR-T兼顾缓解与快速交付</h3>
+        <div class="chips"><span class="chip no-id">616</span><span class="chip">Phase II</span><span class="chip who">CD20/CD19 · 弥漫性大B细胞淋巴瘤（diffuse large B-cell lymphoma）；继发性中枢神经系统淋巴瘤（secondary central nervous system lymphoma）</span></div>
+        <p class="sum">134例接受白细胞单采，主分析为110例鲜制合格产品受治者，含104例DLBCL及6例继发性中枢淋巴瘤。中位随访约24个月，ORR 80.0%（88/110）、CR 63.6%（70/110），中位PFS 12.2个月；≥3级CRS 0.9%、ICANS 1.8%。全单采人群疗效仅定性报告相似。</p>
+        <p class="why">多线复发难治大B细胞淋巴瘤既需要持续缓解，也面临疾病进展快于细胞产品交付的问题。双抗原鲜制CAR-T同时回应抗原逃逸与治疗可达性需求，支持后续验证快速交付的临床价值。单臂主分析来自合格鲜制产品受治者，仍需完整单采人群数据及比较研究，不能据此认定优于单靶疗法。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-3">
+      <div class="body">
+        <div class="head"><span class="no">#03</span><span class="drug">CART22-65s＋huCART19</span></div>
+        <h3>CART22-65s＋huCART19：既往CD19 CAR失败B-ALL的双靶挽救机会</h3>
+        <div class="chips"><span class="chip no-id">559</span><span class="chip">Phase I/II</span><span class="chip who">CD22/CD19 · B细胞急性淋巴细胞白血病（B-cell acute lymphoblastic leukemia）</span></div>
+        <p class="sum">46例不足30岁患者接受共输注；第28天MRD阴性CR为既往CAR经治组89%（31/35）、CAR初治组100%（11/11）。中位随访20个月，经治组2年OS 69%、RFS 54%。降低CART22-65s剂量后，IEC-HS由13/27降至4/19，降剂量组未见≥3级事件。</p>
+        <p class="why">CD19 CAR后复发的儿童及青年B-ALL仍需应对抗原逃逸和细胞持续性不足。共输注两种CAR的中期结果提供双靶挽救的临床依据，并提示剂量优化是研发关键。初始剂量的炎症毒性突出，后续需扩大验证调整剂量后的长期净获益；部分患者接受巩固移植，也限制对缓解持续性的单独归因。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-4">
+      <div class="body">
+        <div class="head"><span class="no">#04</span><span class="drug">tacabrutideg（BGB-16673）</span></div>
+        <h3>Tacabrutideg／CaDAnCe-101：共价BTKi经治华氏巨球蛋白血症的降解剂机会</h3>
+        <div class="chips"><span class="chip no-id">5317</span><span class="chip">Phase I</span><span class="chip who">BTK · 华氏巨球蛋白血症（Waldenström macroglobulinemia）</span></div>
+        <p class="sum">43例均接受过共价BTKi且均可评估应答，中位研究随访17.5个月；ORR 81.4%（n=35）、主要应答率74.4%（n=32）、VGPR 30.2%（n=13）。PFS中位随访19.3个月，估计18个月PFS 68.4%。≥3级TEAE为69.8%，此前已报告3例TEAE相关死亡，本次无新增。</p>
+        <p class="why">共价BTKi后进展的华氏巨球蛋白血症需要替代耐药通路的治疗策略。BTK降解剂在经治及部分突变人群显示活性，更新随访为持续控制定位提供依据。仍属早期单臂研究，骨髓抑制及既往报告的TEAE相关死亡不可忽略；突变亚组样本有限，需进一步验证耐药覆盖与净获益。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-5">
+      <div class="body">
+        <div class="head"><span class="no">#05</span><span class="drug">bexobrutideg（NX-5948）</span></div>
+        <h3>Bexobrutideg：共价BTKi经治CLL的口服BTK降解策略</h3>
+        <div class="chips"><span class="chip no-id">3875</span><span class="chip who">BTK · 慢性淋巴细胞白血病（chronic lymphocytic leukemia）</span></div>
+        <p class="sum">600 mg安全性集79例，≥3级TEAE为53.2%；疗效为61例共价BTKi经治、无中枢受累且可评估CLL患者，ORR 85.2%，中位随访13.2个月。18个月DoR无事件率64.1%、PFS无事件率52.9%；三重暴露亚组仅9例，ORR 66.7%。</p>
+        <p class="why">BTK耐药突变及其非激酶支架信号使多重治疗暴露CLL需要替代抑制策略。口服降解剂的更新数据支持探索共价BTKi经治后的持续控制定位，为后续比较研究提供依据。安全性与疗效分析集不同，且三重暴露亚组很小、置信区间较宽，不能将亚组应答外推为广泛耐药覆盖。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-6">
+      <div class="body">
+        <div class="head"><span class="no">#06</span><span class="drug">gamgertamig</span></div>
+        <h3>Gamgertamig：经抗CD38治疗AL淀粉样变的双抗救援信号</h3>
+        <div class="chips"><span class="chip no-id">3968</span><span class="chip">Phase II</span><span class="chip who">BCMA/CD3 · 系统性轻链淀粉样变性（systemic light chain amyloidosis）</span></div>
+        <p class="sum">共37例受治，疗效仅报告剂量随机阶段20例，中位随访6.7个月；血液ORR 100%、CR 90.0%。心脏应答10/13（76.9%），肾脏应答9例（100.0%）；MRD可评估17例均阴性。感染64.9%来自全部37例安全性集，不能套用至20例疗效集。</p>
+        <p class="why">经硼替佐米和抗CD38治疗后，AL患者仍需要快速降低致病轻链并改善受累器官的方案。该BCMA/CD3双抗的初步数据支持难治疾病的早期救援定位，并为后续剂量和给药间隔优化提供方向。随机仅发生在剂量间而非对照标准治疗，器官可评估人群有限且随访较短，长期器官获益和感染风险仍待验证。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-7">
+      <div class="body">
+        <div class="head"><span class="no">#07</span><span class="drug">维奈克拉（venetoclax）＋伊布替尼（ibrutinib）＋泼尼松（prednisone）＋奥妥珠单抗（obinutuzumab）＋来那度胺（lenalidomide）＋维泊妥珠单抗（polatuzumab vedotin）</span></div>
+        <h3>ViPOR-P：CAR-T后DLBCL的限时联合治疗出现持久缓解信号</h3>
+        <div class="chips"><span class="chip no-id">73</span><span class="chip">Phase I/II</span><span class="chip who">CD79B（摘要明确涉及polatuzumab vedotin；其他组分靶点未在摘要逐一说明） · 弥漫性大B细胞淋巴瘤（diffuse large B-cell lymphoma）</span></div>
+        <p class="sum">48例复发难治DLBCL入组，ORR 81%（39/48）、CR 60%（29/48）；其中CAR-T后20例CR为50%（10/20）。中位随访34个月，3年PFS 48%、OS 55%为整体结果，并非CAR-T后亚组。发生1例5级流感A肺部感染及33%的3–4级低钾血症。</p>
+        <p class="why">CAR-T失败及多线难治DLBCL缺少能够形成持久缓解的后续选择。多通路靶向联合ADC提供限时、无维持治疗的探索依据，值得进一步研究人群选择与联合贡献。不同组织学疗效分化明显，复杂联合中的感染、低钾及剂量调整不可忽视，单臂数据不能确认各组分的增益或推广至所有亚型。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-8">
+      <div class="body">
+        <div class="head"><span class="no">#08</span><span class="drug">ristoglogene autogetemcel（risto-cel；BEAM-101）</span></div>
+        <h3>Risto-cel／BEACON：碱基编辑治疗重症镰状细胞病的无危象信号待长期确认</h3>
+        <div class="chips"><span class="chip no-id">335</span><span class="chip">Phase I/II</span><span class="chip who">HBG1/2启动子碱基编辑 · 镰状细胞病（sickle cell disease）</span></div>
+        <p class="sum">47例受治，含8例青少年、39例成人，平均随访分别6.9和13.2个月。疗效可评估人群未报告治疗后严重血管闭塞危象，但摘要未给该人群分母或达到≥12个月无危象主要终点的例数。第6个月平均内源性HbF 63.5%、F细胞99.2%，该时点分母未列明。</p>
+        <p class="why">反复严重血管闭塞危象的镰状细胞病需要超越症状控制的治疗。该碱基编辑方案的更新数据将胎儿血红蛋白诱导与临床及患者报告结局联系起来，支持继续探索疾病控制定位。青少年观察时间较短，不能把可评估人群无危象等同于主要终点达成；清髓预处理风险和长期编辑安全性仍须持续验证。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-9">
+      <div class="body">
+        <div class="head"><span class="no">#09</span><span class="drug">JNJ-88549968（JNJ-9968）</span></div>
+        <h3>JNJ-88549968：CALR突变原发性血小板增多症的驱动克隆靶向机会</h3>
+        <div class="chips"><span class="chip no-id">1033</span><span class="chip">Phase I</span><span class="chip who">CALRmut/CD3 · 原发性血小板增多症（essential thrombocythemia）</span></div>
+        <p class="sum">首次人体研究初步数据：49例入组，中位治疗6.0个月；31例满足持久应答评估条件，18例（58%）达持久血小板CR或PR，13例（42%）达持久CR且均无羟基脲治疗；CR中位持续241天。≥3级TEAE为49%，未见≥3级CRS或ICANS。</p>
+        <p class="why">羟基脲耐药或不耐受的CALR突变原发性血小板增多症需要兼顾血小板控制与驱动克隆干预的治疗。该双抗的血液学、分子及骨髓变化支持探索疾病修饰潜力，为后续人群与剂量优化提供依据。部分患者起始合用羟基脲，分子及骨髓结果也来自选择性可评估人群，尚不能确认减少纤维化进展或实现治愈。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-10">
+      <div class="body">
+        <div class="head"><span class="no">#10</span><span class="drug">SNC116</span></div>
+        <h3>SNC116：免清淋体内CD19 CAR-T获6例首次人体概念验证</h3>
+        <div class="chips"><span class="chip no-id">704</span><span class="chip">Other</span><span class="chip who">CD19 · B细胞非霍奇金淋巴瘤（B-cell non-Hodgkin lymphoma）</span></div>
+        <p class="sum">仅6例至少二线经治B-NHL接受单次给药且未清淋，中位随访5.2个月（2.3–8.8）；ORR 83.3%（5/6），4例CR（66.7%），截止时未见进展。2例发生1级CRS；未观察到DLT、≥3级CRS或ICANS，有限样本不足以确立安全性。</p>
+        <p class="why">体外制造耗时及清淋负担限制部分复发难治B细胞淋巴瘤患者获得细胞治疗。SNC116在体内生成CAR-T并出现抗肿瘤活性，提供免体外制造平台的首次人体概念验证。样本极小、剂量分散且随访短，尚不能概括安全性或持久疗效，长期转导风险、剂量选择与规模化可用性均需继续验证。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+  </section>
+  <section class="bucket" id="b-pivotal">
+    <div class="bh"><span class="ladder l-pivotal"></span><h2>重磅 II/III 期<span class="cnt">10</span></h2></div>
+    
+    <article class="item" id="c-pivotal-1">
+      <div class="body">
+        <div class="head"><span class="no">#01</span><span class="drug">特立妥单抗（teclistamab）；塔奎妥单抗（talquetamab）；泊马度胺（pomalidomide）</span></div>
+        <h3>MonumenTAL-6：双抗原组合改善早线复发难治骨髓瘤PFS与OS</h3>
+        <div class="chips"><span class="chip no-id">426</span><span class="chip">Phase III</span><span class="chip who">BCMA×CD3；GPRC5D×CD3 · 复发或难治性多发性骨髓瘤（relapsed/refractory multiple myeloma）</span></div>
+        <p class="sum">既往1–4线且抗CD38及来那度胺暴露的838例患者，中位随访13.4个月。预设中期分析中，Tec+Tal及Tal+Pom对EPd/PVd的主终点PFS HR分别为0.11、0.27，均显著改善；12个月PFS为88.6%、73.1%、30.4%，OS亦均显著改善。</p>
+        <p class="why">抗CD38与来那度胺暴露后的复发难治患者需要早线新机制，而非重复既有组合。随机比较支持双抗原靶向及塔奎妥单抗免疫调节剂组合的治疗定位，兼具疾病控制与生存证据。随访仍较短，感染、免疫球蛋白替代需求及味觉和体重影响应与疗效一同审视。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-2">
+      <div class="body">
+        <div class="head"><span class="no">#02</span><span class="drug">艾伏尼布（ivosidenib）</span></div>
+        <h3>HOVON150/AMLSG29-18：艾伏尼布加入强化治疗达到EFS优效界值</h3>
+        <div class="chips"><span class="chip no-id">1</span><span class="chip who">IDH1 · 初治IDH1突变急性髓系白血病（newly diagnosed IDH1-mutated acute myeloid leukemia）；原始细胞增多型骨髓增生异常综合征2型（myelodysplastic syndrome with excess blasts 2）</span></div>
+        <p class="sum">487例初治IDH1突变AML或MDS-EB2患者随机接受艾伏尼布或安慰剂联合强化化疗及后续维持。随访中位24.4个月，主终点EFS HR 0.32；24个月EFS为74%对35%，跨越预设中期优效界值。摘要未报告OS分析结果，不能据此确认生存获益。</p>
+        <p class="why">适合强化治疗的初治IDH1突变患者仍需要降低诱导失败与复发。双盲随机研究达到预设EFS优效界值，为将IDH1抑制贯穿强化诱导、巩固和维持提供直接比较证据。OS结果尚未载于本摘要，分化综合征及QT延长也需关注，不能将EFS优势等同于已证实OS获益。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-3">
+      <div class="body">
+        <div class="head"><span class="no">#03</span><span class="drug">达雷妥尤单抗（daratumumab）</span></div>
+        <h3>AQUILA：高危冒烟型骨髓瘤早期干预维持长期生存优势</h3>
+        <div class="chips"><span class="chip no-id">112</span><span class="chip">Phase III</span><span class="chip who">高危冒烟型多发性骨髓瘤（high-risk smoldering multiple myeloma）</span></div>
+        <p class="sum">390例高危冒烟型骨髓瘤患者随机接受达雷妥尤单抗或主动监测。长期更新随访中位88.8个月，主终点PFS HR 0.48，中位PFS为82.5对34.9个月；OS HR 0.52，P=0.0108，7年OS为87.8%对78.7%。PFS2亦改善，但其P值为名义检验。</p>
+        <p class="why">高危冒烟型骨髓瘤的关键问题是是否值得在无症状前驱状态提前干预。随机长期分析同时支持延缓进展与生存优势，且后续治疗结局未见受损，为有限疗程干预提供更有力的定位。入组高危定义与现代分层并不完全相同，应避免外推至所有冒烟型骨髓瘤。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-4">
+      <div class="body">
+        <div class="head"><span class="no">#04</span><span class="drug">双氢青蒿素–哌喹（dihydroartemisinin–piperaquine）；磺胺多辛–乙胺嘧啶（sulfadoxine–pyrimethamine）</span></div>
+        <h3>H-PRIME：每周DHA–PPQ降低镰状贫血儿童疟疾住院并因优效停止比较</h3>
+        <div class="chips"><span class="chip no-id">466</span><span class="chip who">镰状细胞贫血（sickle cell anemia）；疟疾（malaria）</span></div>
+        <p class="sum">乌干达1795例1–10岁镰状细胞贫血儿童随机比较每周DHA–PPQ与每月SP。预设中期分析随访中位18个月，主终点疟疾相关住院为7对16次/100儿童年，RR=0.46；死亡差异不显著。疟疾比较因优效停止并建议SP组换药，其他析因随机比较继续。</p>
+        <p class="why">疟疾流行地区的镰状贫血儿童亟需减少感染住院和输血，预防方案尚缺一致选择。随机试验以疟疾相关住院为主终点，支持每周DHA–PPQ的照护定位，并伴随全因住院及输血下降。证据来自乌干达且受并行预防策略影响，不能宣称死亡获益或直接推广至所有地区。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-5">
+      <div class="body">
+        <div class="head"><span class="no">#05</span><span class="drug">泽布替尼（zanubrutinib）；利妥昔单抗（rituximab）；苯达莫司汀（bendamustine）</span></div>
+        <h3>MANGROVE：泽布替尼联合利妥昔单抗优于BR控制老年初治套细胞淋巴瘤</h3>
+        <div class="chips"><span class="chip no-id">6</span><span class="chip">Phase III</span><span class="chip who">BTK · 初治套细胞淋巴瘤（treatment-naïve mantle cell lymphoma）</span></div>
+        <p class="sum">510例初治套细胞淋巴瘤患者为≥70岁，或≥60至&lt;70岁且不适合自体移植。主要分析随访中位44.1个月，ZR对BR的独立评审主终点PFS HR为0.57，4年PFS为62.4%对46.2%；OS尚未成熟，仅数值倾向ZR，两组均未使用利妥昔单抗维持。</p>
+        <p class="why">老年初治套细胞淋巴瘤需要兼顾疾病控制与化疗负担。随机头对头研究支持泽布替尼联合利妥昔单抗作为无化疗一线替代的定位，诱导期毒性也有优势。长期连续BTK抑制仍需关注累积风险，OS未成熟且对照未含利妥昔单抗维持，应明确比较边界。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-6">
+      <div class="body">
+        <div class="head"><span class="no">#06</span><span class="drug">Orca-T</span></div>
+        <h3>Precision-T：Orca-T维持慢性GVHD无事件生存优势，总体OS未显著</h3>
+        <div class="chips"><span class="chip no-id">5992</span><span class="chip">Phase III</span><span class="chip who">完全缓解期急性白血病（acute leukemia in complete remission）；高危骨髓增生异常综合征（high-risk myelodysplastic syndrome）</span></div>
+        <p class="sum">匹配供者清髓移植中，Orca-T加他克莫司对常规移植物加他克莫司/甲氨蝶呤的两年事后更新显示，原主终点cGFS为68%对17%；两年OS为84%对73%，总体差异未显著（p=.109）。两年NRM为6%对17%（p=.025），该项同为事后分析。</p>
+        <p class="why">匹配供者清髓移植后的慢性移植物抗宿主病可长期损害生活功能并造成非复发死亡。调节性T细胞富集的移植物工程持续改善中重度慢性GVHD无事件生存，为预防策略与长期负担提供重要定位。整体OS未显著，NRM及年龄亚组结果属事后分析，不能升级为全人群确定生存获益。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-7">
+      <div class="body">
+        <div class="head"><span class="no">#07</span><span class="drug">罗特西普（luspatercept）</span></div>
+        <h3>罗特西普HbH病随机Ⅱ期：达到持续无输血血红蛋白应答主终点</h3>
+        <div class="chips"><span class="chip no-id">7</span><span class="chip">Phase II</span><span class="chip who">非输血依赖α-地中海贫血血红蛋白H病（non-transfusion-dependent α-thalassemia hemoglobin H disease）</span></div>
+        <p class="sum">非输血依赖α地贫HbH病成人随机接受罗特西普（n=58）或安慰剂（n=31）。主终点为第13–24周连续12周平均Hb较基线增加≥1.0 g/dL且无红细胞输血，应答为70.7%对0%；第24周无输血Hb中位变化1.37对−0.18 g/dL，均显著优于安慰剂。</p>
+        <p class="why">非输血依赖HbH病也有长期贫血及并发症负担，现有管理主要依赖支持治疗。该双盲随机二期达到血红蛋白主终点及关键次要终点，为向α地贫拓展提供直接临床证据。血栓及高级别治疗期间不良事件仍需监测，长期并发症改善不能由当前贫血应答推定。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-8">
+      <div class="body">
+        <div class="head"><span class="no">#08</span><span class="drug">elranatamab（ELRA）；达雷妥尤单抗（daratumumab）；泊马度胺（pomalidomide）；地塞米松（dexamethasone）</span></div>
+        <h3>MagnetisMM-5：elranatamab单药PFS优于DPd，OS尚未成熟</h3>
+        <div class="chips"><span class="chip no-id">424</span><span class="chip">Phase III</span><span class="chip who">BCMA×CD3 · 复发或难治性多发性骨髓瘤（relapsed/refractory multiple myeloma）</span></div>
+        <p class="sum">既往1–4线复发难治骨髓瘤的单药主分析纳入497例（ELRA 245例、DPd 252例）。随访中位31.6个月，独立盲态评审主终点PFS HR 0.56，36个月PFS为63.5%对41.1%；ITT人群MRD阴性CR为47.3%对15.9%。OS尚未成熟。</p>
+        <p class="why">早线复发骨髓瘤需要深且持久的治疗，单药能否胜过常用三联具有直接实践意义。随机主分析支持elranatamab的PFS与深缓解优势，强化了早线现货治疗定位。既往抗CD38暴露比例低限制当代外推，感染负担及预防方案修订需结合未成熟OS一同解释。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-9">
+      <div class="body">
+        <div class="head"><span class="no">#09</span><span class="drug">格菲妥单抗（glofitamab）；吉西他滨（gemcitabine）；奥沙利铂（oxaliplatin）；利妥昔单抗（rituximab）</span></div>
+        <h3>STARGLO四年更新：格菲妥单抗联合GemOx维持生存优势，不能据此确认治愈</h3>
+        <div class="chips"><span class="chip no-id">923</span><span class="chip">Phase III</span><span class="chip who">CD20×CD3 · 复发或难治性弥漫性大B细胞淋巴瘤（relapsed/refractory diffuse large B-cell lymphoma）</span></div>
+        <p class="sum">274例不适合移植的复发难治DLBCL患者，四年更新随访中位47.4个月。Glofit-GemOx对R-GemOx的主终点中位OS为25.0对12.5个月，HR 0.63；48个月OS为45.5%对27.1%。中位PFS为15.8对2.7个月，长期缓解不等于已证实治愈。</p>
+        <p class="why">不适合移植的复发难治弥漫性大B细胞淋巴瘤需要现成可用且持久获益的方案。双抗联合化疗在随机总体中维持生存优势，使长期更新对实践定位比单次缓解率更有分量。微环境及缓解者地标分析仅具探索意义，不能据此证明治愈，仍需考虑对照与患者选择对可推广性的影响。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-pivotal-10">
+      <div class="body">
+        <div class="head"><span class="no">#10</span><span class="drug">NTQ5082；依库珠单抗（eculizumab）</span></div>
+        <h3>NTQ5082：口服因子B抑制剂在补体抑制剂初治PNH达到Hb正常化优效</h3>
+        <div class="chips"><span class="chip no-id">354</span><span class="chip">Phase III</span><span class="chip who">补体因子B（complement factor B，CFB） · 阵发性睡眠性血红蛋白尿症（paroxysmal nocturnal hemoglobinuria）</span></div>
+        <p class="sum">补体抑制剂初治PNH成人接受NTQ5082或依库珠单抗。主终点为第18–24周4次评估中至少3次Hb≥120 g/L且第2–24周无输血，达到率87.3%（48/55）对4.0%（1/25），P&lt;0.0001；第24周Hb均值136.0对96.0 g/L。</p>
+        <p class="why">PNH经C5抑制后仍可能存在残留贫血，初治方案需要更充分控制溶血。该随机三期将每日一次口服因子B抑制剂与依库珠单抗比较，支持近端补体抑制改善贫血及给药便利性的定位。开放设计、样本较小及观察较短限制结论，罕见感染与长期突破性溶血仍需充分评估。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+  </section>
+  <section class="bucket" id="b-failed">
+    <div class="bh"><span class="ladder l-failed"></span><h2>失败的研究<span class="cnt">10</span></h2></div>
+    
+    <article class="item" id="c-failed-1">
+      <div class="body">
+        <div class="head"><span class="no">#01</span><span class="drug">依托泊苷（etoposide）；氟达拉滨（fludarabine）；塞替派（thiotepa）；白消安（busulfan）；曲奥舒凡（treosulfan）</span></div>
+        <h3>FORUM1长期更新：化疗预处理未守住总生存非劣，劣于TBI方案</h3>
+        <div class="chips"><span class="chip no-id">445</span><span class="chip">Phase III</span><span class="chip who">急性淋巴细胞白血病（acute lymphoblastic leukemia）</span></div>
+        <p class="sum">会前成熟更新纳入410例随机患者，主终点为总生存。TBI加依托泊苷与化疗预处理的5年OS为88%对69%，EFS为78%对56%，两项p&lt;0.0001。此前因2年OS为91%对75%停止随机；本次不是首次失败报告，长期结果确认化疗组劣势，成熟随访仍显示生存差距。</p>
+        <p class="why">儿童急淋移植预处理需要减少放疗远期负担，同时保留白血病控制能力。该成熟随机随访为化疗替代放疗路线提供持续的反向证据，失败主体是化疗预处理而非整个移植策略。后续减量放疗开发应独立验证疗效与长期安全性。第二肿瘤风险尚待更长观察，不能外推至更低年龄或其他去放疗方案。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-2">
+      <div class="body">
+        <div class="head"><span class="no">#02</span><span class="drug">abelacimab</span></div>
+        <h3>ASTER：abelacimab复发血栓非劣未达；MAGNOLIA因战略及运营终止</h3>
+        <div class="chips"><span class="chip no-id">187</span><span class="chip">Phase III</span><span class="chip who">凝血因子XI（Factor XI） · 癌相关静脉血栓栓塞（cancer-associated venous thromboembolism）</span></div>
+        <p class="sum">会前摘要中，ASTER的abelacimab对阿哌沙班主疗效终点复发VTE为43/560（7.7%）对15/566（2.7%），非劣未达，因疗效劣势终止；主安全终点大出血或临床相关非大出血为3.8%对7.6%。MAGNOLIA因战略及运营原因终止，其复发VTE非劣性未能确证，不能归为相同疗效失败。</p>
+        <p class="why">癌相关血栓开发需要同时保留抗凝效力并降低出血。ASTER直接界定因子XI抑制替代阿哌沙班时的复发代价，出血改善不能替代主疗效终点达标。MAGNOLIA的提前终止源于战略与运营，证据不足应与疗效劣势分开解读。两试验均提前结束，对达肝素比较的宽置信区间尤其限制确定性判断。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-3">
+      <div class="body">
+        <div class="head"><span class="no">#03</span><span class="drug">柔红霉素/阿糖胞苷脂质体（CPX-351）</span></div>
+        <h3>AIEOP-BFM AML 2020：CPX-351诱导因无事件生存劣势建议终止</h3>
+        <div class="chips"><span class="chip no-id">63</span><span class="chip">Phase III</span><span class="chip who">急性髓系白血病（acute myeloid leukemia）</span></div>
+        <p class="sum">会前摘要报告212例初治儿童AML随机比较，ICE/HAM与CPX-351组分别107及105例。研究主终点为3年EFS；第二次中期分析显示1年EFS为80%对59%，复发累计发生率为16%对39%，两项p&lt;0.001，监查委员会因此建议终止；两组非复发死亡相近，整体劣势主要由复发增多驱动。</p>
+        <p class="why">儿童急髓诱导需要改善疾病控制，并降低治疗毒性。随机比较显示脂质体方案相对标准诱导的复发控制不足，削弱其初治场景开发依据，而非否定其所有疾病场景的活性。高危组未见差异可能受后续移植影响，不能据此掩盖整体劣势。长期安全优势和亚组补偿解释仍需独立证据，摘要报告的是终止建议。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-4">
+      <div class="body">
+        <div class="head"><span class="no">#04</span><span class="drug">口服阿扎胞苷（oral azacitidine，CC-486）</span></div>
+        <h3>AMADEUS：口服阿扎胞苷移植后维持未改善主终点无复发生存</h3>
+        <div class="chips"><span class="chip no-id">712</span><span class="chip who">急性髓系白血病（acute myeloid leukemia）；高危骨髓增生异常综合征（high-risk myelodysplasia）</span></div>
+        <p class="sum">会前摘要中，326例AML或高危MDS异基因移植患者随机接受CC-486或安慰剂，各163例。中位随访51.9个月，主终点2年RFS为60.5%对63.7%（p=0.97），2年OS为69.9%对76.2%（p=0.58）；围移植MRD阳性亚组亦未观察到RFS改善，未支持移植后维持获益，但不能断言药物在各场景完全无效。</p>
+        <p class="why">移植后复发仍是急髓及高危骨髓增生异常肿瘤的重要未满足需求。随机数据未支持口服阿扎胞苷在该维持场景改善无复发生存，化疗后维持证据不能直接迁移至移植后。开发应进一步检验其他药物或细胞策略，而不是将耐受性视为疗效替代。亚组结果与不显著比较不能证明绝对无效，也不能否定其他使用场景。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-5">
+      <div class="body">
+        <div class="head"><span class="no">#05</span><span class="drug">静注人免疫球蛋白（intravenous immunoglobulin）；泼尼松（prednisone）；地塞米松（dexamethasone）</span></div>
+        <h3>IVIorDEX：活动出血成人ITP单用地塞米松早期应答非劣未达</h3>
+        <div class="chips"><span class="chip no-id">25</span><span class="chip who">免疫性血小板减少症（immune thrombocytopenia）</span></div>
+        <p class="sum">会前随机摘要的主终点为首5天内首次应答时间。IVIg加泼尼松与地塞米松组第5天应答为114/135（84.4%）对98/136（72.1%），地塞米松非劣未达且应答更慢（HR 0.60）。救援治疗需求反向为地塞米松30.1%对联合组5.2%；新发出血未见组间差异，失败定位为早期应答较差。</p>
+        <p class="why">严重血小板减少伴活动出血的成人ITP需要快速且持续的应答，免疫球蛋白的成本及可及性推动替代探索。随机非劣研究未支持单用地塞米松在早期应答上替代联合方案，界定的是这一救治场景的开发边界。补救治疗负担也应纳入方案价值评估。研究排除危及生命出血，且未证实新发出血差异，不能外推为所有ITP人群疗效劣势。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-6">
+      <div class="body">
+        <div class="head"><span class="no">#06</span><span class="drug">利妥昔单抗（rituximab）</span></div>
+        <h3>MAINTAIN十年更新：利妥昔单抗维持延至四年未证实PFS增益</h3>
+        <div class="chips"><span class="chip no-id">1809</span><span class="chip who">滤泡性淋巴瘤（follicular lymphoma）</span></div>
+        <p class="sum">会前长期更新仅随机纳入已耐受两年维持且仍缓解的滤泡淋巴瘤患者。随机后中位观察130个月，四年对两年利妥昔单抗维持的主终点10年PFS为74%对69%（HR 0.82，p=0.324），10年OS为84%对87%。延长疗程未证实显著增益，晚期毒性更新尚待会议报告。</p>
+        <p class="why">滤泡淋巴瘤长期维持需要证明额外治疗暴露具有增量价值。成熟随访未确证延长疗程的无进展生存优势，为减少不必要治疗负担提供证据定位，而非证明两方案完全等效。后续开发应把晚期感染、毒性和生活质量纳入净收益评估。随机对象已耐受并完成既定维持，且摘要中的总随机数与分组数不一致，不宜补算或外推全体初治患者。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-7">
+      <div class="body">
+        <div class="head"><span class="no">#07</span><span class="drug">伊马替尼（imatinib）</span></div>
+        <h3>EsPhALL2017：伊马替尼联合减强度化疗未证实DFS非劣</h3>
+        <div class="chips"><span class="chip no-id">997</span><span class="chip">Phase III</span><span class="chip who">费城染色体阳性急性淋巴细胞白血病（Philadelphia chromosome-positive acute lymphoblastic leukemia）</span></div>
+        <p class="sum">会前最终分析比较标准风险患者的两种化疗骨架，均联合伊马替尼。COG减强度与EsPhALL组主终点5年DFS为42.9%对52.8%；HR 1.197，单侧95%置信上限1.514超过非劣界值1.43。5年复发累计发生率为54.4%对38.9%，治疗相关死亡为1.3%对7.8%，毒性下降不能替代非劣性达标。</p>
+        <p class="why">儿童Ph阳性急淋需要降低感染及治疗相关死亡，同时维持长期疾病控制。随机非劣比较定位了既有TKI联合减化疗路线的边界：毒性收益伴随复发代价，不能仅凭总生存相近确认方案非劣。新一代TKI和免疫治疗组合仍需独立验证。非劣未证实不等于统计学确证全面劣效，结论主要针对随机的标准风险人群。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-8">
+      <div class="body">
+        <div class="head"><span class="no">#08</span><span class="drug">口服阿扎胞苷（oral azacitidine，CC-486）</span></div>
+        <h3>SWOG S1918：加口服阿扎胞苷未过II期PFS门槛，未进入III期</h3>
+        <div class="chips"><span class="chip no-id">74</span><span class="chip who">弥漫性大B细胞淋巴瘤（diffuse large B-cell lymphoma）</span></div>
+        <p class="sum">会前摘要报告II/III期设计的II期结果，而非已完成III期。口服阿扎胞苷加R-miniCHOP对单用R-miniCHOP的II期主终点1年PFS为59%对71%，未达继续III期的预设疗效标准；1年OS为74%对85%。实验组4、5级不良事件更多，5级事件为4对1例，结果限制该加药方案继续开发。</p>
+        <p class="why">高龄大B细胞淋巴瘤需要在减量化疗基础上改善控制而不增加脆弱性负担。随机II期未越过进入III期的疗效门槛，并出现更高严重毒性，限制这一表观遗传加药路线的继续开发依据。未来试验需将衰弱及功能评估纳入设计。停止进入III期不能表述为完成III期失败，历史对照差异也不能归功于实验药。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-9">
+      <div class="body">
+        <div class="head"><span class="no">#09</span><span class="drug">环丙沙星（ciprofloxacin）</span></div>
+        <h3>CiproPAL：环丙沙星改善菌血症主终点，但诱导死亡失衡促停随机</h3>
+        <div class="chips"><span class="chip no-id">5043</span><span class="chip">Phase III</span><span class="chip who">急性淋巴细胞白血病（acute lymphoblastic leukemia）</span></div>
+        <p class="sum">会前早期报告中，环丙沙星对无额外预防组的主终点诱导期菌血症为25/157（15.9%）对41/156（26.3%），p=0.025；诱导期死亡为6对1例，监查委员会据此建议暂停随机，试验提前停止。发热及需重症监护感染未减少；摘要未将任何死亡直接归因于环丙沙星。</p>
+        <p class="why">儿童急淋诱导期需要降低感染风险，但抗菌预防的净收益不能仅看菌血症。该随机早期报告呈现感染终点改善与诱导死亡失衡并存，失败定位是安全警讯促停，而非主疗效终点不达标。后续开发需澄清化疗毒性相互作用、耐药及长期结局。有限随访不能证明药物致死，也不能把这一特定预防场景结论推广至其他患者群体。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-failed-10">
+      <div class="body">
+        <div class="head"><span class="no">#10</span><span class="drug">DFP-10917</span></div>
+        <h3>DFP-10917后线AML三期：主终点完全缓解无优势，因无效性停止</h3>
+        <div class="chips"><span class="chip no-id">1637</span><span class="chip who">复发或难治性急性髓系白血病（relapsed or refractory acute myeloid leukemia）</span></div>
+        <p class="sum">会前摘要中，DFP-10917对汇总挽救对照的主终点CR在疗效可评估人群为5/77（6.5%）对5/63（7.9%），P=0.7356，监查委员会因无效性停止试验。中位OS为3.68个月，对非强化对照4.70个月及强化对照3.58个月均未显著改善；探索性复合缓解不能替代主终点，也不能判定全面无活性。</p>
+        <p class="why">多线且多已暴露维奈克拉的复发难治急髓缺乏有效挽救选择。随机三期完全缓解未显示优势并触发无效性停止，构成单药后线开发的关键反向证据。按对照强度拆分的复合缓解与生存趋势只能生成后续研究假设。疗效可评估与意向治疗分母不同，探索分析不能据此确证优于强化再诱导，也不能推断药物完全无活性。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+  </section>
+  </main>
+</div>
+</body>
+</html>

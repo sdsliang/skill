@@ -1,5 +1,45 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.14（2026-11-19）：三态、席位、期别槽 —— 三条「看上去没问题」的规则补成闸门
+
+R14 的教训是「文案里的规则不算闸门」。这一轮把三条只写在文档里、实际没被机械检查的规则，补成
+**生成端 + 校验端 + 事实项 + mutation** 四件套，并用一场从没跑过的会（ASH 2026）验证。
+
+### 改动
+
+| 层 | 改动 |
+|---|---|
+| `triage.py` | 新增 `DESIGN_WORDS`（前瞻性/回顾性/随机/单臂/开放标签/双盲/…共 20 个设计词）与 **`phase_label()`**：`TRIAL_PHASES` 直通、含设计词 → `None`、其余原样。`phase_of()` 保持原样（**排除匹配用**，docstring 改为 raw/exclusion），卡面 `phase` 改走 `phase_label()`；`phase_inferred` **删掉 `not is_lba_row` 豁免**（LBA 也不例外） |
+| `make_cards.py` | `bool(item.get("is_recommand"))` → **`_recommand_value()`**，`None` 原样输出 |
+| `check_cards.py` | **`_recommand_of()`** 三态比对（卡上是 `false` 但库里是 `None` → fail）；新增 **`bucket_order_gate()`**（分组键 `(bucket, is_recommand)`，组内分数不回升）与 **`trial_seats_gate(cards, pool, overrides, max_seats=2)`**（第 3 席起 fail，`editorial_overrides` + `reason ≥10` 只记 note）；docstring 17 → **19 条规则** |
+| 事实层 | **`A-P8-recommand-tristate`**（`op_recommand_tristate`，拿卡值逐条比 `rows.json`；`columns_present=False` 时只做类型检查并 note）、**`A-P9-trial-seats`**（`op_trial_seats`，无 `trial_abbreviation` 时返回「nothing to group by」而不是 PASS）。28 → **30 项（29 fail + 1 warn）** |
+| `mutations.py` | `m_recommand_collapsed`（把 `null` 印成 `false`）/ `m_trial_seats`（三行同 trial）；fixture 的 `is_recommand` 改三态、`coverage` 行改按实际行数写 |
+| 测试 | `card()` 的 `is_recommand` 改三态，新增 case 20b（null 印成 false → fail）/ 20c（`_recommand_of` 三态映射直测），共 **51 case** |
+| **`A-D1` 动态化** | pattern 写死 `coverage:\s*1097/1097` → **`self_coverage`**：从 transcript 读 `n/n`，要求自洽且等于 `rows.json` 行数 |
+| 文档 | `review-protocol.md §2.5`（`phase_inferred` 口径 + LBA 加分项三条纪律）、`data-contract.md`（三态 + 排序键 + 2 席）、`screening-rules.md §1.0`、`SKILL.md`（4 处 + v0.14 版本块）、`templates` 硬规则 7、`pitfalls.md` **§40 `bool(None)` / §41 顺序与席位 / §42 `phase` 印设计词** |
+
+### 验证
+
+- 本地全绿：`test_triage` fixture OK；`test_check_cards` **51 case OK**；`mutations` **29/29 fail 项有 mutation + 8 NEG green**（含 `A-P8` / `A-P9` / `A-D1` 各自翻红）。
+- 手验两个新闸门：逆序 `[83,71,73]` 被抓、`[flagged 60, 83, 80]` 合法；同 trial 3 卡 → `trial HR17031 holds 3 cards … cap is 2`，加 override 后只 note。
+- **旧产物 fail-closed 复核**：ESMO v12 产物 `facts 27/29 FAIL`（`A-N1` + `A-P8`）、ADA v13 产物 `26/28 FAIL`（`A-P4` + `A-P8`）——v0.13 产物在 `A-P8` 上必红，符合预期。
+
+### dist 与发布
+
+- `dist/conference-result-triage-v0.14.zip` — **151557 B / 16 entries / sha256 `f5b58c0614a1`**（首包 151221 B / `66f60f0bad74`，补完规则 18/19 的 docstring 与 case 计数后重打）。
+- 原地 publish：`entries=16 identical=16 differing=0`、`STATUS: in sync`（label 仍 `v0.3.0`，部署时间 `2026-11-19T12:23:30`）。
+- **发布前被共享 SP 变更硬拦一次**：`PharmCube AI Chat SP` 由 owner 原地改成 `6db755d1f080` / 29311 B（version 仍 `1.0`），我们的 pin 是 `a2b1581ef7cd` / 29169 B。按工具指示重读 deployed instructions（580 行，`## File Artifact Presentation` 契约未变），更新 `~/.config/toolsmith/projects.json` 的 `shared_prompt_pin` 后 `status` 转 `pin matches`。**没有写 SP 本体。**
+
+### 实跑 ASH 2026（2026-11-19）
+
+- run `20261119-120850-resume-cards-ASH-26-v14b`（thread `b10c7f03`）：**1524 行** → 排除 577 → **893 候选**（493/356/44）→ 全量判读 → **30 卡（10/10/10）**，墙钟 **3753 s**，64 次工具调用（`task` 21 批）。
+- `check_cards.py` **EXIT=0**；`check.py` **facts 28/28 warn 0/1 → PASS**（`A-D1` 动态化后 `coverage 1524/1524` 通过）。
+- 三个 v0.14 目标全部成立：**三态不坍缩**（30/30 `null`）、**桶内降序**（early 86→80 / pivotal 96→90 / failed 94→86）、**设计词不进期别槽**。
+- 两条数据缺口（非 skill 缺陷）：ASH 2026 的 `clinical_result.lba` **1524 全 null**（`A-D4` → SKIP）、`is_recommand` **列不存在**。均写进 `coverage_notes`。
+- 复核页 `dist/review/ash2026-watchlist-v14.html`（30 卡 / 50356 B）。
+- **runner 缺陷**：`--resume` 未重传 `--model`，平台回落到 DeepSeek Flash（原起跑是 GPT 6.1 Sol），`verification.md` 记的是实际模型。续跑必须重带 `--model`。
+- **run 期两条断言 FAIL 属发布态不同步**（我在 run 中改了 docstring / case 计数），12:23 republish 后 `identical=16` 消解；本轮没有「发布态全绿断言」快照，已在 R15 如实记。
+
 ## v0.13（2026-11-16）：把「股票」这个读法从卡面上彻底拿掉
 
 两处改动是同一件事：卡面上任何能被读成"这只票怎么走了"的东西都不留。

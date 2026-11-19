@@ -1,198 +1,209 @@
 {
- "scenario": "esmo2026",
- "title": "ESMO 2026 推荐清单：一次 run 必须能说出的东西",
- "conference": "ESMO 2026",
- "items": [
-  {
-   "id": "A-D1-full-coverage",
-   "op": "transcript_has",
-   "pattern": "coverage:\\s*1097/1097",
-   "severity": "fail",
-   "rationale": "取数必须覆盖全部 1097 条 esid，少一条就是池子有洞。**这条断言绑 ESMO 2026 的语料规模**（1097 是那一场 `clinical_result` 的 esid 数），换会议一律 SKIP——跨领域改由领域无关的 `A-D5-rows-accounted` 兜底：不管一场会议多少条，rows.json 的每个 esid 都必须落在桶里、落成去重别名、或被排除理由接住。",
-   "scenario": "esmo2026"
-  },
-  {
-   "id": "A-D2-sliced-pulls",
-   "op": "query_slicing",
-   "max_slice": 300,
-   "severity": "fail",
-   "rationale": "一次宽拉会在 ~6 MB 静默截断（实测 458/1097 且 ok:true）。必须按 esids 分片。**需要几次不再写死**：按 `ceil(distinct_ids / max_slice)` 从语料本身算——1097 条至少 4 片，191 条 2 片就够；写死 7 会把一场 191 条的会议判红，而它其实是正确分片了。"
-  },
-  {
-   "id": "A-D3-no-direct-es",
-   "op": "transcript_absent",
-   "pattern": "ES_HOST|/_search\\?|:9200",
-   "severity": "fail",
-   "rationale": "平台内没有网络，直连 ES 一定失败；出现直连痕迹说明 runbook 被绕开，数据来源不可信。"
-  },
-  {
-   "id": "A-D4-lba-not-dropped",
-   "op": "lba_not_dropped",
-   "allow_dropped": 0,
-   "severity": "fail",
-   "rationale": "晚期突破摘要（LBA）就是会议的议程中心。平台的唯一分期信号是 `evidence_source`，其中 16/73 条 ESMO 2026 LBA 填的是「前瞻性研究」，把它当非试验证据一排，VOLGA / KRASCENDO-1 / CLARITY-Gastric01 这三场 Presidential 就整场消失，而 coverage 仍然报满。**判定改成领域无关**：LBA 掉出池子必须先有声明理由（回顾性研究 / 真实世界研究 / 汇总分析 / Not Applicable，或结果未披露），「分期是空的」永远不算理由——ADA 2026 掉 7 条全有理由，旧断言却按条数判红，那才是假精确。"
-  },
-  {
-   "id": "A-S1-bucket-cap",
-   "op": "cards_cap",
-   "cap": 10,
-   "total": 30,
-   "severity": "fail",
-   "rationale": "每桶上限 10、全场 30（v0.7）。机器短名单是 15，但交付清单是**阅读**清单：无上限的清单不再是清单。超了不是「多给点」，是把读完的压力转嫁给读者；不足就少给，不许拿 weak 凑。"
-  },
-  {
-   "id": "A-S2-count-field",
-   "op": "count_matches",
-   "severity": "fail",
-   "rationale": "envelope 的 count 必须等于 cards 长度，否则下游按 count 分页会读到空洞。"
-  },
-  {
-   "id": "A-S3-buckets-legal",
-   "op": "buckets_valid",
-   "severity": "fail",
-   "rationale": "bucket 只能是 early/pivotal/failed；出现 verdict 值说明模型把两个字段写混了。"
-  },
-  {
-   "id": "A-S4-unique-esid",
-   "op": "unique_esid",
-   "severity": "fail",
-   "rationale": "同一 esid 重复出现等于同一份证据占了两个席位，读者会高估证据量。"
-  },
-  {
-   "id": "A-P1-score-integer",
-   "op": "score_shape",
-   "severity": "fail",
-   "rationale": "每张卡必须带判读分（0–100 整数）。没有分就无法解释为什么这 45 条、为什么这个次序。"
-  },
-  {
-   "id": "A-P2-score-parts",
-   "op": "score_parts",
-   "severity": "fail",
-   "rationale": "五维必须齐全、各不超上限、相加等于总分。加不起来说明分是凑的，不是判出来的。"
-  },
-  {
-   "id": "A-P3-score-varied",
-   "op": "score_varied",
-   "min_distinct": 5,
-   "severity": "fail",
-   "rationale": "全是同一个分等于没判读。这条是「评分卡变成橡皮图章」的探测针。"
-  },
-  {
-   "id": "A-P4-score-order",
-   "op": "score_order",
-   "severity": "fail",
-   "rationale": "桶内必须按判读分降序。分数给了却不排序，等于把编辑部决定权还给了查询返回顺序。"
-  },
-  {
-   "id": "A-F1-abstract-id-traceable",
-   "op": "abstract_id",
-   "severity": "fail",
-   "rationale": "摘要号必须与 rows.json 一致。v0.12 起工具能取到 `clinical_result.abstract_id`（ESMO 2026 1097/1097、ASCO 2026 1648/1648、AACR 2026 288/288 全有值），旧规则「平台拿不到、非 null 即编造」已作废——但正因为它现在是真的，写错一个号比不写更坏：读者拿这个号去摘要册里查，查不到就是把人引到错误的地方。"
-  },
-  {
-   "id": "A-F2-manual-null",
-   "op": "null_field",
-   "field": "manual",
-   "severity": "fail",
-   "rationale": "`featured` 不在 with-params 白名单里，生产方式不可知。写成 true/false 是把未知说成结论。"
-  },
-  {
-   "id": "A-F3-esid-in-pool",
-   "op": "esids_in_pool",
-   "severity": "fail",
-   "rationale": "每张卡的 esid 必须能在候选池里找到，否则是凭记忆写的 id。"
-  },
-  {
-   "id": "A-F4-numbers-traceable",
-   "op": "numbers_traceable",
-   "severity": "fail",
-   "rationale": "summary/why 里每个带单位数字都必须出现在该条原文。这是唯一能机器化的反编造闸门。"
-  },
-  {
-   "id": "A-T1-present-artifact",
-   "op": "present_artifact",
-   "suffix": "output/report.md",
-   "severity": "fail",
-   "rationale": "交付动作是 `present_artifact` 指向 `/workspace/output/report.md`（v0.9 起交付物是有 frontmatter 的 Markdown，宿主要靠 `skills` 数组选渲染主题）。口头说「已生成」不算交付。"
-  },
-  {
-   "id": "A-C2-report-frontmatter",
-   "op": "report_meta",
-   "skill": "conference-result-triage",
-   "severity": "fail",
-   "rationale": "结果要能被宿主识别成「这个 skill 的产物」：`report.md` 顶部必须有 frontmatter，`skills` 是非空数组且含 `conference-result-triage`，`title`/`date`(YYYY-MM-DD)/`lang` 齐全；声明了 `citations` 就必须写在 `/workspace/output` 下、并且正文 `{{ref_N}}` 与引文文件双向一一对应。**不使用引用机制是合法的**（平台内没有摘要链接，编一个就是造假），但一旦声明就得对得上；旧的业务字段 `type` 不能顶替 `skills`。v0.10 追加：每条引文的键集必须是 `{title, link, paper_release_time_str}` 三键（与平台校验器逐字一致），日期只接受 `YYYY-MM-DD` 或空串 —— ESC/EASL 2026 两场因为文档只写了 `title`/`link`，13 条引文交付后被平台闸门判失败。"
-  },
-  {
-   "id": "A-T2-no-json-paste",
-   "op": "no_json_paste",
-   "max_chars": 1500,
-   "severity": "fail",
-   "rationale": "清单是文件交付物，贴进聊天既难读也无法被下游消费。"
-  },
-  {
-   "id": "A-H1-two-honest-claims",
-   "op": "coverage_claims",
-   "groups": [
-    "(?s)(?=.*(?:data_?type|数据类型|首次/更新))(?=.*(?:未判定|未知|无法判定|不确定|判不出|不猜))",
-    "(?s)(?=.*(?:覆盖|全量|完整|不代表|并非))(?=.*(?:p\\s*值?\\s*(?:[或/、,和与]|and)\\s*(?:HR|风险比)|(?:HR|风险比)\\s*(?:[或/、,和与]|and)\\s*p\\s*值?|(?:未列|无|缺|未给出|没有|没给|不含)\\s*p\\s*值?))"
-   ],
-   "severity": "fail",
-   "rationale": "交付物自己必须写明两条边界：data_type 多数未判定、不少摘要没有 p 或 HR。这两句若只出现在聊天回复里，下个月读 JSON 的人看不到——所以检查对象是 JSON 本身。措辞不设门槛（无 p 或 HR / 未列p或HR / 没给 p 值或 HR 都算），只查事实有没有写。"
-  },
-  {
-   "id": "A-C1-heat-coverage",
-   "op": "heat_coverage",
-   "min_hits": 3,
-   "severity": "warn",
-   "rationale": "X 讨论集中在这 12 个 Presidential/LBA 试验上。清单完全避开它们不一定是错，但差距要摆出来让人判断。"
-  },
-  {
-   "id": "A-P5-why-depth",
-   "op": "why_depth",
-   "min_chars": 60,
-   "severity": "fail",
-   "rationale": "`why` 必须承载判断，不是标签：短于 60 字说明只写了「数据好」；开头 20 字与 summary 相同说明只是把数字复述了一遍。v0.6 的卡片两种都有。"
-  },
-  {
-   "id": "A-F6-promotion-traceable",
-   "op": "promotion_traceable",
-   "severity": "fail",
-   "rationale": "网页收敛允许把机器筛掉的记录提上来，但必须标 promoted='web' 且 esid 在 rows.json 里——否则卡片上的数字没有原文出处。开一扇门，同时留一条能查账的路径。"
-  },
-  {
-   "id": "A-W1-web-evidence",
-   "op": "web_evidence",
-   "min_lines": 6,
-   "severity": "fail",
-   "rationale": "联网终选的全部产出是「检索到了什么」。平台 /workspace/tool_results/ 回合结束即清空，回复里写「查过」无法复核，所以证据必须是 work/web/<bucket>.jsonl（一行一次检索）。例外只有一条：检索能力本身不可用 —— 那时必须在清单的 coverage_notes 里写明，而不是中止交付。cards-e2e5 里模型因为 web_fetch 单站失败就说「暂不交付」，把「证据缺失」升级成了「产物缺失」；这条闸门同时防这两件事。",
-   "unavailable_pattern": "联网|检索",
-   "unavailable_why": "不可用|失败|未完成|未启用|无返回|超时|不可达",
-   "min_urls": 6
-  },
-  {
-   "id": "A-N1-no-market-claims",
-   "op": "no_market_claims",
-   "severity": "fail",
-   "rationale": "v0.9 删行情层（会议当天涨跌主要是板块 beta：按每条摘要自己的 release 日重算后 24 条里 18 条落在基准 ±0.6% 内，MRK 8 张卡拿到同一个 −3.83%）；v0.13 把那一层剩下的代码也删掉（`listed_company` / `ticker` / `exchange`）——卡面上留着代码，读者照样会读成「这只股票怎么样」，正是 v0.9 想终结的误读。这条事实项是防回潮闸门：任何卡片出现行情字段或公司代码字段即判失败；公司名只出现在正文散文里，不做交易所身份声明。"
-  },
-  {
-   "id": "A-D5-rows-accounted",
-   "op": "records_accounted",
-   "severity": "fail",
-   "rationale": "取到的记录不许无声消失：`rows.json` 的每个 esid 都必须落在桶里、留成去重别名，或被排除理由接住，且算术要闭合。这是领域无关版本的「池子没有洞」——不看一场会议有多少条，只看账算不算得平（ADA 191 = 138 + 2 + 51）。"
-  },
-  {
-   "id": "A-P6-selection-order",
-   "op": "selection_order",
-   "severity": "fail",
-   "rationale": "桶内榜单必须是这一桶自己排序的顶部：舍弃的 keep 分数高于入选卡片最低分，就等于用一张更弱的卡占掉了更强的卡的位置——E2E #11（EASL 2026）真实发生过（入选 35 分，同桶判读 85 分的 PBC 三期没用上），而当时 A-P4 判「降序」、A-P2 判「五维相加」全绿，因为它们只问「合不合法」，不问「是不是更好的那条」。例外只有交付物自己写下的 editorial_overrides（reason ≥10 字）。",
-   "min_reason_chars": 10
-  },
-  {
-   "id": "A-P7-recommand-forced",
-   "op": "recommand_forced",
-   "severity": "fail",
-   "rationale": "数据方标了 `is_recommand=是` 的行是强制位：必须上榜，且桶内排在未标星卡之前。这条**故意压过**判读分排序——它不是我们的判断，而是数据端已经做过的判断；把一条被标星的结果悄悄筛掉，正是这个字段要防的事。注意「整列全空」不等于「没人推荐」：空要说出来（写进 coverage_notes），不能靠沉默过关。"
-  }
- ]
+  "scenario": "esmo2026",
+  "title": "ESMO 2026 推荐清单：一次 run 必须能说出的东西",
+  "conference": "ESMO 2026",
+  "items": [
+    {
+      "id": "A-D1-full-coverage",
+      "op": "self_coverage",
+      "severity": "fail",
+      "rationale": "取数必须覆盖全部 esid，少一条就是池子有洞。**这条断言不再绑语料规模**：从 transcript 读 `coverage: n/n` 的两个数，要求 n==n 且等于 `rows.json` 的行数；早先写死 `1097/1097` 只对 ESMO 2026 成立，ASH 2026（1524）同样正确的 run 会假红。"
+    },
+    {
+      "id": "A-D2-sliced-pulls",
+      "op": "query_slicing",
+      "max_slice": 300,
+      "severity": "fail",
+      "rationale": "一次宽拉会在 ~6 MB 静默截断（实测 458/1097 且 ok:true）。必须按 esids 分片。**需要几次不再写死**：按 `ceil(distinct_ids / max_slice)` 从语料本身算——1097 条至少 4 片，191 条 2 片就够；写死 7 会把一场 191 条的会议判红，而它其实是正确分片了。"
+    },
+    {
+      "id": "A-D3-no-direct-es",
+      "op": "transcript_absent",
+      "pattern": "ES_HOST|/_search\\?|:9200",
+      "severity": "fail",
+      "rationale": "平台内没有网络，直连 ES 一定失败；出现直连痕迹说明 runbook 被绕开，数据来源不可信。"
+    },
+    {
+      "id": "A-D4-lba-not-dropped",
+      "op": "lba_not_dropped",
+      "allow_dropped": 0,
+      "severity": "fail",
+      "rationale": "晚期突破摘要（LBA）就是会议的议程中心。平台的唯一分期信号是 `evidence_source`，其中 16/73 条 ESMO 2026 LBA 填的是「前瞻性研究」，把它当非试验证据一排，VOLGA / KRASCENDO-1 / CLARITY-Gastric01 这三场 Presidential 就整场消失，而 coverage 仍然报满。**判定改成领域无关**：LBA 掉出池子必须先有声明理由（回顾性研究 / 真实世界研究 / 汇总分析 / Not Applicable，或结果未披露），「分期是空的」永远不算理由——ADA 2026 掉 7 条全有理由，旧断言却按条数判红，那才是假精确。"
+    },
+    {
+      "id": "A-S1-bucket-cap",
+      "op": "cards_cap",
+      "cap": 10,
+      "total": 30,
+      "severity": "fail",
+      "rationale": "每桶上限 10、全场 30（v0.7）。机器短名单是 15，但交付清单是**阅读**清单：无上限的清单不再是清单。超了不是「多给点」，是把读完的压力转嫁给读者；不足就少给，不许拿 weak 凑。"
+    },
+    {
+      "id": "A-S2-count-field",
+      "op": "count_matches",
+      "severity": "fail",
+      "rationale": "envelope 的 count 必须等于 cards 长度，否则下游按 count 分页会读到空洞。"
+    },
+    {
+      "id": "A-S3-buckets-legal",
+      "op": "buckets_valid",
+      "severity": "fail",
+      "rationale": "bucket 只能是 early/pivotal/failed；出现 verdict 值说明模型把两个字段写混了。"
+    },
+    {
+      "id": "A-S4-unique-esid",
+      "op": "unique_esid",
+      "severity": "fail",
+      "rationale": "同一 esid 重复出现等于同一份证据占了两个席位，读者会高估证据量。"
+    },
+    {
+      "id": "A-P1-score-integer",
+      "op": "score_shape",
+      "severity": "fail",
+      "rationale": "每张卡必须带判读分（0–100 整数）。没有分就无法解释为什么这 45 条、为什么这个次序。"
+    },
+    {
+      "id": "A-P2-score-parts",
+      "op": "score_parts",
+      "severity": "fail",
+      "rationale": "五维必须齐全、各不超上限、相加等于总分。加不起来说明分是凑的，不是判出来的。"
+    },
+    {
+      "id": "A-P3-score-varied",
+      "op": "score_varied",
+      "min_distinct": 5,
+      "severity": "fail",
+      "rationale": "全是同一个分等于没判读。这条是「评分卡变成橡皮图章」的探测针。"
+    },
+    {
+      "id": "A-P4-score-order",
+      "op": "score_order",
+      "severity": "fail",
+      "rationale": "桶内必须按判读分降序。分数给了却不排序，等于把编辑部决定权还给了查询返回顺序。"
+    },
+    {
+      "id": "A-F1-abstract-id-traceable",
+      "op": "abstract_id",
+      "severity": "fail",
+      "rationale": "摘要号必须与 rows.json 一致。v0.12 起工具能取到 `clinical_result.abstract_id`（ESMO 2026 1097/1097、ASCO 2026 1648/1648、AACR 2026 288/288 全有值），旧规则「平台拿不到、非 null 即编造」已作废——但正因为它现在是真的，写错一个号比不写更坏：读者拿这个号去摘要册里查，查不到就是把人引到错误的地方。"
+    },
+    {
+      "id": "A-F2-manual-null",
+      "op": "null_field",
+      "field": "manual",
+      "severity": "fail",
+      "rationale": "`featured` 不在 with-params 白名单里，生产方式不可知。写成 true/false 是把未知说成结论。"
+    },
+    {
+      "id": "A-F3-esid-in-pool",
+      "op": "esids_in_pool",
+      "severity": "fail",
+      "rationale": "每张卡的 esid 必须能在候选池里找到，否则是凭记忆写的 id。"
+    },
+    {
+      "id": "A-F4-numbers-traceable",
+      "op": "numbers_traceable",
+      "severity": "fail",
+      "rationale": "summary/why 里每个带单位数字都必须出现在该条原文。这是唯一能机器化的反编造闸门。"
+    },
+    {
+      "id": "A-T1-present-artifact",
+      "op": "present_artifact",
+      "suffix": "output/report.md",
+      "severity": "fail",
+      "rationale": "交付动作是 `present_artifact` 指向 `/workspace/output/report.md`（v0.9 起交付物是有 frontmatter 的 Markdown，宿主要靠 `skills` 数组选渲染主题）。口头说「已生成」不算交付。"
+    },
+    {
+      "id": "A-C2-report-frontmatter",
+      "op": "report_meta",
+      "skill": "conference-result-triage",
+      "severity": "fail",
+      "rationale": "结果要能被宿主识别成「这个 skill 的产物」：`report.md` 顶部必须有 frontmatter，`skills` 是非空数组且含 `conference-result-triage`，`title`/`date`(YYYY-MM-DD)/`lang` 齐全；声明了 `citations` 就必须写在 `/workspace/output` 下、并且正文 `{{ref_N}}` 与引文文件双向一一对应。**不使用引用机制是合法的**（平台内没有摘要链接，编一个就是造假），但一旦声明就得对得上；旧的业务字段 `type` 不能顶替 `skills`。v0.10 追加：每条引文的键集必须是 `{title, link, paper_release_time_str}` 三键（与平台校验器逐字一致），日期只接受 `YYYY-MM-DD` 或空串 —— ESC/EASL 2026 两场因为文档只写了 `title`/`link`，13 条引文交付后被平台闸门判失败。"
+    },
+    {
+      "id": "A-T2-no-json-paste",
+      "op": "no_json_paste",
+      "max_chars": 1500,
+      "severity": "fail",
+      "rationale": "清单是文件交付物，贴进聊天既难读也无法被下游消费。"
+    },
+    {
+      "id": "A-H1-two-honest-claims",
+      "op": "coverage_claims",
+      "groups": [
+        "(?s)(?=.*(?:data_?type|数据类型|首次/更新))(?=.*(?:未判定|未知|无法判定|不确定|判不出|不猜))",
+        "(?s)(?=.*(?:覆盖|全量|完整|不代表|并非))(?=.*(?:p\\s*值?\\s*(?:[或/、,和与]|and)\\s*(?:HR|风险比)|(?:HR|风险比)\\s*(?:[或/、,和与]|and)\\s*p\\s*值?|(?:未列|无|缺|未给出|没有|没给|不含)\\s*p\\s*值?))"
+      ],
+      "severity": "fail",
+      "rationale": "交付物自己必须写明两条边界：data_type 多数未判定、不少摘要没有 p 或 HR。这两句若只出现在聊天回复里，下个月读 JSON 的人看不到——所以检查对象是 JSON 本身。措辞不设门槛（无 p 或 HR / 未列p或HR / 没给 p 值或 HR 都算），只查事实有没有写。"
+    },
+    {
+      "id": "A-C1-heat-coverage",
+      "op": "heat_coverage",
+      "min_hits": 3,
+      "severity": "warn",
+      "rationale": "X 讨论集中在这 12 个 Presidential/LBA 试验上。清单完全避开它们不一定是错，但差距要摆出来让人判断。"
+    },
+    {
+      "id": "A-P5-why-depth",
+      "op": "why_depth",
+      "min_chars": 60,
+      "severity": "fail",
+      "rationale": "`why` 必须承载判断，不是标签：短于 60 字说明只写了「数据好」；开头 20 字与 summary 相同说明只是把数字复述了一遍。v0.6 的卡片两种都有。"
+    },
+    {
+      "id": "A-F6-promotion-traceable",
+      "op": "promotion_traceable",
+      "severity": "fail",
+      "rationale": "网页收敛允许把机器筛掉的记录提上来，但必须标 promoted='web' 且 esid 在 rows.json 里——否则卡片上的数字没有原文出处。开一扇门，同时留一条能查账的路径。"
+    },
+    {
+      "id": "A-W1-web-evidence",
+      "op": "web_evidence",
+      "min_lines": 6,
+      "severity": "fail",
+      "rationale": "联网终选的全部产出是「检索到了什么」。平台 /workspace/tool_results/ 回合结束即清空，回复里写「查过」无法复核，所以证据必须是 work/web/<bucket>.jsonl（一行一次检索）。例外只有一条：检索能力本身不可用 —— 那时必须在清单的 coverage_notes 里写明，而不是中止交付。cards-e2e5 里模型因为 web_fetch 单站失败就说「暂不交付」，把「证据缺失」升级成了「产物缺失」；这条闸门同时防这两件事。",
+      "unavailable_pattern": "联网|检索",
+      "unavailable_why": "不可用|失败|未完成|未启用|无返回|超时|不可达",
+      "min_urls": 6
+    },
+    {
+      "id": "A-N1-no-market-claims",
+      "op": "no_market_claims",
+      "severity": "fail",
+      "rationale": "v0.9 删行情层（会议当天涨跌主要是板块 beta：按每条摘要自己的 release 日重算后 24 条里 18 条落在基准 ±0.6% 内，MRK 8 张卡拿到同一个 −3.83%）；v0.13 把那一层剩下的代码也删掉（`listed_company` / `ticker` / `exchange`）——卡面上留着代码，读者照样会读成「这只股票怎么样」，正是 v0.9 想终结的误读。这条事实项是防回潮闸门：任何卡片出现行情字段或公司代码字段即判失败；公司名只出现在正文散文里，不做交易所身份声明。"
+    },
+    {
+      "id": "A-D5-rows-accounted",
+      "op": "records_accounted",
+      "severity": "fail",
+      "rationale": "取到的记录不许无声消失：`rows.json` 的每个 esid 都必须落在桶里、留成去重别名，或被排除理由接住，且算术要闭合。这是领域无关版本的「池子没有洞」——不看一场会议有多少条，只看账算不算得平（ADA 191 = 138 + 2 + 51）。"
+    },
+    {
+      "id": "A-P6-selection-order",
+      "op": "selection_order",
+      "severity": "fail",
+      "rationale": "桶内榜单必须是这一桶自己排序的顶部：舍弃的 keep 分数高于入选卡片最低分，就等于用一张更弱的卡占掉了更强的卡的位置——E2E #11（EASL 2026）真实发生过（入选 35 分，同桶判读 85 分的 PBC 三期没用上），而当时 A-P4 判「降序」、A-P2 判「五维相加」全绿，因为它们只问「合不合法」，不问「是不是更好的那条」。例外只有交付物自己写下的 editorial_overrides（reason ≥10 字）。",
+      "min_reason_chars": 10
+    },
+    {
+      "id": "A-P7-recommand-forced",
+      "op": "recommand_forced",
+      "severity": "fail",
+      "rationale": "数据方标了 `is_recommand=是` 的行是强制位：必须上榜，且桶内排在未标星卡之前。这条**故意压过**判读分排序——它不是我们的判断，而是数据端已经做过的判断；把一条被标星的结果悄悄筛掉，正是这个字段要防的事。注意「整列全空」不等于「没人推荐」：空要说出来（写进 coverage_notes），不能靠沉默过关。"
+    },
+    {
+      "id": "A-P8-recommand-tristate",
+      "op": "recommand_tristate",
+      "severity": "fail",
+      "rationale": "`is_recommand` 是三态：是=推荐、否=不推荐且须排除、空=数据方没表态。R14（ADA 2026）把 191/191 条空值全印成 `false`——`bool(None)` 的产物，等于伪造了一条「数据方说别读」的排除指令。这条断言拿卡上的值与 rows.json 逐条比，因此即使卡内部自洽也过不去。"
+    },
+    {
+      "id": "A-P9-trial-seats",
+      "op": "trial_seats",
+      "severity": "fail",
+      "max_seats": 2,
+      "rationale": "同一个试验拆成多篇（主结果 + 亚组 + 安全性）会按 `trial_abbreviation` 连占席位：R14 的 `HR17031 vs iGlar` 拿走 pivotal 十席里的三席（71/73/71）。散文里的「同机制 ≤2」管不住同一试验的多篇发表，所以按交付清单实数计，第三席必须在 `editorial_overrides` 里自报理由。"
+    }
+  ]
 }

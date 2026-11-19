@@ -30,6 +30,8 @@
 
 实现上：`triage.py` 的 `recommand_of()` 只把显式真值当强制（`None` ≠ `False`），`forced=True` 时跳过 `excluded_reason()`、`is_trial_in_progress()` 与 `mm:` 独有排除，`bucket is None` 时兜底落 `pivotal`；去重时标星行不输给同试验兄弟记录；排序键首位是 `forced`。
 
+**三态必须一路保住（v0.14）。** 平台的 `is_recommand` 有三个值，语义由 `tool-doc` 明确：`是` = 推荐；**`否` = 不推荐，解读时必须排除**；空 = 数据方未表态。所以空列（ESMO 的 1/1097、ADA 的 0/191）**不是** `否`：卡片上写 `false` 会被下游读成一条排除指令。`triage.py` 的池子里 `is_recommand` 保留 `True / False / None`，`make_cards.py` 逐态照抄（不做 `bool()` 强制），`check_cards.py` 逐条比对（`A-P8-recommand-tristate` 事后复核）。`否` 行进池后仍按判读正常打分，只是卡片如实写 `false` —— **排除与否由会议解读侧决定，不由我们替数据方执行。**
+
 理由：真实世界与回顾性研究的入组、终点定义、随访强度与注册试验不可比。放进"重磅/早期"等于用两把尺子量同一件事，且榜单读者会当成注册数据引用。
 
 如需单独看这类证据，另开一档「真实世界信号」，**不要混进三桶**。

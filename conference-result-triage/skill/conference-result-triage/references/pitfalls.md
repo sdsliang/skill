@@ -570,3 +570,68 @@ v0.9 的判断是对的（会议当天涨跌是板块 beta，不是对这条摘�
 - 事实项：`A-F5-listed-company` 删除，`A-N1-no-price-claims` → **`A-N1-no-market-claims`**，
   三条 mutation（价格回潮 / 裸 `ticker` / 整个对象回来）+ NEG「公司名写进正文散文仍绿」；
 - `make_cards.py`：`tag` 只由 `lba` 推出（`_auto_tag`），旧 plan 里残留的代码字段打一行 `!` 后丢弃，不静默带走。
+
+## §40 `bool(None)` 在 `is_recommand` 上不是"没写"，是"数据方说别读"
+
+平台的工具文档把三态写得很清楚：`是` = 推荐；**`否` = 不推荐，会议解读时须排除**；空 = 数据方
+未表态。任何一处 `bool(...)` 都会把第三态压进第二态，于是卡面上出现一条**没人下达过的排除指令**。
+
+实测（R14 / ADA 2026 v0.13）：`pool.json` 里 `recommand = {"flagged": 0, "column_present": false}`、
+191 条池子条目全是 `None`，而 `watchlist.json` 的 30 张卡全印 `false`。两个 `bool()` 各干了一半：
+`make_cards.py:130` 的 `bool(item.get("is_recommand") or item.get("forced"))` 负责写错，
+`check_cards.py` 的 `!= bool(item.get(...))` 负责**批准**这个错——闸门和产物用了同一个坍缩函数，
+所以自洽到一路绿灯。
+
+修法要点，缺一不可：
+
+- `triage.py` 池子保留 `True / False / None`（`recommand_of()` 本来就对，别在下一层丢）；
+- `make_cards.py` 新 `_recommand_value()`：显式布尔照抄，`forced` 推 `True`，其余 `None`；
+- `check_cards.py` 新 `_recommand_of()` **独立实现**（不要 import 生成端的那份，否则又是同一函数
+  自证），比较用 `is not` 语义（`card.get("is_recommand") != _recommand_of(item)`，`None` 与
+  `False` 不同）；
+- 事后 `A-P8-recommand-tristate` 从 `rows.json` 反查，卡内部再自洽也过不去；
+- 测试右移：`test_check_cards` 的 `card()` 默认值从 `bool(...)` 改三态，并加「空列印成 false 判失败」
+  「显式 `否` 印 false 合法」两个 case。
+
+一句话纪律：**凡是"多态字段压成布尔"的地方，先问一句"第三态在这里等于什么"**。`is_recommand`
+的第三态不是"假"，是"没人说话"。
+
+## §41 顺序与席位：文案里的规则不算闸门
+
+两件事都是"文档里写了、闸门没查"，因此都活到了交付：
+
+1. **桶内降序**。`SKILL.md` 从 v0.12 起就要求「标星优先、同类降序」，`make_cards.py` 也声明
+   "只渲染不排序"，但唯一检查是**事后**的 `A-P4-score-order`。R14 的 pivotal 交付成
+   `83,80,80,78,78,76,76,71,73,71`——第 8/9 张反了，其它闸门全绿。
+   现在 `bucket_order_gate()` 在 `check_cards.py` 里按 `(bucket, is_recommand)` 分组查非增。
+   **分组键必须是这两个**：只按 `bucket` 会把"标星 60 排在未标星 80 前"判成倒序，那是在禁止强制位。
+2. **同一试验限席**。「同机制 ≤2」写在复核协议里，靠人记；一个试验拆成主结果 + 亚组 + 安全性
+   三篇不需要换机制就能连占三席。`trial_seats_gate()` 按 `trial_abbreviation` 实数计，第三席必须在
+   `editorial_overrides` 里自报理由（与 selection 跳过同一本账）。
+   已知边界：ADA 2026 的 `trial_abbreviation` 191 行里只有 1 行有值，所以这条在多数记录上**没有
+   数据可用**——它返回「no trial abbreviations available」而不是"通过"。**空对空不是绿**，别把
+   note 读成 PASS。
+
+共同教训：**"我在文档里写了"不是栅栏**。凡是"读者一眼能看出错"的性质（顺序、席位、并列），都要
+有一条能 `exit 3` 的本地闸门——事后事实项只负责抓漏，不能当唯一的守卫。
+
+## §42 `phase` 一栏印设计词，等于凭空造了一个期别
+
+`evidence_source` 是平台上唯一的期别来源，但它有时装的是**研究设计**（"前瞻性研究"、"单臂研究"）。
+v0.10 为了不让这些行被当非试验证据删掉，让 `phase_of()` 原样返回，于是设计词一路印到卡片的
+`phase` 位：ESMO 2026 实测**252/1097 行**是"前瞻性研究"，其中 **7 张交付卡**在期别栏印着它。
+
+两个后果同时发生，都很隐蔽：
+
+- 读者看到 `phase: 前瞻性研究` 会读成"策展人写了期别"，其实没人写过；
+- `phase_inferred` 的「按设计判定：随机化对照」被顶掉，**推断依据消失**——而那个字段存在的全部
+  意义就是把"这是猜的、依据是什么"说出来。旧代码还额外给了 LBA 行一个 `not is_lba_row` 豁免，
+  等于"最受关注的读数反而最不解释依据"。
+
+修法：`phase_of()` 保留原值（`excluded_reason()` 要拿它匹配 `NON_TRIAL_SOURCES`，抹成 `None`
+会放过回顾性/真实世界），新增 `phase_label()` 供显示——命中 `TRIAL_PHASES` 原样、命中
+`DESIGN_WORDS` 返回 `None`、其余原样。`phase_inferred` 改用 `phase_label()` 判空并删除 LBA 豁免。
+
+教训：**一个字段两个用途时，显示层和判定层必须分开成两个函数**。共用会让"为了让排除逻辑正确"
+的放宽，静默变成"卡面上的期别是设计词"。改这类地方要拿真实 rows 数一遍：`Counter(phase_of)`
+能立刻告诉你有多少行不是期别。

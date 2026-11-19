@@ -57,6 +57,18 @@ Checks
      dropping a flagged readout is the failure the flag exists to prevent. ``abstract_id``
      must be printed on every card whose row carries one -- the reader searches the
      abstract book by that number, so an invented or missing one sends them nowhere.
+ 18. **inside a bucket and flag class, scores never go up** (v0.14). Rule 17 puts the
+     flagged cards first; this one says the rest is a descending list. The sort key is
+     ``(is_recommand, -score)``, so the grouping is on *both* -- grouping on ``bucket``
+     alone would call a flagged 60 above an unflagged 80 "out of order", which is
+     exactly the placement rule 17 mandates.
+ 19. **one trial, at most two cards** (v0.14). A trial that publishes its primary
+     result, a subgroup and a safety cut takes three seats without ever changing
+     mechanism, so the prose rule "same mechanism, at most two" does not bind it. A
+     third seat is legal only when ``editorial_overrides`` declares a reason (>=10
+     chars) -- the same ledger as rule 16, not a new back door. Where the rows carry
+     no ``trial_abbreviation`` this check reports "nothing to group by" rather than
+     passing: an empty surface is not a green light.
 """
 
 from __future__ import annotations
@@ -408,6 +420,105 @@ def selection_order(cards: List[Dict[str, Any]], judged: Dict[str, Dict[str, Any
     return fails, notes
 
 
+def _recommand_of(item: Dict[str, Any]) -> Optional[bool]:
+    """Pool row -> the same three states the card must print."""
+    value = item.get("is_recommand")
+    if isinstance(value, bool):
+        return value
+    if item.get("forced"):
+        return True
+    return None
+
+
+def bucket_order_gate(cards: List[Dict[str, Any]]) -> Tuple[List[str], List[str]]:
+    """Inside one bucket, scores must not go up.
+
+    R14 (ADA 2026) delivered pivotal as `83, 80, 80, 78, 78, 76, 76, 71, 73, 71`:
+    every other gate was green, because `selection_order()` only asks "did you skip
+    a higher-scored record", never "is what you did list still in order". The list
+    is a ranking, so an out-of-order pair is a defect a reader can see with their
+    eyes -- and it is checkable here, before delivery, instead of only in the
+    offline fact layer (`A-P4-score-order`).
+
+    Two levels per bucket: flagged cards lead (that is `recommand_gate`'s job), and
+    *within* each flag class the score is non-increasing. That is why the grouping
+    key is `(bucket, is_recommand)` and not `bucket` alone -- a flagged 60 legally
+    sits above an unflagged 80, and a plain `bucket` check would call that a
+    reversal.
+    """
+    fails: List[str] = []
+    notes: List[str] = []
+    groups: Dict[Tuple[str, Any], List[Dict[str, Any]]] = {}
+    for card in cards:
+        key = (str(card.get("bucket") or ""), card.get("is_recommand"))
+        groups.setdefault(key, []).append(card)
+    for (bucket, flag), items in groups.items():
+        prev = None
+        for card in items:
+            score = card.get("score")
+            if not isinstance(score, int) or isinstance(score, bool):
+                continue
+            if prev is not None and score > prev[0]:
+                fails.append(
+                    f"order: {bucket} puts {card.get('esid')} ({score}) after "
+                    f"{prev[1]} ({prev[0]}) -- inside one bucket and one flag class "
+                    f"scores must not go up; sort the plan by (is_recommand, -score)")
+            prev = (score, card.get("esid"))
+    if not notes:
+        notes.append("order: in-bucket monotonicity checked per (bucket, flag) group")
+    return fails, notes
+
+
+def trial_seats_gate(cards: List[Dict[str, Any]],
+                     pool: Dict[str, Dict[str, Any]],
+                     overrides: Any = None,
+                     max_seats: int = 2) -> Tuple[List[str], List[str]]:
+    """One trial gets two seats, not three.
+
+    R14: `HR17031 vs iGlar` took three of ten pivotal slots with the primary
+    result, a subgroup and a safety readout (71 / 73 / 71). The "same mechanism,
+    at most two" rule is editorial prose and does not bind a trial split into
+    three publications. A third seat is only legal when it is declared in
+    `editorial_overrides` with a reason -- same ledger, same rule as elsewhere.
+    """
+    fails: List[str] = []
+    notes: List[str] = []
+    waived = set()
+    for entry in (overrides if isinstance(overrides, list) else []):
+        if not isinstance(entry, dict):
+            continue
+        esid = str(entry.get("esid") or "").strip()
+        reason = " ".join(str(entry.get("reason") or "").split())
+        if esid and len(reason) >= 10:
+            waived.add(esid)
+    seats: Dict[str, List[str]] = {}
+    for card in cards:
+        esid = str(card.get("esid") or "")
+        item = pool.get(esid) or {}
+        trial = str(item.get("trial") or "").strip().upper()
+        if not trial:
+            continue
+        seats.setdefault(trial, []).append(esid)
+    for trial, esids in sorted(seats.items()):
+        extra = esids[max_seats:]
+        if not extra:
+            continue
+        undeclared = [e for e in extra if e not in waived]
+        if not undeclared:
+            notes.append(f"seats: trial {trial} keeps {len(esids)} seats under a "
+                         f"declared override ({', '.join(extra)})")
+            continue
+        fails.append(
+            f"seats: trial {trial} holds {len(esids)} cards ({', '.join(esids)}) -- "
+            f"cap is {max_seats}; merge the sub-analyses into the primary card, or "
+            f"declare the extra seat in editorial_overrides with a reason "
+            f"({', '.join(undeclared)} undeclared)")
+    if seats:
+        notes.append(f"seats: {len(seats)} distinct trials across "
+                     f"{sum(len(v) for v in seats.values())} cards (cap {max_seats})")
+    return fails, notes
+
+
 def recommand_gate(cards: List[Dict[str, Any]],
                    pool: Dict[str, Dict[str, Any]]) -> Tuple[List[str], List[str]]:
     """The data owner's ``is_recommand`` is a forced slot, not a ranking hint.
@@ -618,12 +729,15 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
         elif card_abs and not row_abs:
             fails.append(f"{tag}: abstract_id={card_abs!r} invented -- rows.json has none")
         # `is_recommand` decides whether this card was allowed to outrank a higher
-        # score, so it cannot be a label the card invents about itself.
-        if not isinstance(card.get("is_recommand"), bool):
-            fails.append(f"{tag}: is_recommand must be boolean")
-        elif card["is_recommand"] != bool(item.get("is_recommand")):
-            fails.append(f"{tag}: is_recommand={card['is_recommand']} but rows.json says "
-                         f"{bool(item.get('is_recommand'))}")
+        # score, so it cannot be a label the card invents about itself. It is also
+        # tri-state (v0.14): True = flagged, False = owner said "exclude", None =
+        # the column was empty. Collapsing None to False is exactly the bug that
+        # shipped 191 unflagged ADA 2026 rows as `false` -- an exclusion nobody issued.
+        if card.get("is_recommand") is not None and not isinstance(card["is_recommand"], bool):
+            fails.append(f"{tag}: is_recommand must be boolean or null")
+        elif card.get("is_recommand") != _recommand_of(item):
+            fails.append(f"{tag}: is_recommand={card.get('is_recommand')!r} but rows.json says "
+                         f"{_recommand_of(item)!r}")
         # `manual` is a provenance claim (human-curated vs pipeline-extracted), so a
         # card that flips it is telling the reader the wrong thing about how the row
         # was produced. Optional key: older plans predate it and a missing key must
@@ -727,6 +841,13 @@ def main(argv: List[str] | None = None) -> int:
             f"pool file holds {len(by_esid)} records, a fresh triage build over "
             f"rows.json gives {len(by_calc)} -- membership is judged on the rebuild, "
             f"so re-run triage.py instead of editing the pool by hand")
+    ofails, onotes = bucket_order_gate(payload.get("cards") or [])
+    fails += ofails
+    notes += onotes
+    tfails, tnotes = trial_seats_gate(payload.get("cards") or [], by_calc or by_esid,
+                                     payload.get("editorial_overrides"))
+    fails += tfails
+    notes += tnotes
     if args.report:
         rfails, rnotes = check_report(args.report)
         fails += rfails

@@ -35,7 +35,7 @@
 4. 失败首先由 `evaluation ∈ {不佳, 终止}` 驱动，p/HR 只作佐证。
 5. 模型只写归因，不自算 ORR/HR/PFS。
 6. 每桶榜单必须是这一桶判读分的顶部：舍弃比入选卡更高分的 keep，必须在 `editorial_overrides` 里写明理由（`check_cards.py --judged` 会拒）。
-7. 数据方标了 `is_recommand=是` 的记录**必须上榜、且在桶内排在未标星卡之前**，压过判读分、不吃覆盖豁免（`recommand_gate`）。
+7. 数据方标了 `is_recommand=是` 的记录**必须上榜、且在桶内排在未标星卡之前**，压过判读分、不吃覆盖豁免（`recommand_gate`）。**`is_recommand` 三态照抄**（`true` / `false` / `null`）：空列写成 `false` 会被读成"数据方说不推荐、请排除"（v0.14）。桶内同类必须按 `score` 降序，同一试验最多 2 席——两条都在 `check_cards.py` 交付前拦。
    整列空时在覆盖声明里写「该列已拉取、无标星」，不要写成「无重点推荐」。本场标星 {{rec_flagged}} 条。
    **标星只决定位置，不加徽章**（v0.13）：`tag` 只写 `LBA` 或空，不要在卡面上印「推荐」。
 

@@ -103,6 +103,7 @@ coverage: 1097/1097 ids present
   > 教训：**「表里没有这一列」的结论必须用一次 `selected_fields` 实测来证伪再下**。当时是拿一份旧 schema dump `grep` 不到就下了判断，一错四个版本。
 
 - **`is_recommand` 是数据方标的「必读」位**，不是排序提示。它只能是三种状态之一：`是`（强制入选）、`null`（整列为空 = 数据方没标星）、`column_present=false`（这一列压根没拉）。**这三种必须在 `coverage_notes` 里说清是哪一种**，因为「没人标星」和「没拉这一列」是两件事，「没有值得读的」又是第三件事。
+- **`否` 是第四个值，别丢**（v0.14）：平台的工具文档写明 `是`=推荐、`否`=不推荐且**解读时须排除**、空=未表态。所以列到卡上必须**逐态照抄 `true / false / null`**——把空值写成 `false` 等于伪造一条排除指令（ADA 2026 曾 191/191 条全错）。`make_cards.py` 不做 `bool()`，`check_cards.py` 逐条比对（`A-P8-recommand-tristate`）。
 
 > dump 在 **turn 结束时清除**，必须同 turn 解析完，`rows.json` 才是持久的落点。
 
@@ -282,6 +283,8 @@ python3 $S/attach_abstract_ids.py --pool /workspace/work/pool/pool.json \
 
 **模型必须在输出前把每桶排好：标星卡在前，同类内按 `score` 降序**（v0.12）。`make_cards.py` 只按 `plan.json` 的顺序渲染，**不会替你排**（v0.8 的 e2e7 就跑出过 failed 桶 `[…,63,66]` 的升序尾巴，事实项 `A-P4-score-order` 判失败）。顺序键是 `(is_recommand, -score)`：桶内一律「标星优先、同类降序」，桶与桶之间的顺序没有意义（`early → pivotal → failed` 只是为了读者阅读）。
 
+**v0.14 起这条在交付前就拦**：`check_cards.py` 的 `bucket_order_gate()` 按 `(bucket, is_recommand)` 分组检查非增，顺序反了直接 `exit 3`。R14 的 ADA 2026 就是 `83,80,80,78,78,76,76,71,73,71`——只在事后 `A-P4` 被抓到，现在同样的错误出不了交付闸门。另外同一 `trial_abbreviation` **最多 2 席**（第三席须写进 `editorial_overrides`），因为「同机制 ≤2」在散文里管不住「一个试验拆成主结果 + 亚组 + 安全性三篇」。
+
 `summary` 写**报告了什么**（带数字）；`why` 写**这项研究值什么**，2–4 句、**≥60 字**，按「未满足需求 → 这次数据的定位 → 对治疗格局或后续研发的影响 → 主要局限」铺开，**不要复述 `summary` 的数字**，也不要写"数据很好、值得关注"这种空话。判读分不写进 `why`。
 
 ### Step 6 — 渲染交付物
@@ -379,7 +382,7 @@ lang: zh-CN
 
 - `coverage_notes` 是**必填**的字符串数组，上面两条声明各至少一条；`check_cards.py` 会按语义（不是字面措辞）校验它。
 - `esid` 是结果记录 id（用户要的"对应的结果id"）；`abstract_id` 是会议摘要号，取自 `clinical_result.abstract_id`，**必须与 `rows.json` 逐字一致**（v0.12）。三种错法都会被 `check_cards.py` 拦：rows 有值而卡片留空、卡片值与 rows 不同、rows 无值而卡片凭空填。空值只在真的没有时出现（会议里偶有缺失），不能靠留空躲检查。
-- `is_recommand` 是布尔，**必须与 `rows.json` 的 `clinical_result.is_recommand` 一致**：数据方标了 `是` 就是 `true`，不能因为「我觉得这条一般」写成 `false`。**标星不戴徽章**（v0.13）：`tag` 只写 `""` 或 `LBA`，标星的作用是**排在桶首**，不是加一个"推荐"标签 —— 判读榜上加自家徽章会被读成我们的背书。
+- `is_recommand` **三态照抄，必须与 `rows.json` 的 `clinical_result.is_recommand` 完全一致**：`是`→`true`、`否`→`false`、空→`null`。空值写成 `false` 是**伪造排除指令**（平台的 `否` 语义就是"解读时须排除"），三态之间任何跨写都判失败。**标星不戴徽章**（v0.13）：`tag` 只写 `""` 或 `LBA`，标星的作用是**排在桶首**，不是加一个"推荐"标签 —— 判读榜上加自家徽章会被读成我们的背书。
 - `score` / `score_parts` 是判读结论（Step 4 给的分），不是脚本算的；总分只用来决定阅读顺序，`why` 里不出现分数。
 - `why` 是**价值判断**（2–4 句、≥60 字），不是 `summary` 的改写：它要回答"这项研究为什么重要"，而 `summary` 回答"报告了什么"。
 - **卡片上没有公司代码**（v0.13）：`listed_company` / `ticker` / `exchange` 一个都别写，写了（哪怕是 `null`）`check_cards.py` 判失败；`stock` / `reaction` / `change_pct` 这类行情字段更不行。公司名进正文散文即可。
@@ -433,6 +436,8 @@ lang: zh-CN
 | `scripts/history_for.py` | 同资产历次会议对照（辅助判断趋势） | 需上面两个 |
 
 ## 版本
+
+- **v0.14** — **把两处「看起来绿、读者一眼看出错」的地方改成交付前闸门**。①**`is_recommand` 三态直传**：`make_cards.py` 不再 `bool(...)`，`check_cards.py` 逐条比对 `true/false/null`（空值写成 `false` 判失败）；理由不是洁癖——平台文档写明 `否` = 不推荐、解读时须排除，而 R14 的 ADA 2026 把 191/191 条空值印成了 `false`，等于替数据方发了一条排除指令。②**桶内降序变成交付前闸门**：`bucket_order_gate()` 按 `(bucket, is_recommand)` 分组查非增，同一试验限 2 席（`trial_seats_gate()`，第三席须 `editorial_overrides` 自报）；R14 的 pivotal `…71,73,71` 此前只能靠事后 `A-P4` 抓。③**`phase` 不再印设计词**：新增 `phase_label()`，`evidence_source` 是「前瞻性研究」「单臂研究」时 `phase` 留空、依据进 `phase_inferred`（ESMO 2026 曾有 7 张卡把设计词印在期别位），`LBA` 不再豁免这条。④**LBA 是加分项**：写进判读协议（`review-protocol.md §2.5`）——`evidence_strength` 取区间上限，不动 `score` 算法、不换桶、`why` 里要说明。⑤**评测器**：`A-D1` 的 scenario 绑定误用会在不传 `--scenario` 时告警（ADA 跑曾被判假红）；新增 `A-P8-recommand-tristate` 与 `A-P9-trial-seats`（含 2 条 mutation），事实层 28 → **30 条（29 fail + 1 warn）**；`test_check_cards` 49 → **51 case**。
 
 - **v0.13** — **把「股票」这个读法从卡面上彻底拿掉**，两处改动都是同一件事。①**删公司代码层**：`listed_company` / `ticker` / `exchange` 三个键不再存在（`null` 也判失败），`web_search` 模板里"上市公司"那条查法删掉，`plan.json` 与交付 JSON 的示例同步去掉。理由不是洁癖：v0.9 删了行情，却把代码留成"身份信息"，实跑复核页上那层被读成的仍是股票标签（`AZN · NASDAQ`），读者的注意力从读数挪到了市场——同一层误读，只是音量小一点。身份靠正文里的公司名就够，代码属于行情源。附带收益：不再需要逐卡查交易所页，检索轮次约省 1/3。②**标星不戴徽章**：`is_recommand=是` 的作用只剩**桶内置顶**（`recommand_gate` 与 `op_score_order` 都还在查），`tag` 只允许 `""` 或 `LBA`；原来印「推荐」等于在判读榜上加我们自己的背书。③**闸门与事实项对齐**：`check_cards.py` 新增公司代码字段拦截 + `tag` 白名单；事实项 `A-F5-listed-company` 删除、`A-N1-no-price-claims` 扩成 **`A-N1-no-market-claims`**（价格与代码一起拦），mutation 三条（价格回潮 / 裸 `ticker` 回来 / 整个 `listed_company` 回来），NEG 换成「公司名写进正文散文仍绿」。事实层 29 → **28 条（27 fail + 1 warn）**，测试 46 → 49 case。
 

@@ -64,7 +64,9 @@ def card(item, score=60, parts=None):
         # v0.12: the number the reader searches the abstract book by, plus the data
         # owner's forced-slot flag. Both are copied from the row, never invented.
         "abstract_id": item.get("abstract_id"),
-        "is_recommand": bool(item.get("is_recommand")),
+        # v0.14: tri-state, no coercion -- an empty column is `None`, not `False`.
+        "is_recommand": (item["is_recommand"]
+                         if isinstance(item.get("is_recommand"), bool) else None),
         "lba": bool(item.get("lba")),
         "manual": item.get("manual"),
         "bucket": item["_bucket"],
@@ -487,7 +489,27 @@ fails, _ = check_cards.check({"conference": "T", "count": 1,
                               "cards": [dict(abs_card, abstract_id="LBA7",
                                              is_recommand=True)],
                               "coverage_notes": NOTES}, {ABS_ESID: abs_item})
-expect("is_recommand: card invents the flag", fails, "but rows.json says False")
+expect("is_recommand: card invents the flag", fails, "but rows.json says None")
+
+# 20b. v0.14: the three states are three different statements. `None` (empty column)
+# must not be rewritten as `False` ("the owner said exclude") in either direction.
+fails, _ = check_cards.check({"conference": "T", "count": 1,
+                              "cards": [dict(abs_card, abstract_id="LBA7",
+                                             is_recommand=False)],
+                              "coverage_notes": NOTES}, {ABS_ESID: abs_item})
+expect("is_recommand: null row printed as false", fails,
+       "is_recommand=False but rows.json says None")
+
+# 20c. A row the owner explicitly marked 否 must read back as false, and an empty
+# column as null -- the mapping is what the card gate compares against.
+if check_cards._recommand_of({"is_recommand": False}) is not False:
+    failures.append("an explicit 否 row must map to False")
+elif check_cards._recommand_of({"is_recommand": None}) is not None:
+    failures.append("an empty is_recommand column must map to None, not False")
+elif check_cards._recommand_of({"forced": True}) is not True:
+    failures.append("a forced row must map to True")
+else:
+    print("  ok  is_recommand: text three states map to True / False / None")
 
 if failures:
     print(f"\nFAIL ({len(failures)}):")

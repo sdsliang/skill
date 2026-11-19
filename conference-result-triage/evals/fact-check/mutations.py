@@ -20,6 +20,7 @@ Exit 0 = every mutation flipped, every negative control stayed green, full cover
 import copy
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -57,7 +58,7 @@ def make_pool(cards):
             # v0.12: the abstract number and the data owner's flag. Both are carried
             # by the pool so the fixture can express the shapes the gates exist for.
             "abstract_id": c.get("abstract_id"),
-            "is_recommand": bool(c.get("is_recommand")),
+            "is_recommand": (True if c.get("is_recommand") is True else None),
         })
     return {"conference": "ESMO 2026", "pools": pools}
 
@@ -84,7 +85,10 @@ def build_fixture(root):
                         # One flagged row, at the top of its bucket: that is the shape
                         # `is_recommand` is meant to force, and the only shape the
                         # ordering gate must accept without a score argument.
-                        "is_recommand": (i == 0 and j == 0),
+                        # v0.14: tri-state. The unflagged rows are `None` (the column
+                        # is empty for this conference), never `False` -- printing
+                        # `false` is an exclusion instruction nobody issued.
+                        "is_recommand": True if (i == 0 and j == 0) else None,
                         "summary": f"ORR {float(30 + i + j)}% with HR {0.5 + j / 100:.2f}",
                         # A judgement, not a label: >=60 chars, and not a re-wrap of
                         # `summary` (that pair of rules is what A-P5 audits).
@@ -205,9 +209,13 @@ def build_fixture(root):
     with open(os.path.join(root, "messages.json"), "w", encoding="utf-8") as f:
         json.dump([{"parts": [{"part_kind": "text", "content": reply}]}], f, ensure_ascii=False)
 
+    # `coverage: n/n` is now checked against the real row count (A-D1 v0.14), so the
+    # fixture has to state the number it actually built, not the ESMO number.
+    n_rows = len(rows)
     with open(os.path.join(root, "transcript.md"), "w", encoding="utf-8") as f:
-        f.write("# fixture run\n\nrows=1097 lba=73 with_abstract_text=1097\n"
-                "coverage: 1097/1097 ids present\ncandidates 179 / missing abstract 0\n"
+        f.write(f"# fixture run\n\nrows={n_rows} lba=73 with_abstract_text={n_rows}\n"
+                f"coverage: {n_rows}/{n_rows} ids present\n"
+                "candidates 179 / missing abstract 0\n"
                 "OK cards=12\n")
     return root
 
@@ -299,6 +307,26 @@ def m_abstract_id(root):
     write(root, "artifacts/output/watchlist.json", w)
 
 
+def m_recommand_collapsed(root):
+    """`bool(None)` -> `false`: the R14 defect, one card at a time.
+
+    The unflagged rows carry an empty flag column. Printing `false` there is not a
+    formatting choice -- on this platform 否 means "not recommended, exclude", so the
+    card orders the reader to skip a record nobody ruled out.
+    """
+    w = read(root, "artifacts/output/watchlist.json")
+    w["cards"][1]["is_recommand"] = False
+    write(root, "artifacts/output/watchlist.json", w)
+
+
+def m_trial_seats(root):
+    """One trial, three cards: the `HR17031 vs iGlar` shape from R14."""
+    doc = read(root, "artifacts/work/rows.json")
+    for row in doc["rows"][:3]:
+        row["clinical_result_trial_abbreviation"] = "HR17031"
+    write(root, "artifacts/work/rows.json", doc)
+
+
 def m_recommand_dropped(root):
     """Drop the flagged row from the list -- the one failure the flag exists to prevent.
 
@@ -387,7 +415,7 @@ def m_notes(root):
 
 def m_coverage(root):
     p = os.path.join(root, "transcript.md")
-    txt = open(p, encoding="utf-8").read().replace("coverage: 1097/1097 ids present", "")
+    txt = re.sub(r"coverage: \d+/\d+ ids present", "", open(p, encoding="utf-8").read())
     open(p, "w", encoding="utf-8").write(txt)
 
 
@@ -546,6 +574,8 @@ MUTATIONS = [
     ("A-P6-selection-order", m_selection_order),
     ("A-F1-abstract-id-traceable", m_abstract_id),
     ("A-P7-recommand-forced", m_recommand_dropped),
+    ("A-P8-recommand-tristate", m_recommand_collapsed),
+    ("A-P9-trial-seats", m_trial_seats),
     ("A-F2-manual-null", m_manual),
     ("A-F3-esid-in-pool", m_esid),
     ("A-F4-numbers-traceable", m_number),

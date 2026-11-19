@@ -583,3 +583,29 @@ pivotal 桶顺序：LBA7 81(推荐) → LBA3 95 → LBA1 90 → 2071O 88 → LBA
 **另一个只有实跑才看得见的缺陷**：卡片上 `is_recommand` 印成 **`False`**，而它在库里是 `None`（本场 191 条全空）。`make_cards.py:130` 与 `check_cards.py:622` 都用 `bool(...)` 把三态压成二值 —— 「数据方没标星」被写成了「数据方标了否」。平台这轮同步更新了该字段的工具文档：`是`=推荐、**`否`=不推荐须排除**、空=模型自判。按新语义，卡面一个 `false` 就是一条可执行的排除指令，这不再是表述问题。
 
 **结论**：v0.13 的目标达成（代码层消失、徽章消失、检索省 1/3）。**缺陷从「卡面多一个字段」转移到「顺序与三态」** —— 两者都是 v0.12 就埋下、这轮同场对比才照出来的。
+
+## R15（2026-11-19）：v0.14 发布后跑 ASH 2026 —— 三态不再坍缩、桶内降序成立，`A-D1` 的写死行数被真跑打红
+
+**改了什么**：①`is_recommand` 三态一路直传（`_recommand_value` / `_recommand_of` / `_recommand_state` 各一份，`None` 不写 `False`）；②新增交付前闸门 `bucket_order_gate`（分组键 `(bucket, is_recommand)`）与 `trial_seats_gate`（同试验 ≤2 席，超席须 `editorial_overrides` 且 `reason ≥10`）；③`phase_label()` 让设计词（「前瞻性研究」等）不印进 `phase` 槽；④事实层补 `A-P8-recommand-tristate` / `A-P9-trial-seats`，共 **29 fail + 1 warn**；⑤`A-D1-full-coverage` 从写死 pattern 改为 `self_coverage`（从 transcript 读 `coverage: n/n`，要求自洽且等于 `rows.json` 行数）。
+
+**对象**：`20261119-120850-resume-cards-ASH-26-v14b`（thread `b10c7f03`，接在 `20261119-111741-cards-ASH-26-v14` 之后 `--resume`）。ASH 2026（68th，2026-12-12 至 12-15，New Orleans，官网核过）**1524 行** → 排除 577（回顾性 463 / TiP 57 / 真实世界 50 / 汇总分析 2 / Not Applicable 5）→ **893 候选**（early 493 / pivotal 356 / failed 44）→ 全量判读 → 交付 **30 卡（10/10/10）**。墙钟 **3753 s**（62.6 min，首轮 3002 s 超时后续跑 694 s），64 次工具调用（`task` 21 批判读 / `execute` 14 / `read_file` 13 / `web_fetch` 4 / `with-params` 1）。
+
+| 验证点 | 实测 |
+|---|---|
+| 三态不坍缩 | 30/30 卡 `is_recommand = null`（本场 `column_present=False`），**没有一张被写成 `false`** —— R14 的 191 条全 `false` 未复现 |
+| 桶内降序 | early `86,86,85,84,83,83,82,82,80,80` · pivotal `96,94,94,93,91,91,91,90,90,90` · failed `94,94,93,91,91,90,88,88,87,86`，`bucket_order_gate` 无告警 |
+| 同试验席位 | `A-P9` 无超席；ASH 的 `trial_abbreviation` 有值率高，闸门这次**有数据可算**（对比 ADA 只有 1/191） |
+| 设计词不进 `phase` | 交付卡 `phase` 槽全部是期别或空，无「前瞻性研究」类设计词 |
+| 闸门与事实层一致 | `check_cards.py` **EXIT=0 `OK cards=30`**；`check.py` **facts 28/28 warn 0/1 → PASS** |
+
+**`A-D1` 是这轮唯一被真跑改掉的闸门**。R14 里它把 `1097/1097` 写死，ADA（191）假红，当时只加了一句告警；ASH（1524）同样假红且没有 scenario 可切。改成 `self_coverage` 后同一 run 由 `FAIL` 变 `PASS`（`coverage 1524/1524 matches 1524 rows`），mutation `m_coverage` 仍能翻红（删掉该行 → `no coverage line matched`），fixture 的 transcript 也改成按实际行数写（12/12）。**教训：写死语料规模的断言，等于把「评测器缺陷」长期伪装成「交付缺陷」。**
+
+**这轮暴露的数据缺口（不是 skill 缺陷）**：ASH 2026 的 `clinical_result.lba` **1524 条全为 null**（`A-D4-lba-not-dropped` 报 `no lba rows in this corpus` → SKIP），`is_recommand` 列**不存在**（`column_present=False`）。两条都写进了 `coverage_notes`：LBA 按官方「晚期突破性摘要 2026-12-07 才公开」解释，推荐列按「已拉取但全空 ≠ 没有重点研究」解释。v0.14 的 LBA 加分项在这种会场上**无处可加**，闸门输出 SKIP 而非 PASS，符合「缺面 → SKIP」的规矩。
+
+**共享 SP 在发布前被 owner 原地改了**：pin 记的是 `a2b1581ef7cd`（29169 B），live 变成 `6db755d1f080`（29311 B，v1.0 未升号），publish 硬拦一次。按工具指示重读 deployed instructions（580 行 / 23363 chars，`## File Artifact Presentation` 契约未变、无 `report.md` / `citations` 路径硬要求），更新本地 `shared_prompt_pin` 后 `status` 转 `pin matches`。**没有写 SP 本体。**
+
+**run 期两条断言 FAIL 属发布态不同步，不是内容缺陷**：`deployed skill body == local SKILL.md` 与支持文件清单两条红，因为我在 run 进行中改了 `check_cards.py` 的 docstring（补规则 18/19）与 `SKILL.md` 的 case 计数。12:23 重新 `publish` 后 `identical=16 differing=0`、`STATUS: in sync`，两条断言的对象已一致。**代价是这一轮没有「发布态下的全绿断言」快照**，如实记在此处，不假装重跑过。
+
+**另一个 runner 侧发现（`--resume` 丢模型参数）**：首轮用 `--model "GPT 6.1 Sol"` 起跑，`--resume` 时未重传，平台回落到项目默认模型，`verification.md` 记的是 **DeepSeek Flash**。产物质量仍达标（30 卡、facts 全绿），说明该 skill 对模型不敏感；但**续跑必须重传 `--model`**，否则「同一 run 换模型」会静默发生。
+
+**结论**：v0.14 的三个目标（三态、顺序/席位闸门、设计词不进期别槽）在 893 条全量判读的大会上全部成立。这轮真正被拧动的旋钮是评测器本身（`A-D1` 动态化），以及两条只有跨会议真跑才照得出来的数据缺口（`lba` 全空、`is_recommand` 列缺失）。
