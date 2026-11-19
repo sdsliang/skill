@@ -39,14 +39,35 @@
   `field: "target"` 声明的情形 —— 闸门不是空的。
 - `dist/conference-result-triage-v0.16.zip` — **151730 B / 15 entries** / sha256 `bd2197a2cbaa3248…`。
 
-### 未做（等授权 / 待定）
+### 发布与实跑（已完成）
 
-- **未发布**：写平台 skill 需用户点头（本轮只做到本地全绿 + dist 打包）。
-- **未跑 E2E**：v0.16 需一场新 run（建议 ADA 2026 复跑或换 ESO/ESC）证明模型在**没有 arms 通道**的情况下
-  也会把 `drug`/`target` 写进 plan，且 3 张无靶点卡正确走 `editorial_overrides`。
-- **未把 `attach_arms.py` 接进 skill 包**：它现在只在 `dist/review/`（本地复核页工具链），是否进
-  `scripts/` 并写成「短名单 45 卡 → 每 10 个 esid 切片拉 arms → 填卡」的一步，取决于是否愿意为 265 KB
-  的额外一次调用付代价（当前默认：不拉，靠判读者读摘要）。
+- **原地发布**：`publish` → `entries=15 identical=15 differing=0`、**`STATUS: in sync`**（label 仍 `v0.3.0`，
+  skill_id `230463cbc03d4fe5ba0e2e8964fe91dd`）。`deps: unchanged`、共享 SP `pin matches` v1.0 / 29311 B。
+- **E2E `20261119-154031-cards-ENA-26-v16`**（ENA 2026，DeepSeek Flash + `--web`）：结果库仅 **17 条** → 交付
+  **10 卡（early 8 / pivotal 1 / failed 1）**，墙钟 **413.3 s** / 78 次工具调用。
+  - **`drug` / `target` 10/10 全非空，全部由模型从标题与摘要抽出**（本轮压根没调 `clinical_result.arms`、
+    也没有手补），证明「让 llm 写理由时兜底抽」这条路在真跑里成立；`check_cards.py` **EXIT=0 `OK cards=10`**。
+  - 事实层 **facts 28/28 warn 0/1 → PASS**，`A-P10-card-identity` → `drug+target named on 10 card(s)`；
+    runner 断言 **24 PASS / 0 FAIL**；`coverage_notes` 6 条明写「只有 17 条、三桶凑不满、未用无读数记录凑数」，
+    并声明库里没有的三条 late-breaking 未纳入。
+  - 复核页 `dist/review/ena2026-watchlist-v16.html`（19818 B）——卡头与左导均印模型写的药名。
+
+### 这轮抓到的评测器缺陷：`A-D2` 把语料规模写死成 ESMO 量级
+
+17 行的会议 `plan_slices.py` 正确地不切分（`slices/` 只有 `_all_ids.txt`）、一次拉完，而 `op_query_slicing`
+的 `sources` 分支用常数 `min_calls=7` 判「至少 7 次 dump」→ **正确的 17 行会议被判失败**。与 v0.12「断言写死 1097」
+同类。修法：按已拉行数反推 `need = ceil(rows / max_slice)`；新增负控 `ngen_small_corpus_single_dump`（必须绿）
+→ `coverage: 29/29 …; **8** negative controls green`。修完同一产物 `facts 28/28 PASS`。
+
+### 未做（待定）
+
+- **未把 `attach_arms.py` 接进 skill 包**：它现在只在 `dist/review/`（本地复核页工具链）。本轮证明「不拉 arms
+  也能填满」之后，这条的优先级下降；保留它作为**核对通道**（短名单 45 卡 → 每 10 个 esid 切片拉 ≈265 KB）。
+- **`lifileucel` 的 `target` 写成散文**（`肿瘤浸润淋巴细胞（TIL，非分子靶点）`）：诚实但走了非设计路径
+  （应为 `editorial_overrides` 的 `field: "target"`）。若要连这种写法一起管，需新增「`target` 不得是解释性长句」
+  规则，有误伤风险 → 先留证据（R18 第 1 条观察）。
+- **`A-C1-heat-coverage` 0/12**（warn）：热议名单是 ESMO 2026 攒的，跨会议天然 0/12；应按会议取名单或在无名单时 SKIP。
+- **小会议不适合当榜单质量评测对象**（ENA 17 条、同期 ENA 2025 43 条、库里缺三条 LBA），只适合契约验收。
 
 ## v0.15（2026-11-19）：交付物收敛成一份 JSON（删 report.md + citations 整条链）
 

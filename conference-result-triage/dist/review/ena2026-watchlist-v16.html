@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="zh-Hans">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>ENA 2026 · 推荐清单</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#F0EFEB;--ink:#1C1C1A;--muted:#8F8E88;--faint:#C6C5BF;--grid:#DEDDD6;
+        --l2:#4A4944;--l3:#6A6963;--l5:#B0AFA9;--paper:#F0EFEB}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--bg);color:var(--ink);font-family:'Inter','Noto Sans SC',sans-serif;
+    -webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums lining-nums;padding:56px 28px 80px}
+  html{scroll-behavior:smooth}
+  .sheet{width:1280px;max-width:1280px;margin:0 auto;display:grid;
+    grid-template-columns:206px minmax(0,1fr);gap:44px}
+  .main{min-width:0}
+
+  .nav{position:sticky;top:26px;align-self:start;max-height:calc(100vh - 52px);
+    overflow:auto;padding-right:6px}
+  .nav::-webkit-scrollbar{width:4px}
+  .nav::-webkit-scrollbar-thumb{background:var(--grid);border-radius:9px}
+  .nt{font-size:9.5px;font-weight:700;letter-spacing:.14em;color:var(--muted);
+    line-height:1.7;padding-bottom:12px;border-bottom:1px solid var(--ink)}
+  .nt b{font-size:11px;letter-spacing:.02em;color:var(--ink)}
+  .ng{margin-top:16px}
+  .ng-t{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;
+    color:var(--ink);text-decoration:none;letter-spacing:-.01em;margin-bottom:8px}
+  .ng-t .ladder{width:9px;height:9px;border-radius:3px;flex:none}
+  .nav a{text-decoration:none}
+  .ng a:not(.ng-t){display:flex;gap:7px;align-items:baseline;padding:3px 0;max-width:100%;
+    font-size:10px;color:var(--l2);border-bottom:1px solid transparent}
+  .ng a:not(.ng-t):hover{color:var(--ink)}
+  .ng a:not(.ng-t):hover .nd{text-decoration:underline;text-underline-offset:2px}
+  .nd{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;letter-spacing:-.01em}
+  .ni{font-size:8.5px;font-weight:700;color:var(--faint);letter-spacing:.08em;flex:none}
+  .l-early{background:var(--l3)} .l-pivotal{background:var(--ink)} .l-failed{background:var(--l5)}
+  @media (max-width:1320px){
+    body{padding:34px 20px 60px}
+    .sheet{width:auto;max-width:1080px;grid-template-columns:1fr;gap:26px}
+    .nav{position:static;max-height:none;overflow:visible;border-bottom:1px solid var(--grid);padding-bottom:16px}
+    .nav .ng{display:inline-block;vertical-align:top;margin:14px 26px 0 0;
+      width:calc((100% - 60px) / 3);max-width:300px}
+    .nt{display:none}
+  }
+
+  .kick{font-size:9.5px;font-weight:700;letter-spacing:.16em;color:var(--muted)}
+  h1{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:14px 0 0}
+
+  .bucket{margin-top:52px}
+  .bh{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--ink);padding-bottom:10px}
+  .ladder{width:13px;height:13px;border-radius:4px;flex:none}
+  .bh h2{font-size:18px;font-weight:800;letter-spacing:-.02em}
+  .bh .cnt{font-size:11px;font-weight:600;color:var(--muted);margin-left:10px;letter-spacing:.06em}
+
+  .item{padding:24px 0 20px;border-bottom:1px solid var(--grid)}
+  .head{display:flex;align-items:baseline;gap:9px;margin-bottom:7px}
+  .head .no{font-size:9.5px;font-weight:700;color:var(--faint);letter-spacing:.1em}
+  .pill{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:800;
+    letter-spacing:-.01em;color:var(--ink);border:1px solid var(--ink);border-radius:99px;
+    padding:3px 10px 3px 6px;background:#fff}
+  .pill.drug i{font-style:normal;font-size:8.5px;font-weight:700;letter-spacing:.1em;
+    color:var(--paper);background:var(--ink);border-radius:99px;padding:2px 6px}
+  .pill.drug.empty{border-style:dashed;border-color:var(--l5);color:var(--muted);font-weight:600}
+  .pill.drug.empty i{background:var(--l5)}
+  .item h3{font-size:14.5px;font-weight:700;line-height:1.45;letter-spacing:-.01em;max-width:900px}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 11px}
+  .chip{font-size:9.5px;font-weight:600;letter-spacing:.04em;padding:3px 8px;border-radius:99px;
+    border:1px solid var(--grid);color:var(--l2)}
+  .chip.solid{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+  .chip.who{border-color:var(--l5);color:var(--l2)}
+  .chip.ghost{border-style:dashed;color:var(--muted)}
+  .chip.no-id{font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--l2)}
+  .sum{font-size:13px;line-height:1.7;color:var(--ink);max-width:900px}
+  .why{font-size:12.5px;line-height:1.7;color:var(--l2);margin-top:7px;max-width:900px}
+  .why:before{content:'推荐理由 · ';font-weight:700;color:var(--muted);letter-spacing:.02em}
+  .ev{font-size:10.5px;line-height:1.6;color:var(--muted);margin-top:10px;max-width:900px;
+    border-left:2px solid var(--grid);padding-left:10px}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <nav class="nav">
+    <div class="nt">ENA 2026<br><b>10 张推荐卡片</b></div>
+    <div class="ng"><a class="ng-t" href="#b-early"><span class="ladder l-early"></span>早期机会提示</a><a href="#c-early-1" title="OMO-103（MYC 抑制剂）联合吉西他滨/白蛋白紫杉醇一线治疗转移性胰腺导管腺癌 Ib 期"><span class="ni">01</span><span class="nd">OMO-103（Omomyc）</span></a><a href="#c-early-2" title="[212Pb]VMT-α-NET（SSTR2 靶向 α 核素）治疗晚期神经内分泌肿瘤 I/IIa 期队列 1–3"><span class="ni">02</span><span class="nd">[212Pb]VMT-α-NET（bamzireotide navoxetan）</span></a><a href="#c-early-3" title="AVZO-1418（EGFR×HER3 双抗 ADC）AVENTINE-1 I 期首报"><span class="ni">03</span><span class="nd">AVZO-1418（DB-1418）</span></a><a href="#c-early-4" title="lifileucel（自体 TIL）治疗儿童与青少年 ICI 难治性转移性黑色素瘤 I 期"><span class="ni">04</span><span class="nd">lifileucel</span></a><a href="#c-early-5" title="ACE1831（异体抗 CD20 抗体偶联 γδT）治疗复发难治 B 细胞肿瘤 I 期"><span class="ni">05</span><span class="nd">ACE1831</span></a><a href="#c-early-6" title="BAL0891（TTK/PLK1 抑制剂）联合紫杉醇在转移性尿路上皮癌的贝叶斯剂量优化"><span class="ni">06</span><span class="nd">BAL0891</span></a><a href="#c-early-7" title="INCB123667（CDK2 抑制剂）复发转移性上皮性卵巢癌 I 期 ctDNA 与突变谱分析"><span class="ni">07</span><span class="nd">INCB123667</span></a><a href="#c-early-8" title="CRB-701（Nectin-4 ADC）治疗复发转移头颈鳞癌的 Nectin-4 表达与基因扩增分析"><span class="ni">08</span><span class="nd">CRB-701（SYS6002）</span></a></div><div class="ng"><a class="ng-t" href="#b-pivotal"><span class="ladder l-pivotal"></span>重磅 II/III 期</a><a href="#c-pivotal-1" title="RSO-021（PRX3 抑制剂）经胸膜腔给药治疗恶性胸膜间皮瘤 II 期"><span class="ni">01</span><span class="nd">RSO-021（thiostrepton）</span></a></div><div class="ng"><a class="ng-t" href="#b-failed"><span class="ladder l-failed"></span>失败的研究</a><a href="#c-failed-1" title="LY4066434（口服泛 KRAS 抑制剂）KRAS 突变实体瘤 I 期"><span class="ni">01</span><span class="nd">LY4066434</span></a></div>
+  </nav>
+  <main class="main">
+    <div class="kick">ENA 2026 · 临床结果推荐</div>
+    <h1>10 张推荐卡片</h1>
+    
+  <section class="bucket" id="b-early">
+    <div class="bh"><span class="ladder l-early"></span><h2>早期机会提示<span class="cnt">8</span></h2></div>
+    
+    <article class="item" id="c-early-1">
+      <div class="body">
+        <div class="head"><span class="no">#01</span><span class="pill drug"><i>药品</i>OMO-103（Omomyc）</span></div>
+        <h3>OMO-103（MYC 抑制剂）联合吉西他滨/白蛋白紫杉醇一线治疗转移性胰腺导管腺癌 Ib 期</h3>
+        <div class="chips"><span class="chip">Phase I</span><span class="chip who">MYC · 胰腺导管腺癌</span></div>
+        <p class="sum">优化队列（n=12）ORR 33%（RECIST，体积法 44%）、DCR 83%，8 个月 PFS 率 33%；ctDNA 分子缓解 75%，10/10 例肿瘤组织检出药物，配对活检显示 MYC 靶基因集受抑。</p>
+        <p class="why">一线转移性胰腺癌预后极差，标准化疗的缓解深度有限。这是直接 MYC 抑制剂首次在联合化疗中给出转化层证据：肿瘤组织药物暴露、MYC 转录程序关闭与临床获益三者对得上，并提示 ATM 变异人群可能获益更多。若后续随机研究能复现，将为这个长期不可成药的靶点提供第一条临床路径；局限是单臂、优化队列样本很小，且疗效与生物标志物选择高度绑定。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-2">
+      <div class="body">
+        <div class="head"><span class="no">#02</span><span class="pill drug"><i>药品</i>[212Pb]VMT-α-NET（bamzireotide navoxetan）</span></div>
+        <h3>[212Pb]VMT-α-NET（SSTR2 靶向 α 核素）治疗晚期神经内分泌肿瘤 I/IIa 期队列 1–3</h3>
+        <div class="chips"><span class="chip">Phase I/II</span><span class="chip who">SSTR2 · 神经内分泌肿瘤</span></div>
+        <p class="sum">67 例、三剂量队列（92.5/185/222 MBq）未见 DLT 或 4–5 级不良事件；队列 2 前 23 例随访 96.4/60.1 周时 ORR 43.4%，队列 1 两例随访 2 年仍为疾病稳定。</p>
+        <p class="why">NET 在镥-177 DOTATATE 之后仍缺更强效的核素方案，α 粒子因射程短、能量密度高被视为下一代方向。本届把三个剂量队列的安全性一次性摆出，并在最高剂量组看到持续缓解与长期疾病稳定，支持 lead-212 走向注册设计。限制是单臂无对照、队列间随访差异大，且部分疗效数据此前已在其他会议披露，属增量而非全新证据。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-3">
+      <div class="body">
+        <div class="head"><span class="no">#03</span><span class="pill drug"><i>药品</i>AVZO-1418（DB-1418）</span></div>
+        <h3>AVZO-1418（EGFR×HER3 双抗 ADC）AVENTINE-1 I 期首报</h3>
+        <div class="chips"><span class="chip">Phase I</span><span class="chip who">EGFR / HER3 · 实体瘤（含非小细胞肺癌）</span></div>
+        <p class="sum">32 例、2–6 mg/kg Q2W/Q3W；18 例可评估中 5 例 PR（2 例确认），ORR 27.8%；NSCLC 亚组 10 例可评估中 4 例 PR（40%），9 例肿瘤缩小；6 mg/kg 两方案均超 MTD。</p>
+        <p class="why">EGFR×HER3 双抗 ADC 是当前 ADC 赛道最拥挤的方向之一，差异化集中在载荷、DAR 与安全窗。AVENTINE-1 的早期信号显示缓解跨多个瘤种与多个剂量出现，EGFR 突变 NSCLC 的缓解比例明显高于该人群多线治疗后的历史水位，而高剂量两方案均触顶毒性，提示治疗窗偏窄。局限是可评估人群小、部分缓解尚未确认、RP2D 未定，回填与联合队列才是判断能否进二线的关键。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-4">
+      <div class="body">
+        <div class="head"><span class="no">#04</span><span class="pill drug"><i>药品</i>lifileucel</span></div>
+        <h3>lifileucel（自体 TIL）治疗儿童与青少年 ICI 难治性转移性黑色素瘤 I 期</h3>
+        <div class="chips"><span class="chip">Phase I</span><span class="chip who">肿瘤浸润淋巴细胞（TIL，非分子靶点） · 黑色素瘤</span></div>
+        <p class="sum">5 例入组、3 例完成治疗，其中 2 例确认 PR（RECIST v1.1）；中位年龄 15 岁，随访 7.5 个月，细胞制备在 4 例成功。</p>
+        <p class="why">儿童与青少年黑色素瘤在 ICI 失败后几乎没有标准后线方案，这是 TIL 在该人群的首次可行性验证：取材、制备、淋巴清除与高剂量 IL-2 全流程能跑通，并出现确认缓解。对儿童实体瘤细胞治疗来说，路径打通的意义大于当前疗效数字；局限是治疗例数极少、随访短，且出现延迟性血栓性微血管病导致的一例死亡，长期安全性需要前瞻监测。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-5">
+      <div class="body">
+        <div class="head"><span class="no">#05</span><span class="pill drug"><i>药品</i>ACE1831</span></div>
+        <h3>ACE1831（异体抗 CD20 抗体偶联 γδT）治疗复发难治 B 细胞肿瘤 I 期</h3>
+        <div class="chips"><span class="chip">Phase I</span><span class="chip who">CD20 · B 细胞恶性肿瘤</span></div>
+        <p class="sum">16 例（单药 12 例、联合 4 例），ORR 25.0%、CR 12.5%，中位 PFS 1.8 个月；中位既往 5.5 线，无 GVHD、ICANS 与治疗相关死亡。</p>
+        <p class="why">异体 γδT 加抗体偶联的卖点是不引发 GVHD 与 ICANS，本届数据支持了这一点，并在多线经治人群里出现缓解与个别持久 CR。但整体缓解水平与 PFS 停留在后线细胞治疗的下限，单药与联合未见差异，剂量与联合也无明显梯度。公司已把开发重心转向 IgG4 相关疾病，血液瘤方向更可能走合作授权，读者宜将其视为平台验证而非血液瘤新方案。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-6">
+      <div class="body">
+        <div class="head"><span class="no">#06</span><span class="pill drug"><i>药品</i>BAL0891</span></div>
+        <h3>BAL0891（TTK/PLK1 抑制剂）联合紫杉醇在转移性尿路上皮癌的贝叶斯剂量优化</h3>
+        <div class="chips"><span class="chip">Phase I</span><span class="chip who">TTK / PLK1 · 尿路上皮癌</span></div>
+        <p class="sum">16 例爬坡，RP2D 定为 BAL0891 80 mg 联合紫杉醇 80 mg/m2；该组 3 例可评估中 1 例 PR（33%）、DCR 100%，中位治疗 38.6 周，4 级中性粒细胞减少 1/4。</p>
+        <p class="why">TTK/PLK1 双抑制是染色体不稳定肿瘤的合理方向，而这场的价值不在疗效数字，而在方法：用预设的贝叶斯获益-风险框架把剂量定在低于最高耐受剂量，并把 4 级中性粒细胞减少计入效用函数。它给出的信息是更高剂量没有更好疗效、只增加骨髓毒性，对后续 1b 期设计与同类联合方案的剂量选择有参考意义；局限是每组仅数例、非随机，属剂量决策而非疗效证据。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-7">
+      <div class="body">
+        <div class="head"><span class="no">#07</span><span class="pill drug"><i>药品</i>INCB123667</span></div>
+        <h3>INCB123667（CDK2 抑制剂）复发转移性上皮性卵巢癌 I 期 ctDNA 与突变谱分析</h3>
+        <div class="chips"><span class="chip">Phase I</span><span class="chip who">CDK2 · 卵巢癌</span></div>
+        <p class="sum">45 例 CCNE1 扩增或 Cyclin E1 过表达人群，基线 ctDNA 常见 TP53（80%）、CCNE1（38%）；C2D1 ctDNA 下降普遍，持续抑制者 PFS 更优；有无 CCNE1 扩增者缓解与 PFS 无显著差异。</p>
+        <p class="why">CDK2 是 CCNE1 扩增肿瘤里最受关注的靶点之一，但「扩增是否等于依赖」一直没被回答。这篇给出的是人群定义层面的信息：缓解在有无扩增的患者中都出现，说明单靠 CCNE1 拷贝数筛人可能不够；ctDNA 的持续抑制与 PFS 相关，提示可当作早期药效标志。局限是摘要没有给分层缓解率，只能作为机制假设，不能据此判断疗效水位。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+
+    <article class="item" id="c-early-8">
+      <div class="body">
+        <div class="head"><span class="no">#08</span><span class="pill drug"><i>药品</i>CRB-701（SYS6002）</span></div>
+        <h3>CRB-701（Nectin-4 ADC）治疗复发转移头颈鳞癌的 Nectin-4 表达与基因扩增分析</h3>
+        <div class="chips"><span class="chip">Phase I/II</span><span class="chip who">Nectin-4 · 头颈部鳞状细胞癌</span></div>
+        <p class="sum">79 例（OPSCC 43 例、非 OPSCC 36 例）接受 1.8–3.6 mg/kg 每 3 周给药；Nectin-4 H-score 10–285，OPSCC 中高表达更集中；缓解者 IHC 染色强度与血 NECTIN4 拷贝数更高。</p>
+        <p class="why">Nectin-4 是 ADC 最拥挤的靶点之一，本届同一会议就有多款 Nectin-4 ADC 读数，因此「怎么筛人」比「有没有效」更早成为问题。这篇把组织 IHC 与血 ddPCR 两条路放在一起，指向 OPSCC 可能是富集人群，并提示存档组织与当前疾病生物学之间会有偏差。局限是纯探索性分析、未给出亚组缓解率，不能据此设定 cut-off，只能作为后续入组策略的参考。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+  </section>
+  <section class="bucket" id="b-pivotal">
+    <div class="bh"><span class="ladder l-pivotal"></span><h2>重磅 II/III 期<span class="cnt">1</span></h2></div>
+    
+    <article class="item" id="c-pivotal-1">
+      <div class="body">
+        <div class="head"><span class="no">#01</span><span class="pill drug"><i>药品</i>RSO-021（thiostrepton）</span></div>
+        <h3>RSO-021（PRX3 抑制剂）经胸膜腔给药治疗恶性胸膜间皮瘤 II 期</h3>
+        <div class="chips"><span class="chip">Phase II</span><span class="chip who">PRX3（过氧化物还原酶 3） · 恶性胸膜间皮瘤</span></div>
+        <p class="sum">II 期 45 例接受 45 或 90 mg 每周给药，2 例 PR（mRECIST）；90 mg 组 mPFS 4.1 个月 vs 45 mg 组 3.1 个月，OS 未达 vs 12.8 个月；I 期 12 周疾病控制率 67%。</p>
+        <p class="why">恶性胸膜间皮瘤在系统治疗失败后选择极少，胸膜腔内局部给药少见但机制上合理。II 期在最高剂量组看到更长的疾病控制与尚未达到的 OS，配合 PRX3 敲除的机制验证，支持把早期胸膜间皮瘤作为注册研究的切入点。局限是非随机、PR 数很少、采用 mRECIST 评估，I 期疾病控制率来自更小样本，结论仍需随机研究确认。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+  </section>
+  <section class="bucket" id="b-failed">
+    <div class="bh"><span class="ladder l-failed"></span><h2>失败的研究<span class="cnt">1</span></h2></div>
+    
+    <article class="item" id="c-failed-1">
+      <div class="body">
+        <div class="head"><span class="no">#01</span><span class="pill drug"><i>药品</i>LY4066434</span></div>
+        <h3>LY4066434（口服泛 KRAS 抑制剂）KRAS 突变实体瘤 I 期</h3>
+        <div class="chips"><span class="chip">Phase I</span><span class="chip who">KRAS（泛突变 + 野生型） · KRAS 突变实体瘤</span></div>
+        <p class="sum">99 例入组、93 例可评估，ORR 7%（6/93）、DCR 56%；PDAC 亚组 ORR 2%、NSCLC 21%；TEAE 致 68% 暂停给药、19% 永久停药，400 mg BID 未达 MTD 即停止爬坡。</p>
+        <p class="why">这是泛 KRAS 单药路线的首次人体检验，结果是清晰的负面答案：跨瘤种缓解率极低，胰腺癌几乎无缓解，同时因消化道与血液学毒性导致大量暂停与停药，剂量无法继续上调。它的价值在于把「覆盖更多突变亚型」与「维持足够靶点抑制」的矛盾摆上台面，说明该方向更可能依赖联合方案或亚型选择性分子；对同赛道其他泛 KRAS 资产的开发节奏与估值预期有直接影响。</p>
+        <div class="ev"></div>
+      </div>
+    </article>
+  </section>
+  </main>
+</div>
+</body>
+</html>

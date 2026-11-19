@@ -636,6 +636,27 @@ def ngen_web_empty_url_noted(root):
             f.write(json.dumps(r, ensure_ascii=False) + "\n")
 
 
+def ngen_small_corpus_single_dump(root):
+    """A 17-row meeting is one pull and no split -- ENA 2026's real shape.
+
+    `A-D2-sliced-pulls` used a constant `min_calls=7`, an ESMO 2026 number. Anything
+    smaller than that corpus failed for being correctly small, which is the same
+    defect class as hardcoding 1097 into an assertion.
+    """
+    sdir = os.path.join(root, "artifacts", "work", "slices")
+    ids = []
+    for name in sorted(os.listdir(sdir)):
+        if name.startswith("slice_"):
+            ids.extend(json.load(open(os.path.join(sdir, name), encoding="utf-8")))
+            os.remove(os.path.join(sdir, name))
+    with open(os.path.join(sdir, "_all_ids.txt"), "w", encoding="utf-8") as f:
+        f.write("\n".join(ids))
+    rel = "artifacts/work/rows.json"
+    doc = read(root, rel)
+    doc["sources"] = [{"dump": "call_3f457714f797.jsonl", "rows": len(doc.get("rows") or [])}]
+    write(root, rel, doc)
+
+
 def ngen_heat_hit(root):
     """Putting a heat trial on the list must satisfy the warn item, not break a fail one."""
     w = read(root, "artifacts/output/watchlist.json")
@@ -650,6 +671,7 @@ NEGATIVES = [("legal bucket reorder", ngen_legal_reorder),
              ("company named in prose, no code", ngen_company_in_prose),
              ("web down but declared in coverage_notes", ngen_web_declared),
              ("search with no usable result, noted", ngen_web_empty_url_noted),
+             ("17-row meeting pulled in one dump", ngen_small_corpus_single_dump),
              ]
 
 

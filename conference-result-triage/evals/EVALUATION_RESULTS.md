@@ -664,3 +664,34 @@ pivotal 桶顺序：LBA7 81(推荐) → LBA3 95 → LBA1 90 → 2071O 88 → LBA
 `clinical_result.arms[].drugs[]` 单条 ≈5.9 KB（27 卡 159.9 KB、全场 1097 卡 ≈6.4 MB 撞 6 MB 截断）；
 `is_primary_drug` 实测不可信（ACHIEVE-5 把甘精胰岛素标成 primary）；药名选择必须「标题 `vs` 前段 + cn/en 双名匹配」，
 靶点只取选中药那一条。
+
+## R18（2026-11-20）：v0.16 原地发布后跑 ENA 2026 —— 模型在拿不到 `arms` 通道时自己把药名与靶点写上了
+
+**改了什么**：v0.16 原地发布（第 19 条 `card_identity_gate()` / `A-P10-card-identity` / `m_drug_blank`）。这轮是 v0.16 的**验收跑**，不是评分质量评测：重点只有一个 —— 没有任何数据列兜底时，判读者会不会真的把 `drug` / `target` 写进卡。
+
+**对象**：`20261119-154031-cards-ENA-26-v16`（thread `7d3f9320`，turn `2ab455af`，`--model "DeepSeek Flash"`、`--web`）。**ENA 2026**（EORTC-NCI-AACR 分子靶点与癌症治疗研讨会）结果库仅 **17 条**记录 → 交付 **10 卡（early 8 / pivotal 1 / failed 1）**，墙钟 **413.3 s**，78 次工具调用（`execute`×29 / `read_file`×19 / `web_search`×11 / `with-params`×10 / `write_file`×3 / `write_todos`×2 / `load_skill`×1 / `edit_file`×1 / `present_artifact`×1）。
+
+| 验证点 | 实测 |
+|---|---|
+| **`drug` / `target`（本轮主题）** | **10/10 两张都非空**，全部由标题+摘要抽出（本轮**没有**调 `clinical_result.arms`，也没有手补）：`OMO-103（Omomyc）/ MYC`、`[212Pb]VMT-α-NET / SSTR2`、`AVZO-1418（DB-1418）/ EGFR·HER3`、`lifileucel / 肿瘤浸润淋巴细胞（TIL，非分子靶点）`、`ACE1831 / CD20`、`BAL0891 / TTK·PLK1`、`INCB123667 / CDK2`、`CRB-701（SYS6002）/ Nectin-4`、`RSO-021 / PRX3`、`LY4066434 / KRAS` |
+| 交付前闸门 | `check_cards.py` **EXIT=0 `OK cards=10`**（含第 19 条） |
+| 事实层 | `check.py` → **facts 28/28 warn 0/1 → PASS**，`A-P10-card-identity` → `drug+target named on 10 card(s)`；恰好 `A-D4` SKIP（本场 `lba` 全空） |
+| runner 断言 | **24 PASS / 0 FAIL / 0 WARN**（唯一瑕疵：`write_file` 一次 `plan.json` 已存在被拒、随后重发成功） |
+| 覆盖与自洽 | `A-D1` `coverage 17/17`（与 `rows.json` 比，未写死语料规模）；`A-D5` 17 = 17 pooled；`A-F3` 全部溯源到池；`A-F4` 每个数字可回溯 |
+| 三态 / 席位 / 顺序 | `is_recommand` 全 null（列存在但整列空）且写进 `coverage_notes`；`A-P9` 每试验 1 席；`A-P4` 桶内降序 |
+| 诚实声明 | 6 条 `coverage_notes`：明写本场只有 17 条、三桶无法各 10 条、**未用无读数记录凑数**；明写库里没有的 LBA（ADCE-D01 / REM-422 / AN4035）**未纳入** |
+| 复核页 | `dist/review/ena2026-watchlist-v16.html`（19818 B / 10 卡）——卡头药物胶囊与左导全部印模型写的药名，`lifileucel` 那条显示 `TIL，非分子靶点` |
+
+### 这轮抓到的**评测器缺陷**（不是交付缺陷）：`A-D2-sliced-pulls` 把语料规模写死成 ESMO 的量级
+
+ENA 只有 17 条，`plan_slices.py` 正确地没有切分（`work/slices/` 下只有 `_all_ids.txt`），一次拉完 17 行 —— 这本身是对的。但 `op_query_slicing` 的 `sources` 分支用常数 `min_calls=7` 判「至少 7 次 dump」，于是**一个正确的 17 行会议被判失败**（`1 dump < 7`）。这与 v0.12 那个「断言里写死 1097」是同一类错误，只是换了个位置。
+
+- 修法：该分支改为按已拉到的行数反推 `need = ceil(rows / max_slice)`（与 `slices` 分支同一原则），截断型宽拉仍会被抓（一次 dump 的自身行数超过 `max_slice`，单 dump 覆盖不了 2× 上限）。
+- 反例：新增负控 **`ngen_small_corpus_single_dump`**（17 行、单 dump、无切片）必须绿 → `coverage: 29/29 fail items have a mutation; **8** negative controls green`。
+- 修完同一份产物 → `facts 28/28 PASS`。
+
+### 留作下轮的三条观察（未改）
+
+1. **`lifileucel` 的 `target` 写成了散文**（`肿瘤浸润淋巴细胞（TIL，非分子靶点）`）。它诚实地表达了「细胞治疗没有分子靶点」，但走 `editorial_overrides` 的 `field: "target"` 声明才是本版设计路径。闸门目前只查非空，若要连这种写法一起管，需要一条「`target` 不得是解释性长句」的规则 —— 有误伤风险，留证据不动。
+2. **`A-C1-heat-coverage` 0/12**（warn）：那张「热议试验」名单是 ESMO 2026 攒的，跨会议天然 0/12。warn 不阻断，但按「事实项按会议能力 gating」的原则，它应该改成按会议取名单或在该会议无名单时 SKIP。
+3. **ENA 2026 结果库严重不全**：17 条，同期 ENA 2025 有 43 条，模型检索到的三条 late-breaking 口头报告库里都没有。**这类小会议不适合当「榜单质量」评测对象，只适合当「契约是否成立」的验收对象** —— 本轮正是后者。

@@ -287,9 +287,17 @@ def op_query_slicing(sv, spec):
     sources = (sv.get("rows_doc") or {}).get("sources")
     if isinstance(sources, list) and sources:
         dumps = [x for x in sources if int(x.get("rows") or 0) > 0]
-        ok = len(dumps) >= min_calls
-        return ok, (f"{len(sources)} dumps in rows.json, {len(dumps)} non-empty "
-                    f"(slices dir absent, so the split cannot be checked)")
+        # Same principle as the slices branch above: how many dumps are "enough" is a
+        # property of the corpus, not a constant. ENA 2026 is 17 rows -- `plan_slices.py`
+        # legitimately emits one slice and no split, so `min_calls=7` (an ESMO 2026
+        # number) fails a correct run. Derive it from the rows actually pulled: a
+        # truncating wide pull still shows up, because its own dump already exceeds
+        # `max_slice`, so a single dump can never cover 2x the ceiling.
+        rows_n = len(sv.get("rows") or [])
+        need = max(1, -(-rows_n // max_slice))
+        ok = len(dumps) >= need
+        return ok, (f"{len(sources)} dumps in rows.json, {len(dumps)} non-empty for "
+                    f"{rows_n} rows (need {need}; slices dir absent, so the split cannot be checked)")
 
     ledger = sv.get("slice_counts")
     if ledger:
