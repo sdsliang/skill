@@ -430,6 +430,15 @@ def m_reply_bloat(root):
     write(root, "messages.json", msgs)
 
 
+def m_reply_counts(root):
+    """The v0.17 receipt: count, bucket split, gap list. Legal then, disclosure now."""
+    msgs = read(root, "messages.json")
+    msgs[0]["parts"][0]["content"] += (
+        "\n\n已交付 12 张卡（早期机会 4 / 重磅 II–III 期 5 / 失败 3）。"
+        "真实缺口：`data_type` 多为未判定；约一半记录无 p 值或 HR。")
+    write(root, "messages.json", msgs)
+
+
 def m_json_paste(root):
     msgs = read(root, "messages.json")
     msgs[0]["parts"][0]["content"] += "\n```json\n" + json.dumps({"cards": [{"x": "y" * 200}] * 40}) + "\n```\n"
@@ -620,6 +629,7 @@ MUTATIONS = [
     ("A-T1-present-artifact", m_present_md),
     ("A-T2-no-json-paste", m_json_paste),
     ("A-T3-reply-terse", m_reply_bloat),
+    ("A-T3-reply-terse#counts", m_reply_counts),
     ("A-H1-two-honest-claims", m_notes),
     ("A-D4-lba-not-dropped", m_lba_dropped),
     ("A-D5-rows-accounted", m_records_lost),
@@ -706,12 +716,9 @@ def ngen_heat_hit(root):
 
 
 def ngen_receipt_terse(root):
-    """A compliant receipt: count, path, one real gap. Must stay green."""
+    """A compliant receipt is one line: no counts, no buckets, no gap list."""
     msgs = read(root, "messages.json")
-    msgs[0]["parts"][0]["content"] = (
-        "清单已交付：12 张卡，early 4 / pivotal 5 / failed 3，见 "
-        "`output/watchlist.json`。两点缺口已写进 `coverage_notes`："
-        "`data_type` 大量为未判定；只有约一半记录带 p 值或 HR。")
+    msgs[0]["parts"][0]["content"] = "已交付推荐清单。"
     write(root, "messages.json", msgs)
 
 
@@ -733,7 +740,7 @@ NEGATIVES = [("legal bucket reorder", ngen_legal_reorder),
              ("web down but declared in coverage_notes", ngen_web_declared),
              ("search with no usable result, noted", ngen_web_empty_url_noted),
              ("17-row meeting pulled in one dump", ngen_small_corpus_single_dump),
-             ("three-sentence receipt", ngen_receipt_terse),
+             ("one-line receipt", ngen_receipt_terse),
              ("short list with the floor declared", ngen_short_declared),
              ]
 
@@ -760,8 +767,10 @@ def main() -> int:
         mutate(root)
         code, sc, out = run_check(root)
         fails = set(sc.get("fails") or [])
-        if item_id in fails:
-            covered.add(item_id)
+        # `ITEM#branch` keys let two mutations cover one fact (one per failure branch).
+        base_id = item_id.split("#")[0]
+        if base_id in fails:
+            covered.add(base_id)
             print(f"  ok  {item_id:26} -> FAIL (as required)")
         else:
             bad.append(f"{item_id}: mutation did not flip it (exit {code}, fails={sorted(fails)})")

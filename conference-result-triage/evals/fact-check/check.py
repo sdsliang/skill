@@ -40,7 +40,7 @@ import re
 import sys
 from typing import Dict, List
 
-EVALUATOR_REVISION = "2026-11-20-r9"
+EVALUATOR_REVISION = "2026-11-20-r10"
 
 # Presidential / late-breaking trials the X discussion concentrated on. Used by the
 # heat-coverage item, which is `warn`: the list must never be bent toward what was
@@ -997,15 +997,18 @@ def op_reply_terse(sv, spec):
     """The chat reply is a receipt, not the deliverable.
 
     v0.17: the v0.16 runs ended with a 2k-4k character answer that re-listed every card
-    as a markdown table (ESMO 2026: 3966 chars over 36 table rows). The list was just
-    handed over as a file; restating it in chat creates a second copy that drifts, and
-    it buries the three things a reader actually needs -- how many, where, what is
-    missing. Process belongs in the artifacts, not in the window.
+    as a markdown table (ESMO 2026: 3966 chars over 36 table rows) -- a second copy that
+    drifts and buries what the reader needs.
+    v0.19: the ceiling dropped from a paragraph to a line. The v0.17 receipt (count +
+    bucket split + gaps, 458-751 chars) was still disclosure: whoever is reading the
+    chat is not necessarily the analyst, and the screening reasoning -- how few records,
+    which late-breakers were missing, why a bucket is thin -- should live in the JSON,
+    not in the window. So: one line, no counts, no bucket names, no gap list.
     """
-    reply = sv["reply"] or ""
-    limit = int(spec.get("max_chars", 700))
-    max_rows = int(spec.get("max_table_rows", 4))
-    max_bullets = int(spec.get("max_list_lines", 6))
+    reply = (sv["reply"] or "").strip()
+    limit = int(spec.get("max_chars", 120))
+    max_rows = int(spec.get("max_table_rows", 0))
+    max_bullets = int(spec.get("max_list_lines", 0))
     rows = len(re.findall(r"^\s*\|", reply, re.M))
     bullets = len(re.findall(r"^\s*[-*]\s+", reply, re.M))
     bad = []
@@ -1015,10 +1018,19 @@ def op_reply_terse(sv, spec):
         bad.append(f"{rows} table row(s) > {max_rows}")
     if bullets > max_bullets:
         bad.append(f"{bullets} bullet(s) > {max_bullets}")
+    # v0.19: the receipt is one line. Counts, bucket splits and gap lists were the
+    # v0.17 answer to "the reply is a copy of the list" -- the user's ask is stronger:
+    # nothing about the content belongs in the window at all, because the reader of
+    # this chat is not necessarily the analyst who should see the screening reasoning.
+    # Whatever the reader needs to know is in the JSON.
+    for pat in spec.get("forbid") or []:
+        m = re.search(pat, reply)
+        if m:
+            bad.append(f"contains {m.group(0)!r}")
     if bad:
-        return False, ("reply restates the deliverable (" + ", ".join(bad) +
-                       ") -- give the count, the path and what is missing; the cards live "
-                       "in the file that was presented")
+        return False, ("reply is more than a one-line receipt (" + ", ".join(bad) +
+                       ") -- write 「已交付推荐清单」 and stop; counts, bucket splits and "
+                       "gap notes live in the delivered JSON")
     return True, f"reply {len(reply)} chars, {rows} table row(s), {bullets} bullet(s)"
 
 

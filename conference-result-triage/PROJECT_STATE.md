@@ -1,5 +1,35 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.19（2026-11-20）：回执收成一句「已交付推荐清单」
+
+用户：*"只要输出「已交付推荐清单」？我不想在 chat 里面把相关信息（思考过程等）暴露给用户。"*
+
+v0.17 把回执压到「条数 + 三桶分布 + 缺口」（实测 458~751 字）时，判断依据是**长度**：不能再是 2~4k 字的逐卡表格。
+v0.19 的判据换了：**对话窗口里不该出现筛选口径**。v0.18 那份回执里三样东西都不该被转发出去 ——
+「本场只有 17 条记录」（数据覆盖缺口）、「12LBA rezatapopt / 6LBA PT0253 / ADCE-D01 库内无记录，未纳入」（把"没覆盖到本届最热报告"写进聊天）、
+「早期桶 14 条里 9 条只有安全性/药代」（判读口径）。它们本来就在 `coverage_notes` 里，是一份**读文件才看到**的东西。
+
+### 改动
+
+| 层 | 内容 |
+|---|---|
+| 事实层 | `A-T3-reply-terse`：字数 **700 → 120**、表格行 **4 → 0**、列表项 **6 → 0**；新增 `forbid` 正则（`\d+\s*张卡` / 早期机会 / 重磅 / 失败桶 / 三桶 / 缺口 / `coverage_notes`）；`op_reply_terse` 支持 `forbid` |
+| 评测器 | `EVALUATOR_REVISION` → `2026-11-20-r10` |
+| mutation | 新增 `m_reply_counts`（= v0.17 合法形态，现在判红）；负控 `ngen_receipt_terse` 改成一句「已交付推荐清单。」（重命名 `one-line receipt`）；`mutations.py` 支持 **`ITEM#branch`** 键，让一条事实项覆盖「太长」「太露」两个失败分支 |
+| 文档 | `SKILL.md` 新增 `## 交付后的回复（v0.19 起：一句回执）` 取代 v0.17 节 + Step 7 硬规则改写；`data-contract.md §6.6` 重写；`pitfalls.md §48` |
+| 发布包 | `pack-dist.py VERSION` → `v0.19`；`dist/conference-result-triage-v0.19.zip` **159171 B / 15 entries / sha256 c97c040da8da185d** |
+
+### 验证
+
+- `mutations.py` → `coverage: 32/32 fail items have a mutation; 10 negative controls green`
+- `test_check_cards.py` / `test_triage.py` → `fixture OK`
+- **回潮反例**：v0.18 二跑那份 458 字回执在新闸门下判红 —— `458 chars > 120, 4 bullet(s) > 0, contains '7 张卡', contains '早期机会', contains '重磅', contains '缺口', contains 'coverage_notes', contains '三桶'`
+- 一处操作事故：首次替换 `SKILL.md` 用了 `s[s.index(A):s.index(B)]` 切片，而 A 在 B 之后 → 空串 → `replace("", new, 1)` 把新节插到了文件第 1 行（frontmatter 之前），已修。**教训：切片边界不保证顺序时先 `assert a < b`。**
+
+### 未做
+
+- v0.19 **未发布**、未实跑。
+
 ## v0.18（2026-11-20）：条数规则拆成「桶是下限 / 总数是上限」，短清单必须声明
 
 用户原话：*"每类min 1条可以吗"*。
