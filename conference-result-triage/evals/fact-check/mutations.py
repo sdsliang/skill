@@ -475,8 +475,20 @@ def m_notes(root):
 
 
 def m_coverage(root):
+    # v0.20: there are two ways to report coverage (slice-verified `coverage: n/n ids
+    # present`, or the single-dump `rows=N`). This mutation removes both, i.e. "the pull
+    # never said how much it covered".
     p = os.path.join(root, "transcript.md")
-    txt = re.sub(r"coverage: \d+/\d+ ids present", "", open(p, encoding="utf-8").read())
+    txt = open(p, encoding="utf-8").read()
+    txt = re.sub(r"coverage: \d+/\d+ ids present", "", txt)
+    txt = re.sub(r"rows=\d+", "rows-dropped", txt)
+    open(p, "w", encoding="utf-8").write(txt)
+
+
+def m_coverage_rows_bad(root):
+    """Single-dump path: the `rows=` line must equal what rows.json actually holds."""
+    p = os.path.join(root, "transcript.md")
+    txt = re.sub(r"coverage: \d+/\d+ ids present", "rows=9", open(p, encoding="utf-8").read())
     open(p, "w", encoding="utf-8").write(txt)
 
 
@@ -603,6 +615,7 @@ def ngen_web_declared(root):
 
 MUTATIONS = [
     ("A-D1-full-coverage", m_coverage),
+    ("A-D1-full-coverage#single-dump", m_coverage_rows_bad),
     ("A-D2-sliced-pulls", m_wide_pull),
     ("A-D3-no-direct-es", m_direct_es),
     ("A-S1-bucket-cap", m_bucket_cap),

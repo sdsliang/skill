@@ -40,7 +40,7 @@ import re
 import sys
 from typing import Dict, List
 
-EVALUATOR_REVISION = "2026-11-20-r10"
+EVALUATOR_REVISION = "2026-11-20-r11"
 
 # Presidential / late-breaking trials the X discussion concentrated on. Used by the
 # heat-coverage item, which is `warn`: the list must never be bent toward what was
@@ -339,6 +339,22 @@ def op_self_coverage(sv, spec):
     pat = spec.get("pattern", r"coverage:\s*(\d+)\s*/\s*(\d+)")
     hits = re.findall(pat, sv["transcript"])
     if not hits:
+        # v0.20: `coverage: n/n ids present` is printed by pull_results.py only when the
+        # pull was slice-verified (`--expect_ids`). A corpus small enough to come back in
+        # one dump legitimately skips slicing (that is what A-D2's single-dump branch
+        # allows), so it never prints that line -- and A-D1 used to call that a failure.
+        # The weaker evidence printed on every pull is `rows=N`; accept it only if N is
+        # the rows actually in rows.json, and say in the note that completeness is not
+        # independently provable on this path.
+        fb = spec.get("fallback_pattern", r"rows=(\d+)")
+        fhits = re.findall(fb, sv["transcript"])
+        n_rows = len(sv.get("rows") or [])
+        if fhits and n_rows and all(int(x) == n_rows for x in fhits):
+            return True, (f"rows={n_rows} in the single-dump path, consistent with rows.json "
+                          f"(no slice-verified coverage line; completeness is not "
+                          f"independently provable here)")
+        if fhits:
+            return False, (f"rows= line claims {sorted(set(fhits))} but rows.json has {n_rows}")
         return False, f"no coverage line matched {pat!r}"
     n_rows = len(sv.get("rows") or [])
     bad = []

@@ -1,5 +1,37 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.20（2026-11-20）：中英双语实跑暴露 `A-D1` 写死「必须走切片」
+
+v0.19 发布后用客户可见的提示词跑中英双语（同会议 ENA 2026 / 17 条）：
+
+| 语言 | 交付 | runner | 事实层 |
+|---|---|---|---|
+| 中文 | 8 卡（6/1/1） | 24 PASS / 0 FAIL | **30/31**（`A-D1` FAIL） |
+| 英文 | 7 卡（5/1/1） | 24 PASS / 0 FAIL | 31/31 PASS |
+
+回执两场都合规（中文 8 字「已交付推荐清单。」/ 英文 27 字 "Watchlist delivered."），`A-T3` 全 PASS。
+
+差别不在语言而在执行路径：`coverage: n/n ids present` 由 `pull_results.py --expect_ids` 打印，而 `--expect_ids` 只属于切片模式。
+17 条一次 dump 拉全时（正确做法）那行不会出现 → 闸门把「没走切片」读成「没证明覆盖」。
+
+### 改动
+
+| 层 | 内容 |
+|---|---|
+| 事实层 | `op_self_coverage` 加 `fallback_pattern`（`rows=(\d+)`）：单证路径下核 `N == len(rows.json)`；PASS 说明里写明「无法独立证明完整性」，不让弱证据冒充强证据；`EVALUATOR_REVISION` → `2026-11-20-r11` |
+| mutation | `m_coverage` 改为同时抹掉两种证据；新增 `A-D1-full-coverage#single-dump`（`rows=` 改成错的数字）；`coverage: 32/32 … 10 NEG green` |
+| 文档 | `SKILL.md` 版本块 + `pitfalls.md §49`（第三次同源缺陷：`A-D2` 写死 1097、`A-S6` 写死 10 张、`A-D1` 写死切片） |
+| 发布包 | `dist/conference-result-triage-v0.20.zip` **160289 B / 15 entries / sha256 13c813964d1bddc2** |
+
+### 验证
+
+- 两份实跑产物复评：中文 `31/31 PASS`（`A-D1` → `rows=17 in the single-dump path`）、英文 `31/31 PASS`（`coverage 17/17 matches 17 rows`）
+- `mutations.py` → `32/32 … 10 negative controls green`；`test_check_cards.py` / `test_triage.py` → `fixture OK`
+
+### 未做
+
+- v0.20 **未发布**。
+
 ## v0.19（2026-11-20）：回执收成一句「已交付推荐清单」
 
 用户：*"只要输出「已交付推荐清单」？我不想在 chat 里面把相关信息（思考过程等）暴露给用户。"*
