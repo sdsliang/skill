@@ -392,6 +392,16 @@ def m_present_md(root):
     write(root, "debug-history.json", h)
 
 
+def m_reply_bloat(root):
+    """The v0.16 ending: re-list every card in the chat reply as a table."""
+    msgs = read(root, "messages.json")
+    rows = "\n".join(f"| LBA{i} | Drug {i} / Target {i} | 一句话结论，读起来像是交付物 {i} |"
+                      for i in range(1, 13))
+    msgs[0]["parts"][0]["content"] += ("\n\n## 早期机会提示\n| 摘要 | 药物 / 靶点 | 一句话 |\n"
+                                       "|---|---|---|\n" + rows + "\n")
+    write(root, "messages.json", msgs)
+
+
 def m_json_paste(root):
     msgs = read(root, "messages.json")
     msgs[0]["parts"][0]["content"] += "\n```json\n" + json.dumps({"cards": [{"x": "y" * 200}] * 40}) + "\n```\n"
@@ -579,6 +589,7 @@ MUTATIONS = [
     ("A-T1-present-artifact", m_no_present),
     ("A-T1-present-artifact", m_present_md),
     ("A-T2-no-json-paste", m_json_paste),
+    ("A-T3-reply-terse", m_reply_bloat),
     ("A-H1-two-honest-claims", m_notes),
     ("A-D4-lba-not-dropped", m_lba_dropped),
     ("A-D5-rows-accounted", m_records_lost),
@@ -664,6 +675,16 @@ def ngen_heat_hit(root):
     write(root, "artifacts/output/watchlist.json", w)
 
 
+def ngen_receipt_terse(root):
+    """A compliant receipt: count, path, one real gap. Must stay green."""
+    msgs = read(root, "messages.json")
+    msgs[0]["parts"][0]["content"] = (
+        "清单已交付：12 张卡，early 4 / pivotal 5 / failed 3，见 "
+        "`output/watchlist.json`。两点缺口已写进 `coverage_notes`："
+        "`data_type` 大量为未判定；只有约一半记录带 p 值或 HR。")
+    write(root, "messages.json", msgs)
+
+
 NEGATIVES = [("legal bucket reorder", ngen_legal_reorder),
              ("heat trial titled", ngen_heat_hit),
              ("why at the length floor", ngen_why_varied),
@@ -672,6 +693,7 @@ NEGATIVES = [("legal bucket reorder", ngen_legal_reorder),
              ("web down but declared in coverage_notes", ngen_web_declared),
              ("search with no usable result, noted", ngen_web_empty_url_noted),
              ("17-row meeting pulled in one dump", ngen_small_corpus_single_dump),
+             ("three-sentence receipt", ngen_receipt_terse),
              ]
 
 

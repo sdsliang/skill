@@ -121,6 +121,15 @@
       "rationale": "清单是文件交付物，贴进聊天既难读也无法被下游消费。"
     },
     {
+      "id": "A-T3-reply-terse",
+      "op": "reply_terse",
+      "max_chars": 700,
+      "max_table_rows": 4,
+      "max_list_lines": 6,
+      "severity": "fail",
+      "rationale": "聊天回复是一张回执，不是交付物。v0.16 的三场实跑都以 2~4k 字、逐卡一张表收尾（ESMO 2026：3966 字 / 36 行表格；ENA 2026：3461 字；ADA 2026：2094 字），把刚交出去的清单又抄了一遍：读者要的三件事（几条、在哪、缺什么）被埋掉，两份副本还会各自漂移。过程留在产物里 —— 断言、覆盖说明、判读账本都已经是文件。回复只写：条数 + 产物路径 + 真实缺口（有才写）。"
+    },
+    {
       "id": "A-H1-two-honest-claims",
       "op": "coverage_claims",
       "groups": [

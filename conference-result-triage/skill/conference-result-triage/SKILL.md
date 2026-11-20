@@ -316,8 +316,21 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 
 - `watchlist.json` 用 `write_file(overwrite=True)` 覆盖写（首次也带 `overwrite=True`）。同一工作区复跑就覆盖，不要 `report.md` / `report_v2.md` / `citations.json` 这种伴随文件。
 - `present_artifact` 指向 `/workspace/output/watchlist.json`。这是唯一终端动作，不要改成把整份 JSON 或 Markdown 贴进对话。
+- **`present_artifact` 之后的话，是一张回执，不是第二份交付物。** 只写三样：**几条卡**（含三桶分布）、**路径**、**真实缺口**（有才写）。其它一律不写 —— 不逐卡复述、不重排成表格、不描述你拉了几刀 / 判读了几条 / 怎么筛的。硬约束：回复 **≤700 字、表格行 ≤4、列表项 ≤6**（事实层 `A-T3-reply-terse`）。理由不是啰嗦，是**第二份副本会各自漂移**：v0.16 的三场实跑都以 2~4k 字、逐卡一张表收尾（ESMO 2026 3966 字 / 36 行表格），读者要的"几条、在哪、缺什么"被埋掉，而清单本身已经是他刚拿到的文件。过程叙事（断言、覆盖、判读账本）留在产物里，不进对话窗口。
 - **交付前把待办先收尾：`present_artifact` 之后不要再调任何工具**（包括 `write_todos`）。EASL 2026 v0.11 那轮就是交付后又补了一次待办勾选，平台断言 `present_artifact is the final successful call` 直接判红——产物没问题，但"最后一个动作"这个契约破了。
 - 一次请求只交**一套**最终产物（除用户明确要多语言版本）。
+
+## 交付后的回复（v0.17 起与交付物同等硬）
+
+交付完的那条消息只写三样：**几条卡**（三桶分布）、**产物路径**、**真实缺口**（有才写）。
+
+| 上限 | 值 | 事实项 |
+|---|---|---|
+| 字数 | ≤700 | `A-T3-reply-terse` |
+| 表格行 | ≤4 | 同上 |
+| 列表项 | ≤6 | 同上 |
+
+不写：逐卡复述、按桶重排的表格、"我拉了几刀/判读了几条/怎么筛的"这类过程叙事。清单已经是读者刚拿到的文件，再抄一遍就是**第二份会漂移的真相**——v0.16 三场实跑分别为 3966 / 3461 / 2094 字，全部逐卡列表，读者要的三件事反被埋掉。过程证据（断言结果、覆盖说明、判读账本、override 理由）一律留在产物里。
 
 ## Deliverable schema
 
@@ -398,6 +411,7 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 
 ## 版本
 
+- **v0.17** — **交付后的回复从「自由发挥」变成闸门**（用户：*"只产出文件就行了……别说一堆思考过程"*）。事实层新增 **`A-T3-reply-terse`**（`op_reply_terse`，fail）：回复 ≤700 字、表格行 ≤4、列表项 ≤6，超限即判失败并明说"reply restates the deliverable"。依据是 v0.16 三场实跑的回执形态——ESMO 2026 3966 字 / 36 行表格、ENA 2026 3461 字、ADA 2026 2094 字，**三场全部逐卡重列清单**；而清单本身刚以 `present_artifact` 交出去，对话里再抄一遍只是制造第二份会漂移的副本，还把读者真正要的「几条 / 在哪 / 缺什么」埋掉。事实层 30 → **31 条（30 fail + 1 warn）**，`EVALUATOR_REVISION` → `2026-11-20-r8`，mutation `m_reply_bloat`（把 v0.16 那种逐卡表格追加回回复）+ 负控 `ngen_receipt_terse`（三句话回执必须仍绿，防止闸门把正常交付也判红）。`SKILL.md` Step 7 增加『回执只写三样』的硬规则与上限表。**三场 v0.16 旧产物用新事实层复评全部判红**，正是这条闸门要抓的回潮。
 - **v0.16** — **卡面标识从「模型自觉填」变成闸门**。起因是 ADA 2026（v0.15）交付的 27 张卡 `drug` / `target` **27/27 全空**：卡头药物位渲染成 `—`，复核页左导退化成截断标题，而交付前闸门 `OK cards=27`、事实层 28/28 全绿——两项都没人管。根因不是渲染层：`clinical_result` 里**根本没有** `drug` / `target` 列（`selected_fields` 请求即 `INVALID_INPUT`），唯一结构化来源是嵌套的 `clinical_result.arms[].drugs[]`，单条 ≈5.9 KB，全量 1097 条 ≈6.4 MB 会撞工具结果上限，只能对短名单核对；所以这两个值是**判读者读标题/摘要时抽出来的**，而「模型自觉填」的字段必须设闸门，不能靠渲染层兜底（渲染层也不许现编药名）。①**`check_cards.py` 新增第 19 条 `card_identity_gate()`**：每卡 `drug` 与 `target` 必须是非空字符串；`target` 可空但只认 `editorial_overrides` 里 **`field: "target"`** 的声明（≥10 字理由），**按字段分键**——「同机制让席」这类选择理由不能顺带豁免空卡面。②**事实项 `A-P10-card-identity`**（`op_card_identity`，fail）+ mutation `m_drug_blank`（把一张卡的 `drug` 清空，卡仍然合法、仍然可溯源），事实层 29 → **30 条（29 fail + 1 warn）**，`EVALUATOR_REVISION` → `2026-11-20-r7`。③**文档去掉一句假话**：`review-protocol.md §7A` 原写「会议库已直接给出 `drug`/`target`/`moa` 字段，优先用它」——平台内没有那个库，这句话正是全空的成因，改为「必须从标题/摘要读出，写进 spec」并附 `arms` 的正确用法；`data-contract.md` 的表同步标注「结构化表没有这三列」。④`test_check_cards.py` 49 → **56 case**（含「选择理由不许豁免空靶点」反向 case），夹具补 `drug`/`target`。药名写法沿用复核页那轮的实测规则：`vs` 前的才是主角，INN 不在标题里时写 `INN (CODE)`。
 
 - **v0.15** — **交付物收敛成一份 JSON**。删掉 `report.md`（连同它带来的整条元数据链）：YAML frontmatter / `skills` 数组 / `{{ref_N}}` 标记 / `citations.json` / 平台 profile 的固定路径断言，全部没有存在理由——它们只服务于「让宿主把一份人读的 Markdown 渲染出来」，而这份 skill 的产物是 30 张卡的判读结果，读者要的是 JSON。①**`check_cards.py` 删掉 `--report` 与 `check_report()`**（frontmatter / 引文三键 / 双向一致性三条规则随之消失，docstring 19 → 18 条，规则 15–19 前移为 14–18）。②**事实层 `A-C2-report-frontmatter` 删除**（30 → **29 条：28 fail + 1 warn**），`A-T1-present-artifact` 的 `suffix` 改为 `output/watchlist.json`；mutation 三条换成一条 `m_present_md`（把 `present_artifact` 改回 `report.md` 即判失败），NEG 删掉「声明引文且对得上」（该项已无对象）。③**`projects.json` 的 `deliverables` 只剩 `output/watchlist.json`**，本地 runner 的 `report_rel` 不再硬回落 `output/report.md`（见 runner 侧 O52）。④`templates/watchlist-report.md` 从发布包移除（16 → 15 entries）。

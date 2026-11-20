@@ -1,5 +1,38 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.17（2026-11-20）：交付后的回复也进闸门 —— 只留回执
+
+用户原话：*"你在对话里不要输出过程可以通过 skill 优化的吗？只产出文件就行了"*、*"别说一堆思考过程"*。
+
+v0.16 的三场实跑（ESMO 2026 / ENA 2026 / ADA 2026）都以同一种方式收尾：`present_artifact` 交完
+`watchlist.json`，紧接着把 30 张卡**逐卡重列成表格** —— **3966 / 3461 / 2094 字**（ESMO 那场 36 行表格）。
+当时 19 条闸门全绿、事实层 28/28 PASS，因为**所有事实项都在查产物，没有一条查回执**。
+
+### 改动
+
+| 层 | 内容 |
+|---|---|
+| 事实层 | 新增 **`A-T3-reply-terse`**（`op_reply_terse`，fail）：**≤700 字 · 表格行 ≤4 · 列表项 ≤6**，超限判失败；`EVALUATOR_REVISION` → `2026-11-20-r8` |
+| 事实项计数 | **30 → 31 条（30 fail + 1 warn）** |
+| mutation | `m_reply_bloat`（把 v0.16 那种逐卡表格追加回回复）；负控 **`ngen_receipt_terse`**（三句话回执必须仍绿） |
+| 文档 | `SKILL.md` Step 7 加「回执只写三样」+ 上限表 + `## 交付后的回复` 节；`data-contract.md` 新增 §6.6；`pitfalls.md` §45 |
+| 发布包 | `pack-dist.py VERSION` → `v0.17`；`dist/conference-result-triage-v0.17.zip` **154005 B / 15 entries / sha256 5a0f888538797b03** |
+
+回执只写三样：**条数**（含三桶分布）、**产物路径**、**真实缺口**（有才写）。不写逐卡复述、不写重排表格、
+不写"拉了几刀 / 判读了几条 / 怎么筛"。证据（断言、覆盖、override 理由）留在产物里。
+
+### 验证
+
+- `test_triage` / `test_check_cards`（56 case）→ `fixture OK`。
+- `mutations.py` → **`coverage: 30/30 fail items have a mutation; 9 negative controls green`**。
+- **回潮反例**：拿三场 v0.16 旧产物跑新事实层 → 三条全部判红（`3966 chars > 700, 36 table row(s) > 4` 等），
+  正是这条闸门要抓的形态。
+
+### 未做
+
+- 尚未重跑 E2E 验证「模型在真跑里确实只回三句」；也没有 republish（等授权）。
+- 门槛值（700 字）是按「三句话 + 路径 + 一条缺口」定的，若真跑出现被闸门误伤，再按实测调。
+
 ## v0.16（2026-11-20）：卡面标识变成闸门 —— `drug` / `target` 没有任何数据列兜底
 
 出发点是用户一句「`drug_names` 那个不行就算了，**让 llm 写理由的时候兜底抽吧**」。查完才发现，兜底抽取

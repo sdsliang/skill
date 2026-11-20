@@ -40,7 +40,7 @@ import re
 import sys
 from typing import Dict, List
 
-EVALUATOR_REVISION = "2026-11-20-r7"
+EVALUATOR_REVISION = "2026-11-20-r8"
 
 # Presidential / late-breaking trials the X discussion concentrated on. Used by the
 # heat-coverage item, which is `warn`: the list must never be bent toward what was
@@ -931,6 +931,35 @@ def op_no_json_paste(sv, spec):
                      if big else "deliverable not pasted into the reply")
 
 
+def op_reply_terse(sv, spec):
+    """The chat reply is a receipt, not the deliverable.
+
+    v0.17: the v0.16 runs ended with a 2k-4k character answer that re-listed every card
+    as a markdown table (ESMO 2026: 3966 chars over 36 table rows). The list was just
+    handed over as a file; restating it in chat creates a second copy that drifts, and
+    it buries the three things a reader actually needs -- how many, where, what is
+    missing. Process belongs in the artifacts, not in the window.
+    """
+    reply = sv["reply"] or ""
+    limit = int(spec.get("max_chars", 700))
+    max_rows = int(spec.get("max_table_rows", 4))
+    max_bullets = int(spec.get("max_list_lines", 6))
+    rows = len(re.findall(r"^\s*\|", reply, re.M))
+    bullets = len(re.findall(r"^\s*[-*]\s+", reply, re.M))
+    bad = []
+    if len(reply) > limit:
+        bad.append(f"{len(reply)} chars > {limit}")
+    if rows > max_rows:
+        bad.append(f"{rows} table row(s) > {max_rows}")
+    if bullets > max_bullets:
+        bad.append(f"{bullets} bullet(s) > {max_bullets}")
+    if bad:
+        return False, ("reply restates the deliverable (" + ", ".join(bad) +
+                       ") -- give the count, the path and what is missing; the cards live "
+                       "in the file that was presented")
+    return True, f"reply {len(reply)} chars, {rows} table row(s), {bullets} bullet(s)"
+
+
 def op_reply_mentions(sv, spec):
     pats = spec["patterns"]
     hits = [p for p in pats if re.search(p, sv["reply"] or "")]
@@ -1083,6 +1112,7 @@ OPS = {
     "esids_in_pool": op_esids_in_pool,
     "numbers_traceable": op_numbers_traceable,
     "no_json_paste": op_no_json_paste,
+    "reply_terse": op_reply_terse,
     "reply_mentions": op_reply_mentions,
     "lba_not_dropped": op_lba_not_dropped,
     "records_accounted": op_records_accounted,
