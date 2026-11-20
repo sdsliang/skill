@@ -28,9 +28,14 @@ v0.19 发布后用客户可见的提示词跑中英双语（同会议 ENA 2026 /
 - 两份实跑产物复评：中文 `31/31 PASS`（`A-D1` → `rows=17 in the single-dump path`）、英文 `31/31 PASS`（`coverage 17/17 matches 17 rows`）
 - `mutations.py` → `32/32 … 10 negative controls green`；`test_check_cards.py` / `test_triage.py` → `fixture OK`
 
+### 发布
+
+- **v0.20 已原地发布**（`POST /api/skills/update_skill_file` HTTP 200）：skill_id `230463cbc03d4fe5ba0e2e8964fe91dd`，version **0.3.0**（标签不变，内容替换），family ts `2026-11-20T11:47:25`；回读 `entries=15 identical=15 differing=0`、`STATUS: in sync`。
+- 共享 SP（`d08570e93c17466ca6a0308f69afdb5d`，owner 文超）pin 匹配 v1.0、sha `6db755d1f080`，**未写**；`deps` 0 upstream change。
+
 ### 未做
 
-- v0.20 **未发布**。
+- 双语判读宽严差异（中文 8 卡 / 英文 7 卡）未做多轮取样，单次不作结论。
 
 ## v0.19（2026-11-20）：回执收成一句「已交付推荐清单」
 
