@@ -1,5 +1,37 @@
 # PROJECT_STATE — conference-result-triage
 
+## v0.18（2026-11-20）：条数规则拆成「桶是下限 / 总数是上限」，短清单必须声明
+
+用户原话：*"每类min 1条可以吗"*。
+
+v0.17 发布后的第一场实跑（ENA 2026，`20261120-095523-ENA-26-v17`）暴露了条数闸门的缺陷：该会议库里只有
+**17 条**记录（机器池 **14 / 2 / 1**），模型判读完交了 **8 张卡（早期 6 / pivotal 1 / 失败 1）**，并在
+`coverage_notes` 里写明「三桶各 10 条无法凑足……临床前、PK 建模、仅入组完成无结果的记录未用于补位」。
+闸门只有一句 `if not 10 <= len(cards) <= TOTAL_CAP` —— **诚实的交付被判红，同一份数据里硬凑到 10 张反而会绿**。
+
+### 改动
+
+| 层 | 内容 |
+|---|---|
+| 校验层 | `check_cards.py`：删掉绝对下限；新增**桶存在性**（池里有候选的桶 ≥1 张卡）；**低于 10 张必须有一条 `coverage_notes` 同时点名「10」与「不足/低于/未达/凑不满/凑不齐/无法凑」**；docstring 规则 9 重写 |
+| 事实层 | 新增 `A-S5-bucket-presence`（`op_bucket_presence`）、`A-S6-size-floor-declared`（`op_size_floor`，`min_cards: 10`）；**32 fail + 1 warn = 33 项**；`EVALUATOR_REVISION` → `2026-11-20-r9` |
+| mutation | `m_bucket_empty`（删掉所有 failed 卡）、`m_short_undeclared`（每桶 2 张 + 抹掉声明）；负控 `ngen_short_declared`（每桶 2 张 + 声明下限，必须仍绿）；`coverage: 32/32 … 10 negative controls green` |
+| 夹具层 | `test_check_cards.py` 56 → 59 case（桶存在性 / 未声明短清单 / 已声明短清单） |
+| 文档 | `SKILL.md` 新增 `## 条数规则（v0.18 起：桶是下限，总数是上限）` 表；`review-protocol.md` §6 末尾；`data-contract.md` §6.7；`pitfalls.md` §46 |
+| 发布包 | `pack-dist.py VERSION` → `v0.18`；`dist/conference-result-triage-v0.18.zip` **157331 B / 15 entries / sha256 b42850671d65bd9a** |
+
+### 验证
+
+- `mutations.py` → `coverage: 32/32 fail items have a mutation; 10 negative controls green`
+- `test_check_cards.py` → `fixture OK`；`test_triage.py` → `fixture OK`
+- **ENA 2026 那份「被判红」的产物重跑新闸门**：`OK cards=8` / `facts 31/31 → PASS`（`A-S5` → `early=14, failed=1, pivotal=2`；`A-S6` → `8 cards < 10, shortfall declared`）
+- **不回归**：ESMO 2026（30 卡 / 池 357·86·374）与 ADA 2026（27 卡）在 `A-S5` / `A-S6` 上均 PASS；两份旧产物仍只挂在 `A-T3-reply-terse`（v0.17 之前的长回执），属预期的回潮反例
+
+### 未做
+
+- v0.18 **尚未发布**到平台（等授权）。
+- 负控第一版只留每桶 1 张，撞上 `A-P3-score-varied`（三张卡分数相同）→ 改成每桶 2 张；教训写进 `pitfalls.md §46`：**负控本身也必须能被别的规则判红，否则它是一张豁免券**。
+
 ## v0.17（2026-11-20）：交付后的回复也进闸门 —— 只留回执
 
 用户原话：*"你在对话里不要输出过程可以通过 skill 优化的吗？只产出文件就行了"*、*"别说一堆思考过程"*。

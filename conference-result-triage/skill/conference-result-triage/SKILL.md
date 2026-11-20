@@ -302,7 +302,7 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 
 **`--rows` 永远必传**（v0.10 起是 `required=True`）。池子成员资格由脚本**用 `rows.json` 现场重算**（`recompute_pool()` 调 `triage.build_pools`）决定，`--pool` 只是展示字段的来源。原因是一次真实翻车：ESC 2026 那轮模型觉得 triage 删多了，自己拼了一个 `pool_ext.json` 当 `--pool`，闸门全绿，而事后事实层按 `work/pool/pool.json` 重算，判出 9 个池外 esid + 61 个查不到出处的数字。**不要手拼、不要手改 pool 文件**：觉得筛错了就重跑 `triage.py`，或在 `coverage_notes` 里写清哪类记录被规则切掉了。池子外的 esid 必须带 `"promoted": "web"` 才放行（且必须在 `rows.json` 里）。
 
-`check_cards.py` **必须 exit 0** 才能交付。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字（**按数值比对，不是子串**：`44%` 不会因为原文有 `44.7%` 或 `n=144` 而通过；`个月` 与 `mo` 一样会被扫描出来）、**每桶超过 10 条 / 全场超过 30 条**、**定榜没按判读分取前 k**（见 Step 5B）、**标星行没上榜或排在未标星卡之后**（`recommand_gate`，不吃 override 豁免）、**`abstract_id` 与 `rows.json` 不一致 / rows 有值而卡片留空 / rows 无值而卡片凭空填**、**`score` 不是 0–100 整数或五维相加不等于总分**、**`why` 少于 60 字或只是复述 `summary`**、**卡片出现公司代码字段（`listed_company` / `ticker` / `exchange`，`null` 也算）**、**`tag` 不是 `""` 或 `LBA`（标星不戴徽章）**、**任何行情字段回潮（`stock` / `reaction` / `change_pct` / `excess_pct`）**、**池子外的卡片没有 `promoted` 标记**（池子成员资格由 `rows.json` **现场重算**，手改或另拼一个 pool 文件不起作用）、**`coverage_notes` 缺失或没写到两条边界**。数字扫描覆盖的**单位**有：`%`、`个百分点`、`个月/周/天/年`、`mo/months`、`mmol/L`、`mg/dL`、`mg/L`、`g/dL`、`ng/mL`、`pg/mL`、`IU/mL`、`U/L`、`mL/min(1.73m2)`、`mL/kg/min`、`mL`、`kg`、`cm`、`mmHg`、`points`、`events/100` —— 单位不在这一列里，那类数字就**不被检查**，所以写数字时别自创单位。
+`check_cards.py` **必须 exit 0** 才能交付。它拦的是：编造的 esid、空字段、`lba`/`manual` 与实际记录不符、占位符泄漏、`summary` 无带单位数字、`summary`/`why` 里出现原文查不到的数字（**按数值比对，不是子串**：`44%` 不会因为原文有 `44.7%` 或 `n=144` 而通过；`个月` 与 `mo` 一样会被扫描出来）、**每桶超过 10 条 / 全场超过 30 条**、**池里有候选的桶一张卡都没有**（v0.18）、**低于 10 张却没在 `coverage_notes` 里点名这条下限**（v0.18）、**定榜没按判读分取前 k**（见 Step 5B）、**标星行没上榜或排在未标星卡之后**（`recommand_gate`，不吃 override 豁免）、**`abstract_id` 与 `rows.json` 不一致 / rows 有值而卡片留空 / rows 无值而卡片凭空填**、**`score` 不是 0–100 整数或五维相加不等于总分**、**`why` 少于 60 字或只是复述 `summary`**、**卡片出现公司代码字段（`listed_company` / `ticker` / `exchange`，`null` 也算）**、**`tag` 不是 `""` 或 `LBA`（标星不戴徽章）**、**任何行情字段回潮（`stock` / `reaction` / `change_pct` / `excess_pct`）**、**池子外的卡片没有 `promoted` 标记**（池子成员资格由 `rows.json` **现场重算**，手改或另拼一个 pool 文件不起作用）、**`coverage_notes` 缺失或没写到两条边界**。数字扫描覆盖的**单位**有：`%`、`个百分点`、`个月/周/天/年`、`mo/months`、`mmol/L`、`mg/dL`、`mg/L`、`g/dL`、`ng/mL`、`pg/mL`、`IU/mL`、`U/L`、`mL/min(1.73m2)`、`mL/kg/min`、`mL`、`kg`、`cm`、`mmHg`、`points`、`events/100` —— 单位不在这一列里，那类数字就**不被检查**，所以写数字时别自创单位。
 
 `coverage_notes` 必须写在交付 JSON 的顶层（见下「两个必须写进清单的诚实声明」）。v0.5 的实跑把它写成了别的字段名、v0.6 的实跑把边界写在 `coverage.boundary` 里 ⇒ 事实层 `A-H1` 两次都判失败：**边界只写在聊天回复里，下个月读 JSON 的人看不到**。所以这一条从"建议"升级成闸门，措辞不查（`无 p 或 HR` / `未列p或HR` / `没给 p 值或 HR` 都算），只查事实有没有落到交付物里。
 
@@ -319,6 +319,19 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 - **`present_artifact` 之后的话，是一张回执，不是第二份交付物。** 只写三样：**几条卡**（含三桶分布）、**路径**、**真实缺口**（有才写）。其它一律不写 —— 不逐卡复述、不重排成表格、不描述你拉了几刀 / 判读了几条 / 怎么筛的。硬约束：回复 **≤700 字、表格行 ≤4、列表项 ≤6**（事实层 `A-T3-reply-terse`）。理由不是啰嗦，是**第二份副本会各自漂移**：v0.16 的三场实跑都以 2~4k 字、逐卡一张表收尾（ESMO 2026 3966 字 / 36 行表格），读者要的"几条、在哪、缺什么"被埋掉，而清单本身已经是他刚拿到的文件。过程叙事（断言、覆盖、判读账本）留在产物里，不进对话窗口。
 - **交付前把待办先收尾：`present_artifact` 之后不要再调任何工具**（包括 `write_todos`）。EASL 2026 v0.11 那轮就是交付后又补了一次待办勾选，平台断言 `present_artifact is the final successful call` 直接判红——产物没问题，但"最后一个动作"这个契约破了。
 - 一次请求只交**一套**最终产物（除用户明确要多语言版本）。
+
+## 条数规则（v0.18 起：桶是下限，总数是上限）
+
+| 规则 | 值 | 事实项 |
+|---|---|---|
+| 每桶上限 | ≤10 | `A-S1`（`check_cards.py` 同步） |
+| 全场上限 | ≤30 | 同上 |
+| 有候选的桶 | **≥1 张** | `A-S5-bucket-presence` |
+| 全场下限 | 10 张，**填不满必须声名** | `A-S6-size-floor-declared` |
+
+- **上限是上限，不是配额**：`PER_BUCKET_CAP` 从 v0.7 起就不是"必须凑到 10"。候选不够时宁可少给，也不要拿 `weak` 补位。
+- **桶可以有 1 张，不能有 0 张**。池子里有候选而清单里一张卡都没有，读者读到的是"这台会议没有失败的研究"——那是替会议下结论，不是省略。ENA 2026 失败桶只有 1 条候选，仍出 1 张卡。
+- **低于 10 张的清单要在 `coverage_notes` 里点名这条下限**，并说清语料为什么填不满（记录总数、哪些记录没用于补位）。v0.17 的 ENA 2026 交了 8 张、理由写得很完整，但当时唯一的闸门只有"10 张"这个数字，于是把这份诚实判红；反过来，没写理由的 8 张和偷懒的 8 张，在下个月读 JSON 的人眼里一模一样。**现在闸门要求你说出来，而不是要求你凑够。**
 
 ## 交付后的回复（v0.17 起与交付物同等硬）
 
@@ -411,6 +424,7 @@ python3 $S/check_cards.py --cards /workspace/output/watchlist.json \
 
 ## 版本
 
+- **v0.18** — 条数规则从「绝对下限」改成「桶是下限、总数是上限」。起因是 v0.17 的第一场实跑：ENA 2026 只有 17 条记录（候选 14 / 2 / 1），模型交出 8 张卡（6 / 1 / 1）、把"三桶各 10 条无法凑足"写进了 `coverage_notes`，而闸门只有一句 `10 <= len(cards)` —— 诚实的交付被判红，凑数的交付反而绿。三处改动：①`check_cards.py` 删掉绝对下限，改成**低于 10 张必须有一条 `coverage_notes` 同时点名「10」与「不足/低于/未达/凑不满/凑不齐/无法凑」**；②新增**桶存在性**闸门：池里有候选的桶必须至少 1 张卡（薄可以，静默空桶是替会议下结论）；③事实层 `A-S5-bucket-presence` / `A-S6-size-floor-declared` 各配 mutation + 一条 NEG（「合法短清单：每桶 2 张 + 声明了下限」），数量 **30 → 32 fail 项**（`coverage: 32/32 … 10 negative controls green`）。判据仍然是判读，闸门只是不许悄悄少给。
 - **v0.17** — **交付后的回复从「自由发挥」变成闸门**（用户：*"只产出文件就行了……别说一堆思考过程"*）。事实层新增 **`A-T3-reply-terse`**（`op_reply_terse`，fail）：回复 ≤700 字、表格行 ≤4、列表项 ≤6，超限即判失败并明说"reply restates the deliverable"。依据是 v0.16 三场实跑的回执形态——ESMO 2026 3966 字 / 36 行表格、ENA 2026 3461 字、ADA 2026 2094 字，**三场全部逐卡重列清单**；而清单本身刚以 `present_artifact` 交出去，对话里再抄一遍只是制造第二份会漂移的副本，还把读者真正要的「几条 / 在哪 / 缺什么」埋掉。事实层 30 → **31 条（30 fail + 1 warn）**，`EVALUATOR_REVISION` → `2026-11-20-r8`，mutation `m_reply_bloat`（把 v0.16 那种逐卡表格追加回回复）+ 负控 `ngen_receipt_terse`（三句话回执必须仍绿，防止闸门把正常交付也判红）。`SKILL.md` Step 7 增加『回执只写三样』的硬规则与上限表。**三场 v0.16 旧产物用新事实层复评全部判红**，正是这条闸门要抓的回潮。
 - **v0.16** — **卡面标识从「模型自觉填」变成闸门**。起因是 ADA 2026（v0.15）交付的 27 张卡 `drug` / `target` **27/27 全空**：卡头药物位渲染成 `—`，复核页左导退化成截断标题，而交付前闸门 `OK cards=27`、事实层 28/28 全绿——两项都没人管。根因不是渲染层：`clinical_result` 里**根本没有** `drug` / `target` 列（`selected_fields` 请求即 `INVALID_INPUT`），唯一结构化来源是嵌套的 `clinical_result.arms[].drugs[]`，单条 ≈5.9 KB，全量 1097 条 ≈6.4 MB 会撞工具结果上限，只能对短名单核对；所以这两个值是**判读者读标题/摘要时抽出来的**，而「模型自觉填」的字段必须设闸门，不能靠渲染层兜底（渲染层也不许现编药名）。①**`check_cards.py` 新增第 19 条 `card_identity_gate()`**：每卡 `drug` 与 `target` 必须是非空字符串；`target` 可空但只认 `editorial_overrides` 里 **`field: "target"`** 的声明（≥10 字理由），**按字段分键**——「同机制让席」这类选择理由不能顺带豁免空卡面。②**事实项 `A-P10-card-identity`**（`op_card_identity`，fail）+ mutation `m_drug_blank`（把一张卡的 `drug` 清空，卡仍然合法、仍然可溯源），事实层 29 → **30 条（29 fail + 1 warn）**，`EVALUATOR_REVISION` → `2026-11-20-r7`。③**文档去掉一句假话**：`review-protocol.md §7A` 原写「会议库已直接给出 `drug`/`target`/`moa` 字段，优先用它」——平台内没有那个库，这句话正是全空的成因，改为「必须从标题/摘要读出，写进 spec」并附 `arms` 的正确用法；`data-contract.md` 的表同步标注「结构化表没有这三列」。④`test_check_cards.py` 49 → **56 case**（含「选择理由不许豁免空靶点」反向 case），夹具补 `drug`/`target`。药名写法沿用复核页那轮的实测规则：`vs` 前的才是主角，INN 不在标题里时写 `INN (CODE)`。
 

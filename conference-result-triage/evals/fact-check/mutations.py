@@ -249,6 +249,34 @@ def m_bucket_cap(root):
     write(root, "artifacts/output/watchlist.json", w)
 
 
+def m_bucket_empty(root):
+    """Drop every failed-bucket card -- the silent hole the presence gate guards."""
+    w = read(root, "artifacts/output/watchlist.json")
+    w["cards"] = [c for c in w["cards"] if c.get("bucket") != "failed"]
+    w["count"] = len(w["cards"])
+    write(root, "artifacts/output/watchlist.json", w)
+
+
+def _shorten_to_one_per_bucket(w, per_bucket=2):
+    keep, seen = [], {}
+    for c in w["cards"]:
+        b = c.get("bucket")
+        if seen.get(b, 0) < per_bucket:
+            seen[b] = seen.get(b, 0) + 1
+            keep.append(c)
+    w["cards"] = keep
+    w["count"] = len(keep)
+
+
+def m_short_undeclared(root):
+    """Six cards, floor not declared -- indistinguishable from a lazy run."""
+    w = read(root, "artifacts/output/watchlist.json")
+    _shorten_to_one_per_bucket(w)
+    w["coverage_notes"] = [n for n in (w.get("coverage_notes") or [])
+                           if "10" not in str(n)]
+    write(root, "artifacts/output/watchlist.json", w)
+
+
 def m_count(root):
     w = read(root, "artifacts/output/watchlist.json")
     w["count"] = len(w["cards"]) + 7
@@ -570,6 +598,8 @@ MUTATIONS = [
     ("A-D3-no-direct-es", m_direct_es),
     ("A-S1-bucket-cap", m_bucket_cap),
     ("A-S2-count-field", m_count),
+    ("A-S5-bucket-presence", m_bucket_empty),
+    ("A-S6-size-floor-declared", m_short_undeclared),
     ("A-S3-buckets-legal", m_bucket),
     ("A-S4-unique-esid", m_dup),
     ("A-P1-score-integer", m_score_range),
@@ -685,6 +715,16 @@ def ngen_receipt_terse(root):
     write(root, "messages.json", msgs)
 
 
+def ngen_short_declared(root):
+    """A legally short list: two cards per bucket, floor named and explained."""
+    w = read(root, "artifacts/output/watchlist.json")
+    _shorten_to_one_per_bucket(w)
+    w.setdefault("coverage_notes", []).append(
+        "条数不足 10 条下限：本会议结果库可读记录有限，失败桶仅少量候选，"
+        "临床前与 PK 建模记录未用于补位。")
+    write(root, "artifacts/output/watchlist.json", w)
+
+
 NEGATIVES = [("legal bucket reorder", ngen_legal_reorder),
              ("heat trial titled", ngen_heat_hit),
              ("why at the length floor", ngen_why_varied),
@@ -694,6 +734,7 @@ NEGATIVES = [("legal bucket reorder", ngen_legal_reorder),
              ("search with no usable result, noted", ngen_web_empty_url_noted),
              ("17-row meeting pulled in one dump", ngen_small_corpus_single_dump),
              ("three-sentence receipt", ngen_receipt_terse),
+             ("short list with the floor declared", ngen_short_declared),
              ]
 
 

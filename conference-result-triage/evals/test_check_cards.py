@@ -105,11 +105,14 @@ NOTES = ["data_type 无明确首次/更新依据则未判定。",
 base = [card(items[0], score=60)]
 fails, _ = check_cards.check({"conference": "T", "count": 1, "cards": base,
                               "coverage_notes": NOTES}, by_esid)
-size_only = [f for f in fails if not f.startswith("size:")]
+# v0.18: a one-card fixture is deliberately short, so both floor-shaped complaints
+# (undeclared shortfall, unrepresented bucket) are expected here and checked on their
+# own below; everything else must stay silent.
+size_only = [f for f in fails if not f.startswith(("size:", "buckets:"))]
 if size_only:
     failures.append(f"clean card should pass: {size_only}")
 else:
-    print("  ok  clean card passes (only the list-size band complains)")
+    print("  ok  clean card passes (only the size / bucket floors complain)")
 
 # 2. score_parts that do not sum to score
 broken = dict(base[0], score=90)
@@ -497,6 +500,30 @@ unkeyed, _ = check_cards.card_identity_gate(
     [{"esid": base[0]["esid"], "reason": "同机制已有两张卡，这一席让给更弱的读数。"}])
 expect("identity: selection reason must not excuse a blank target", unkeyed,
        "target is empty")
+
+# v0.18 -- a bucket with candidates and no card is a claim, not an omission
+empty_failed = [c for c in base if c.get("bucket") != "failed"] or base
+pres, _ = check_cards.check({"conference": "T", "count": len(empty_failed),
+                             "cards": empty_failed,
+                             "coverage_notes": NOTES + [
+                                 "条数不足 10 条下限：本会议失败桶无可读记录。"]}, by_esid)
+expect("bucket presence: candidate-bearing bucket left empty", pres,
+       "has 1 candidate(s) but no card")
+
+# v0.18 -- a short list must name the floor it cannot meet
+undeclared, _ = check_cards.check({"conference": "T", "count": 1, "cards": base,
+                                   "coverage_notes": NOTES}, by_esid)
+expect("floor: short list without a declared shortfall", undeclared,
+       "no coverage_note declares the shortfall")
+
+declared, decl_notes = check_cards.check({"conference": "T", "count": 1, "cards": base,
+                                          "coverage_notes": NOTES + [
+                                              "条数不足 10 条下限：本会议结果库可读记录有限。"],
+                                          }, by_esid)
+if any("no coverage_note declares the shortfall" in f for f in declared):
+    failures.append("a declared shortfall should satisfy the floor rule")
+else:
+    print("  ok  floor: declared shortfall accepted")
 
 if failures:
     print(f"\nFAIL ({len(failures)}):")

@@ -21,7 +21,10 @@ Checks
   7. ``summary`` carries at least one unit-bearing number
   8. every ``%`` / ``mo`` / ``HR`` / ``ORR`` figure in summary+why appears in that
      record's own text -- the anti-fabrication gate
-  9. list size is within a sane band for a reading list
+  9. every bucket with candidates carries at least one card, and a list under the
+     10-card floor has to declare the shortfall in ``coverage_notes`` (v0.18). A
+     thin bucket is fine; a silently empty one is a claim that the conference
+     produced nothing there, which is not ours to make by omission
  10. ``score`` is a real 0-100 integer and ``score_parts`` sums to it -- the score
      is the reviewer's judgement, so this gate checks self-consistency, not merit
  11. ``coverage_notes`` states the two honest limits (``data_type`` undetermined,
@@ -89,6 +92,11 @@ from collections import Counter
 # cuts to 10. The cap lives here because an uncapped list stops being a reading list.
 PER_BUCKET_CAP = 10
 TOTAL_CAP = 30
+# v0.18: the floor is a claim about how much reading a conference can sustain, so it
+# may only be asked of a corpus that can pay it. ENA 2026 holds 17 records -> 9
+# candidates in total; "10 cards" was arithmetically unreachable, and the run that
+# told the truth (8 cards, both gaps declared) was failed by the gate, not by the data.
+MIN_TOTAL = 10
 # A "why" that is shorter than this is a label, not a judgement. 60 Chinese chars is
 # roughly two sentences -- enough for "unmet need -> what this readout changes".
 MIN_WHY_CHARS = 60
@@ -601,8 +609,32 @@ def check(payload: Dict[str, Any], by_esid: Dict[str, Dict[str, Any]],
         fails.append(f"envelope: count={payload.get('count')} != len(cards)={len(cards)}")
     if not payload.get("conference"):
         fails.append("envelope: missing conference")
-    if not 10 <= len(cards) <= TOTAL_CAP:
-        fails.append(f"size: {len(cards)} cards (expected a 10-{TOTAL_CAP} item reading list)")
+    if len(cards) > TOTAL_CAP:
+        fails.append(f"size: {len(cards)} cards (cap is {TOTAL_CAP})")
+    # v0.18: a short list is a claim about the corpus, so it has to be declared. ENA
+    # 2026 holds 17 records (14 / 2 / 1 candidates); 8 cards was the honest output and
+    # the run said so in coverage_notes -- but an undeclared short list is exactly the
+    # shape of a lazy run, and the two used to be indistinguishable here.
+    present = {str(c.get("bucket") or "") for c in cards if isinstance(c, dict)}
+    short = [] if len(cards) >= MIN_TOTAL else [
+        str(x) for x in (payload.get("coverage_notes") or [])
+        if re.search(r"(不足|低于|未达|凑不满|凑不齐|无法凑)",
+                     str(x)) and str(MIN_TOTAL) in str(x)]
+    if len(cards) < MIN_TOTAL and not short:
+        fails.append(f"size: {len(cards)} cards < {MIN_TOTAL} and no coverage_note declares "
+                     f"the shortfall (name the {MIN_TOTAL}-card floor and why the corpus "
+                     f"cannot fill it)")
+    elif len(cards) < MIN_TOTAL:
+        notes.append(f"size: {len(cards)} cards, shortfall declared in coverage_notes")
+    # v0.18: this replaces the old blanket total floor as the floor's real job. A bucket
+    # that has candidates and no card is a silent hole in the reading list -- the reader
+    # concludes the conference produced no failures, which is a claim, not an omission.
+    for b in BUCKETS:
+        n = sum(1 for it in by_esid.values()
+                if it.get("_bucket") == b and not it.get("_alias_of"))
+        if n and b not in present:
+            fails.append(f"buckets: `{b}` has {n} candidate(s) but no card -- a bucket "
+                         f"may be thin, never silently empty")
     claims = payload.get("coverage_notes")
     if not isinstance(claims, list) or not claims:
         fails.append("envelope: `coverage_notes` missing -- the two honest limits "

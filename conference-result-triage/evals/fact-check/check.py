@@ -40,7 +40,7 @@ import re
 import sys
 from typing import Dict, List
 
-EVALUATOR_REVISION = "2026-11-20-r8"
+EVALUATOR_REVISION = "2026-11-20-r9"
 
 # Presidential / late-breaking trials the X discussion concentrated on. Used by the
 # heat-coverage item, which is `warn`: the list must never be bent toward what was
@@ -931,6 +931,68 @@ def op_no_json_paste(sv, spec):
                      if big else "deliverable not pasted into the reply")
 
 
+def _pool_bucket_counts(sv):
+    out = {}
+    for bucket, body in ((sv.get("pool") or {}).get("pools") or {}).items():
+        n = 0
+        for item in (body or {}).get("items") or []:
+            esid = item.get("esid")
+            if not esid:
+                continue
+            # alias esids are the same record, already counted under their primary
+            if item.get("_alias_of"):
+                continue
+            n += 1
+        out[bucket] = n
+    return out
+
+
+def op_bucket_presence(sv, spec):
+    """Every bucket the corpus can fill must carry at least one card.
+
+    v0.18: this is the real content of the old size floor. A bucket that has
+    candidates and no card is not "a thin list", it is the claim that the conference
+    produced nothing there -- ESMO 2026 has 86 failed candidates, and a list that
+    silently drops all of them reads as if every readout worked.
+    """
+    w = sv.get("watchlist") or {}
+    cards = w.get("cards") or []
+    if not cards:
+        return False, "no cards delivered"
+    have = {str(c.get("bucket") or "") for c in cards if isinstance(c, dict)}
+    counts = _pool_bucket_counts(sv)
+    missing = [f"{b} ({n} candidate(s))" for b, n in sorted(counts.items())
+               if n and b not in have]
+    if missing:
+        return False, ("bucket(s) with candidates but no card: " + ", ".join(missing) +
+                       " -- thin is fine, silently empty is a claim")
+    return True, "every candidate-bearing bucket is represented: " + ", ".join(
+        f"{b}={n}" for b, n in sorted(counts.items()) if n)
+
+
+def op_size_floor(sv, spec):
+    """A list under the floor is legal only if the shortfall is declared.
+
+    v0.18: ENA 2026 holds 17 records (14 / 2 / 1 candidates) and the honest run
+    delivered 8 cards, saying so in coverage_notes. The floor cannot be waived by
+    arithmetic alone -- an undeclared 8-card list is also what a lazy run looks like,
+    and the JSON is what gets read next month, when nobody remembers which it was.
+    """
+    w = sv.get("watchlist") or {}
+    cards = w.get("cards") or []
+    floor = int(spec.get("min_cards", 10))
+    if len(cards) >= floor:
+        return True, f"{len(cards)} cards >= {floor}"
+    notes = [str(x) for x in (w.get("coverage_notes") or [])]
+    declared = [x for x in notes
+                if re.search(r"(不足|低于|未达|凑不满|凑不齐|无法凑)", x) and str(floor) in x]
+    if not declared:
+        return False, (f"{len(cards)} cards < {floor} and no coverage_note declares the "
+                       f"shortfall -- say which floor cannot be met and why the corpus "
+                       f"cannot fill it")
+    return True, f"{len(cards)} cards < {floor}, shortfall declared in coverage_notes"
+
+
 def op_reply_terse(sv, spec):
     """The chat reply is a receipt, not the deliverable.
 
@@ -1113,6 +1175,8 @@ OPS = {
     "numbers_traceable": op_numbers_traceable,
     "no_json_paste": op_no_json_paste,
     "reply_terse": op_reply_terse,
+    "bucket_presence": op_bucket_presence,
+    "size_floor": op_size_floor,
     "reply_mentions": op_reply_mentions,
     "lba_not_dropped": op_lba_not_dropped,
     "records_accounted": op_records_accounted,
